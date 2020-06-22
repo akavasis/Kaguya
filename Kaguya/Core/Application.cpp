@@ -2,7 +2,7 @@
 #include "Application.h"
 #include <shellapi.h>
 
-Application::Application(bool AllocateConsoleWindow)
+Application::Application()
 {
 	ThrowCOMIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -21,18 +21,8 @@ Application::Application(bool AllocateConsoleWindow)
 		CORE_ERROR("Call to CommandLineToArgvW failed");
 	}
 
-	if (AllocateConsoleWindow)
-	{
-		if (AllocConsole())
-		{
-			Log::Create();
-			CORE_INFO("Debug console allocated");
-		}
-		else
-		{
-			CORE_ERROR("Failed to allocate console window");
-		}
-	}
+	Log::Create();
+	CORE_INFO("Log::Create invoked");
 }
 
 Application::~Application()

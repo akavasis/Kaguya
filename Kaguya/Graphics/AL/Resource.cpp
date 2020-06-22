@@ -47,7 +47,7 @@ Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource
 {
 }
 
-Resource::Resource(const Device* pDevice, const Resource::Properties& Desc, D3D12_RESOURCE_STATES InitialState)
+Resource::Resource(const RenderDevice* pDevice, const Resource::Properties& Desc, D3D12_RESOURCE_STATES InitialState)
 {
 	const D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	const D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
@@ -59,7 +59,7 @@ Resource::Resource(const Device* pDevice, const Resource::Properties& Desc, D3D1
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommittedResource(&heapProperties, heapFlags, &resourceDesc, InitialState, &m_ClearValue.value_or(nullptr), IID_PPV_ARGS(&m_pResource)));
 }
 
-Resource::Resource(const Device* pDevice, const Resource::Properties& Desc, CPUAccessibleHeapType CPUAccessibleHeapType)
+Resource::Resource(const RenderDevice* pDevice, const Resource::Properties& Desc, CPUAccessibleHeapType CPUAccessibleHeapType)
 {
 	D3D12_RESOURCE_STATES initialState{};
 	D3D12_HEAP_PROPERTIES heapProperties{};
@@ -84,7 +84,7 @@ Resource::Resource(const Device* pDevice, const Resource::Properties& Desc, CPUA
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommittedResource(&heapProperties, heapFlags, &resourceDesc, initialState, &m_ClearValue.value_or(nullptr), IID_PPV_ARGS(&m_pResource)));
 }
 
-Resource::Resource(const Device* pDevice, const Resource::Properties& Desc, D3D12_RESOURCE_STATES InitialState, const Heap* pHeap, UINT64 HeapOffset)
+Resource::Resource(const RenderDevice* pDevice, const Resource::Properties& Desc, D3D12_RESOURCE_STATES InitialState, const Heap* pHeap, UINT64 HeapOffset)
 {
 	D3D12_RESOURCE_STATES initialState{};
 	const D3D12_RESOURCE_DESC resourceDesc = Desc.GetD3DResourceDesc();

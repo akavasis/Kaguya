@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Math/Transform.h"
+#include "Math/Transform.h"
 
 class Camera
 {

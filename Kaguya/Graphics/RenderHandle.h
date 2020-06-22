@@ -2,43 +2,62 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-enum HandleType
+struct RenderResourceHandle
 {
-	Buffer = 0b00,
-	Texture1D = 0b01,
-	Texture2D = 0b10,
-	Texture3D = 0b11
-};
-
-enum HandleFlag
-{
-	INACTIVE = 0b00000001,
-	DESTROY = 0b00000010
-};
-
-struct RenderHandle
-{
-	UINT64 Type : 2;
-	UINT64 Flag : 8;
-	UINT64 Data : 54;
-	bool operator==(const RenderHandle& rhs) const
+	enum Type
 	{
-		return Data == rhs.Data;
-	}
-	bool operator!=(const RenderHandle& rhs) const
+		GraphicsPSO,
+		ComputePSO,
+		RootSignature,
+
+		Buffer,
+		Texture1D,
+		Texture2D,
+		Texture3D,
+	};
+
+	enum Flag
 	{
-		return Data != rhs.Data;
-	}
+		INACTIVE = 0b00000001,
+		DESTROY = 0b00000010
+	};
+
+	UINT64 _Type : 4;
+	UINT64 _Flag : 8;
+	UINT64 Data : 52;
 };
 
-void SetRenderHandleType(RenderHandle& RenderHandle, HandleType Type)
+void SetRenderHandleType(RenderResourceHandle& RenderHandle, RenderResourceHandle::Type Type)
 {
-	RenderHandle.Type = Type;
+	RenderHandle._Type = Type;
 }
 
-void SetRenderHandleFlag(RenderHandle& RenderHandle, HandleFlag Flag)
+void SetRenderHandleFlag(RenderResourceHandle& RenderHandle, RenderResourceHandle::Flag Flag)
 {
-	RenderHandle.Flag = Flag;
+	RenderHandle._Flag = Flag;
 }
 
 #define RENDER_HANDLE_MAX_DATA_SIZE (1 << 54)
+
+namespace std
+{
+	// Source: https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x 
+	template <typename T>
+	inline void hash_combine(std::size_t& seed, const T& v)
+	{
+		std::hash<T> hasher;
+		seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+	}
+
+	template<>
+	struct hash<RenderResourceHandle>
+	{
+		std::size_t operator()(const RenderResourceHandle& renderResourceHandle) const noexcept
+		{
+			std::size_t seed = 0;
+			hash_combine(seed, renderResourceHandle._Type);
+			hash_combine(seed, renderResourceHandle.Data);
+			return seed;
+		}
+	};
+}

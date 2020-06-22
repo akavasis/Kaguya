@@ -9,7 +9,7 @@ class Application
 public:
 	using Callback = std::function<void()>;
 
-	Application(bool AllocateConsoleWindow);
+	Application();
 	~Application();
 
 	std::filesystem::path ExecutableFolderPath();

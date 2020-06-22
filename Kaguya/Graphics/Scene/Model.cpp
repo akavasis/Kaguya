@@ -35,7 +35,7 @@ Model::Model(const char* FileName, float Scale)
 		aiString aiString;
 
 		paiMaterial->Get(AI_MATKEY_NAME, aiString);
-		/*pMaterial->Name = aiString.C_Str();
+		pMaterial->Name = aiString.C_Str();
 
 		auto LoadTexture = [&](TextureType Type)
 		{
@@ -82,7 +82,7 @@ Model::Model(const char* FileName, float Scale)
 		LoadTexture(TextureType::Normal);
 		LoadTexture(TextureType::Roughness);
 		LoadTexture(TextureType::Metallic);
-		LoadTexture(TextureType::Emissive);*/
+		LoadTexture(TextureType::Emissive);
 		m_pMaterials.push_back(std::move(pMaterial));
 	}
 
@@ -497,6 +497,7 @@ std::unique_ptr<Model> Model::CreateFromMeshData(MeshData& meshData, std::string
 	// Create material
 	auto pMaterial = std::make_unique<Material>();
 	(*pMaterial.get()) = material;
+	pMaterial->Name = pModel->m_Name + "Material";
 
 	pModel->m_pMeshes.push_back(std::move(mesh));
 	pModel->m_pMaterials.push_back(std::move(pMaterial));

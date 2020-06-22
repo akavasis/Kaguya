@@ -8,6 +8,7 @@ struct aiNode;
 
 class Model
 {
+	friend class Renderer;
 public:
 	Model();
 	Model(const char* FileName, float Scale);
@@ -36,8 +37,6 @@ public:
 	static std::unique_ptr<Model> CreateGrid(float Width, float Depth, UINT M, UINT N, const Material& Material);
 	static std::unique_ptr<Model> CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions, const Material& Material);
 private:
-	friend class Renderer;
-
 	std::string m_Name;
 	std::unique_ptr<Node> m_pRootNode;
 

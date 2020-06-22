@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../Math/MathLibrary.h"
+#include "../../Math/MathLibrary.h"
 #include "Resource.h"
 
 class Buffer : public Resource
@@ -16,11 +16,11 @@ public:
 	};
 
 	template<typename T, bool UseConstantBufferAlignment>
-	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties);
+	Buffer(const RenderDevice* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties);
 	template<typename T, bool UseConstantBufferAlignment>
-	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, CPUAccessibleHeapType CPUAccessibleHeapType);
+	Buffer(const RenderDevice* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, CPUAccessibleHeapType CPUAccessibleHeapType);
 	template<typename T, bool UseConstantBufferAlignment>
-	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, const Heap* pHeap, UINT64 HeapOffset);
+	Buffer(const RenderDevice* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, const Heap* pHeap, UINT64 HeapOffset);
 	~Buffer() override;
 
 	BYTE* Map();

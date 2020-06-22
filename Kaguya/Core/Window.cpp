@@ -5,8 +5,7 @@
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-Window::Window(HINSTANCE hInstance,
-	LPCWSTR WindowName,
+Window::Window(LPCWSTR WindowName,
 	int Width, int Height,
 	int X, int Y)
 {
@@ -40,6 +39,7 @@ Window::Window(HINSTANCE hInstance,
 	}
 
 	// Register window class
+	HINSTANCE hInstance = GetModuleHandle(NULL);
 	WNDCLASSEXW windowClass = {};
 	windowClass.cbSize = sizeof(WNDCLASSEX);
 	windowClass.lpfnWndProc = Window::WindowProcedure;

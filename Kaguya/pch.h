@@ -29,10 +29,6 @@
 #include <queue>
 #include <set>
 
-// Toolkits
-#include <d3dcompiler.h>
-#pragma comment(lib, "d3dcompiler.lib")
-
 // Third parties
 #include <DirectXTex.h>
 #include "../External/imgui/imgui.h"
@@ -46,3 +42,4 @@
 
 #include "Core/Log.h"
 #include "Core/Exception.h"
+#include "Math/MathLibrary.h"

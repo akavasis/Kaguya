@@ -1,6 +1,7 @@
 #pragma once
 #include <optional>
-#include "Device.h"
+
+#include "../RenderDevice.h"
 
 enum class HeapAliasingResourceCategory
 {
@@ -15,7 +16,7 @@ enum class CPUAccessibleHeapType
 class Heap
 {
 public:
-	Heap(const Device* pDevice, UINT64 SizeInBytes, HeapAliasingResourceCategory HeapAliasingResourceCategories, std::optional<CPUAccessibleHeapType> CPUAccessibleHeapType);
+	Heap(const RenderDevice* pDevice, UINT64 SizeInBytes, HeapAliasingResourceCategory HeapAliasingResourceCategories, std::optional<CPUAccessibleHeapType> CPUAccessibleHeapType);
 	~Heap();
 
 	inline auto GetD3DHeap() const { return m_pHeap.Get(); }

@@ -1,6 +1,6 @@
 #pragma once
 #include <optional>
-#include "RenderDevice.h"
+#include "../RenderDevice.h"
 #include "Heap.h"
 
 class Resource
@@ -47,9 +47,9 @@ protected:
 		std::optional<D3D12_CLEAR_VALUE> m_ClearValue;
 		UINT m_NumSubresources;
 	};
-	Resource(const Device* pDevice, const Resource::Properties& Desc, D3D12_RESOURCE_STATES InitialState);
-	Resource(const Device* pDevice, const Resource::Properties& Desc, CPUAccessibleHeapType CPUAccessibleHeapType);
-	Resource(const Device* pDevice, const Resource::Properties& Desc, D3D12_RESOURCE_STATES InitialState, const Heap* pHeap, UINT64 HeapOffset);
+	Resource(const RenderDevice* pDevice, const Resource::Properties& Desc, D3D12_RESOURCE_STATES InitialState);
+	Resource(const RenderDevice* pDevice, const Resource::Properties& Desc, CPUAccessibleHeapType CPUAccessibleHeapType);
+	Resource(const RenderDevice* pDevice, const Resource::Properties& Desc, D3D12_RESOURCE_STATES InitialState, const Heap* pHeap, UINT64 HeapOffset);
 private:
 	std::optional<D3D12_CLEAR_VALUE> m_ClearValue = std::nullopt;
 	D3D12_RESOURCE_ALLOCATION_INFO m_ResourceAllocationInfo;

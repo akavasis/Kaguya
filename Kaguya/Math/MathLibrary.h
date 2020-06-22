@@ -56,14 +56,14 @@ namespace Math
 	DirectX::XMFLOAT4X4 Identity();
 
 	template<typename T>
-	inline T AlignUp(T Size, T Alignment)
+	constexpr T AlignUp(T Size, T Alignment)
 	{
-		return (T)(((size_t)Size + Alignment - 1) & ~(Alignment - 1));
+		return (T)(((size_t)Size + (size_t)Alignment - 1) & ~((size_t)Alignment - 1));
 	}
 
 	template<typename T>
-	inline T AlignDown(T Size, T Alignment)
+	constexpr T AlignDown(T Size, T Alignment)
 	{
-		return (T)((size_t)Size & ~(Alignment - 1));
+		return (T)((size_t)Size & ~((size_t)Alignment - 1));
 	}
 }

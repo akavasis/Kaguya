@@ -1,5 +1,11 @@
 #pragma once
-class RenderCommand
+enum class RenderCommandType
 {
+
+	NumRenderCommandTypes
 };
 
+enum class RenderCommandQueueType
+{
+
+};

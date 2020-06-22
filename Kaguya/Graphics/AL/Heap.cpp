@@ -2,7 +2,7 @@
 #include "Heap.h"
 #include "../../Math/MathLibrary.h"
 
-Heap::Heap(const Device* pDevice, UINT64 SizeInBytes, HeapAliasingResourceCategory HeapAliasingResourceCategories, std::optional<CPUAccessibleHeapType> CPUAccessibleHeapType)
+Heap::Heap(const RenderDevice* pDevice, UINT64 SizeInBytes, HeapAliasingResourceCategory HeapAliasingResourceCategories, std::optional<CPUAccessibleHeapType> CPUAccessibleHeapType)
 	: m_SizeInBytesAligned(Math::AlignUp<UINT64>(SizeInBytes, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)),
 	m_HeapAliasingResourceCategories(HeapAliasingResourceCategories),
 	m_CPUAccessibleHeapType(CPUAccessibleHeapType)
