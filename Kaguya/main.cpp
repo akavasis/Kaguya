@@ -41,18 +41,18 @@ int main(int argc, char** argv)
 		Scene scene;
 
 #if 0
-		auto helmet = std::make_unique<Model>("../../Engine/Assets/Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", 2.0f);
+		auto helmet = std::make_unique<Model>("../../Assets/Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", 2.0f);
 		helmet->Translate(0.0f, 0.0f, 10.0f);
 		helmet->Rotate(DirectX::XMConvertToRadians(-90.0f), 0.0f, 0.0f);
 		scene.AddModel(std::move(helmet));
 #endif
 
-#if 0
-		auto cerberus = std::make_unique<Model>("../../Engine/Assets/Models/Cerberus/Cerberus_LP.fbx", 0.05f);
-		cerberus->GetMaterials()[0]->Maps[TextureType::Albedo] = "../../Engine/Assets/Models/Cerberus/Textures/Cerberus_A.tga";
-		cerberus->GetMaterials()[0]->Maps[TextureType::Normal] = "../../Engine/Assets/Models/Cerberus/Textures/Cerberus_N.tga";
-		cerberus->GetMaterials()[0]->Maps[TextureType::Roughness] = "../../Engine/Assets/Models/Cerberus/Textures/Cerberus_R.tga";
-		cerberus->GetMaterials()[0]->Maps[TextureType::Metallic] = "../../Engine/Assets/Models/Cerberus/Textures/Cerberus_M.tga";
+#if 1
+		auto cerberus = std::make_unique<Model>("../../Assets/Models/Cerberus/Cerberus_LP.fbx", 0.05f);
+		cerberus->GetMaterials()[0]->Maps[TextureType::Albedo] = "../../Assets/Models/Cerberus/Textures/Cerberus_A.tga";
+		cerberus->GetMaterials()[0]->Maps[TextureType::Normal] = "../../Assets/Models/Cerberus/Textures/Cerberus_N.tga";
+		cerberus->GetMaterials()[0]->Maps[TextureType::Roughness] = "../../Assets/Models/Cerberus/Textures/Cerberus_R.tga";
+		cerberus->GetMaterials()[0]->Maps[TextureType::Metallic] = "../../Assets/Models/Cerberus/Textures/Cerberus_M.tga";
 
 		cerberus->GetMaterials()[0]->Flags |= Material::Flags::MATERIAL_FLAG_HAVE_ALBEDO_TEXTURE;
 		cerberus->GetMaterials()[0]->Flags |= Material::Flags::MATERIAL_FLAG_HAVE_NORMAL_TEXTURE;
@@ -86,12 +86,6 @@ int main(int argc, char** argv)
 		auto grid = Model::CreateGrid(100.0f, 100.0f, 10, 10, mat);
 		grid->Translate(0.0f, -10.0f, 0.0f);
 		scene.AddModel(std::move(grid));
-#endif
-
-#if 0
-		auto sponza = std::make_unique<Model>("../../Engine/Assets/Models/Sponza/sponza.obj", 0.05f);
-		sponza->SetTransform(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(90.0f)));
-		scene.AddModel(std::move(sponza));
 #endif
 
 		scene.AddPointLight(PointLight());

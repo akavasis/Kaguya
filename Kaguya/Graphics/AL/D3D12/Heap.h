@@ -8,6 +8,7 @@ class Device;
 
 enum class HeapAliasingResourceCategory
 {
+	Unknown,
 	Buffers,
 	NonRTDSTextures,
 	RTDSTextures,
@@ -30,15 +31,22 @@ public:
 		std::optional<CPUAccessibleHeapType> CPUAccessibleHeapType;
 	};
 
+	Heap() = default;
 	Heap(const Device* pDevice, const Properties& Properties);
 	~Heap();
+
+	Heap(Heap&&) = default;
+	Heap& operator=(Heap&&) = default;
+
+	Heap(const Heap&) = delete;
+	Heap& operator=(const Heap&) = delete;
 
 	inline auto GetD3DHeap() const { return m_pHeap.Get(); }
 	inline auto GetCPUAccessibleHeapType() const { return m_CPUAccessibleHeapType; }
 	inline auto GetSizeInBytesAligned() const { return m_SizeInBytesAligned; }
 private:
 	Microsoft::WRL::ComPtr<ID3D12Heap> m_pHeap;
-	UINT64 m_SizeInBytesAligned;
-	HeapAliasingResourceCategory m_HeapAliasingResourceCategories;
-	std::optional<CPUAccessibleHeapType> m_CPUAccessibleHeapType;
+	UINT64 m_SizeInBytesAligned = 0;
+	HeapAliasingResourceCategory m_HeapAliasingResourceCategories = HeapAliasingResourceCategory::Unknown;
+	std::optional<CPUAccessibleHeapType> m_CPUAccessibleHeapType = std::nullopt;
 };

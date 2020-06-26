@@ -101,7 +101,7 @@ RootSignature::~RootSignature()
 	m_RootSignatureDesc.NumStaticSamplers = 0;
 }
 
-std::bitset<32> RootSignature::GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType) const
+std::bitset<RootSignature::MaxDescriptorTables> RootSignature::GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType) const
 {
 	switch (DescriptorHeapType)
 	{

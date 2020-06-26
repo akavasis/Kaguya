@@ -1,9 +1,8 @@
 #pragma once
+#include "../RenderResourceHandle.h"
 
 class RenderGraph;
 class IRenderPass;
-
-#include "RenderResourceHandle.h"
 
 class RenderGraphBuilder
 {
@@ -15,5 +14,4 @@ public:
 private:
 	RenderGraph* m_pRenderGraph;
 	IRenderPass* m_pRenderPass;
-private:
 };

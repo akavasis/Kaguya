@@ -265,7 +265,7 @@ void Model::RenderImGuiWindow()
 
 std::unique_ptr<Model> Model::CreateSphereFromFile(const Material& material)
 {
-	auto pModel = std::make_unique<Model>("../../Engine/Assets/Models/Sphere/Sphere.obj", 1.0f);
+	auto pModel = std::make_unique<Model>("../../Assets/Models/Sphere/Sphere.obj", 1.0f);
 	pModel->m_pMeshes[0]->MaterialIndex = 0;
 	*pModel->m_pMaterials[0].get() = material;
 	return pModel;

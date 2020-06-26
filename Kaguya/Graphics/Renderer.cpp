@@ -41,7 +41,6 @@ struct ObjectConstantsCPU
 {
 	DirectX::XMFLOAT4X4 World;
 };
-//constexpr UINT ObjectConstantsCPUSize = Math::AlignUp<UINT>(sizeof(ObjectConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
 struct MaterialDataCPU
 {
@@ -52,7 +51,6 @@ struct MaterialDataCPU
 	int Flags;
 	DirectX::XMFLOAT3 _padding;
 };
-//constexpr UINT MaterialDataCPUSize = Math::AlignUp<UINT>(sizeof(MaterialDataCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
 struct RenderPassConstantsCPU
 {
@@ -93,34 +91,9 @@ Renderer::Renderer(Window& Window)
 
 	m_AspectRatio = static_cast<float>(m_Window.GetWindowWidth()) / static_cast<float>(m_Window.GetWindowHeight());
 
-	ShaderManager& shaderManager = m_RenderDevice.GetShaderManager();
-	// Load VS
-	shaderManager.AddShader(VS::VS_Quad, L"../../Engine/Shaders/Quad_VS.hlsl", L"main", {});
-	shaderManager.AddShader(VS::VS_Default, L"../../Engine/Shaders/Default_VS.hlsl", L"main", {});
-	shaderManager.AddShader(VS::VS_Sky, L"../../Engine/Shaders/Sky_VS.hlsl", L"main", {});
-	shaderManager.AddShader(VS::VS_Shadow, L"../../Engine/Shaders/Shadow_VS.hlsl", L"main", {});
-	// Load CS
-	shaderManager.AddShader(CS::CS_HorizontalBlur, L"../../Engine/Shaders/HorizontalBlur_CS.hlsl", L"main", {});
-	shaderManager.AddShader(CS::CS_VerticalBlur, L"../../Engine/Shaders/VerticalBlur_CS.hlsl", L"main", {});
-	shaderManager.AddShader(CS::CS_Sobel, L"../../Engine/Shaders/Sobel_CS.hlsl", L"main", {});
-	shaderManager.AddShader(CS::CS_EquirectangularToCubeMap, L"../../Engine/Shaders/EquirectangularToCubeMap_CS.hlsl", L"main", {});
-	shaderManager.AddShader(CS::CS_GenerateMips, L"../../Engine/Shaders/GenerateMips_CS.hlsl", L"main", {});
-	// Load PS
-	shaderManager.AddShader(PS::PS_BlinnPhong, L"../../Engine/Shaders/BlinnPhong_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_PBR, L"../../Engine/Shaders/PBR_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_Sepia, L"../../Engine/Shaders/Sepia_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_SobelComposite, L"../../Engine/Shaders/SobelComposite_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_BloomMask, L"../../Engine/Shaders/BloomMask_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_BloomComposite, L"../../Engine/Shaders/BloomComposite_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_ToneMapping, L"../../Engine/Shaders/ToneMapping_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_Sky, L"../../Engine/Shaders/Sky_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_IrradianceConvolution, L"../../Engine/Shaders/IrradianceConvolution_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_PrefilterConvolution, L"../../Engine/Shaders/PrefilterConvolution_PS.hlsl", L"main", {});
-	shaderManager.AddShader(PS::PS_BRDFIntegration, L"../../Engine/Shaders/BRDFIntegration_PS.hlsl", L"main", {});
-
 	std::future<void> voidFuture = std::async(std::launch::async, &Renderer::RegisterRendererResources, this);
 	// Create swap chain after command objects have been created
-	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue().GetD3DCommandQueue(), m_Window, RendererFormats::SwapChainBufferFormat, SwapChainBufferCount);
+	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue(), m_Window, RendererFormats::SwapChainBufferFormat, SwapChainBufferCount);
 
 	// Init imgui
 	m_ImGuiManager.Initialize();
@@ -131,7 +104,7 @@ Renderer::Renderer(Window& Window)
 		ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 		m_BackBufferTexture[i] = Texture(pBackBuffer);
-		m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(&m_BackBufferTexture[i], ResourceStates::Common);
+		m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(m_BackBufferTexture[i].GetD3DResource(), D3D12_RESOURCE_STATE_COMMON);
 	}
 
 	Texture::Properties textureProp{};
@@ -142,19 +115,19 @@ Renderer::Renderer(Window& Window)
 	textureProp.DepthOrArraySize = 1;
 	textureProp.MipLevels = 1;
 	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	textureProp.InitialState = ResourceStates::RenderTarget;
+	textureProp.InitialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::HDRBufferFormat, DirectX::Colors::LightBlue);
 	m_FrameBuffer = m_RenderDevice.CreateTexture(textureProp);
 
 	textureProp.Format = RendererFormats::DepthStencilFormat;
 	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-	textureProp.InitialState = ResourceStates::DepthWrite;
+	textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0);
 	m_FrameDepthStencilBuffer = m_RenderDevice.CreateTexture(textureProp);
 
 	Buffer::Properties<RenderPassConstantsCPU, true> bufferProp{};
 	bufferProp.NumElements = 1;
-	m_RenderPassCBs = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload);
+	m_RenderPassCBs = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
 
 	CreatePostProcessChain();
 
@@ -193,11 +166,14 @@ Renderer::Renderer(Window& Window)
 	auto shadowRP = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowRenderPassData>("Shadow render pass",
 		[](ShadowRenderPassData& Data, RenderDevice& RenderDevice)
 	{
+		RenderDevice.Destroy(Data.pUploadBuffer);
+		RenderDevice.Destroy(Data.pOutputDepthBuffer);
+
 		Data.Resolution = 2048;
 
 		Buffer::Properties<ShadowPassConstantsCPU, true> bufferProp{};
 		bufferProp.NumElements = NumCascades;
-		Data.pUploadBuffer = RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload);
+		Data.pUploadBuffer = RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
 
 		Texture::Properties textureProp{};
 		textureProp.Type = Resource::Type::Texture2D;
@@ -207,7 +183,7 @@ Renderer::Renderer(Window& Window)
 		textureProp.DepthOrArraySize = NumCascades;
 		textureProp.MipLevels = 1;
 		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		textureProp.InitialState = ResourceStates::DepthWrite;
+		textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
 		Data.pOutputDepthBuffer = RenderDevice.CreateTexture(textureProp);
 
@@ -227,7 +203,7 @@ Renderer::Renderer(Window& Window)
 
 		Data.Lambda = 0.5f;
 	},
-		[=](const ShadowRenderPassData& Data, RenderDevice& RenderDevice)
+		[=](const ShadowRenderPassData& Data, RenderGraphRegistry& RenderGraphRegistry, CommandList& CommandList)
 	{
 		using namespace DirectX;
 
@@ -357,57 +333,54 @@ Renderer::Renderer(Window& Window)
 			ShadowPassConstantsCPU cascadeShadowPass;
 			XMStoreFloat4x4(&cascadeShadowPass.ViewProjection, XMMatrixTranspose(CascadeCameras[cascadeIndex].ViewProjectionMatrix()));
 
-			auto rawBufferPtr = RenderDevice.GetBuffer(Data.pUploadBuffer);
+			auto rawBufferPtr = RenderGraphRegistry.GetBuffer(Data.pUploadBuffer);
 			rawBufferPtr->Map();
 			rawBufferPtr->Update<ShadowPassConstantsCPU>(cascadeIndex, cascadeShadowPass);
 		}
 
-		//// Begin rendering
-		//PIXMarker pixmarker(m_pDirectCommandList->D3DCommandList(), L"Scene Cascade Shadow Map Render");
+		// Begin rendering
+		PIXMarker pixmarker(CommandList.GetD3DCommandList(), L"Scene Cascade Shadow Map Render");
 
-		//auto pso = GraphicsPSORegistry::Instance().Query(GraphicsPSOs::Shadow);
-		//auto rs = RootSignatureRegistry::Instance().Query(RootSignatures::Shadow);
-		//m_pDirectCommandList->SetPipelineState(pso);
-		//m_pDirectCommandList->SetGraphicsRootSignature(*rs);
+		CommandList.SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Shadow));
+		CommandList.SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Shadow));
 
-		//RenderTarget rt;
-		//rt.Attach(DepthStencil, Data.pOutputDepthBuffer->Type());
-		//m_pDirectCommandList->RSSetViewports(1, &rt.Viewport());
-		//m_pDirectCommandList->RSSetScissorRects(1, &rt.ScissorRect());
+		CommandList.RSSetViewports(1, &CD3DX12_VIEWPORT(RenderGraphRegistry.GetTexture(Data.pOutputDepthBuffer)->GetD3DResource()));
+		CommandList.RSSetScissorRects(1, &CD3DX12_RECT(0, 0, Data.Resolution, Data.Resolution));
 
-		//for (UINT cascadeIndex = 0; cascadeIndex < NumCascades; ++cascadeIndex)
-		//{
-		//	const OrthographicCamera& CascadeCamera = CascadeCameras[cascadeIndex];
-		//	PIXMarker pixmarker(m_pDirectCommandList->D3DCommandList(), std::wstring(L"Cascade Shadow Map " + std::to_wstring(cascadeIndex)).data());
+		for (UINT cascadeIndex = 0; cascadeIndex < NumCascades; ++cascadeIndex)
+		{
+			const OrthographicCamera& CascadeCamera = CascadeCameras[cascadeIndex];
+			PIXMarker pixmarker(CommandList.GetD3DCommandList(), std::wstring(L"Cascade Shadow Map " + std::to_wstring(cascadeIndex)).data());
 
-		//	m_pDirectCommandList->SetGraphicsRootConstantBufferView(1, Data.pUploadBuffer->Type()->BufferLocationAt(cascadeIndex));
+			CommandList.SetGraphicsRootCBV(1, RenderGraphRegistry.GetBuffer(Data.pUploadBuffer)->GetBufferLocationAt(cascadeIndex));
 
-		//	m_pDirectCommandList->OMSetRenderTargets(rt, -1, -1, cascadeIndex, 0);
-		//	m_pDirectCommandList->ClearDepthStencilView(Data.pOutputDepthBuffer->Type()->DSV(cascadeIndex, 0),
-		//		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-		//		1.0f, 0,
-		//		0, nullptr);
+			/*CommandList.OMSetRenderTargets(rt, -1, -1, cascadeIndex, 0);
+			CommandList.ClearDepthStencilView(Data.pOutputDepthBuffer->Type()->DSV(cascadeIndex, 0),
+				D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+				1.0f, 0,
+				0, nullptr);*/
 
-		//	const UINT numVisibleModels = CullModelsOrthographic(CascadeCamera, true, m_pScene->Models, m_VisibleModelsIndices);
-		//	for (UINT i = 0; i < numVisibleModels; ++i)
-		//	{
-		//		const UINT modelIndex = m_VisibleModelsIndices[i];
-		//		Model* pModel = m_pScene->Models[modelIndex].get();
-		//		const UINT numVisibleMeshes = CullMeshesOrthographic(CascadeCamera, true, pModel->GetMeshes(), m_VisibleMeshesIndices[modelIndex]);
+			const UINT numVisibleModels = CullModelsOrthographic(CascadeCamera, true, m_pScene->Models, m_VisibleModelsIndices);
+			for (UINT i = 0; i < numVisibleModels; ++i)
+			{
+				const UINT modelIndex = m_VisibleModelsIndices[i];
+				Model* pModel = m_pScene->Models[modelIndex].get();
+				const UINT numVisibleMeshes = CullMeshesOrthographic(CascadeCamera, true, pModel->GetMeshes(), m_VisibleMeshesIndices[modelIndex]);
 
-		//		m_pDirectCommandList->IASetVertexBuffers(0, 1, &pModel->m_pVertexBuffer);
-		//		m_pDirectCommandList->IASetIndexBuffer(pModel->m_pIndexBuffer);
-		//		for (UINT j = 0; j < numVisibleMeshes; ++j)
-		//		{
-		//			const UINT meshIndex = m_VisibleMeshesIndices[modelIndex][j];
-		//			Mesh* pMesh = pModel->GetMeshes()[meshIndex].get();
-		//			Material* pMeshMaterial = pModel->GetMaterials()[pMesh->MaterialIndex].get();
+				Buffer* pVBs[] = { RenderGraphRegistry.GetBuffer(pModel->m_VertexBuffer) };
+				CommandList.IASetVertexBuffers(0, 1, pVBs);
+				CommandList.IASetIndexBuffer(RenderGraphRegistry.GetBuffer(pModel->m_IndexBuffer));
+				for (UINT j = 0; j < numVisibleMeshes; ++j)
+				{
+					const UINT meshIndex = m_VisibleMeshesIndices[modelIndex][j];
+					Mesh* pMesh = pModel->GetMeshes()[meshIndex].get();
+					Material* pMeshMaterial = pModel->GetMaterials()[pMesh->MaterialIndex].get();
 
-		//			m_pDirectCommandList->SetGraphicsRootConstantBufferView(0, pModel->m_pObjectCBs->BufferLocationAt(meshIndex));
-		//			m_pDirectCommandList->DrawIndexedInstanced(pMesh->IndexCount, 1, pMesh->StartIndexLocation, pMesh->BaseVertexLocation, 0);
-		//		}
-		//	}
-		//}
+					CommandList.SetGraphicsRootCBV(0, RenderGraphRegistry.GetBuffer(pModel->m_ObjectCBs)->GetBufferLocationAt(meshIndex));
+					CommandList.DrawIndexedInstanced(pMesh->IndexCount, 1, pMesh->StartIndexLocation, pMesh->BaseVertexLocation, 0);
+				}
+			}
+		}
 	});
 
 	//struct SceneRenderPassData
@@ -635,8 +608,10 @@ void Renderer::SetActiveCamera(Camera* pCamera)
 
 void Renderer::SetActiveScene(Scene* pScene)
 {
+	std::vector<RenderResourceHandle> stagingBuffers;
+
 	m_pScene = pScene;
-	/*m_pDirectCommandList->Reset(nullptr);
+	m_UploadCommandList.Reset(nullptr);
 	{
 		m_VisibleModelsIndices.resize(m_pScene->Models.size());
 
@@ -645,16 +620,43 @@ void Renderer::SetActiveScene(Scene* pScene)
 			Model* pCurrentModel = m_pScene->Models[i].get();
 			m_VisibleMeshesIndices[i].resize(pCurrentModel->GetMeshes().size());
 
-			RenderDevice::Instance().CreateVertexBuffer(pCurrentModel->GetVertices().size(), sizeof(Vertex), &pCurrentModel->m_pVertexBuffer);
-			m_pDirectCommandList->CopyVertexBufferSubresource(pCurrentModel->GetVertices().data(), pCurrentModel->m_pVertexBuffer);
+			{
+				Buffer::Properties<Vertex, false> vbProp{};
+				vbProp.NumElements = pCurrentModel->GetVertices().size();
+				vbProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
 
-			RenderDevice::Instance().CreateIndexBuffer(pCurrentModel->GetIndices().size(), DXGI_FORMAT_R32_UINT, &pCurrentModel->m_pIndexBuffer);
-			m_pDirectCommandList->CopyIndexBufferSubresource(pCurrentModel->GetIndices().data(), pCurrentModel->m_pIndexBuffer);
+				pCurrentModel->m_VertexBuffer = m_RenderDevice.CreateBuffer(vbProp);
+				RenderResourceHandle vbStagingBuffer = m_RenderDevice.CreateBuffer(vbProp, CPUAccessibleHeapType::Upload, pCurrentModel->GetVertices().data());
+				stagingBuffers.push_back(vbStagingBuffer);
 
-			RenderDevice::Instance().CreateUploadBuffer(pCurrentModel->GetMeshes().size(), ObjectConstantsCPUSize, &pCurrentModel->m_pObjectCBs);
-			RenderDevice::Instance().CreateUploadBuffer(pCurrentModel->GetMaterials().size(), MaterialDataCPUSize, &pCurrentModel->m_pMaterialCBs);
+				m_UploadCommandList.CopyResource(m_RenderDevice.GetBuffer(pCurrentModel->m_VertexBuffer), m_RenderDevice.GetBuffer(vbStagingBuffer));
+			}
 
-			for (size_t j = 0, materialSize = pCurrentModel->m_pMaterials.size(); j < materialSize; ++j)
+			{
+				Buffer::Properties<unsigned int, false> ibProp{};
+				ibProp.NumElements = pCurrentModel->GetIndices().size();
+				ibProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
+
+				pCurrentModel->m_IndexBuffer = m_RenderDevice.CreateBuffer(ibProp);
+				RenderResourceHandle ibStagingBuffer = m_RenderDevice.CreateBuffer(ibProp, CPUAccessibleHeapType::Upload, pCurrentModel->GetIndices().data());
+				stagingBuffers.push_back(ibStagingBuffer);
+
+				m_UploadCommandList.CopyResource(m_RenderDevice.GetBuffer(pCurrentModel->m_IndexBuffer), m_RenderDevice.GetBuffer(ibStagingBuffer));
+			}
+
+			{
+				Buffer::Properties<ObjectConstantsCPU, true> ubProp{};
+				ubProp.NumElements = pCurrentModel->GetMeshes().size();
+				pCurrentModel->m_ObjectCBs = m_RenderDevice.CreateBuffer(ubProp, CPUAccessibleHeapType::Upload, nullptr);
+			}
+
+			{
+				Buffer::Properties<MaterialDataCPU, true> ubProp{};
+				ubProp.NumElements = pCurrentModel->GetMaterials().size();
+				pCurrentModel->m_MaterialCBs = m_RenderDevice.CreateBuffer(ubProp, CPUAccessibleHeapType::Upload, nullptr);
+			}
+
+			/*for (size_t j = 0, materialSize = pCurrentModel->m_pMaterials.size(); j < materialSize; ++j)
 			{
 				Material* pCurrentMaterial = pCurrentModel->GetMaterials()[j].get();
 
@@ -714,14 +716,16 @@ void Renderer::SetActiveScene(Scene* pScene)
 				LoadTexture(TextureType::Roughness);
 				LoadTexture(TextureType::Metallic);
 				LoadTexture(TextureType::Emissive);
-			}
+			}*/
 		}
 	}
-	m_pDirectQueue->Execute();
-
-	m_pDirectQueue->Signal();
-	m_pDirectQueue->Flush();
-	m_pDirectCommandList->DisposeIntermediates();*/
+	CommandList* pCommandLists[] = { &m_UploadCommandList };
+	m_RenderDevice.GetGraphicsQueue()->Execute(1, pCommandLists, &m_RenderDevice.GetGlobalResourceStateTracker());
+	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
+	for (auto renderHandle : stagingBuffers)
+	{
+		m_RenderDevice.Destroy(renderHandle);
+	}
 }
 
 void Renderer::Update(const Time& Time)
@@ -933,7 +937,7 @@ void Renderer::RenderImGuiWindow()
 
 void Renderer::Resize()
 {
-	m_RenderDevice.GetGraphicsQueue().WaitForIdle();
+	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
 	{
 		m_AspectRatio = static_cast<float>(m_Window.GetWindowWidth()) / static_cast<float>(m_Window.GetWindowHeight());
 		SetActiveCamera(m_pCamera);
@@ -948,7 +952,7 @@ void Renderer::Resize()
 		for (UINT i = 0; i < SwapChainBufferCount; ++i)
 		{
 			Nodes[i] = NodeMask;
-			Queues[i] = m_RenderDevice.GetGraphicsQueue().GetD3DCommandQueue();
+			Queues[i] = m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue();
 		}
 		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(SwapChainBufferCount, m_Window.GetWindowWidth(), m_Window.GetWindowHeight(), RendererFormats::SwapChainBufferFormat,
 			m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH, Nodes, Queues));
@@ -958,11 +962,11 @@ void Renderer::Resize()
 			ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 			m_BackBufferTexture[i] = Texture(pBackBuffer);
-			m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(&m_BackBufferTexture[i], ResourceStates::Common);
+			m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(m_BackBufferTexture[i].GetD3DResource(), D3D12_RESOURCE_STATE_COMMON);
 		}
 	}
 	// Wait until resize is complete.
-	m_RenderDevice.GetGraphicsQueue().WaitForIdle();
+	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
 }
 
 void Renderer::CreatePostProcessChain()
@@ -1070,8 +1074,6 @@ void Renderer::Skybox::LoadFromFile(const char* FileName, CommandList* pCommandL
 
 void Renderer::Skybox::GenerateConvolutionCubeMaps(CommandList* pCommandList)
 {
-	assert(RadianceTexture != nullptr);
-
 	//for (int i = 0; i < CubemapConvolution::CubemapConvolution_Count; ++i)
 	//{
 	//	const DXGI_FORMAT format = i == CubemapConvolution::Irradiance ? RendererFormats::IrradianceFormat : RendererFormats::PrefilterFormat;

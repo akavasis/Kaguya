@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "RenderGraphBuilder.h"
 
 RenderGraphBuilder::RenderGraphBuilder(RenderGraph* pRenderGraph, IRenderPass* pRenderPass)

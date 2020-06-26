@@ -3,6 +3,12 @@
 using Microsoft::WRL::ComPtr;
 
 Device::Device(IUnknown* pAdapter)
+	: m_CBVAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+	m_SRVAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+	m_UAVAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+	m_RTVAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
+	m_DSVAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
+	m_SamplerAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 {
 #if defined(_DEBUG)
 	const BOOL gpuBasedValidation = FALSE;

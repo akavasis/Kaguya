@@ -1,6 +1,6 @@
 #pragma once
-#include "../../../Math/MathLibrary.h"
 #include "Resource.h"
+#include "../../../Math/MathLibrary.h"
 
 class Buffer : public Resource
 {
@@ -13,14 +13,14 @@ public:
 		D3D12_RESOURCE_FLAGS Flags;
 
 		// Ignored if this is created with CPUAccessibleHeapType
-		ResourceStates InitialState;
+		D3D12_RESOURCE_STATES InitialState;
 	};
 
 	Buffer() = default;
 	template<typename T, bool UseConstantBufferAlignment>
 	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties);
 	template<typename T, bool UseConstantBufferAlignment>
-	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, CPUAccessibleHeapType CPUAccessibleHeapType);
+	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData /*pData is optional for upload vb and ib data*/);
 	template<typename T, bool UseConstantBufferAlignment>
 	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, const Heap* pHeap, UINT64 HeapOffset);
 	~Buffer() override;
@@ -37,6 +37,11 @@ public:
 	BYTE* Map();
 	void Unmap();
 
+	D3D12_GPU_VIRTUAL_ADDRESS GetBufferLocationAt(INT Index)
+	{
+		assert(Index >= 0 && Index < m_NumElements && "Index is out of range in Buffer");
+		return UINT64(INT64(m_pResource->GetGPUVirtualAddress()) + INT64(Index) * INT64(m_Stride));
+	}
 	template<typename T>
 	void Update(UINT ElementIndex, const T& Data);
 private:

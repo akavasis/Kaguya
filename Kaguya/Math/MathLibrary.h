@@ -67,3 +67,20 @@ namespace Math
 		return (T)((size_t)Size & ~((size_t)Alignment - 1));
 	}
 }
+
+// Returns radians
+constexpr float operator"" _Deg(long double Degrees)
+{
+	return DirectX::XMConvertToRadians(static_cast<float>(Degrees));
+}
+
+// Returns degrees
+constexpr float operator"" _Rad(long double Radians)
+{
+	return DirectX::XMConvertToDegrees(static_cast<float>(Radians));
+}
+
+constexpr std::size_t operator"" _Kb(std::size_t Byte)
+{
+	return Byte << 10;
+}

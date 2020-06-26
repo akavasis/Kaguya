@@ -77,6 +77,7 @@ private:
 
 	RenderDevice m_RenderDevice;
 	RenderGraph m_RenderGraph;
+	CommandList m_UploadCommandList;
 
 	// Swapchain resources
 	float m_AspectRatio;
@@ -104,13 +105,14 @@ private:
 	struct Skybox
 	{
 		Mesh Mesh;
-		Texture* RadianceTexture;
+		RenderResourceHandle RadianceTexture;
+		RenderResourceHandle IrradianceTexture;
+		RenderResourceHandle PrefilterdTexture;
+		RenderResourceHandle BRDFLUT;
+
 		D3D12_SHADER_RESOURCE_VIEW_DESC RadianceSRVDesc;
-		Texture* IrradianceTexture;
 		D3D12_SHADER_RESOURCE_VIEW_DESC IrradianceSRVDesc;
-		Texture* PrefilterdTexture;
 		D3D12_SHADER_RESOURCE_VIEW_DESC PrefilterdSRVDesc;
-		Texture* BRDFLUT;
 		D3D12_SHADER_RESOURCE_VIEW_DESC BRDFLUTSRVDesc;
 
 		RenderResourceHandle VertexBuffer;

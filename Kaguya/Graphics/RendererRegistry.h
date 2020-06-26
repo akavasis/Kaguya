@@ -98,6 +98,35 @@ struct RootParameters
 	};
 };
 
+struct Shaders
+{
+	static RenderResourceHandle VS_Default;
+	static RenderResourceHandle VS_Quad;
+	static RenderResourceHandle VS_Sky;
+	static RenderResourceHandle VS_Shadow;
+
+	static RenderResourceHandle PS_Default;
+	static RenderResourceHandle PS_BlinnPhong;
+	static RenderResourceHandle PS_PBR;
+	static RenderResourceHandle PS_Sepia;
+	static RenderResourceHandle PS_SobelComposite;
+	static RenderResourceHandle PS_BloomMask;
+	static RenderResourceHandle PS_BloomComposite;
+	static RenderResourceHandle PS_ToneMapping;
+	static RenderResourceHandle PS_Sky;
+	static RenderResourceHandle PS_IrradianceConvolution;
+	static RenderResourceHandle PS_PrefilterConvolution;
+	static RenderResourceHandle PS_BRDFIntegration;
+
+	static RenderResourceHandle CS_HorizontalBlur;
+	static RenderResourceHandle CS_VerticalBlur;
+	static RenderResourceHandle CS_Sobel;
+	static RenderResourceHandle CS_EquirectangularToCubeMap;
+	static RenderResourceHandle CS_GenerateMips;
+
+	static void Register(RenderDevice* pDevice);
+};
+
 struct RootSignatures
 {
 	static RenderResourceHandle Shadow;

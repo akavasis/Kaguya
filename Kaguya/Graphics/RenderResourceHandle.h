@@ -17,6 +17,8 @@ struct RenderResourceHandle
 	{
 		Unknown,
 
+		Shader,
+
 		Buffer,
 		Texture,
 

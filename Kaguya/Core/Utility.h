@@ -86,7 +86,7 @@ struct EnableBitMaskOperators<x>							\
 	static const bool enable = true;						\
 };															\
 															\
-inline bool constexpr EnumMaskBitSet(x mask, x component)	\
+inline bool EnumMaskBitSet(x mask, x component)				\
 {															\
     return (mask & component) == component;					\
 }

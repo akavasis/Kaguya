@@ -8,7 +8,6 @@
 #include <bitset>
 
 class Device;
-class CommandList;
 class RootSignature;
 
 class DynamicDescriptorHeap
@@ -18,13 +17,17 @@ public:
 
 	void StageDescriptors(UINT RootParameterIndex, UINT Offset, UINT NumDescriptors, const D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptor);
 
-	void CommitStagedDescriptorsForDraw(CommandList* pCommandList);
-	void CommitStagedDescriptorsForDispatch(CommandList* pCommandList);
+	void CommitStagedDescriptorsForDraw(ID3D12GraphicsCommandList* pCommandList);
+	void CommitStagedDescriptorsForDispatch(ID3D12GraphicsCommandList* pCommandList);
 
-	void ParseRootSignature(const RootSignature& RootSignature);
+	void ParseRootSignature(const RootSignature* RootSignature);
 
 	void Reset();
 private:
+
+	ID3D12DescriptorHeap* QueryDescriptorHeap();
+	void CommitStagedDescriptors(ID3D12GraphicsCommandList* pCommandList, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> SetFunction);
+
 	enum : UINT { NumDescriptorsPerHeap = 2048 };
 	enum : UINT { MaxDescriptorTables = 32 };
 	const Device* m_pDevice;
@@ -55,7 +58,4 @@ private:
 		D3D12_CPU_DESCRIPTOR_HANDLE* BaseDescriptor;
 	} m_DescriptorTableCache[MaxDescriptorTables];
 	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> m_DescriptorHandleCache;
-
-	ID3D12DescriptorHeap* QueryDescriptorHeap();
-	void CommitStagedDescriptors(CommandList* pCommandList, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> SetFunction);
 };

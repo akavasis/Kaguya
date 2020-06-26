@@ -64,7 +64,7 @@ void CommandQueue::WaitForFenceValue(UINT64 FenceValue)
 
 void CommandQueue::WaitForIdle()
 {
-	// NOTE: There is a known debug layer bug which can cause problems if you Present without rendering.
+	// NOTE: There is a known debug layer bug which can cause problems if you call IDXGISwapChain::Present without rendering.
 	WaitForFenceValue(Signal());
 }
 
@@ -74,7 +74,7 @@ ID3D12CommandAllocator* CommandQueue::RequestAllocator()
 	return m_AllocatorPool.RequestAllocator(CompletedFence);
 }
 
-void CommandQueue::DiscardAllocator(UINT64 FenceValueForReset, ID3D12CommandAllocator* Allocator)
+void CommandQueue::MarkAllocatorAsActive(UINT64 FenceValueForReset, ID3D12CommandAllocator* Allocator)
 {
 	m_AllocatorPool.MarkAllocatorAsActive(FenceValueForReset, Allocator);
 }
@@ -89,16 +89,16 @@ void CommandQueue::Execute(UINT NumCommandLists, CommandList* const* ppCommandLi
 
 	for (UINT i = 0; i < NumCommandLists; ++i)
 	{
-		//CommandList* pPendingCmdList = m_PendingCommandLists[cmdListIndex].get();
-		//CommandList* pCmdList = m_CommandLists[cmdListIndex].get();
+		/*CommandList* pPendingCmdList = m_PendingCommandLists[cmdListIndex].get();
+		CommandList* pCmdList = m_CommandLists[cmdListIndex].get();
 
-		//pPendingCmdList->Reset();
-		//bool havePendingBarriers = pCmdList->Close(pPendingCmdList, pGlobalResourceStateTracker);
-		//if (havePendingBarriers)
-		//{
-		//	pCommandListsToBeExecuted[numCommandLists++] = pPendingCmdList->GetD3DCommandList();
-		//}
-		//pCommandListsToBeExecuted[numCommandLists++] = pCmdList->GetD3DCommandList();
+		pPendingCmdList->Reset();
+		bool havePendingBarriers = pCmdList->Close(pPendingCmdList, pGlobalResourceStateTracker);
+		if (havePendingBarriers)
+		{
+			pCommandListsToBeExecuted[numCommandLists++] = pPendingCmdList->GetD3DCommandList();
+		}
+		pCommandListsToBeExecuted[numCommandLists++] = pCmdList->GetD3DCommandList();*/
 	}
 	m_pCommandQueue->ExecuteCommandLists(numCommandLists, pCommandListsToBeExecuted.data());
 }

@@ -2,6 +2,8 @@
 #include "Node.h"
 #include "Material.h"
 
+#include "../RenderResourceHandle.h"
+
 struct aiScene;
 struct aiMaterial;
 struct aiNode;
@@ -45,6 +47,11 @@ private:
 
 	std::vector<std::unique_ptr<Mesh>> m_pMeshes;
 	std::vector<std::unique_ptr<Material>> m_pMaterials;
+
+	RenderResourceHandle m_ObjectCBs;
+	RenderResourceHandle m_MaterialCBs;
+	RenderResourceHandle m_VertexBuffer;
+	RenderResourceHandle m_IndexBuffer;
 
 	std::unique_ptr<Node> ParseNode(INT& ID, const aiNode* paiNode);
 	// Used for ImGui 

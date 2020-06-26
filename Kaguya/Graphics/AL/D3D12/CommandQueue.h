@@ -4,7 +4,7 @@
 
 #include <mutex>
 
-#include "CommandAllocator.h"
+#include "CommandAllocatorPool.h"
 
 class CommandList;
 class ResourceStateTracker;
@@ -24,7 +24,7 @@ public:
 	void WaitForIdle();
 
 	ID3D12CommandAllocator* RequestAllocator();
-	void DiscardAllocator(UINT64 FenceValue, ID3D12CommandAllocator* Allocator);
+	void MarkAllocatorAsActive(UINT64 FenceValue, ID3D12CommandAllocator* Allocator);
 
 	void Execute(UINT NumCommandLists, CommandList* const* ppCommandLists, ResourceStateTracker* pGlobalResourceStateTracker);
 private:
