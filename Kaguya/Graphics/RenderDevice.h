@@ -31,9 +31,12 @@ public:
 	[[nodiscard]] inline CommandQueue* GetComputeQueue() { return &m_ComputeQueue; }
 	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
 
-	[[nodiscard]] RenderResourceHandle LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
+	[[nodiscard]] RenderCommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE Type);
+	void ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* pRenderCommandContexts[]);
 
 	// Resource creation
+	[[nodiscard]] RenderResourceHandle LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
+
 	template<typename T, bool UseConstantBufferAlignment>
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties<T, UseConstantBufferAlignment>& Properties);
 	template<typename T, bool UseConstantBufferAlignment>
@@ -67,6 +70,8 @@ private:
 	CommandQueue m_GraphicsQueue;
 	CommandQueue m_ComputeQueue;
 	CommandQueue m_CopyQueue;
+
+	std::vector<std::unique_ptr<RenderCommandContext>> m_RenderCommandContexts[4];
 
 	ShaderCompiler m_ShaderCompiler;
 

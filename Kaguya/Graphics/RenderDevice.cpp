@@ -16,6 +16,31 @@ RenderDevice::~RenderDevice()
 	m_CopyQueue.WaitForIdle();
 }
 
+RenderCommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type)
+{
+	switch (Type)
+	{
+	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT:
+		m_RenderCommandContexts[Type].push_back(std::make_unique<GraphicsCommandContext>(this));
+		return m_RenderCommandContexts[Type].back().get();
+		break;
+	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE:
+		m_RenderCommandContexts[Type].push_back(std::make_unique<ComputeCommandContext>(this));
+		return m_RenderCommandContexts[Type].back().get();
+		break;
+	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY:
+		m_RenderCommandContexts[Type].push_back(std::make_unique<CopyCommandContext>(this));
+		return m_RenderCommandContexts[Type].back().get();
+		break;
+	}
+	return nullptr;
+}
+
+void RenderDevice::ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* pRenderCommandContexts[])
+{
+
+}
+
 RenderResourceHandle RenderDevice::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
 	Shader shader = m_ShaderCompiler.LoadShader(Type, pPath, pEntryPoint, ShaderDefines);

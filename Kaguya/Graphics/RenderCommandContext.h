@@ -5,6 +5,7 @@
 #include "AL/D3D12/DynamicDescriptorHeap.h"
 
 class RenderDevice;
+class CommandQueue;
 
 class Resource;
 class Buffer;
@@ -17,6 +18,8 @@ class ComputePipelineState;
 class RenderCommandContext
 {
 public:
+	RenderCommandContext(RenderDevice* pRenderDevice, D3D12_COMMAND_LIST_TYPE Type);
+
 	inline auto GetD3DCommandList() const { return m_pCommandList.Get(); }
 
 	void SetPipelineState(const PipelineState* pPipelineState);
@@ -32,7 +35,7 @@ public:
 	void SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, Resource* pResource, D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle);
 	void SetUAV(UINT RootParameterIndex, UINT DescriptorOffset, Resource* pResource, D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle);
 protected:
-	RenderCommandContext(RenderDevice* pRenderDevice, D3D12_COMMAND_LIST_TYPE Type);
+	friend class RenderGraph;
 
 	bool Close(UINT64 FenceValue, ResourceStateTracker* pGlobalResourceStateTracker);
 	void Reset();
@@ -62,6 +65,8 @@ protected:
 class GraphicsCommandContext : public RenderCommandContext
 {
 public:
+	GraphicsCommandContext(RenderDevice* pRenderDevice);
+
 	void SetRootSignature(const RootSignature* pRootSignature);
 	void SetRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues);
 	void SetRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues);
@@ -78,13 +83,13 @@ public:
 
 	void DrawInstanced(UINT VertexCount, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation);
 	void DrawIndexedInstanced(UINT IndexCount, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation);
-private:
-	GraphicsCommandContext(RenderDevice* pRenderDevice);
 };
 
 class ComputeCommandContext : public RenderCommandContext
 {
 public:
+	ComputeCommandContext(RenderDevice* pRenderDevice);
+
 	void SetRootSignature(const RootSignature* pRootSignature);
 	void SetRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues);
 	void SetRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues);
@@ -93,14 +98,10 @@ public:
 	void SetRootUAV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
 
 	void Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ);
-private:
-	ComputeCommandContext(RenderDevice* pRenderDevice);
 };
 
 class CopyCommandContext : public RenderCommandContext
 {
 public:
-
-private:
 	CopyCommandContext(RenderDevice* pRenderDevice);
 };

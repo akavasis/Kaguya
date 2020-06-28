@@ -19,10 +19,8 @@ void RenderGraph::Execute()
 {
 	for (auto& renderPass : m_RenderPasses)
 	{
+		renderPass->renderCommandContext->Reset();
 		renderPass->Execute(m_RenderGraphRegistry);
+		renderPass->renderCommandContext->Close();
 	}
-}
-
-void RenderGraph::Debug()
-{
 }

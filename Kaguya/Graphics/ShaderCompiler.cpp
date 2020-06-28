@@ -89,13 +89,3 @@ Shader ShaderCompiler::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEnt
 		return Shader(Type, nullptr);
 	}
 }
-
-Shader::Shader(Type Type, Microsoft::WRL::ComPtr<IDxcBlob> DxcBlob)
-	: m_Type(Type),
-	m_DxcBlob(DxcBlob)
-{
-}
-
-Shader::~Shader()
-{
-}

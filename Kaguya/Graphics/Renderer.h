@@ -5,8 +5,6 @@
 #include "DXGIManager.h"
 
 #include "Scene/Scene.h"
-#include "Scene/Light.h"
-#include "Scene/Camera.h"
 
 #include "RenderDevice.h"
 #include "RendererRegistry.h"
@@ -22,9 +20,6 @@ class Renderer
 public:
 	Renderer(Window& Window);
 	~Renderer();
-
-	void SetActiveCamera(Camera* pCamera);
-	void SetActiveScene(Scene* pScene);
 
 	void Update(const Time& Time);
 	void Render();
@@ -77,7 +72,6 @@ private:
 
 	RenderDevice m_RenderDevice;
 	RenderGraph m_RenderGraph;
-	CommandList m_UploadCommandList;
 
 	// Swapchain resources
 	float m_AspectRatio;
@@ -88,67 +82,9 @@ private:
 	RenderResourceHandle m_FrameDepthStencilBuffer;
 	RenderResourceHandle m_RenderPassCBs;
 
-	//------------------------------------------------
-	// Scene objects
-	Camera* m_pCamera;
-	Scene* m_pScene;
-	std::vector<UINT> m_VisibleModelsIndices;
-	using ModelIndex = UINT;
-	std::unordered_map<ModelIndex, std::vector<UINT>> m_VisibleMeshesIndices;
-	//------------------------------------------------
-
-	//------------------------------------------------
-	// Post process chain
-	//std::vector<std::unique_ptr<PostProcess>> m_pPostProcessChain;
-	//------------------------------------------------
-
-	struct Skybox
-	{
-		Mesh Mesh;
-		RenderResourceHandle RadianceTexture;
-		RenderResourceHandle IrradianceTexture;
-		RenderResourceHandle PrefilterdTexture;
-		RenderResourceHandle BRDFLUT;
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC RadianceSRVDesc;
-		D3D12_SHADER_RESOURCE_VIEW_DESC IrradianceSRVDesc;
-		D3D12_SHADER_RESOURCE_VIEW_DESC PrefilterdSRVDesc;
-		D3D12_SHADER_RESOURCE_VIEW_DESC BRDFLUTSRVDesc;
-
-		RenderResourceHandle VertexBuffer;
-		RenderResourceHandle IndexBuffer;
-		RenderResourceHandle UploadBuffer;
-
-		void InitMeshAndUploadBuffer(CommandList* pCommandList);
-		void LoadFromFile(const char* FileName, CommandList* pCommandList);
-		void GenerateConvolutionCubeMaps(CommandList* pCommandList);
-		void GenerateBRDFLUT(CommandList* pCommandList);
-	} m_Skybox;
-
-	class ImGuiRenderManager
-	{
-	public:
-		void Initialize();
-		void ShutDown();
-
-		void BeginFrame();
-		void EndFrame(CommandList* pCommandList);
-	private:
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DescriptorHeap;
-	} m_ImGuiManager;
-
-
 	Texture& CurrentBackBuffer();
-
-	UINT CullModels(const Camera* pCamera, const std::vector<std::unique_ptr<Model>>& Models, std::vector<UINT>& Indices);
-	UINT CullMeshes(const Camera* pCamera, const std::vector<std::unique_ptr<Mesh>>& Meshes, std::vector<UINT>& Indices);
-	UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<std::unique_ptr<Model>>& Models, std::vector<UINT>& Indices);
-	UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<std::unique_ptr<Mesh>>& Meshes, std::vector<UINT>& Indices);
-
-	void RenderImGuiWindow();
 
 	void Resize();
 
-	void CreatePostProcessChain();
 	void RegisterRendererResources();
 };

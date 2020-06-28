@@ -37,7 +37,7 @@ std::string Exception::Origin() const noexcept
 }
 
 COMException::COMException(std::string File, int Line, HRESULT HR) noexcept
-	: Exception(File, Line), m_HR(HR)
+	: Exception(std::move(File), Line), m_HR(HR)
 {
 }
 
@@ -48,7 +48,6 @@ std::string COMException::Type() const noexcept
 
 std::string COMException::Error() const noexcept
 {
-	// GetResource the string description of the error code.
 	_com_error comerror(m_HR);
 	std::wstring errorMessage = comerror.ErrorMessage();
 	return std::string(errorMessage.begin(), errorMessage.end());

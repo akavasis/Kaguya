@@ -94,8 +94,8 @@ bool RenderCommandContext::Close(UINT64 FenceValue, ResourceStateTracker* pGloba
 	UINT numBarriers = static_cast<UINT>(resourceBarriers.size());
 	if (numBarriers > 0)
 	{
-		auto pD3DCommandList = pPendingCommandList->GetD3DCommandList();
-		pD3DCommandList->ResourceBarrier(numBarriers, resourceBarriers.data());
+		//auto pD3DCommandList = pPendingCommandList->GetD3DCommandList();
+		//pD3DCommandList->ResourceBarrier(numBarriers, resourceBarriers.data());
 	}
 
 	m_PendingResourceBarriers.clear();
@@ -405,3 +405,10 @@ void ComputeCommandContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCou
 	m_pCommandList->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 }
 #pragma endregion ComputeCommandContext
+
+#pragma region CopyCommandContext
+CopyCommandContext::CopyCommandContext(RenderDevice* pRenderDevice)
+	: RenderCommandContext(pRenderDevice, D3D12_COMMAND_LIST_TYPE_COPY)
+{
+}
+#pragma endregion CopyCommandContext

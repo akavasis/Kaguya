@@ -6,10 +6,12 @@
 
 #include "../RenderResourceHandle.h"
 #include "RenderGraphRegistry.h"
-#include "../AL/D3D12/CommandList.h"
 
 class RenderDevice;
-class CommandList;
+class RenderCommandContext;
+class GraphicsCommandContext;
+class ComputeCommandContext;
+class CopyCommandContext;
 
 enum class RenderPassType
 {
@@ -18,48 +20,44 @@ enum class RenderPassType
 	Copy
 };
 
+template<RenderPassType Type> struct ActualRenderContext {};
+template<> struct ActualRenderContext<RenderPassType::Graphics> { using Type = GraphicsCommandContext; };
+template<> struct ActualRenderContext<RenderPassType::Compute> { using Type = ComputeCommandContext; };
+template<> struct ActualRenderContext<RenderPassType::Copy> { using Type = CopyCommandContext; };
+
 struct IRenderPass
 {
 	bool enabled = true;
 	unsigned int refCount = 0;
 	RenderPassType type;
 	std::string name;
-	CommandList commandList;
-	std::vector<RenderResourceHandle> creates;
-	std::vector<RenderResourceHandle> reads;
-	std::vector<RenderResourceHandle> writes;
+	RenderCommandContext* renderCommandContext = nullptr;
 
-	IRenderPass(const Device* pDevice, D3D12_COMMAND_LIST_TYPE CommandListType)
-		: commandList(pDevice, CommandListType)
-	{
-	}
-
-	virtual void Setup(RenderDevice& RenderDevice) = 0;
-	virtual void Execute(RenderGraphRegistry& RenderGraphRegistry) = 0;
+	virtual void Setup(RenderDevice&) = 0;
+	virtual void Execute(RenderGraphRegistry&) = 0;
 };
 
 template<RenderPassType Type, typename Data>
 struct RenderPass : public IRenderPass
 {
-	using SetupCallback = std::function<void(Data&, RenderDevice&)>;
-	using ExecuteCallback = std::function<void(const Data&, RenderGraphRegistry&, CommandList&)>;
+	using ExecuteCallback = std::function<void(const Data&, RenderGraphRegistry&, typename ActualRenderContext<Type>::Type*)>;
+	using PassCallback = std::function<ExecuteCallback(Data&, RenderDevice&)>;
 
 	Data data;
-	SetupCallback setupCallback;
+	PassCallback passCallback;
 	ExecuteCallback executeCallback;
 
-	RenderPass(const Device* pDevice, D3D12_COMMAND_LIST_TYPE CommandListType)
-		: IRenderPass(pDevice, CommandListType)
+	RenderPass()
 	{
 		this->type = Type;
 	}
 
-	void Setup(RenderDevice& RenderDevice)
+	void Setup(RenderDevice& RenderDevice) override
 	{
-		setupCallback(data, RenderDevice);
+		executeCallback = std::move(passCallback(data, RenderDevice));
 	}
-	void Execute(RenderGraphRegistry& RenderGraphRegistry)
+	void Execute(RenderGraphRegistry& RenderGraphRegistry) override
 	{
-		executeCallback(data, RenderGraphRegistry, commandList);
+		executeCallback(data, RenderGraphRegistry, static_cast<ActualRenderContext<Type>::Type*>(renderCommandContext));
 	}
 };

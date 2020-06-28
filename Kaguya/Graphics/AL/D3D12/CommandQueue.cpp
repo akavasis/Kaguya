@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "CommandQueue.h"
 #include "Device.h"
-#include "CommandList.h"
 
 CommandQueue::CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 	: m_FenceValue(0),
@@ -79,26 +78,26 @@ void CommandQueue::MarkAllocatorAsActive(UINT64 FenceValueForReset, ID3D12Comman
 	m_AllocatorPool.MarkAllocatorAsActive(FenceValueForReset, Allocator);
 }
 
-void CommandQueue::Execute(UINT NumCommandLists, CommandList* const* ppCommandLists, ResourceStateTracker* pGlobalResourceStateTracker)
-{
-	std::scoped_lock lk(m_Mutex);
-
-	UINT numCommandLists = 0;
-	std::vector<ID3D12CommandList*> pCommandListsToBeExecuted;
-	pCommandListsToBeExecuted.reserve(NumCommandLists * 2); // * 2 (worst case) for pending cmdlists
-
-	for (UINT i = 0; i < NumCommandLists; ++i)
-	{
-		/*CommandList* pPendingCmdList = m_PendingCommandLists[cmdListIndex].get();
-		CommandList* pCmdList = m_CommandLists[cmdListIndex].get();
-
-		pPendingCmdList->Reset();
-		bool havePendingBarriers = pCmdList->Close(pPendingCmdList, pGlobalResourceStateTracker);
-		if (havePendingBarriers)
-		{
-			pCommandListsToBeExecuted[numCommandLists++] = pPendingCmdList->GetD3DCommandList();
-		}
-		pCommandListsToBeExecuted[numCommandLists++] = pCmdList->GetD3DCommandList();*/
-	}
-	m_pCommandQueue->ExecuteCommandLists(numCommandLists, pCommandListsToBeExecuted.data());
-}
+//void CommandQueue::Execute(UINT NumCommandLists, CommandList* const* ppCommandLists, ResourceStateTracker* pGlobalResourceStateTracker)
+//{
+//	std::scoped_lock lk(m_Mutex);
+//
+//	UINT numCommandLists = 0;
+//	std::vector<ID3D12CommandList*> pCommandListsToBeExecuted;
+//	pCommandListsToBeExecuted.reserve(NumCommandLists * 2); // * 2 (worst case) for pending cmdlists
+//
+//	for (UINT i = 0; i < NumCommandLists; ++i)
+//	{
+//		/*CommandList* pPendingCmdList = m_PendingCommandLists[cmdListIndex].get();
+//		CommandList* pCmdList = m_CommandLists[cmdListIndex].get();
+//
+//		pPendingCmdList->Reset();
+//		bool havePendingBarriers = pCmdList->Close(pPendingCmdList, pGlobalResourceStateTracker);
+//		if (havePendingBarriers)
+//		{
+//			pCommandListsToBeExecuted[numCommandLists++] = pPendingCmdList->GetD3DCommandList();
+//		}
+//		pCommandListsToBeExecuted[numCommandLists++] = pCmdList->GetD3DCommandList();*/
+//	}
+//	m_pCommandQueue->ExecuteCommandLists(numCommandLists, pCommandListsToBeExecuted.data());
+//}

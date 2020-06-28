@@ -25,8 +25,6 @@ public:
 
 	ID3D12CommandAllocator* RequestAllocator();
 	void MarkAllocatorAsActive(UINT64 FenceValue, ID3D12CommandAllocator* Allocator);
-
-	void Execute(UINT NumCommandLists, CommandList* const* ppCommandLists, ResourceStateTracker* pGlobalResourceStateTracker);
 private:
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_pCommandQueue;
 	Microsoft::WRL::ComPtr<ID3D12Fence1> m_pFence;
