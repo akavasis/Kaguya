@@ -224,4 +224,3 @@ void main(ComputeShaderInput IN)
 		OutMip4[IN.DispatchThreadID.xy / 8] = PackColor(Src1);
 	}
 }
-

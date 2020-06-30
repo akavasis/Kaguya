@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Renderer.h"
+#include "../Core/Application.h"
 #include "../Core/Window.h"
 #include "../Core/Time.h"
 
@@ -69,14 +70,14 @@ struct RenderPassConstantsCPU
 	int DebugViewInput;
 	DirectX::XMFLOAT2 _padding3;
 };
-//constexpr UINT RenderPassConstantsCPUSize = Math::AlignUp<UINT>(sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
-Renderer::Renderer(Window& Window)
-	: m_Window(Window),
+Renderer::Renderer(Application& RefApplication, Window& RefWindow)
+	: m_RefWindow(RefWindow),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12)),
+	m_TexturePool(RefApplication.ExecutableFolderPath(), m_RenderDevice),
 	m_RenderGraph(m_RenderDevice)
 {
-	m_EventReceiver.Register(m_Window, [&](const Event& event)
+	m_EventReceiver.Register(m_RefWindow, [&](const Event& event)
 	{
 		Window::Event windowEvent;
 		event.Read(windowEvent.type, windowEvent.data);
@@ -89,11 +90,11 @@ Renderer::Renderer(Window& Window)
 		}
 	});
 
-	m_AspectRatio = static_cast<float>(m_Window.GetWindowWidth()) / static_cast<float>(m_Window.GetWindowHeight());
+	m_AspectRatio = static_cast<float>(m_RefWindow.GetWindowWidth()) / static_cast<float>(m_RefWindow.GetWindowHeight());
 
 	std::future<void> voidFuture = std::async(std::launch::async, &Renderer::RegisterRendererResources, this);
 	// Create swap chain after command objects have been created
-	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue(), m_Window, RendererFormats::SwapChainBufferFormat, SwapChainBufferCount);
+	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue(), m_RefWindow, RendererFormats::SwapChainBufferFormat, SwapChainBufferCount);
 
 	// Initialize Non-transient resources
 	for (UINT i = 0; i < SwapChainBufferCount; ++i)
@@ -107,8 +108,8 @@ Renderer::Renderer(Window& Window)
 	Texture::Properties textureProp{};
 	textureProp.Type = Resource::Type::Texture2D;
 	textureProp.Format = RendererFormats::HDRBufferFormat;
-	textureProp.Width = m_Window.GetWindowWidth();
-	textureProp.Height = m_Window.GetWindowHeight();
+	textureProp.Width = m_RefWindow.GetWindowWidth();
+	textureProp.Height = m_RefWindow.GetWindowHeight();
 	textureProp.DepthOrArraySize = 1;
 	textureProp.MipLevels = 1;
 	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
@@ -127,21 +128,53 @@ Renderer::Renderer(Window& Window)
 	m_RenderPassCBs = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
 
 	voidFuture.wait();
-	//// Begin recording our initialization commands
-	//m_pDirectCommandList->Reset(nullptr);
-	//{
-	//	// Load sky box
-	//	m_Skybox.InitMeshAndUploadBuffer(m_pDirectCommandList);
-	//	m_Skybox.LoadFromFile("../../Engine/Assets/IBL/ChiricahuaPath.hdr", m_pDirectCommandList);
-	//	m_Skybox.GenerateConvolutionCubeMaps(m_pDirectCommandList);
-	//	m_Skybox.GenerateBRDFLUT(m_pDirectCommandList);
-	//}
-	//m_pDirectQueue->Execute();
 
-	//m_pDirectQueue->Signal();
-	//m_pDirectQueue->Flush();
-	//m_pDirectCommandList->DisposeIntermediates();
+	m_TexturePool.LoadFromFile("Assets/Models/Cerberus/Textures/Cerberus_A.tga", true, true);
 
+	struct CubemapGenerationData
+	{
+
+	};
+
+	auto pCubemapGenerationPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, CubemapGenerationData>("CubemapGenerationPass",
+		[](CubemapGenerationData& Data, RenderDevice& RenderDevice)
+	{
+
+		return [=](const CubemapGenerationData& Data, RenderGraphRegistry& RenderGraphRegistry, GraphicsCommandContext* pGraphicsCommandContext)
+		{
+
+		};
+	});
+
+	struct ShadowPassData
+	{
+
+	};
+
+	auto pShadowPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowPassData>("ShadowPass",
+		[](ShadowPassData& Data, RenderDevice& RenderDevice)
+	{
+
+		return [=](const ShadowPassData& Data, RenderGraphRegistry& RenderGraphRegistry, GraphicsCommandContext* pGraphicsCommandContext)
+		{
+
+		};
+	});
+
+	struct ForwardPassData
+	{
+
+	};
+
+	auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>("ForwardPass",
+		[](ForwardPassData& Data, RenderDevice& RenderDevice)
+	{
+
+		return [=](const ForwardPassData& Data, RenderGraphRegistry& RenderGraphRegistry, GraphicsCommandContext* pGraphicsCommandContext)
+		{
+
+		};
+	});
 
 	m_RenderGraph.Setup();
 }
@@ -200,7 +233,7 @@ void Renderer::Resize()
 {
 	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
 	{
-		m_AspectRatio = static_cast<float>(m_Window.GetWindowWidth()) / static_cast<float>(m_Window.GetWindowHeight());
+		m_AspectRatio = static_cast<float>(m_RefWindow.GetWindowWidth()) / static_cast<float>(m_RefWindow.GetWindowHeight());
 
 		// Release resources before resize swap chain
 		for (UINT i = 0u; i < SwapChainBufferCount; ++i)
@@ -214,7 +247,7 @@ void Renderer::Resize()
 			Nodes[i] = NodeMask;
 			Queues[i] = m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue();
 		}
-		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(SwapChainBufferCount, m_Window.GetWindowWidth(), m_Window.GetWindowHeight(), RendererFormats::SwapChainBufferFormat,
+		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(SwapChainBufferCount, m_RefWindow.GetWindowWidth(), m_RefWindow.GetWindowHeight(), RendererFormats::SwapChainBufferFormat,
 			m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH, Nodes, Queues));
 		// Recreate descriptors
 		for (UINT i = 0; i < SwapChainBufferCount; ++i)

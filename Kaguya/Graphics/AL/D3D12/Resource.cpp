@@ -12,25 +12,16 @@ Resource::Properties Resource::Properties::Buffer(UINT64 Width, D3D12_RESOURCE_F
 }
 
 Resource::Properties Resource::Properties::Texture(Resource::Type Type, DXGI_FORMAT Format,
-	UINT64 Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels, 
+	UINT64 Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels,
 	D3D12_RESOURCE_FLAGS Flags, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
 {
 	Resource::Properties properties;
 	switch (Type)
 	{
-	case Resource::Type::Texture1D: properties.m_Desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D; break;
-	case Resource::Type::Texture2D: properties.m_Desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D; break;
-	case Resource::Type::Texture3D: properties.m_Desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D; break;
+	case Resource::Type::Texture1D: properties.m_Desc = CD3DX12_RESOURCE_DESC::Tex1D(Format, Width, DepthOrArraySize, MipLevels, Flags); break;
+	case Resource::Type::Texture2D: properties.m_Desc = CD3DX12_RESOURCE_DESC::Tex2D(Format, Width, Height, DepthOrArraySize, MipLevels, 1, 0, Flags); break;
+	case Resource::Type::Texture3D: properties.m_Desc = CD3DX12_RESOURCE_DESC::Tex3D(Format, Width, Height, DepthOrArraySize, MipLevels, Flags); break;
 	}
-	properties.m_Desc.Alignment = 0;
-	properties.m_Desc.Width = Width;
-	properties.m_Desc.Height = Height;
-	properties.m_Desc.DepthOrArraySize = DepthOrArraySize;
-	properties.m_Desc.MipLevels = MipLevels;
-	properties.m_Desc.Format = Format;
-	properties.m_Desc.SampleDesc = { .Count = 1, .Quality = 0 };
-	properties.m_Desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	properties.m_Desc.Flags = Flags;
 	properties.m_ClearValue = pOptimizedClearValue ? std::make_optional(*pOptimizedClearValue) : std::nullopt;
 	bool isArray = (Type == Resource::Type::Texture1D || Type == Resource::Type::Texture2D) && DepthOrArraySize > 1;
 	properties.m_NumSubresources = isArray ? DepthOrArraySize * MipLevels : MipLevels;

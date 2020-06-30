@@ -20,6 +20,7 @@ CommandQueue::CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 
 CommandQueue::~CommandQueue()
 {
+	WaitForIdle();
 	::CloseHandle(m_EventHandle);
 }
 

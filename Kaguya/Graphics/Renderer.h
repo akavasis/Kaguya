@@ -7,33 +7,37 @@
 #include "Scene/Scene.h"
 
 #include "RenderDevice.h"
-#include "RendererRegistry.h"
-#include "RenderGraph/RenderGraph.h"
+#include "TexturePool.h"
 
+#include "RenderGraph.h"
+#include "RendererRegistry.h"
+
+class Application;
 class Window;
 class Time;
-
-class PostProcess;
 
 class Renderer
 {
 public:
-	Renderer(Window& Window);
+	Renderer(Application& RefApplication, Window& RefWindow);
 	~Renderer();
 
 	void Update(const Time& Time);
 	void Render();
 	void Present();
 private:
-	Window& m_Window;
+	Texture& CurrentBackBuffer();
+	void Resize();
+	void RegisterRendererResources();
+
+	Window& m_RefWindow;
 	EventReceiver m_EventReceiver;
 
 	// In FLIP swap chains the compositor owns one of your buffers at any given point
 	// Thus to run unconstrained (>vsync) frame rates, you need at least 3 buffers
 	enum { SwapChainBufferCount = 3 };
 	enum { NodeMask = 0 };
-	//enum { NumFramesToBuffer = 3 }; // Not used yet
-	enum { NumCascades = 4 };
+	enum { NumFramesToBuffer = 3 }; // Not used yet
 
 	struct Statistics
 	{
@@ -71,6 +75,8 @@ private:
 	DXGIManager m_DXGIManager;
 
 	RenderDevice m_RenderDevice;
+	TexturePool m_TexturePool;
+
 	RenderGraph m_RenderGraph;
 
 	// Swapchain resources
@@ -81,10 +87,4 @@ private:
 	RenderResourceHandle m_FrameBuffer;
 	RenderResourceHandle m_FrameDepthStencilBuffer;
 	RenderResourceHandle m_RenderPassCBs;
-
-	Texture& CurrentBackBuffer();
-
-	void Resize();
-
-	void RegisterRendererResources();
 };

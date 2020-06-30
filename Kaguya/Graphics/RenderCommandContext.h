@@ -5,7 +5,6 @@
 #include "AL/D3D12/DynamicDescriptorHeap.h"
 
 class RenderDevice;
-class CommandQueue;
 
 class Resource;
 class Buffer;
@@ -35,12 +34,15 @@ public:
 	void SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, Resource* pResource, D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle);
 	void SetUAV(UINT RootParameterIndex, UINT DescriptorOffset, Resource* pResource, D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle);
 protected:
+	friend class RenderDevice;
 	friend class RenderGraph;
 
-	bool Close(UINT64 FenceValue, ResourceStateTracker* pGlobalResourceStateTracker);
+	bool Close(ResourceStateTracker* pGlobalResourceStateTracker);
 	void Reset();
+	// Marks current allocator as active with the FenceValue and request a new one
+	void RequestNewAllocator(UINT64 FenceValue);
 
-	CommandQueue* pOwningCommandQueue;
+	class CommandQueue* pOwningCommandQueue;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pCommandList;
 	ID3D12CommandAllocator* m_pCurrentAllocator; // Given by the CommandQueue
 	D3D12_COMMAND_LIST_TYPE m_Type;

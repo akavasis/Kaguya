@@ -30,9 +30,9 @@ struct RenderResourceHandle
 
 	enum class Flags : std::size_t
 	{
-		Inactive = 0,
-		Active = 1 << 0,
-		Destroyed = 1 << 1
+		Inactive		= 0,
+		Active			= 1 << 0,
+		Destroyed		= 1 << 1
 	};
 
 	RenderResourceHandle();

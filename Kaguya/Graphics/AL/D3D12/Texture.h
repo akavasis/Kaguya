@@ -40,5 +40,5 @@ private:
 	UINT m_Height = 0;
 	UINT16 m_DepthOrArraySize = 0;
 	UINT16 m_MipLevels = 0;
-	bool m_IsCubemap;
+	bool m_IsCubemap = false;
 };

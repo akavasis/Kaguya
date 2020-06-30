@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
 		Application application;
 		Window window{ L"DirectX12 Window" };
-		Renderer renderer{ window };
+		Renderer renderer{ application, window };
 
 		PerspectiveCamera camera;
 		camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);

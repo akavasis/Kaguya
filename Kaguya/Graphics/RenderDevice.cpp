@@ -11,9 +11,6 @@ RenderDevice::RenderDevice(IUnknown* pAdapter)
 
 RenderDevice::~RenderDevice()
 {
-	m_GraphicsQueue.WaitForIdle();
-	m_ComputeQueue.WaitForIdle();
-	m_CopyQueue.WaitForIdle();
 }
 
 RenderCommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type)
@@ -23,22 +20,14 @@ RenderCommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type
 	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT:
 		m_RenderCommandContexts[Type].push_back(std::make_unique<GraphicsCommandContext>(this));
 		return m_RenderCommandContexts[Type].back().get();
-		break;
 	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE:
 		m_RenderCommandContexts[Type].push_back(std::make_unique<ComputeCommandContext>(this));
 		return m_RenderCommandContexts[Type].back().get();
-		break;
 	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY:
 		m_RenderCommandContexts[Type].push_back(std::make_unique<CopyCommandContext>(this));
 		return m_RenderCommandContexts[Type].back().get();
-		break;
 	}
 	return nullptr;
-}
-
-void RenderDevice::ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* pRenderCommandContexts[])
-{
-
 }
 
 RenderResourceHandle RenderDevice::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
@@ -109,37 +98,37 @@ void RenderDevice::Destroy(RenderResourceHandle& RenderResourceHandle)
 	RenderResourceHandle._Data = 0;
 }
 
-Shader* RenderDevice::GetShader(const RenderResourceHandle& RenderResourceHandle) const
+Shader* RenderDevice::GetShader(RenderResourceHandle RenderResourceHandle) const
 {
 	return m_Shaders.GetResource(RenderResourceHandle);
 }
 
-Buffer* RenderDevice::GetBuffer(const RenderResourceHandle& RenderResourceHandle) const
+Buffer* RenderDevice::GetBuffer(RenderResourceHandle RenderResourceHandle) const
 {
 	return m_Buffers.GetResource(RenderResourceHandle);
 }
 
-Texture* RenderDevice::GetTexture(const RenderResourceHandle& RenderResourceHandle) const
+Texture* RenderDevice::GetTexture(RenderResourceHandle RenderResourceHandle) const
 {
 	return m_Textures.GetResource(RenderResourceHandle);
 }
 
-Heap* RenderDevice::GetHeap(const RenderResourceHandle& RenderResourceHandle) const
+Heap* RenderDevice::GetHeap(RenderResourceHandle RenderResourceHandle) const
 {
 	return m_Heaps.GetResource(RenderResourceHandle);
 }
 
-RootSignature* RenderDevice::GetRootSignature(const RenderResourceHandle& RenderResourceHandle) const
+RootSignature* RenderDevice::GetRootSignature(RenderResourceHandle RenderResourceHandle) const
 {
 	return m_RootSignatures.GetResource(RenderResourceHandle);
 }
 
-GraphicsPipelineState* RenderDevice::GetGraphicsPSO(const RenderResourceHandle& RenderResourceHandle) const
+GraphicsPipelineState* RenderDevice::GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const
 {
 	return m_GraphicsPipelineStates.GetResource(RenderResourceHandle);
 }
 
-ComputePipelineState* RenderDevice::GetComputePSO(const RenderResourceHandle& RenderResourceHandle) const
+ComputePipelineState* RenderDevice::GetComputePSO(RenderResourceHandle RenderResourceHandle) const
 {
 	return m_ComputePipelineStates.GetResource(RenderResourceHandle);
 }

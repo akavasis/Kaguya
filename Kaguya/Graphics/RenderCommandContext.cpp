@@ -38,13 +38,10 @@ RenderCommandContext::RenderCommandContext(RenderDevice* pRenderDevice, D3D12_CO
 	}
 }
 
-bool RenderCommandContext::Close(UINT64 FenceValue, ResourceStateTracker* pGlobalResourceStateTracker)
+bool RenderCommandContext::Close(ResourceStateTracker* pGlobalResourceStateTracker)
 {
 	FlushResourceBarriers();
 	ThrowCOMIfFailed(m_pCommandList->Close());
-
-	pOwningCommandQueue->MarkAllocatorAsActive(FenceValue, m_pCurrentAllocator);
-	m_pCurrentAllocator = pOwningCommandQueue->RequestAllocator();
 
 	// Resolve the pending resource barriers by checking the global state of the  
 	// (sub)resources. Add barriers if the pending state and the global state do 
@@ -119,6 +116,12 @@ void RenderCommandContext::Reset()
 	m_ResourceStateTracker.Reset();
 	m_ResourceBarriers.clear();
 	m_PendingResourceBarriers.clear();
+}
+
+void RenderCommandContext::RequestNewAllocator(UINT64 FenceValue)
+{
+	pOwningCommandQueue->MarkAllocatorAsActive(FenceValue, m_pCurrentAllocator);
+	m_pCurrentAllocator = pOwningCommandQueue->RequestAllocator();
 }
 
 void RenderCommandContext::SetPipelineState(const PipelineState* pPipelineState)

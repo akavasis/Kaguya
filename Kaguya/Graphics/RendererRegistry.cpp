@@ -128,31 +128,31 @@ std::array<const D3D12_STATIC_SAMPLER_DESC, UINT(SamplerState::Count)> GetStatic
 		anisotropicWrap, anisotropicClamp, shadow };
 }
 
-void Shaders::Register(RenderDevice* pDevice)
+void Shaders::Register(RenderDevice* pRenderDevice)
 {
 	// Load VS
-	VS_Default						= pDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/Default_VS.hlsl", L"main", {});
-	VS_Quad							= pDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/Quad_VS.hlsl", L"main", {});
-	VS_Sky							= pDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/Sky_VS.hlsl", L"main", {});
-	VS_Shadow						= pDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/Shadow_VS.hlsl", L"main", {});
+	VS_Default						= pRenderDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/Default_VS.hlsl", L"main", {});
+	VS_Quad							= pRenderDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/Quad_VS.hlsl", L"main", {});
+	VS_Sky							= pRenderDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/Sky_VS.hlsl", L"main", {});
+	VS_Shadow						= pRenderDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/Shadow_VS.hlsl", L"main", {});
 	// Load PS
-	PS_BlinnPhong					= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/BlinnPhong_PS.hlsl", L"main", {});
-	PS_PBR							= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PBR_PS.hlsl", L"main", {});
-	PS_Sepia						= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/Sepia_PS.hlsl", L"main", {});
-	PS_SobelComposite				= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/SobelComposite_PS.hlsl", L"main", {});
-	PS_BloomMask					= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/BloomMask_PS.hlsl", L"main", {});
-	PS_BloomComposite				= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/BloomComposite_PS.hlsl", L"main", {});
-	PS_ToneMapping					= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/ToneMapping_PS.hlsl", L"main", {});
-	PS_Sky							= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/Sky_PS.hlsl", L"main", {});
-	PS_IrradianceConvolution		= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/IrradianceConvolution_PS.hlsl", L"main", {});
-	PS_PrefilterConvolution			= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PrefilterConvolution_PS.hlsl", L"main", {});
-	PS_BRDFIntegration				= pDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/BRDFIntegration_PS.hlsl", L"main", {});
+	PS_BlinnPhong					= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/BlinnPhong_PS.hlsl", L"main", {});
+	PS_PBR							= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PBR_PS.hlsl", L"main", {});
+	PS_Sepia						= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/Sepia_PS.hlsl", L"main", {});
+	PS_SobelComposite				= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/SobelComposite_PS.hlsl", L"main", {});
+	PS_BloomMask					= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/BloomMask_PS.hlsl", L"main", {});
+	PS_BloomComposite				= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/BloomComposite_PS.hlsl", L"main", {});
+	PS_ToneMapping					= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/ToneMapping_PS.hlsl", L"main", {});
+	PS_Sky							= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/Sky_PS.hlsl", L"main", {});
+	PS_IrradianceConvolution		= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/IrradianceConvolution_PS.hlsl", L"main", {});
+	PS_PrefilterConvolution			= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PrefilterConvolution_PS.hlsl", L"main", {});
+	PS_BRDFIntegration				= pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/BRDFIntegration_PS.hlsl", L"main", {});
 	// Load CS
-	CS_HorizontalBlur				= pDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/HorizontalBlur_CS.hlsl", L"main", {});
-	CS_VerticalBlur					= pDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/VerticalBlur_CS.hlsl", L"main", {});
-	CS_Sobel						= pDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/Sobel_CS.hlsl", L"main", {});
-	CS_EquirectangularToCubeMap		= pDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/EquirectangularToCubeMap_CS.hlsl", L"main", {});
-	CS_GenerateMips					= pDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/GenerateMips_CS.hlsl", L"main", {});
+	CS_HorizontalBlur				= pRenderDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/HorizontalBlur_CS.hlsl", L"main", {});
+	CS_VerticalBlur					= pRenderDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/VerticalBlur_CS.hlsl", L"main", {});
+	CS_Sobel						= pRenderDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/Sobel_CS.hlsl", L"main", {});
+	CS_EquirectangularToCubeMap		= pRenderDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/EquirectangularToCubeMap_CS.hlsl", L"main", {});
+	CS_GenerateMips					= pRenderDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/GenerateMips_CS.hlsl", L"main", {});
 }
 
 void RootSignatures::Register(RenderDevice* pDevice)
@@ -342,7 +342,7 @@ void RootSignatures::Register(RenderDevice* pDevice)
 	CORE_INFO("RootSignatures::Register complete");
 }
 
-void GraphicsPSOs::Register(RenderDevice* pDevice)
+void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 {
 	CORE_INFO("GraphicsPSOs::Register invoked");
 	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout =
@@ -357,9 +357,9 @@ void GraphicsPSOs::Register(RenderDevice* pDevice)
 	// Shadow PSO
 	{
 		GraphicsPipelineState::Properties prop{};
-		prop.Desc.pRootSignature = pDevice->GetRootSignature(RootSignatures::Shadow)->GetD3DRootSignature();
+		prop.Desc.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Shadow)->GetD3DRootSignature();
 		prop.Desc.InputLayout = { inputLayout.data(), (UINT)inputLayout.size() };
-		prop.Desc.VS = pDevice->GetShader(Shaders::VS_Shadow)->GetD3DShaderBytecode();
+		prop.Desc.VS = pRenderDevice->GetShader(Shaders::VS_Shadow)->GetD3DShaderBytecode();
 		prop.Desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		prop.Desc.RasterizerState.DepthBias = 100000;
 		prop.Desc.RasterizerState.DepthBiasClamp = 0.0f;
@@ -373,16 +373,16 @@ void GraphicsPSOs::Register(RenderDevice* pDevice)
 		prop.Desc.SampleDesc = { .Count = 1, .Quality = 0 };
 		prop.Desc.DSVFormat = DXGI_FORMAT_D32_FLOAT; // Set DSVFormat the same as shadow map's depth format
 
-		GraphicsPSOs::Shadow = pDevice->CreateGraphicsPipelineState(prop);
+		GraphicsPSOs::Shadow = pRenderDevice->CreateGraphicsPipelineState(prop);
 	}
 
 	// PBR PSO
 	{
 		GraphicsPipelineState::Properties prop{};
-		prop.Desc.pRootSignature = pDevice->GetRootSignature(RootSignatures::PBR)->GetD3DRootSignature();
+		prop.Desc.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PBR)->GetD3DRootSignature();
 		prop.Desc.InputLayout = { inputLayout.data(), (UINT)inputLayout.size() };
-		prop.Desc.VS = pDevice->GetShader(Shaders::VS_Default)->GetD3DShaderBytecode();
-		prop.Desc.PS = pDevice->GetShader(Shaders::PS_PBR)->GetD3DShaderBytecode();
+		prop.Desc.VS = pRenderDevice->GetShader(Shaders::VS_Default)->GetD3DShaderBytecode();
+		prop.Desc.PS = pRenderDevice->GetShader(Shaders::PS_PBR)->GetD3DShaderBytecode();
 		prop.Desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		prop.Desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		prop.Desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -393,21 +393,21 @@ void GraphicsPSOs::Register(RenderDevice* pDevice)
 		prop.Desc.SampleDesc = { .Count = 1, .Quality = 0 };
 		prop.Desc.DSVFormat = RendererFormats::DepthStencilFormat;
 
-		GraphicsPSOs::PBR = pDevice->CreateGraphicsPipelineState(prop);
+		GraphicsPSOs::PBR = pRenderDevice->CreateGraphicsPipelineState(prop);
 
 		// PBR wire frame PSO
 		prop.Desc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 
-		GraphicsPSOs::PBRWireFrame = pDevice->CreateGraphicsPipelineState(prop);
+		GraphicsPSOs::PBRWireFrame = pRenderDevice->CreateGraphicsPipelineState(prop);
 	}
 
 	// Skybox PSO
 	{
 		GraphicsPipelineState::Properties prop{};
-		prop.Desc.pRootSignature = pDevice->GetRootSignature(RootSignatures::Skybox)->GetD3DRootSignature();
+		prop.Desc.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Skybox)->GetD3DRootSignature();
 		prop.Desc.InputLayout = { inputLayout.data(), (UINT)inputLayout.size() };
-		prop.Desc.VS = pDevice->GetShader(Shaders::VS_Sky)->GetD3DShaderBytecode();
-		prop.Desc.PS = pDevice->GetShader(Shaders::PS_Sky)->GetD3DShaderBytecode();
+		prop.Desc.VS = pRenderDevice->GetShader(Shaders::VS_Sky)->GetD3DShaderBytecode();
+		prop.Desc.PS = pRenderDevice->GetShader(Shaders::PS_Sky)->GetD3DShaderBytecode();
 		prop.Desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		prop.Desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		prop.Desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -420,15 +420,15 @@ void GraphicsPSOs::Register(RenderDevice* pDevice)
 		prop.Desc.SampleDesc = { .Count = 1, .Quality = 0 };
 		prop.Desc.DSVFormat = RendererFormats::DepthStencilFormat;
 
-		GraphicsPSOs::Skybox = pDevice->CreateGraphicsPipelineState(prop);
+		GraphicsPSOs::Skybox = pRenderDevice->CreateGraphicsPipelineState(prop);
 	}
 
 	// BRDF Integration PSO
 	{
 		GraphicsPipelineState::Properties prop{};
-		prop.Desc.pRootSignature = pDevice->GetRootSignature(RootSignatures::BRDFIntegration)->GetD3DRootSignature();
-		prop.Desc.VS = pDevice->GetShader(Shaders::VS_Quad)->GetD3DShaderBytecode();
-		prop.Desc.PS = pDevice->GetShader(Shaders::PS_BRDFIntegration)->GetD3DShaderBytecode();
+		prop.Desc.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration)->GetD3DRootSignature();
+		prop.Desc.VS = pRenderDevice->GetShader(Shaders::VS_Quad)->GetD3DShaderBytecode();
+		prop.Desc.PS = pRenderDevice->GetShader(Shaders::PS_BRDFIntegration)->GetD3DShaderBytecode();
 		prop.Desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		prop.Desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		prop.Desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -438,7 +438,7 @@ void GraphicsPSOs::Register(RenderDevice* pDevice)
 		prop.Desc.RTVFormats[0] = RendererFormats::BRDFLUTFormat;
 		prop.Desc.SampleDesc = { .Count = 1, .Quality = 0 };
 
-		GraphicsPSOs::BRDFIntegration = pDevice->CreateGraphicsPipelineState(prop);
+		GraphicsPSOs::BRDFIntegration = pRenderDevice->CreateGraphicsPipelineState(prop);
 	}
 
 	// Cubemap convolutions PSO
@@ -446,17 +446,17 @@ void GraphicsPSOs::Register(RenderDevice* pDevice)
 		for (int i = 0; i < CubemapConvolution::CubemapConvolution_Count; ++i)
 		{
 			GraphicsPipelineState::Properties prop{};
-			prop.Desc.pRootSignature = i == CubemapConvolution::Irradiance ? pDevice->GetRootSignature(RootSignatures::IrradiaceConvolution)->GetD3DRootSignature()
-				: pDevice->GetRootSignature(RootSignatures::PrefilterConvolution)->GetD3DRootSignature();
+			prop.Desc.pRootSignature = i == CubemapConvolution::Irradiance ? pRenderDevice->GetRootSignature(RootSignatures::IrradiaceConvolution)->GetD3DRootSignature()
+				: pRenderDevice->GetRootSignature(RootSignatures::PrefilterConvolution)->GetD3DRootSignature();
 			prop.Desc.InputLayout = { inputLayout.data(), (UINT)inputLayout.size() };
-			prop.Desc.VS = pDevice->GetShader(Shaders::VS_Sky)->GetD3DShaderBytecode();
+			prop.Desc.VS = pRenderDevice->GetShader(Shaders::VS_Sky)->GetD3DShaderBytecode();
 			switch (i)
 			{
 			case Irradiance:
-				prop.Desc.PS = pDevice->GetShader(Shaders::PS_IrradianceConvolution)->GetD3DShaderBytecode();
+				prop.Desc.PS = pRenderDevice->GetShader(Shaders::PS_IrradianceConvolution)->GetD3DShaderBytecode();
 				break;
 			case Prefilter:
-				prop.Desc.PS = pDevice->GetShader(Shaders::PS_PrefilterConvolution)->GetD3DShaderBytecode();
+				prop.Desc.PS = pRenderDevice->GetShader(Shaders::PS_PrefilterConvolution)->GetD3DShaderBytecode();
 				break;
 			}
 			prop.Desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -472,10 +472,10 @@ void GraphicsPSOs::Register(RenderDevice* pDevice)
 			switch (i)
 			{
 			case Irradiance:
-				GraphicsPSOs::IrradiaceConvolution = pDevice->CreateGraphicsPipelineState(prop);
+				GraphicsPSOs::IrradiaceConvolution = pRenderDevice->CreateGraphicsPipelineState(prop);
 				break;
 			case Prefilter:
-				GraphicsPSOs::PrefilterConvolution = pDevice->CreateGraphicsPipelineState(prop);
+				GraphicsPSOs::PrefilterConvolution = pRenderDevice->CreateGraphicsPipelineState(prop);
 				break;
 			}
 		}
@@ -483,27 +483,27 @@ void GraphicsPSOs::Register(RenderDevice* pDevice)
 	CORE_INFO("GraphicsPSOs::Register complete");
 }
 
-void ComputePSOs::Register(RenderDevice* pDevice)
+void ComputePSOs::Register(RenderDevice* pRenderDevice)
 {
 	CORE_INFO("ComputePSOs::Register invoked");
 	// Generate mips PSO
 	{
 		ComputePipelineState::Properties prop{};
-		prop.Desc.pRootSignature = pDevice->GetRootSignature(RootSignatures::GenerateMips)->GetD3DRootSignature();
-		prop.Desc.CS = pDevice->GetShader(Shaders::CS_GenerateMips)->GetD3DShaderBytecode();
+		prop.Desc.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GenerateMips)->GetD3DRootSignature();
+		prop.Desc.CS = pRenderDevice->GetShader(Shaders::CS_GenerateMips)->GetD3DShaderBytecode();
 		prop.Desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
-		ComputePSOs::GenerateMips = pDevice->CreateComputePipelineState(prop);
+		ComputePSOs::GenerateMips = pRenderDevice->CreateComputePipelineState(prop);
 	}
 
 	// Equirectangular to cubemap PSO
 	{
 		ComputePipelineState::Properties prop{};
-		prop.Desc.pRootSignature = pDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap)->GetD3DRootSignature();
-		prop.Desc.CS = pDevice->GetShader(Shaders::CS_EquirectangularToCubeMap)->GetD3DShaderBytecode();
+		prop.Desc.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap)->GetD3DRootSignature();
+		prop.Desc.CS = pRenderDevice->GetShader(Shaders::CS_EquirectangularToCubeMap)->GetD3DShaderBytecode();
 		prop.Desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
-		ComputePSOs::EquirectangularToCubemap = pDevice->CreateComputePipelineState(prop);
+		ComputePSOs::EquirectangularToCubemap = pRenderDevice->CreateComputePipelineState(prop);
 	}
 	CORE_INFO("ComputePSOs::Register complete");
 }

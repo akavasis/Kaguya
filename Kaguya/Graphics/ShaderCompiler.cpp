@@ -86,6 +86,6 @@ Shader ShaderCompiler::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEnt
 		pDxcOperationResult->GetErrorBuffer(pError.ReleaseAndGetAddressOf());
 		m_DxcLibrary->GetBlobAsUtf16(pError.Get(), pError16.ReleaseAndGetAddressOf());
 		CORE_ERROR("{} Failed: {}", __FUNCTION__, pError16->GetBufferPointer());
-		return Shader(Type, nullptr);
+		return Shader(Shader::Type::Unknown, nullptr);
 	}
 }

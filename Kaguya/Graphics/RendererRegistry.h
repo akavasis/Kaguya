@@ -124,7 +124,7 @@ struct Shaders
 	static RenderResourceHandle CS_EquirectangularToCubeMap;
 	static RenderResourceHandle CS_GenerateMips;
 
-	static void Register(RenderDevice* pDevice);
+	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct RootSignatures
@@ -140,7 +140,7 @@ struct RootSignatures
 	static RenderResourceHandle GenerateMips;
 	static RenderResourceHandle EquirectangularToCubemap;
 
-	static void Register(RenderDevice* pDevice);
+	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct GraphicsPSOs
@@ -153,7 +153,7 @@ struct GraphicsPSOs
 	static RenderResourceHandle IrradiaceConvolution;
 	static RenderResourceHandle PrefilterConvolution;
 
-	static void Register(RenderDevice* pDevice);
+	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct ComputePSOs
@@ -161,5 +161,5 @@ struct ComputePSOs
 	static RenderResourceHandle GenerateMips;
 	static RenderResourceHandle EquirectangularToCubemap;
 
-	static void Register(RenderDevice* pDevice);
+	static void Register(RenderDevice* pRenderDevice);
 };

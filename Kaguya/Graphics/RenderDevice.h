@@ -17,6 +17,11 @@
 #include "AL/D3D12/RootSignature.h"
 #include "AL/D3D12/PipelineState.h"
 
+/*
+	Abstraction of underlying GPU Device, its able to create gpu resources
+	and contains underlying gpu resources as well, resources are referred by using
+	RenderResourceHandles
+*/
 class RenderDevice
 {
 public:
@@ -32,7 +37,6 @@ public:
 	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
 
 	[[nodiscard]] RenderCommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE Type);
-	void ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* pRenderCommandContexts[]);
 
 	// Resource creation
 	[[nodiscard]] RenderResourceHandle LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
@@ -55,14 +59,14 @@ public:
 	void Destroy(RenderResourceHandle& RenderResourceHandle);
 
 	// Returns nullptr if a resource is not found
-	[[nodiscard]] Shader* GetShader(const RenderResourceHandle& RenderResourceHandle) const;
+	[[nodiscard]] Shader* GetShader(RenderResourceHandle RenderResourceHandle) const;
 
-	[[nodiscard]] Buffer* GetBuffer(const RenderResourceHandle& RenderResourceHandle) const;
-	[[nodiscard]] Texture* GetTexture(const RenderResourceHandle& RenderResourceHandle) const;
-	[[nodiscard]] Heap* GetHeap(const RenderResourceHandle& RenderResourceHandle) const;
-	[[nodiscard]] RootSignature* GetRootSignature(const RenderResourceHandle& RenderResourceHandle) const;
-	[[nodiscard]] GraphicsPipelineState* GetGraphicsPSO(const RenderResourceHandle& RenderResourceHandle) const;
-	[[nodiscard]] ComputePipelineState* GetComputePSO(const RenderResourceHandle& RenderResourceHandle) const;
+	[[nodiscard]] Buffer* GetBuffer(RenderResourceHandle RenderResourceHandle) const;
+	[[nodiscard]] Texture* GetTexture(RenderResourceHandle RenderResourceHandle) const;
+	[[nodiscard]] Heap* GetHeap(RenderResourceHandle RenderResourceHandle) const;
+	[[nodiscard]] RootSignature* GetRootSignature(RenderResourceHandle RenderResourceHandle) const;
+	[[nodiscard]] GraphicsPipelineState* GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const;
+	[[nodiscard]] ComputePipelineState* GetComputePSO(RenderResourceHandle RenderResourceHandle) const;
 private:
 	Device m_Device;
 	ResourceStateTracker m_GlobalResourceTracker;
