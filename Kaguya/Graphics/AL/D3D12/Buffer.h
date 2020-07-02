@@ -37,11 +37,7 @@ public:
 	BYTE* Map();
 	void Unmap();
 
-	D3D12_GPU_VIRTUAL_ADDRESS GetBufferLocationAt(INT Index)
-	{
-		assert(Index >= 0 && Index < m_NumElements && "Index is out of range in Buffer");
-		return UINT64(INT64(m_pResource->GetGPUVirtualAddress()) + INT64(Index) * INT64(m_Stride));
-	}
+	D3D12_GPU_VIRTUAL_ADDRESS GetBufferLocationAt(INT Index);
 	template<typename T>
 	void Update(UINT ElementIndex, const T& Data);
 private:

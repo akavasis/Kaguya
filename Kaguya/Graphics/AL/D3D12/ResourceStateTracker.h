@@ -14,17 +14,12 @@ public:
 		D3D12_RESOURCE_STATES State;
 		std::unordered_map<UINT, D3D12_RESOURCE_STATES> SubresourceState;
 
-		ResourceState(D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON)
-			: State(State)
-		{
-		}
-
 		D3D12_RESOURCE_STATES GetSubresourceState(UINT Subresource) const
 		{
-				const auto iter = SubresourceState.find(Subresource);
-				if (iter != SubresourceState.end())
-					return iter->second;
-				return State;
+			const auto iter = SubresourceState.find(Subresource);
+			if (iter != SubresourceState.end())
+				return iter->second;
+			return State;
 		}
 		void SetSubresourceState(UINT Subresource, D3D12_RESOURCE_STATES State)
 		{
@@ -46,7 +41,19 @@ public:
 	void UpdateResourceStates(const ResourceStateTracker& RST);
 	void Reset();
 
+	UINT FlushPendingResourceBarriers(const ResourceStateTracker& GlobalResourceStateTracker, ID3D12GraphicsCommandList* pCommandList);
+	UINT FlushResourceBarriers(ID3D12GraphicsCommandList* pCommandList);
+
+	void ResourceBarrier(const D3D12_RESOURCE_BARRIER& Barrier);
+
 	std::optional<ResourceStateTracker::ResourceState> Find(ResourceType* pResource) const;
 private:
 	std::unordered_map<ResourceType*, ResourceState> m_ResourceStates;
+
+	// Pending resource transitions are committed to a separate commandlist before this commandlist
+	// is executed on the command queue. This guarantees that resources will
+	// be in the expected state at the beginning of a command list.
+	std::vector<D3D12_RESOURCE_BARRIER> m_PendingResourceBarriers;
+	// Resource barriers that need to be committed to the command list.
+	std::vector<D3D12_RESOURCE_BARRIER> m_ResourceBarriers;
 };

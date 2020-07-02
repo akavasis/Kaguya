@@ -1,13 +1,9 @@
 #pragma once
 #include <string>
-#include <d3d12.h>
-#include <DirectXMath.h>
-#include <DirectXTex.h>
 
-namespace Graphics
-{
-	class Texture;
-}
+#include <DirectXMath.h>
+
+#include "../RenderResourceHandle.h"
 
 enum TextureType
 {
@@ -42,10 +38,6 @@ struct Material
 	};
 
 	Material();
-	Material(const Material& rhs);
-	Material(Material&& rhs) noexcept;
-	Material& operator=(const Material& rhs);
-	Material& operator=(Material&& rhs) noexcept;
 	~Material();
 
 	bool HaveAlbedoMap() const;
@@ -57,8 +49,17 @@ struct Material
 	std::string Name;
 	Properties Properties;
 	std::string Maps[NumTextureTypes];
-	Graphics::Texture* pMaps[NumTextureTypes];
-	DirectX::ScratchImage ScratchImages[NumTextureTypes];
-	D3D12_SHADER_RESOURCE_VIEW_DESC ViewDescs[NumTextureTypes];
+	union
+	{
+		struct
+		{
+			RenderResourceHandle Albedo;
+			RenderResourceHandle Normal;
+			RenderResourceHandle Roughness;
+			RenderResourceHandle Metallic;
+			RenderResourceHandle Emissive;
+		};
+		RenderResourceHandle Textures[NumTextureTypes];
+	};
 	int Flags;
 };

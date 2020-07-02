@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 			time.Signal();
 			renderer.Update(time);
 			renderer.Render();
-			renderer.Present();
+			//renderer.Present();
 		});
 	}
 	catch (std::exception& e)

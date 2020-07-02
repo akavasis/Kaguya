@@ -28,29 +28,31 @@ public:
 	RenderDevice(IUnknown* pAdapter);
 	~RenderDevice();
 
+	RenderDevice(RenderDevice&&) = default;
+	RenderDevice& operator=(RenderDevice&&) = default;
+
+	RenderDevice(const RenderDevice&) = delete;
+	RenderDevice& operator=(const RenderDevice&) = delete;
+
 	[[nodiscard]] inline Device& GetDevice() { return m_Device; }
-
 	[[nodiscard]] inline ResourceStateTracker& GetGlobalResourceStateTracker() { return m_GlobalResourceTracker; }
-
 	[[nodiscard]] inline CommandQueue* GetGraphicsQueue() { return &m_GraphicsQueue; }
 	[[nodiscard]] inline CommandQueue* GetComputeQueue() { return &m_ComputeQueue; }
 	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
-
 	[[nodiscard]] RenderCommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE Type);
+
+	void ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* ppRenderCommandContexts[]);
 
 	// Resource creation
 	[[nodiscard]] RenderResourceHandle LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
-
 	template<typename T, bool UseConstantBufferAlignment>
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties<T, UseConstantBufferAlignment>& Properties);
 	template<typename T, bool UseConstantBufferAlignment>
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties<T, UseConstantBufferAlignment>& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData);
 	template<typename T, bool UseConstantBufferAlignment>
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties<T, UseConstantBufferAlignment>& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
-
 	[[nodiscard]] RenderResourceHandle CreateTexture(const Texture::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateTexture(const Texture::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
-
 	[[nodiscard]] RenderResourceHandle CreateHeap(const Heap::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateRootSignature(const RootSignature::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties);
@@ -58,26 +60,26 @@ public:
 
 	void Destroy(RenderResourceHandle& RenderResourceHandle);
 
-	// Returns nullptr if a resource is not found
-	[[nodiscard]] Shader* GetShader(RenderResourceHandle RenderResourceHandle) const;
+	// Resource view creation
+	void CreateSRVForTexture(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
+	void CreateUAVForTexture(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> MipSlice);
 
-	[[nodiscard]] Buffer* GetBuffer(RenderResourceHandle RenderResourceHandle) const;
-	[[nodiscard]] Texture* GetTexture(RenderResourceHandle RenderResourceHandle) const;
-	[[nodiscard]] Heap* GetHeap(RenderResourceHandle RenderResourceHandle) const;
-	[[nodiscard]] RootSignature* GetRootSignature(RenderResourceHandle RenderResourceHandle) const;
-	[[nodiscard]] GraphicsPipelineState* GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const;
-	[[nodiscard]] ComputePipelineState* GetComputePSO(RenderResourceHandle RenderResourceHandle) const;
+	// Returns nullptr if a resource is not found
+	[[nodiscard]] inline Shader* GetShader(RenderResourceHandle RenderResourceHandle) const { return m_Shaders.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline Buffer* GetBuffer(RenderResourceHandle RenderResourceHandle) const { return m_Buffers.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline Texture* GetTexture(RenderResourceHandle RenderResourceHandle) const { return m_Textures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline Heap* GetHeap(RenderResourceHandle RenderResourceHandle) const { return m_Heaps.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline RootSignature* GetRootSignature(RenderResourceHandle RenderResourceHandle) const { return m_RootSignatures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline ComputePipelineState* GetComputePSO(RenderResourceHandle RenderResourceHandle) const { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
 private:
 	Device m_Device;
-	ResourceStateTracker m_GlobalResourceTracker;
-
 	CommandQueue m_GraphicsQueue;
 	CommandQueue m_ComputeQueue;
 	CommandQueue m_CopyQueue;
-
-	std::vector<std::unique_ptr<RenderCommandContext>> m_RenderCommandContexts[4];
-
+	ResourceStateTracker m_GlobalResourceTracker;
 	ShaderCompiler m_ShaderCompiler;
+	std::vector<std::unique_ptr<RenderCommandContext>> m_RenderCommandContexts[4];
 
 	template <RenderResourceHandle::Type Type, typename T>
 	class RenderResourceContainer

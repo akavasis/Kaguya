@@ -1,10 +1,8 @@
-#include "RenderGraph.h"
-
 #pragma region RenderPass
 template<RenderPassType Type, typename Data>
 inline RenderPass<Type, Data>::RenderPass(PassCallback PassCallback)
 	: RenderPassBase(Type),
-	m_PassCallback(std::move(m_PassCallback))
+	m_PassCallback(std::move(PassCallback))
 {
 }
 
@@ -16,13 +14,13 @@ inline RenderPass<Type, Data>::~RenderPass()
 template<RenderPassType Type, typename Data>
 inline void RenderPass<Type, Data>::Setup(RenderDevice& RefRenderDevice)
 {
-	m_ExecuteCallback = std::move(m_PassCallback(m_Data, RefRenderDevice));
+	m_ExecuteCallback = m_PassCallback(m_Data, RefRenderDevice);
 }
 
 template<RenderPassType Type, typename Data>
 inline void RenderPass<Type, Data>::Execute(RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* RenderCommandContext)
 {
-	m_ExecuteCallback(m_Data, RenderGraphRegistry, static_cast<ActualRenderContext<Type>::Type*>(RenderCommandContext));
+	m_ExecuteCallback(m_Data, RenderGraphRegistry, RenderCommandContext);
 }
 #pragma endregion RenderPass
 
@@ -50,6 +48,6 @@ inline RenderPass<Type, Data>* RenderGraph::AddRenderPass(const char* pName, typ
 	case RenderPassType::Copy: m_RenderContexts.emplace_back(m_RefRenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_COPY)); break;
 	}
 	m_RenderPassDataIDs.emplace_back(typeid(Data));
-
+	m_NumRenderPasses++;
 	return static_cast<RenderPass<Type, Data>*>(m_RenderPasses.back().get());
 }

@@ -32,13 +32,12 @@ public:
 	Texture& operator=(const Texture&) = delete;
 
 	bool IsArray() const;
-	bool IsCubemap() const;
-private:
-	Resource::Type m_Type = Resource::Type::Unknown;
-	DXGI_FORMAT m_Format = DXGI_FORMAT_UNKNOWN;
-	UINT64 m_Width = 0;
-	UINT m_Height = 0;
-	UINT16 m_DepthOrArraySize = 0;
-	UINT16 m_MipLevels = 0;
-	bool m_IsCubemap = false;
+
+	Resource::Type Type = Resource::Type::Unknown;
+	DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
+	UINT64 Width = 0;
+	UINT Height = 0;
+	UINT16 DepthOrArraySize = 0;
+	UINT16 MipLevels = 0;
+	bool IsCubemap = false;
 };

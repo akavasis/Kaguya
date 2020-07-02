@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "Exception.h"
 #include <sstream>
-#include <comdef.h> // _com_error
+#include <locale>
+#include <codecvt>
 
 Exception::Exception(std::string File, int Line) noexcept
 	: m_File(std::move(File)), m_Line(Line)
@@ -48,7 +49,23 @@ std::string COMException::Type() const noexcept
 
 std::string COMException::Error() const noexcept
 {
-	_com_error comerror(m_HR);
-	std::wstring errorMessage = comerror.ErrorMessage();
-	return std::string(errorMessage.begin(), errorMessage.end());
+	HRESULT hr = S_FALSE;
+	if (FACILITY_WINDOWS == HRESULT_FACILITY(m_HR))
+		hr = HRESULT_CODE(hr);
+	TCHAR* szErrMsg;
+
+	if (FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&szErrMsg, 0, NULL) != 0)
+	{
+		using convert_type = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<convert_type, wchar_t> converter;
+
+		std::string errMsg = converter.to_bytes(szErrMsg);
+		LocalFree(szErrMsg);
+		return errMsg;
+	}
+
+	return std::string("Invalid description for HRESULT");
 }

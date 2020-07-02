@@ -23,3 +23,9 @@ void Buffer::Unmap()
 	m_pResource->Unmap(0, nullptr);
 	m_pMappedData = nullptr;
 }
+
+D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetBufferLocationAt(INT Index)
+{
+	assert(Index >= 0 && Index < m_NumElements && "Index is out of range in Buffer");
+	return UINT64(INT64(m_pResource->GetGPUVirtualAddress()) + INT64(Index) * INT64(m_Stride));
+}

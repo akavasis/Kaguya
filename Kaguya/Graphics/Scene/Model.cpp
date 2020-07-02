@@ -68,7 +68,6 @@ Model::Model(const char* FileName, float Scale)
 			aiReturn aiR = paiMaterial->GetTexture(aiMapTextureType(), 0, &aiString);
 			if (auto texture = paiScene->GetEmbeddedTexture(aiString.C_Str()))
 			{
-				ThrowCOMIfFailed(DirectX::LoadFromWICMemory(texture->pcData, texture->mWidth, DirectX::WIC_FLAGS_NONE, nullptr, pMaterial->ScratchImages[Type]));
 				pMaterial->Flags |= MapTextureFlag();
 			}
 			else if (aiR == aiReturn_SUCCESS)

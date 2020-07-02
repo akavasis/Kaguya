@@ -47,10 +47,11 @@ Resource::Resource(const Device* pDevice, const Resource::Properties& Properties
 	m_NumSubresources = Properties.GetNumSubresources();
 	m_ResourceAllocationInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &resourceDesc);
 	m_Flags = resourceDesc.Flags;
+	m_InitialState = InitialState;
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommittedResource(&heapProperties,
 		heapFlags,
 		&resourceDesc,
-		InitialState,
+		m_InitialState,
 		m_ClearValue.has_value() ? &(m_ClearValue.value()) : nullptr,
 		IID_PPV_ARGS(&m_pResource)));
 }
@@ -78,10 +79,11 @@ Resource::Resource(const Device* pDevice, const Resource::Properties& Properties
 	m_NumSubresources = Properties.GetNumSubresources();
 	m_ResourceAllocationInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &resourceDesc);
 	m_Flags = resourceDesc.Flags;
+	m_InitialState = initialState;
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommittedResource(&heapProperties,
 		heapFlags,
 		&resourceDesc,
-		initialState,
+		m_InitialState,
 		m_ClearValue.has_value() ? &(m_ClearValue.value()) : nullptr,
 		IID_PPV_ARGS(&m_pResource)));
 }
@@ -104,11 +106,12 @@ Resource::Resource(const Device* pDevice, const Resource::Properties& Properties
 	m_NumSubresources = Properties.GetNumSubresources();
 	m_ResourceAllocationInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &resourceDesc);
 	m_Flags = resourceDesc.Flags;
+	m_InitialState = initialState;
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreatePlacedResource(
 		pHeap->GetD3DHeap(),
 		HeapOffset,
 		&resourceDesc,
-		initialState,
+		m_InitialState,
 		m_ClearValue.has_value() ? &(m_ClearValue.value()) : nullptr,
 		IID_PPV_ARGS(&m_pResource)));
 }

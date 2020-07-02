@@ -8,7 +8,6 @@
 #include "AL/D3D12/RootSignature.h"
 #include "AL/D3D12/PipelineState.h"
 
-#pragma region RenderCommandContext
 RenderCommandContext::RenderCommandContext(RenderDevice* pRenderDevice, D3D12_COMMAND_LIST_TYPE Type)
 	: m_Type(Type),
 	m_DynamicViewDescriptorHeap(&pRenderDevice->GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
@@ -16,21 +15,16 @@ RenderCommandContext::RenderCommandContext(RenderDevice* pRenderDevice, D3D12_CO
 {
 	switch (Type)
 	{
-	case D3D12_COMMAND_LIST_TYPE_DIRECT:
-		pOwningCommandQueue = pRenderDevice->GetGraphicsQueue();
-		m_pCurrentAllocator = pRenderDevice->GetGraphicsQueue()->RequestAllocator();
-		break;
-	case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-		pOwningCommandQueue = pRenderDevice->GetComputeQueue();
-		m_pCurrentAllocator = pRenderDevice->GetComputeQueue()->RequestAllocator();
-		break;
-	case D3D12_COMMAND_LIST_TYPE_COPY:
-		pOwningCommandQueue = pRenderDevice->GetCopyQueue();
-		m_pCurrentAllocator = pRenderDevice->GetCopyQueue()->RequestAllocator();
-		break;
+	case D3D12_COMMAND_LIST_TYPE_DIRECT: pOwningCommandQueue = pRenderDevice->GetGraphicsQueue(); break;
+	case D3D12_COMMAND_LIST_TYPE_COMPUTE: pOwningCommandQueue = pRenderDevice->GetComputeQueue(); break;
+	case D3D12_COMMAND_LIST_TYPE_COPY: pOwningCommandQueue = pRenderDevice->GetCopyQueue(); break;
 	}
 
+	m_pCurrentAllocator = pOwningCommandQueue->RequestAllocator();
+	m_pCurrentPendingAllocator = pOwningCommandQueue->RequestAllocator();
+
 	ThrowCOMIfFailed(pRenderDevice->GetDevice().GetD3DDevice()->CreateCommandList(1, Type, m_pCurrentAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pRenderDevice->GetDevice().GetD3DDevice()->CreateCommandList(1, Type, m_pCurrentPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
 
 	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
@@ -38,73 +32,22 @@ RenderCommandContext::RenderCommandContext(RenderDevice* pRenderDevice, D3D12_CO
 	}
 }
 
-bool RenderCommandContext::Close(ResourceStateTracker* pGlobalResourceStateTracker)
+bool RenderCommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
 {
 	FlushResourceBarriers();
 	ThrowCOMIfFailed(m_pCommandList->Close());
 
-	// Resolve the pending resource barriers by checking the global state of the  
-	// (sub)resources. Add barriers if the pending state and the global state do 
-	//  not match. 
-	std::vector<D3D12_RESOURCE_BARRIER> resourceBarriers;
-	// Reserve enough space (worst-case, all pending barriers). 
-	resourceBarriers.reserve(m_PendingResourceBarriers.size());
-
-	for (auto pendingBarrier : m_PendingResourceBarriers)
-	{
-		auto pendingTransition = pendingBarrier.Transition;
-
-		auto resourceState = pGlobalResourceStateTracker->Find(pendingTransition.pResource);
-		if (!resourceState.has_value())
-			continue;
-
-		// If all subresources are being transitioned, and there are multiple 
-		// subresources of the resource that are in a different state... 
-		if (pendingTransition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES &&
-			!resourceState->SubresourceState.empty())
-		{
-			// Transition all subresources 
-			for (const auto& subresourceState : resourceState->SubresourceState)
-			{
-				if (pendingTransition.StateAfter != subresourceState.second)
-				{
-					D3D12_RESOURCE_BARRIER newBarrier = pendingBarrier;
-					newBarrier.Transition.Subresource = subresourceState.first;
-					newBarrier.Transition.StateBefore = subresourceState.second;
-					resourceBarriers.push_back(newBarrier);
-				}
-			}
-		}
-		else
-		{
-			// No (sub)resources need to be transitioned. Just add a single transition barrier (if needed). 
-			auto globalState = resourceState->GetSubresourceState(pendingTransition.Subresource);
-			if (pendingTransition.StateAfter != globalState)
-			{
-				// Fix-up the before state based on current global state of the resource. 
-				pendingBarrier.Transition.StateBefore = globalState;
-				resourceBarriers.push_back(pendingBarrier);
-			}
-		}
-	}
-
-	UINT numBarriers = static_cast<UINT>(resourceBarriers.size());
-	if (numBarriers > 0)
-	{
-		//auto pD3DCommandList = pPendingCommandList->GetD3DCommandList();
-		//pD3DCommandList->ResourceBarrier(numBarriers, resourceBarriers.data());
-	}
-
-	m_PendingResourceBarriers.clear();
-
-	pGlobalResourceStateTracker->UpdateResourceStates(m_ResourceStateTracker);
-	m_ResourceStateTracker.Reset();
-	return numBarriers > 0;
+	// TODO: Add a pending command list
+	UINT numPendingBarriers = m_ResourceStateTracker.FlushPendingResourceBarriers(GlobalResourceStateTracker, m_pPendingCommandList.Get());
+	GlobalResourceStateTracker.UpdateResourceStates(m_ResourceStateTracker);
+	ThrowCOMIfFailed(m_pPendingCommandList->Close());
+	return numPendingBarriers > 0;
 }
 
 void RenderCommandContext::Reset()
 {
 	m_pCommandList->Reset(m_pCurrentAllocator, nullptr);
+	m_pPendingCommandList->Reset(m_pCurrentPendingAllocator, nullptr);
 	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		m_pCurrentDescriptorHeaps[i] = nullptr;
 
@@ -114,8 +57,6 @@ void RenderCommandContext::Reset()
 
 	// Reset resource state tracking and resource barriers 
 	m_ResourceStateTracker.Reset();
-	m_ResourceBarriers.clear();
-	m_PendingResourceBarriers.clear();
 }
 
 void RenderCommandContext::RequestNewAllocator(UINT64 FenceValue)
@@ -150,74 +91,29 @@ void RenderCommandContext::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID
 		m_pCommandList->SetDescriptorHeaps(NumDescriptorHeaps, DescriptorHeapsToBind);
 }
 
-void RenderCommandContext::TransitionBarrier(Resource* pResource, D3D12_RESOURCE_STATES TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
+void RenderCommandContext::TransitionBarrier(const Resource* pResource, D3D12_RESOURCE_STATES TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
 {
+#define D3D12_RESOURCE_STATE_UNKNOWN (static_cast<D3D12_RESOURCE_STATES>(-1))
 	// Transition barriers indicate that a set of subresources transition between different usages.  
 	// The caller must specify the before and after usages of the subresources.  
 	// The D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES flag is used to transition all subresources in a resource at the same time. 
-	D3D12_RESOURCE_BARRIER resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(pResource->GetD3DResource(), D3D12_RESOURCE_STATE_COMMON, TransitionState, Subresource);
-
-	// First check if there is already a known state for the given resource. 
-	// If there is, the resource has been used on the command list before and 
-	// already has a known state within the command list execution. 
-	auto resourceState = m_ResourceStateTracker.Find(resourceBarrier.Transition.pResource);
-	if (resourceState.has_value())
-	{
-		// If the known state of the resource is different... 
-		if (resourceBarrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES &&
-			!resourceState->SubresourceState.empty())
-		{
-			// First transition all of the subresources if they are different than the StateAfter. 
-			for (auto subresourceState : resourceState->SubresourceState)
-			{
-				if (resourceBarrier.Transition.StateAfter != subresourceState.second)
-				{
-					D3D12_RESOURCE_BARRIER newBarrier = resourceBarrier;
-					newBarrier.Transition.Subresource = subresourceState.first;
-					newBarrier.Transition.StateBefore = subresourceState.second;
-					m_ResourceBarriers.push_back(newBarrier);
-				}
-			}
-		}
-		else
-		{
-			D3D12_RESOURCE_STATES finalState = resourceState->GetSubresourceState(resourceBarrier.Transition.Subresource);
-			if (resourceBarrier.Transition.StateAfter != finalState)
-			{
-				// Push a new transition barrier with the correct before state. 
-				D3D12_RESOURCE_BARRIER newBarrier = resourceBarrier;
-				newBarrier.Transition.StateBefore = finalState;
-				m_ResourceBarriers.push_back(newBarrier);
-			}
-		}
-	}
-	else
-	{
-		m_PendingResourceBarriers.push_back(resourceBarrier);
-	}
-
-	// Update the state of the resource/subresource for this command list 
-	m_ResourceStateTracker.SetResourceState(resourceBarrier.Transition.pResource, resourceBarrier.Transition.Subresource, resourceBarrier.Transition.StateAfter);
+	ID3D12Resource* resource = pResource ? pResource->GetD3DResource() : nullptr;
+	if (resource)
+		m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_UNKNOWN, TransitionState, Subresource));
+#undef D3D12_RESOURCE_STATE_UNKNOWN
 }
 
-void RenderCommandContext::AliasingBarrier(Resource* pBeforeResource, Resource* pAfterResource)
+void RenderCommandContext::AliasingBarrier(const Resource* pBeforeResource, const Resource* pAfterResource)
 {
 	// Aliasing barriers indicate a transition between usages of two different resources which have mappings into the same heap.  
 	// The application can specify both the before and the after resource.  
 	// Note that one or both resources can be NULL (indicating that any tiled resource could cause aliasing). 
-	D3D12_RESOURCE_BARRIER barrier;
-	if (!pBeforeResource && !pAfterResource)
-		barrier = CD3DX12_RESOURCE_BARRIER::Aliasing(nullptr, nullptr);
-	else if (pBeforeResource && !pAfterResource)
-		barrier = CD3DX12_RESOURCE_BARRIER::Aliasing(pBeforeResource->GetD3DResource(), nullptr);
-	else if (!pBeforeResource && pAfterResource)
-		barrier = CD3DX12_RESOURCE_BARRIER::Aliasing(nullptr, pAfterResource->GetD3DResource());
-	else
-		barrier = CD3DX12_RESOURCE_BARRIER::Aliasing(pBeforeResource->GetD3DResource(), pAfterResource->GetD3DResource());
-	m_ResourceBarriers.push_back(barrier);
+	ID3D12Resource* before = pBeforeResource ? pBeforeResource->GetD3DResource() : nullptr;
+	ID3D12Resource* after = pAfterResource ? pAfterResource->GetD3DResource() : nullptr;
+	m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Aliasing(before, after));
 }
 
-void RenderCommandContext::UAVBarrier(Resource* pResource)
+void RenderCommandContext::UAVBarrier(const Resource* pResource)
 {
 	// A UAV barrier indicates that all UAV accesses, both read or write,  
 	// to a particular resource must complete between any future UAV accesses, both read or write.  
@@ -226,44 +122,34 @@ void RenderCommandContext::UAVBarrier(Resource* pResource)
 	// write to the same UAV if the application knows that it is safe to execute the UAV access in any order.  
 	// A D3D12_RESOURCE_UAV_BARRIER structure is used to specify the UAV resource to which the barrier applies.  
 	// The application can specify NULL for the barrier's UAV, which indicates that any UAV access could require the barrier. 
-	m_ResourceBarriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pResource->GetD3DResource()));
+	ID3D12Resource* resource = pResource ? pResource->GetD3DResource() : nullptr;
+	m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::UAV(resource));
 }
 
 void RenderCommandContext::FlushResourceBarriers()
 {
-	UINT numBarriers = static_cast<UINT>(m_ResourceBarriers.size());
-	if (numBarriers > 0)
-	{
-		m_pCommandList->ResourceBarrier(numBarriers, m_ResourceBarriers.data());
-		m_ResourceBarriers.clear();
-	}
+	m_ResourceStateTracker.FlushResourceBarriers(m_pCommandList.Get());
 }
 
 void RenderCommandContext::CopyResource(Resource* pDstResource, Resource* pSrcResource)
 {
 	TransitionBarrier(pDstResource, D3D12_RESOURCE_STATE_COPY_DEST);
 	TransitionBarrier(pSrcResource, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	FlushResourceBarriers();
 	m_pCommandList->CopyResource(pDstResource->GetD3DResource(), pSrcResource->GetD3DResource());
 }
 
-void RenderCommandContext::SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, Resource* pResource, D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle)
+void RenderCommandContext::SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor)
 {
-	m_DynamicViewDescriptorHeap.StageDescriptors(RootParameterIndex, DescriptorOffset, 1, CPUHandle);
+	m_DynamicViewDescriptorHeap.StageDescriptors(RootParameterIndex, DescriptorOffset, NumHandlesWithinDescriptor, Descriptor[0]);
 }
 
-void RenderCommandContext::SetUAV(UINT RootParameterIndex, UINT DescriptorOffset, Resource* pResource, D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle)
+void RenderCommandContext::SetUAV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor)
 {
-	m_DynamicViewDescriptorHeap.StageDescriptors(RootParameterIndex, DescriptorOffset, 1, CPUHandle);
-}
-#pragma endregion RenderCommandContext
-
-#pragma region GraphicsCommandContext
-GraphicsCommandContext::GraphicsCommandContext(RenderDevice* pRenderDevice)
-	: RenderCommandContext(pRenderDevice, D3D12_COMMAND_LIST_TYPE_DIRECT)
-{
+	m_DynamicViewDescriptorHeap.StageDescriptors(RootParameterIndex, DescriptorOffset, NumHandlesWithinDescriptor, Descriptor[0]);
 }
 
-void GraphicsCommandContext::SetRootSignature(const RootSignature* pRootSignature)
+void RenderCommandContext::SetGraphicsRootSignature(const RootSignature* pRootSignature)
 {
 	auto pD3DRootSignature = pRootSignature->GetD3DRootSignature();
 	m_DynamicViewDescriptorHeap.ParseRootSignature(pRootSignature);
@@ -271,37 +157,37 @@ void GraphicsCommandContext::SetRootSignature(const RootSignature* pRootSignatur
 	m_pCommandList->SetGraphicsRootSignature(pD3DRootSignature);
 }
 
-void GraphicsCommandContext::SetRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
+void RenderCommandContext::SetGraphicsRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
 {
 	m_pCommandList->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
 }
 
-void GraphicsCommandContext::SetRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues)
+void RenderCommandContext::SetGraphicsRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues)
 {
 	m_pCommandList->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
 }
 
-void GraphicsCommandContext::SetRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+void RenderCommandContext::SetGraphicsRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
 	m_pCommandList->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation);
 }
 
-void GraphicsCommandContext::SetRootSRV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+void RenderCommandContext::SetGraphicsRootSRV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
 	m_pCommandList->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation);
 }
 
-void GraphicsCommandContext::SetRootUAV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+void RenderCommandContext::SetGraphicsRootUAV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
 	m_pCommandList->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation);
 }
 
-void GraphicsCommandContext::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY PrimitiveTopology)
+void RenderCommandContext::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY PrimitiveTopology)
 {
 	m_pCommandList->IASetPrimitiveTopology(PrimitiveTopology);
 }
 
-void GraphicsCommandContext::SetVertexBuffers(UINT StartSlot, UINT NumViews, Buffer* const* ppVertexBuffers)
+void RenderCommandContext::SetVertexBuffers(UINT StartSlot, UINT NumViews, Buffer* const* ppVertexBuffers)
 {
 	if (ppVertexBuffers)
 	{
@@ -320,7 +206,7 @@ void GraphicsCommandContext::SetVertexBuffers(UINT StartSlot, UINT NumViews, Buf
 	}
 }
 
-void GraphicsCommandContext::SetIndexBuffer(Buffer* pIndexBuffer)
+void RenderCommandContext::SetIndexBuffer(Buffer* pIndexBuffer)
 {
 	if (pIndexBuffer && pIndexBuffer->GetD3DResource())
 	{
@@ -334,17 +220,17 @@ void GraphicsCommandContext::SetIndexBuffer(Buffer* pIndexBuffer)
 		m_pCommandList->IASetIndexBuffer(nullptr);
 }
 
-void GraphicsCommandContext::SetViewports(UINT NumViewports, const D3D12_VIEWPORT* pViewports)
+void RenderCommandContext::SetViewports(UINT NumViewports, const D3D12_VIEWPORT* pViewports)
 {
 	m_pCommandList->RSSetViewports(NumViewports, pViewports);
 }
 
-void GraphicsCommandContext::SetScissorRects(UINT NumRects, const D3D12_RECT* pRects)
+void RenderCommandContext::SetScissorRects(UINT NumRects, const D3D12_RECT* pRects)
 {
 	m_pCommandList->RSSetScissorRects(NumRects, pRects);
 }
 
-void GraphicsCommandContext::DrawInstanced(UINT VertexCount, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation)
+void RenderCommandContext::DrawInstanced(UINT VertexCount, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation)
 {
 	FlushResourceBarriers();
 	m_DynamicViewDescriptorHeap.CommitStagedDescriptorsForDraw(m_pCommandList.Get());
@@ -352,22 +238,15 @@ void GraphicsCommandContext::DrawInstanced(UINT VertexCount, UINT InstanceCount,
 	m_pCommandList->DrawInstanced(VertexCount, InstanceCount, StartVertexLocation, StartInstanceLocation);
 }
 
-void GraphicsCommandContext::DrawIndexedInstanced(UINT IndexCount, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation)
+void RenderCommandContext::DrawIndexedInstanced(UINT IndexCount, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation)
 {
 	FlushResourceBarriers();
 	m_DynamicViewDescriptorHeap.CommitStagedDescriptorsForDraw(m_pCommandList.Get());
 	m_DynamicSamplerDescriptorHeap.CommitStagedDescriptorsForDraw(m_pCommandList.Get());
 	m_pCommandList->DrawIndexedInstanced(IndexCount, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
 }
-#pragma endregion GraphicsCommandContext
 
-#pragma region ComputeCommandContext
-ComputeCommandContext::ComputeCommandContext(RenderDevice* pRenderDevice)
-	: RenderCommandContext(pRenderDevice, D3D12_COMMAND_LIST_TYPE_COMPUTE)
-{
-}
-
-void ComputeCommandContext::SetRootSignature(const RootSignature* pRootSignature)
+void RenderCommandContext::SetComputeRootSignature(const RootSignature* pRootSignature)
 {
 	auto pD3DRootSignature = pRootSignature->GetD3DRootSignature();
 	m_DynamicViewDescriptorHeap.ParseRootSignature(pRootSignature);
@@ -375,43 +254,35 @@ void ComputeCommandContext::SetRootSignature(const RootSignature* pRootSignature
 	m_pCommandList->SetComputeRootSignature(pD3DRootSignature);
 }
 
-void ComputeCommandContext::SetRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
+void RenderCommandContext::SetComputeRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
 {
 	m_pCommandList->SetComputeRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
 }
 
-void ComputeCommandContext::SetRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues)
+void RenderCommandContext::SetComputeRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues)
 {
 	m_pCommandList->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
 }
 
-void ComputeCommandContext::SetRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+void RenderCommandContext::SetComputeRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
 	m_pCommandList->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation);
 }
 
-void ComputeCommandContext::SetRootSRV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+void RenderCommandContext::SetComputeRootSRV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
 	m_pCommandList->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation);
 }
 
-void ComputeCommandContext::SetRootUAV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+void RenderCommandContext::SetComputeRootUAV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
 	m_pCommandList->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation);
 }
 
-void ComputeCommandContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ)
+void RenderCommandContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ)
 {
 	FlushResourceBarriers();
 	m_DynamicViewDescriptorHeap.CommitStagedDescriptorsForDispatch(m_pCommandList.Get());
 	m_DynamicSamplerDescriptorHeap.CommitStagedDescriptorsForDispatch(m_pCommandList.Get());
 	m_pCommandList->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 }
-#pragma endregion ComputeCommandContext
-
-#pragma region CopyCommandContext
-CopyCommandContext::CopyCommandContext(RenderDevice* pRenderDevice)
-	: RenderCommandContext(pRenderDevice, D3D12_COMMAND_LIST_TYPE_COPY)
-{
-}
-#pragma endregion CopyCommandContext

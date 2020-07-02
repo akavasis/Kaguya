@@ -10,47 +10,8 @@ Material::Properties::Properties()
 }
 
 Material::Material()
-	: pMaps{ nullptr }
 {
 	Flags = 0;
-}
-
-Material::Material(const Material& rhs)
-{
-	*this = rhs;
-}
-
-Material::Material(Material&& rhs) noexcept
-{
-	*this = std::move(rhs);
-}
-
-Material& Material::operator=(const Material& rhs)
-{
-	if (this != &rhs)
-	{
-		Name = rhs.Name;
-		Properties = rhs.Properties;
-		for (int i = 0; i < NumTextureTypes; ++i)
-		{
-			Maps[i] = rhs.Maps[i];
-			pMaps[i] = rhs.pMaps[i];
-		}
-	}
-	return *this;
-}
-
-Material& Material::operator=(Material&& rhs) noexcept
-{
-	Name = std::move(rhs.Name);
-	Properties = std::move(rhs.Properties);
-	for (int i = 0; i < NumTextureTypes; ++i)
-	{
-		Maps[i] = std::move(rhs.Maps[i]);
-		pMaps[i] = std::move(rhs.pMaps[i]);
-		ScratchImages[i] = std::move(rhs.ScratchImages[i]);
-	}
-	return *this;
 }
 
 Material::~Material()

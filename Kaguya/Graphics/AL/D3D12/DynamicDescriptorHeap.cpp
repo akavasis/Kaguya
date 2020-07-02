@@ -45,7 +45,14 @@ void DynamicDescriptorHeap::ParseRootSignature(const RootSignature* RootSignatur
 {
 	m_StaleDescriptorTableBitMask.reset();
 
-	m_DescriptorTableBitMask = RootSignature->GetDescriptorTableBitMask(m_Type);
+	switch (m_Type)
+	{
+	case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+		m_DescriptorTableBitMask = RootSignature->GetDescriptorTableBitMask();
+		break;
+	case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+		m_DescriptorTableBitMask = RootSignature->GetSamplerTableBitMask();
+	}
 
 	UINT descriptorOffset = 0;
 	UINT rootParameterIndex = 0;
@@ -58,7 +65,7 @@ void DynamicDescriptorHeap::ParseRootSignature(const RootSignature* RootSignatur
 			rootParameterIndex = i;
 			if (rootParameterIndex < RootSignature->GetD3DRootSignatureDesc().NumParameters)
 			{
-				UINT numDescriptors = RootSignature->GetNumDescriptors(rootParameterIndex);
+				UINT numDescriptors = RootSignature->GetNumDescriptorsAt(rootParameterIndex);
 
 				DescriptorTableCache& descriptorTableCache = m_DescriptorTableCache[rootParameterIndex];
 				descriptorTableCache.NumDescriptors = numDescriptors;

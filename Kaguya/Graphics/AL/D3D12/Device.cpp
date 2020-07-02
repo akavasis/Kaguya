@@ -11,12 +11,14 @@ Device::Device(IUnknown* pAdapter)
 	m_SamplerAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 {
 #if defined(_DEBUG)
-	const BOOL gpuBasedValidation = FALSE;
+	constexpr BOOL gpuBasedValidation = FALSE;
+	constexpr BOOL synchronizedCmdQueueValidation = TRUE;
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
 	ComPtr<ID3D12Debug1> pDebug1;
 	ThrowCOMIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(pDebug1.ReleaseAndGetAddressOf())));
 	pDebug1->EnableDebugLayer();
 	pDebug1->SetEnableGPUBasedValidation(gpuBasedValidation);
+	pDebug1->SetEnableSynchronizedCommandQueueValidation(synchronizedCmdQueueValidation);
 #endif
 
 	const D3D_FEATURE_LEVEL minimumFeatureLevel = D3D_FEATURE_LEVEL_12_1;
@@ -40,25 +42,27 @@ Device::Device(IUnknown* pAdapter)
 	ThrowCOMIfFailed(pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE));
 
 	// Suppress messages based on their severity level
-	D3D12_MESSAGE_SEVERITY Severities[] =
+	D3D12_MESSAGE_SEVERITY severities[] =
 	{
 		D3D12_MESSAGE_SEVERITY_INFO
 	};
 
 	// Suppress individual messages by their ID
-	D3D12_MESSAGE_ID DenyIDs[] =
+	D3D12_MESSAGE_ID denyIDs[] =
 	{
 		D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,		// This warning occurs when using capture frame while graphics debugging.
 		D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,	// This warning occurs when using capture frame while graphics debugging.
-		D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET // This warning occurs when setting DSV Format for PSO as DXGI_UNKNOWN for post processing
+		D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET, // This warning occurs when setting DSV Format for PSO as DXGI_UNKNOWN for post processing
+		D3D12_MESSAGE_ID_RESOURCE_BARRIER_BEFORE_AFTER_MISMATCH, // This warning occurs when subresources are in incorrect states but they will be resolved in resource state tracker
+		D3D12_MESSAGE_ID_INVALID_SUBRESOURCE_STATE	// This warning occurs when subresources are in incorrect states but they will be resolved in resource state tracker
 	};
 
-	D3D12_INFO_QUEUE_FILTER InfoQueueFilter = {};
-	InfoQueueFilter.DenyList.NumSeverities = ARRAYSIZE(Severities);
-	InfoQueueFilter.DenyList.pSeverityList = Severities;
-	InfoQueueFilter.DenyList.NumIDs = ARRAYSIZE(DenyIDs);
-	InfoQueueFilter.DenyList.pIDList = DenyIDs;
+	D3D12_INFO_QUEUE_FILTER infoQueueFilter = {};
+	infoQueueFilter.DenyList.NumSeverities = ARRAYSIZE(severities);
+	infoQueueFilter.DenyList.pSeverityList = severities;
+	infoQueueFilter.DenyList.NumIDs = ARRAYSIZE(denyIDs);
+	infoQueueFilter.DenyList.pIDList = denyIDs;
 
-	ThrowCOMIfFailed(pInfoQueue->PushStorageFilter(&InfoQueueFilter));
+	ThrowCOMIfFailed(pInfoQueue->PushStorageFilter(&infoQueueFilter));
 #endif
 }

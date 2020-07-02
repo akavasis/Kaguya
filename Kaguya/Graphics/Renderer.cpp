@@ -7,6 +7,7 @@
 // MT
 #include <future>
 
+#include <DXProgrammableCapture.h>
 #include "pix3.h"
 struct PIXMarker
 {
@@ -129,7 +130,19 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 	voidFuture.wait();
 
-	m_TexturePool.LoadFromFile("Assets/Models/Cerberus/Textures/Cerberus_A.tga", true, true);
+	ComPtr<IDXGraphicsAnalysis> ga;
+	HRESULT hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga));
+
+	auto albedo = m_TexturePool.LoadFromFile("Assets/Models/Cerberus/Textures/Cerberus_A.tga", true, true);
+	auto context = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+
+	if (SUCCEEDED(hr))
+		ga->BeginCapture();
+	m_TexturePool.Stage(context);
+
+	m_RenderDevice.ExecuteRenderCommandContexts(1, &context);
+	if (SUCCEEDED(hr))
+		ga->EndCapture();
 
 	struct CubemapGenerationData
 	{
@@ -140,7 +153,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		[](CubemapGenerationData& Data, RenderDevice& RenderDevice)
 	{
 
-		return [=](const CubemapGenerationData& Data, RenderGraphRegistry& RenderGraphRegistry, GraphicsCommandContext* pGraphicsCommandContext)
+		return [=](const CubemapGenerationData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 
 		};
@@ -155,7 +168,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		[](ShadowPassData& Data, RenderDevice& RenderDevice)
 	{
 
-		return [=](const ShadowPassData& Data, RenderGraphRegistry& RenderGraphRegistry, GraphicsCommandContext* pGraphicsCommandContext)
+		return [=](const ShadowPassData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 
 		};
@@ -170,7 +183,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		[](ForwardPassData& Data, RenderDevice& RenderDevice)
 	{
 
-		return [=](const ForwardPassData& Data, RenderGraphRegistry& RenderGraphRegistry, GraphicsCommandContext* pGraphicsCommandContext)
+		return [=](const ForwardPassData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 
 		};
@@ -203,7 +216,7 @@ void Renderer::Update(const Time& Time)
 
 void Renderer::Render()
 {
-	m_RenderGraph.Execute();
+	//m_RenderGraph.Execute();
 }
 
 void Renderer::Present()

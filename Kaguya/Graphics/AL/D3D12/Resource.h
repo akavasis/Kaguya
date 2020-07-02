@@ -1,7 +1,6 @@
 #pragma once
 #include <optional>
 
-#include "Descriptor.h"
 #include "Heap.h"
 
 class Device;
@@ -22,6 +21,7 @@ public:
 	Resource& operator=(const Resource&) = delete;
 
 	inline auto GetD3DResource() const { return m_pResource.Get(); }
+	inline auto GetInitialState() const { return m_InitialState; }
 	inline auto GetGPUVirtualAddress() const { return m_pResource->GetGPUVirtualAddress(); }
 	inline auto GetNumSubresources() const { return m_NumSubresources; }
 
@@ -48,6 +48,7 @@ protected:
 	Resource(const Device* pDevice, const Resource::Properties& Properties, D3D12_RESOURCE_STATES InitialState, const Heap* pHeap, UINT64 HeapOffset);
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pResource;
+	D3D12_RESOURCE_STATES m_InitialState;
 private:
 	std::optional<D3D12_CLEAR_VALUE> m_ClearValue = std::nullopt;
 	D3D12_RESOURCE_ALLOCATION_INFO m_ResourceAllocationInfo = {};

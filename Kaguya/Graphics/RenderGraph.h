@@ -50,11 +50,6 @@ enum class RenderPassType
 	Copy
 };
 
-template<RenderPassType Type> struct ActualRenderContext;
-template<> struct ActualRenderContext<RenderPassType::Graphics> { using Type = GraphicsCommandContext; };
-template<> struct ActualRenderContext<RenderPassType::Compute> { using Type = ComputeCommandContext; };
-template<> struct ActualRenderContext<RenderPassType::Copy> { using Type = CopyCommandContext; };
-
 class RenderPassBase
 {
 public:
@@ -78,7 +73,7 @@ template<RenderPassType Type, typename Data>
 class RenderPass : public RenderPassBase
 {
 public:
-	using ExecuteCallback = std::function<void(const Data&, RenderGraphRegistry&, typename ActualRenderContext<Type>::Type*)>;
+	using ExecuteCallback = std::function<void(const Data&, RenderGraphRegistry&, RenderCommandContext*)>;
 	using PassCallback = std::function<ExecuteCallback(Data&, RenderDevice&)>;
 
 	RenderPass(PassCallback PassCallback);

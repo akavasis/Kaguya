@@ -15,19 +15,26 @@ RenderDevice::~RenderDevice()
 
 RenderCommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type)
 {
-	switch (Type)
+	m_RenderCommandContexts[Type].push_back(std::make_unique<RenderCommandContext>(this, Type));
+	return m_RenderCommandContexts[Type].back().get();
+}
+
+void RenderDevice::ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* ppRenderCommandContexts[])
+{
+	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
+	commandlistsToBeExecuted.reserve(NumRenderCommandContexts);
+	for (UINT i = 0; i < NumRenderCommandContexts; ++i)
 	{
-	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT:
-		m_RenderCommandContexts[Type].push_back(std::make_unique<GraphicsCommandContext>(this));
-		return m_RenderCommandContexts[Type].back().get();
-	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE:
-		m_RenderCommandContexts[Type].push_back(std::make_unique<ComputeCommandContext>(this));
-		return m_RenderCommandContexts[Type].back().get();
-	case D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY:
-		m_RenderCommandContexts[Type].push_back(std::make_unique<CopyCommandContext>(this));
-		return m_RenderCommandContexts[Type].back().get();
+		RenderCommandContext* pRenderCommandContext = ppRenderCommandContexts[i];
+		if (pRenderCommandContext->Close(m_GlobalResourceTracker));
+		{
+			commandlistsToBeExecuted.push_back(pRenderCommandContext->m_pPendingCommandList.Get());
+		}
+		commandlistsToBeExecuted.push_back(pRenderCommandContext->m_pCommandList.Get());
 	}
-	return nullptr;
+
+	m_GraphicsQueue.GetD3DCommandQueue()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
+	m_GraphicsQueue.WaitForIdle(); // TODO: REMOVE
 }
 
 RenderResourceHandle RenderDevice::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
@@ -98,37 +105,106 @@ void RenderDevice::Destroy(RenderResourceHandle& RenderResourceHandle)
 	RenderResourceHandle._Data = 0;
 }
 
-Shader* RenderDevice::GetShader(RenderResourceHandle RenderResourceHandle) const
+void RenderDevice::CreateSRVForTexture(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-	return m_Shaders.GetResource(RenderResourceHandle);
+	Texture* texture = GetTexture(RenderResourceHandle);
+	assert(texture != nullptr && "Could not find texture given the handle");
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+	desc.Format = texture->Format;
+	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+	if (texture->IsCubemap)
+	{
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+		desc.TextureCube.MipLevels = texture->MipLevels;
+	}
+	else
+	{
+		switch (texture->Type)
+		{
+		case Resource::Type::Texture1D:
+			if (texture->DepthOrArraySize > 1)
+			{
+				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+				desc.Texture1DArray.MipLevels = texture->MipLevels;
+				desc.Texture1DArray.ArraySize = texture->DepthOrArraySize;
+			}
+			else
+			{
+				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+				desc.Texture1D.MipLevels = texture->MipLevels;
+			}
+			break;
+
+		case Resource::Type::Texture2D:
+			if (texture->DepthOrArraySize > 1)
+			{
+				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+				desc.Texture2DArray.MipLevels = texture->MipLevels;
+				desc.Texture2DArray.ArraySize = texture->DepthOrArraySize;
+			}
+			else
+			{
+				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				desc.Texture2D.MipLevels = texture->MipLevels;
+			}
+			break;
+
+		case Resource::Type::Texture3D:
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+			desc.Texture3D.MipLevels = texture->MipLevels;
+			break;
+		}
+	}
+
+	m_Device.GetD3DDevice()->CreateShaderResourceView(texture->GetD3DResource(), &desc, DestDescriptor);
 }
 
-Buffer* RenderDevice::GetBuffer(RenderResourceHandle RenderResourceHandle) const
+void RenderDevice::CreateUAVForTexture(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> MipSlice)
 {
-	return m_Buffers.GetResource(RenderResourceHandle);
-}
+	Texture* texture = GetTexture(RenderResourceHandle);
+	assert(texture != nullptr && "Could not find texture given the handle");
 
-Texture* RenderDevice::GetTexture(RenderResourceHandle RenderResourceHandle) const
-{
-	return m_Textures.GetResource(RenderResourceHandle);
-}
+	UINT mipSlice = MipSlice.value_or(0);
+	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
+	desc.Format = texture->Format;
 
-Heap* RenderDevice::GetHeap(RenderResourceHandle RenderResourceHandle) const
-{
-	return m_Heaps.GetResource(RenderResourceHandle);
-}
+	switch (texture->Type)
+	{
+	case Resource::Type::Texture1D:
+		if (texture->DepthOrArraySize > 1)
+		{
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+			desc.Texture1DArray.MipSlice = mipSlice;
+			desc.Texture1DArray.ArraySize = texture->DepthOrArraySize;
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+			desc.Texture1D.MipSlice = mipSlice;
+		}
+		break;
 
-RootSignature* RenderDevice::GetRootSignature(RenderResourceHandle RenderResourceHandle) const
-{
-	return m_RootSignatures.GetResource(RenderResourceHandle);
-}
+	case Resource::Type::Texture2D:
+		if (texture->DepthOrArraySize > 1)
+		{
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			desc.Texture2DArray.MipSlice = mipSlice;
+			desc.Texture2DArray.ArraySize = texture->DepthOrArraySize;
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipSlice = mipSlice;
+		}
+		break;
 
-GraphicsPipelineState* RenderDevice::GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const
-{
-	return m_GraphicsPipelineStates.GetResource(RenderResourceHandle);
-}
+	case Resource::Type::Texture3D:
+		desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+		desc.Texture3D.MipSlice = mipSlice;
+		break;
+	}
 
-ComputePipelineState* RenderDevice::GetComputePSO(RenderResourceHandle RenderResourceHandle) const
-{
-	return m_ComputePipelineStates.GetResource(RenderResourceHandle);
+	m_Device.GetD3DDevice()->CreateUnorderedAccessView(texture->GetD3DResource(), nullptr, &desc, DestDescriptor);
 }

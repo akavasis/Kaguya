@@ -5,6 +5,9 @@ using Microsoft::WRL::ComPtr;
 
 RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
 {
+	for (UINT i = 0; i < MaxDescriptorTables; ++i)
+		m_NumDescriptorsPerTable[i] = 0;
+
 	auto& rootSignatureDesc = Properties.Desc;
 	UINT numParameters = rootSignatureDesc.NumParameters;
 	D3D12_ROOT_PARAMETER* pParameters = numParameters > 0 ? new D3D12_ROOT_PARAMETER[numParameters] : nullptr;
@@ -73,7 +76,7 @@ RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
 
 	if (pErrorBlob)
 	{
-		::OutputDebugString((LPCWSTR)pErrorBlob->GetBufferPointer());
+		CORE_ERROR("{} Failed: {}", __FUNCTION__, pErrorBlob->GetBufferPointer());
 	}
 
 	// Create the root signature.
@@ -93,27 +96,31 @@ RootSignature::~RootSignature()
 	}
 
 	delete[] m_RootSignatureDesc.pParameters;
-	m_RootSignatureDesc.pParameters = nullptr;
-	m_RootSignatureDesc.NumParameters = 0;
-
 	delete[] m_RootSignatureDesc.pStaticSamplers;
-	m_RootSignatureDesc.pStaticSamplers = nullptr;
-	m_RootSignatureDesc.NumStaticSamplers = 0;
 }
 
-std::bitset<RootSignature::MaxDescriptorTables> RootSignature::GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType) const
+RootSignature::RootSignature(RootSignature&& rvalue) noexcept
 {
-	switch (DescriptorHeapType)
-	{
-	case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
-		return m_DescriptorTableBitMask;
-	case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
-		return m_SamplerTableBitMask;
-	}
-	return 0;
+	*this = std::move(rvalue);
 }
 
-UINT RootSignature::GetNumDescriptors(UINT RootParameterIndex) const
+RootSignature& RootSignature::operator=(RootSignature&& rvalue) noexcept
+{
+	m_RootSignature = std::move(rvalue.m_RootSignature);
+	m_RootSignatureDesc = rvalue.m_RootSignatureDesc;
+	for (UINT i = 0; i < MaxDescriptorTables; ++i)
+		m_NumDescriptorsPerTable[i] = rvalue.m_NumDescriptorsPerTable[i];
+	m_DescriptorTableBitMask = rvalue.m_DescriptorTableBitMask;
+	m_SamplerTableBitMask = rvalue.m_SamplerTableBitMask;
+
+	ZeroMemory(&rvalue.m_RootSignatureDesc, sizeof(rvalue.m_RootSignatureDesc));
+	ZeroMemory(&rvalue.m_NumDescriptorsPerTable, sizeof(rvalue.m_NumDescriptorsPerTable));
+	rvalue.m_DescriptorTableBitMask.reset();
+	rvalue.m_SamplerTableBitMask.reset();
+	return *this;
+}
+
+UINT RootSignature::GetNumDescriptorsAt(UINT RootParameterIndex) const
 {
 	assert(RootParameterIndex < MaxDescriptorTables);
 	return m_NumDescriptorsPerTable[RootParameterIndex];

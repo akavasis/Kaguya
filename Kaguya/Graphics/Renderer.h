@@ -80,6 +80,7 @@ private:
 	RenderGraph m_RenderGraph;
 
 	// Swapchain resources
+	UINT m_FrameIndex;
 	float m_AspectRatio;
 	IDXGISwapChain4* m_pSwapChain;
 	Texture m_BackBufferTexture[SwapChainBufferCount];
