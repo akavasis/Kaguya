@@ -4,10 +4,10 @@
 
 class Window;
 
-typedef enum class API
+enum class API
 {
 	API_D3D12
-} API;
+};
 
 class DXGIManager
 {
@@ -15,20 +15,20 @@ public:
 	DXGIManager();
 	~DXGIManager();
 
-	IDXGISwapChain4* CreateSwapChain(IUnknown* pUnknown, const Window& Window, DXGI_FORMAT Format, UINT BufferCount);
-	IDXGIAdapter4* QueryAdapter(API API);
+	Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain(IUnknown* pUnknown, const Window& Window, DXGI_FORMAT Format, UINT BufferCount);
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> QueryAdapter(API API);
 
 	const DXGI_QUERY_VIDEO_MEMORY_INFO& QueryLocalVideoMemoryInfo() const;
 	const DXGI_QUERY_VIDEO_MEMORY_INFO& QueryNonLocalVideoMemoryInfo() const;
 
 	bool TearingSupport() const;
 private:
-	IDXGIFactory7* m_pDXGIFactory;
-	std::vector<IDXGIAdapter4*> m_pAdapters;
-	IDXGIAdapter4* m_pQueriedAdapter;
+	Microsoft::WRL::ComPtr<IDXGIFactory7> m_pDXGIFactory;
+	std::vector<Microsoft::WRL::ComPtr<IDXGIAdapter4>> m_pAdapters;
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> m_pQueriedAdapter;
 
 	mutable DXGI_QUERY_VIDEO_MEMORY_INFO m_LocalVideoMemoryInfo;
 	mutable DXGI_QUERY_VIDEO_MEMORY_INFO m_NonLocalVideoMemoryInfo;
 
-	bool m_tearingSupport;
+	bool m_TearingSupport;
 };

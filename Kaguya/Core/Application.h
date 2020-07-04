@@ -3,17 +3,17 @@
 #include <Windows.h>
 #include <functional>
 #include <filesystem>
+#include "Delegate.h"
 
 class Application
 {
 public:
-	using Callback = std::function<void()>;
-
 	Application();
 	~Application();
 
 	std::filesystem::path ExecutableFolderPath();
-	int Run(Callback CallBack);
+	int Run(Delegate<void()> Callback);
 private:
 	std::filesystem::path m_ExecutableFolderPath;
+	Delegate<void()> m_Callback;
 };

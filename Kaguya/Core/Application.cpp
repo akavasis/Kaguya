@@ -13,7 +13,6 @@ Application::Application()
 	{
 		std::filesystem::path executablePath{ argv[0] };
 		m_ExecutableFolderPath = executablePath.parent_path();
-
 		LocalFree(argv);
 	}
 	else
@@ -35,8 +34,9 @@ std::filesystem::path Application::ExecutableFolderPath()
 	return m_ExecutableFolderPath;
 }
 
-int Application::Run(Callback CallBack)
+int Application::Run(Delegate<void()> Callback)
 {
+	m_Callback = Callback;
 	// Main message loop:
 	MSG msg = {};
 	while (msg.message != WM_QUIT)
@@ -51,7 +51,7 @@ int Application::Run(Callback CallBack)
 		}
 		else
 		{
-			CallBack();
+			m_Callback();
 		}
 	}
 	return static_cast<int>(msg.wParam);

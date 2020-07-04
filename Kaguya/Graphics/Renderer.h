@@ -82,7 +82,7 @@ private:
 	// Swapchain resources
 	UINT m_FrameIndex;
 	float m_AspectRatio;
-	IDXGISwapChain4* m_pSwapChain;
+	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 	Texture m_BackBufferTexture[SwapChainBufferCount];
 
 	RenderResourceHandle m_FrameBuffer;

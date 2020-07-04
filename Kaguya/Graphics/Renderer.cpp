@@ -23,7 +23,6 @@ struct PIXMarker
 	}
 };
 
-using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
 #define MAX_POINT_LIGHT 5
@@ -74,7 +73,7 @@ struct RenderPassConstantsCPU
 
 Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	: m_RefWindow(RefWindow),
-	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12)),
+	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(m_RenderDevice),
 	m_TexturePool(RefApplication.ExecutableFolderPath(), m_RenderDevice)
 {
@@ -100,7 +99,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	// Initialize Non-transient resources
 	for (UINT i = 0; i < SwapChainBufferCount; ++i)
 	{
-		ComPtr<ID3D12Resource> pBackBuffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 		m_BackBufferTexture[i] = Texture(pBackBuffer);
 		m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(m_BackBufferTexture[i].GetD3DResource(), D3D12_RESOURCE_STATE_COMMON);
@@ -130,7 +129,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 	voidFuture.wait();
 
-	ComPtr<IDXGraphicsAnalysis> ga;
+	Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> ga;
 	HRESULT hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga));
 
 	auto albedo = m_TexturePool.LoadFromFile("Assets/Models/Cerberus/Textures/Cerberus_A.tga", true, true);
@@ -194,11 +193,6 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 Renderer::~Renderer()
 {
-	if (m_pSwapChain)
-	{
-		m_pSwapChain->Release();
-		m_pSwapChain = nullptr;
-	}
 }
 
 void Renderer::Update(const Time& Time)
@@ -230,7 +224,7 @@ void Renderer::Present()
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
 		CORE_ERROR("DXGI_ERROR_DEVICE_REMOVED");
-		ComPtr<ID3D12DeviceRemovedExtendedData> pDRED;
+		Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedData> pDRED;
 		ThrowCOMIfFailed(m_RenderDevice.GetDevice().GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&pDRED)));
 		D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT DREDAutoBreadcrumbsOutput;
 		D3D12_DRED_PAGE_FAULT_OUTPUT DREDPageFaultOutput;
@@ -267,7 +261,7 @@ void Renderer::Resize()
 		// Recreate descriptors
 		for (UINT i = 0; i < SwapChainBufferCount; ++i)
 		{
-			ComPtr<ID3D12Resource> pBackBuffer;
+			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 			m_BackBufferTexture[i] = Texture(pBackBuffer);
 			m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(m_BackBufferTexture[i].GetD3DResource(), D3D12_RESOURCE_STATE_COMMON);
