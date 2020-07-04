@@ -1,82 +1,88 @@
 #pragma once
 #include <atomic>
 #include <thread>
+#include <future>
 #include <mutex>
 #include <condition_variable>
 #include <deque>
 #include <vector>
 #include <queue>
-#include <functional>
 
-class ThreadGuard
+#include "Delegate.h"
+
+namespace Kaguya
 {
-public:
-	ThreadGuard(std::vector<std::thread>& Threads)
-		: m_RefThreads(Threads)
-	{}
-	~ThreadGuard()
+	namespace Internal
 	{
-		for (auto& thread : m_RefThreads)
+		// RAII for threads
+		class ThreadGuard
 		{
-			if (thread.joinable())
-				thread.join();
-		}
+		public:
+			ThreadGuard(std::vector<std::thread>& Threads);
+			~ThreadGuard();
+		private:
+			std::vector<std::thread>& m_RefThreads;
+		};
+
+		class WorkQueue
+		{
+		public:
+			WorkQueue() = default;
+			WorkQueue(const WorkQueue&) = delete;
+			WorkQueue& operator=(const WorkQueue&) = delete;
+			~WorkQueue() = default;
+
+			void Enqueue(Delegate<void()> Work);
+			bool Empty() const;
+			bool TryPop(Delegate<void()>& Work);
+			bool TrySteal(Delegate<void()>& Work);
+		private:
+			std::deque<Delegate<void()>> m_WorkQueue;
+			mutable std::mutex m_Mutex;
+		};
 	}
+}
 
-private:
-	std::vector<std::thread>& m_RefThreads;
-};
-
+// TODO: Now test
 class ThreadPool
 {
 public:
-	ThreadPool(unsigned int NumThreads)
-		: m_Done(false),
-		m_ThreadGuard(m_Threads)
+	ThreadPool(unsigned int NumThreads);
+	~ThreadPool();
+
+	template<typename Callable, typename... Args>
+	decltype(auto) AddWork(Callable&& callable, Args&&... args)
 	{
-		auto threadCount = std::min(NumThreads, std::thread::hardware_concurrency());
-		try
+		using ReturnType = typename std::invoke_result<Callable>::type;
+
+		std::packaged_task<ReturnType()> task(std::bind(std::forward<Callable>(callable), std::forward<Args>(args)...));
+
+		std::future<ReturnType> future(task.get_future());
+		if (pLocalQueue)
 		{
-			for (decltype(threadCount) i = 0; i < threadCount; ++i)
-			{
-				m_Threads.push_back(std::thread(
-					[this]()
-				{
-					while (!m_Done)
-					{
-						std::function<void()> work;
-						{
-							std::unique_lock lk(m_Mutex);
-							m_Condition.wait(lk, [this]() { return !m_WorkQueue.empty(); });
-							work = std::move(m_WorkQueue.front());
-							m_WorkQueue.pop();
-						}
-						if (work)
-							work();
-					}
-				}
-				));
-			}
+			pLocalQueue->Enqueue(std::move(task));
 		}
-		catch (...)
+		else
 		{
-			m_Done = true;
-			throw;
+			std::scoped_lock lk(m_QueueMutex);
+			m_GlobalWorkQueue.emplace(std::move(task));
 		}
+		m_QueueCondition.notify_one();
+		return future;
 	}
-	~ThreadPool()
-	{
-		m_Done = true;
-	}
-
-
-
 private:
-	std::atomic_bool m_Done;
-	std::vector<std::thread> m_Threads;
-	ThreadGuard m_ThreadGuard;
-	std::queue<std::function<void()>> m_WorkQueue;
+	bool PopWorkFromLocalQueue(Delegate<void()>& Work);
+	bool STEEEEEEEEAAAAAL(Delegate<void()>& Work);
 
-	std::mutex m_Mutex;
-	std::condition_variable m_Condition;
+	std::atomic_bool m_Done;
+	std::mutex m_QueueMutex;
+	std::condition_variable m_QueueCondition;
+	std::queue<Delegate<void()>> m_GlobalWorkQueue;
+	std::vector<std::unique_ptr<Kaguya::Internal::WorkQueue>> m_WorkQueuePool;
+
+	std::vector<std::thread> m_Threads;
+	Kaguya::Internal::ThreadGuard m_ThreadGuard;
+
+	inline static thread_local Kaguya::Internal::WorkQueue* pLocalQueue;
+	inline static thread_local unsigned int QueueIndex;
 };

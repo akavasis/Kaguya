@@ -1,8 +1,8 @@
 #pragma region RenderPass
 template<RenderPassType Type, typename Data>
-inline RenderPass<Type, Data>::RenderPass(PassCallback PassCallback)
+inline RenderPass<Type, Data>::RenderPass(PassCallback&& RenderPassPassCallback)
 	: RenderPassBase(Type),
-	m_PassCallback(std::move(PassCallback))
+	m_PassCallback(std::forward<PassCallback>(RenderPassPassCallback))
 {
 }
 
@@ -20,7 +20,7 @@ inline void RenderPass<Type, Data>::Setup(RenderDevice& RefRenderDevice)
 template<RenderPassType Type, typename Data>
 inline void RenderPass<Type, Data>::Execute(RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* RenderCommandContext)
 {
-	m_ExecuteCallback(m_Data, RenderGraphRegistry, RenderCommandContext);
+	m_ExecuteCallback(m_Data, RenderGraphRegistry, std::move(RenderCommandContext));
 }
 #pragma endregion RenderPass
 
@@ -37,10 +37,10 @@ inline RenderPass<Type, Data>* RenderGraph::GetRenderPass()
 }
 
 template<RenderPassType Type, typename Data, typename PassCallback>
-inline RenderPass<Type, Data>* RenderGraph::AddRenderPass(const char* pName, typename PassCallback RenderPassPassCallback)
+inline RenderPass<Type, Data>* RenderGraph::AddRenderPass(const char* pName, typename PassCallback&& RenderPassPassCallback)
 {
 	m_RenderPassNames.emplace_back(pName);
-	m_RenderPasses.emplace_back(std::make_unique<RenderPass<Type, Data>>(std::move(RenderPassPassCallback)));
+	m_RenderPasses.emplace_back(std::make_unique<RenderPass<Type, Data>>(std::forward<PassCallback>(RenderPassPassCallback)));
 	switch (Type)
 	{
 	case RenderPassType::Graphics: m_RenderContexts.emplace_back(m_RefRenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT)); break;

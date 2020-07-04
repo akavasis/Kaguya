@@ -46,6 +46,14 @@ public:
 	void SetTitle(std::wstring Title);
 	void AppendToTitle(std::wstring Message);
 private:
+	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	void ConfineCursor();
+	void FreeCursor();
+	void ShowCursor();
+	void HideCursor();
+
 	unsigned int m_WindowWidth;
 	unsigned int m_WindowHeight;
 	HWND m_WindowHandle;
@@ -54,14 +62,6 @@ private:
 	bool m_CursorEnabled;
 	Mouse m_Mouse;
 	Keyboard m_Keyboard;
-
-	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-	void ConfineCursor();
-	void FreeCursor();
-	void ShowCursor();
-	void HideCursor();
 
 	class ImGuiContextManager
 	{

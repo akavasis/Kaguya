@@ -75,8 +75,8 @@ struct RenderPassConstantsCPU
 Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	: m_RefWindow(RefWindow),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12)),
-	m_TexturePool(RefApplication.ExecutableFolderPath(), m_RenderDevice),
-	m_RenderGraph(m_RenderDevice)
+	m_RenderGraph(m_RenderDevice),
+	m_TexturePool(RefApplication.ExecutableFolderPath(), m_RenderDevice)
 {
 	m_EventReceiver.Register(m_RefWindow, [&](const Event& event)
 	{
@@ -152,10 +152,10 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	auto pCubemapGenerationPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, CubemapGenerationData>("CubemapGenerationPass",
 		[](CubemapGenerationData& Data, RenderDevice& RenderDevice)
 	{
-
+		CORE_INFO("Cubemap generation pass setup");
 		return [=](const CubemapGenerationData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
-
+			CORE_INFO("Cubemap generation pass executing");
 		};
 	});
 
@@ -167,10 +167,10 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	auto pShadowPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowPassData>("ShadowPass",
 		[](ShadowPassData& Data, RenderDevice& RenderDevice)
 	{
-
+		CORE_INFO("Shadow pass setup");
 		return [=](const ShadowPassData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
-
+			CORE_INFO("Shadow pass executing");
 		};
 	});
 
@@ -182,10 +182,10 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>("ForwardPass",
 		[](ForwardPassData& Data, RenderDevice& RenderDevice)
 	{
-
+		CORE_INFO("Forward pass setup");
 		return [=](const ForwardPassData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
-
+			CORE_INFO("Forward pass executing");
 		};
 	});
 
@@ -216,7 +216,9 @@ void Renderer::Update(const Time& Time)
 
 void Renderer::Render()
 {
-	//m_RenderGraph.Execute();
+	m_RenderGraph.Execute();
+	m_RenderGraph.ThreadBarrier();
+	//m_RenderGraph.ExecuteCommandContexts();
 }
 
 void Renderer::Present()

@@ -11,16 +11,12 @@
 #define ENABLE_LEAK_DETECTION() 0
 #define SET_LEAK_BREAKPOINT(X) X
 #endif
-#include <sstream>
 #include <exception>
 
 #include "Core/Application.h"
 #include "Core/Window.h"
 #include "Core/Time.h"
-
 #include "Graphics/Renderer.h"
-#include "Graphics/Scene/Scene.h"
-#include "Graphics/Scene/Camera.h"
 
 int main(int argc, char** argv)
 {

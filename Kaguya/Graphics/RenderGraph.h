@@ -5,6 +5,7 @@
 #include <functional>
 #include <unordered_set>
 
+#include "../Core/ThreadPool.h"
 #include "RenderDevice.h"
 #include "RenderResourceHandle.h"
 
@@ -17,7 +18,7 @@ class RenderGraphBuilder
 {
 public:
 	RenderGraphBuilder(RenderPassBase* pRenderPassBase, RenderGraph* pRenderGraph);
-	
+
 	void Write();
 	void Read();
 	void Create();
@@ -73,10 +74,10 @@ template<RenderPassType Type, typename Data>
 class RenderPass : public RenderPassBase
 {
 public:
-	using ExecuteCallback = std::function<void(const Data&, RenderGraphRegistry&, RenderCommandContext*)>;
-	using PassCallback = std::function<ExecuteCallback(Data&, RenderDevice&)>;
+	using ExecuteCallback = Delegate<void(const Data&, RenderGraphRegistry&, RenderCommandContext*)>;
+	using PassCallback = Delegate<ExecuteCallback(Data&, RenderDevice&)>;
 
-	RenderPass(PassCallback PassCallback);
+	RenderPass(PassCallback&& RenderPassPassCallback);
 	~RenderPass() override;
 
 	void Setup(RenderDevice& RefRenderDevice) override;
@@ -98,15 +99,22 @@ public:
 	RenderPass<Type, Data>* GetRenderPass();
 
 	template<RenderPassType Type, typename Data, typename PassCallback = RenderPass<Type, Data>::PassCallback>
-	RenderPass<Type, Data>* AddRenderPass(const char* pName, typename PassCallback RenderPassPassCallback);
+	RenderPass<Type, Data>* AddRenderPass(const char* pName, typename PassCallback&& RenderPassPassCallback);
 
+	// Only call once
 	void Setup();
+
+	// Call every frame
 	void Execute();
+	void ExecuteCommandContexts();
+
+	void ThreadBarrier();
 private:
 	RenderDevice& m_RefRenderDevice;
-	RenderGraphRegistry m_RenderGraphRegistry;
+	std::unique_ptr<ThreadPool> m_ThreadPool;
+	std::vector<std::future<void>> m_Futures;
 
-	std::size_t m_NumRenderPasses;
+	unsigned int m_NumRenderPasses;
 	std::vector<std::string> m_RenderPassNames;
 	std::vector<std::unique_ptr<RenderPassBase>> m_RenderPasses;
 	std::vector<RenderCommandContext*> m_RenderContexts;
