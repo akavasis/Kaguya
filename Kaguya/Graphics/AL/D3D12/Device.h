@@ -1,4 +1,5 @@
 #pragma once
+#include <dxgi1_6.h>
 #include <d3d12.h>
 #include <wrl/client.h>
 
@@ -7,7 +8,8 @@
 class Device
 {
 public:
-	Device(IUnknown* pAdapter);
+	Device(IDXGIAdapter4* pAdapter);
+	~Device();
 
 	inline auto GetD3DDevice() const { return m_pDevice.Get(); }
 	inline UINT GetDescriptorIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE Type) const { return m_DescriptorHandleIncrementSizeCache[UINT(Type)]; }

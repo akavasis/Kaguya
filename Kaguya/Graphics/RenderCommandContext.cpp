@@ -91,7 +91,7 @@ void RenderCommandContext::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID
 		m_pCommandList->SetDescriptorHeaps(NumDescriptorHeaps, DescriptorHeapsToBind);
 }
 
-void RenderCommandContext::TransitionBarrier(const Resource* pResource, D3D12_RESOURCE_STATES TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
+void RenderCommandContext::TransitionBarrier(Resource* pResource, D3D12_RESOURCE_STATES TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
 {
 #define D3D12_RESOURCE_STATE_UNKNOWN (static_cast<D3D12_RESOURCE_STATES>(-1))
 	// Transition barriers indicate that a set of subresources transition between different usages.  
@@ -103,7 +103,7 @@ void RenderCommandContext::TransitionBarrier(const Resource* pResource, D3D12_RE
 #undef D3D12_RESOURCE_STATE_UNKNOWN
 }
 
-void RenderCommandContext::AliasingBarrier(const Resource* pBeforeResource, const Resource* pAfterResource)
+void RenderCommandContext::AliasingBarrier(Resource* pBeforeResource, Resource* pAfterResource)
 {
 	// Aliasing barriers indicate a transition between usages of two different resources which have mappings into the same heap.  
 	// The application can specify both the before and the after resource.  
@@ -113,7 +113,7 @@ void RenderCommandContext::AliasingBarrier(const Resource* pBeforeResource, cons
 	m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Aliasing(before, after));
 }
 
-void RenderCommandContext::UAVBarrier(const Resource* pResource)
+void RenderCommandContext::UAVBarrier(Resource* pResource)
 {
 	// A UAV barrier indicates that all UAV accesses, both read or write,  
 	// to a particular resource must complete between any future UAV accesses, both read or write.  
@@ -139,6 +139,14 @@ void RenderCommandContext::CopyResource(Resource* pDstResource, Resource* pSrcRe
 	m_pCommandList->CopyResource(pDstResource->GetD3DResource(), pSrcResource->GetD3DResource());
 }
 
+void RenderCommandContext::CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset, Buffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
+{
+	TransitionBarrier(pDstBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
+	TransitionBarrier(pSrcBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	FlushResourceBarriers();
+	m_pCommandList->CopyBufferRegion(pDstBuffer->GetD3DResource(), DstOffset, pSrcBuffer->GetD3DResource(), SrcOffset, NumBytes);
+}
+
 void RenderCommandContext::SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor)
 {
 	m_DynamicViewDescriptorHeap.StageDescriptors(RootParameterIndex, DescriptorOffset, NumHandlesWithinDescriptor, Descriptor[0]);
@@ -155,79 +163,6 @@ void RenderCommandContext::SetGraphicsRootSignature(const RootSignature* pRootSi
 	m_DynamicViewDescriptorHeap.ParseRootSignature(pRootSignature);
 	m_DynamicSamplerDescriptorHeap.ParseRootSignature(pRootSignature);
 	m_pCommandList->SetGraphicsRootSignature(pD3DRootSignature);
-}
-
-void RenderCommandContext::SetGraphicsRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
-{
-	m_pCommandList->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
-}
-
-void RenderCommandContext::SetGraphicsRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues)
-{
-	m_pCommandList->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
-}
-
-void RenderCommandContext::SetGraphicsRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-{
-	m_pCommandList->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation);
-}
-
-void RenderCommandContext::SetGraphicsRootSRV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-{
-	m_pCommandList->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation);
-}
-
-void RenderCommandContext::SetGraphicsRootUAV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-{
-	m_pCommandList->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation);
-}
-
-void RenderCommandContext::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY PrimitiveTopology)
-{
-	m_pCommandList->IASetPrimitiveTopology(PrimitiveTopology);
-}
-
-void RenderCommandContext::SetVertexBuffers(UINT StartSlot, UINT NumViews, Buffer* const* ppVertexBuffers)
-{
-	if (ppVertexBuffers)
-	{
-		std::vector<D3D12_VERTEX_BUFFER_VIEW> vertexBufferViews(NumViews);
-		for (UINT i = 0; i < NumViews; ++i)
-		{
-			vertexBufferViews[i].BufferLocation = ppVertexBuffers[i]->GetD3DResource()->GetGPUVirtualAddress();
-			vertexBufferViews[i].SizeInBytes = UINT64(ppVertexBuffers[i]->GetNumElements()) * UINT64(ppVertexBuffers[i]->GetStride());
-			vertexBufferViews[i].StrideInBytes = ppVertexBuffers[i]->GetStride();
-		}
-		m_pCommandList->IASetVertexBuffers(StartSlot, NumViews, vertexBufferViews.data());
-	}
-	else
-	{
-		m_pCommandList->IASetVertexBuffers(0u, 0u, nullptr);
-	}
-}
-
-void RenderCommandContext::SetIndexBuffer(Buffer* pIndexBuffer)
-{
-	if (pIndexBuffer && pIndexBuffer->GetD3DResource())
-	{
-		D3D12_INDEX_BUFFER_VIEW indexBufferView;
-		indexBufferView.BufferLocation = pIndexBuffer->GetD3DResource()->GetGPUVirtualAddress();
-		indexBufferView.SizeInBytes = UINT64(pIndexBuffer->GetNumElements()) * UINT64(pIndexBuffer->GetStride());
-		indexBufferView.Format = pIndexBuffer->GetStride() == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
-		m_pCommandList->IASetIndexBuffer(&indexBufferView);
-	}
-	else
-		m_pCommandList->IASetIndexBuffer(nullptr);
-}
-
-void RenderCommandContext::SetViewports(UINT NumViewports, const D3D12_VIEWPORT* pViewports)
-{
-	m_pCommandList->RSSetViewports(NumViewports, pViewports);
-}
-
-void RenderCommandContext::SetScissorRects(UINT NumRects, const D3D12_RECT* pRects)
-{
-	m_pCommandList->RSSetScissorRects(NumRects, pRects);
 }
 
 void RenderCommandContext::DrawInstanced(UINT VertexCount, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation)
@@ -252,31 +187,6 @@ void RenderCommandContext::SetComputeRootSignature(const RootSignature* pRootSig
 	m_DynamicViewDescriptorHeap.ParseRootSignature(pRootSignature);
 	m_DynamicSamplerDescriptorHeap.ParseRootSignature(pRootSignature);
 	m_pCommandList->SetComputeRootSignature(pD3DRootSignature);
-}
-
-void RenderCommandContext::SetComputeRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
-{
-	m_pCommandList->SetComputeRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
-}
-
-void RenderCommandContext::SetComputeRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues)
-{
-	m_pCommandList->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
-}
-
-void RenderCommandContext::SetComputeRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-{
-	m_pCommandList->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation);
-}
-
-void RenderCommandContext::SetComputeRootSRV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-{
-	m_pCommandList->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation);
-}
-
-void RenderCommandContext::SetComputeRootUAV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
-{
-	m_pCommandList->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation);
 }
 
 void RenderCommandContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ)

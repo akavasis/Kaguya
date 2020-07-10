@@ -26,7 +26,7 @@ class Heap
 public:
 	struct Properties
 	{
-		UINT64 SizeInBytes;
+		UINT64 SizeInBytes; // Handles alignment
 		HeapAliasingResourceCategory HeapAliasingResourceCategories;
 		std::optional<CPUAccessibleHeapType> CPUAccessibleHeapType;
 	};

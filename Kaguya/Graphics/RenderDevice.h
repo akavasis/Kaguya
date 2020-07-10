@@ -25,7 +25,7 @@
 class RenderDevice
 {
 public:
-	RenderDevice(IUnknown* pAdapter);
+	RenderDevice(IDXGIAdapter4* pAdapter);
 	~RenderDevice();
 
 	RenderDevice(RenderDevice&&) = default;
@@ -45,12 +45,9 @@ public:
 
 	// Resource creation
 	[[nodiscard]] RenderResourceHandle LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
-	template<typename T, bool UseConstantBufferAlignment>
-	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties<T, UseConstantBufferAlignment>& Properties);
-	template<typename T, bool UseConstantBufferAlignment>
-	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties<T, UseConstantBufferAlignment>& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData);
-	template<typename T, bool UseConstantBufferAlignment>
-	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties<T, UseConstantBufferAlignment>& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
+	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties);
+	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData = nullptr);
+	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
 	[[nodiscard]] RenderResourceHandle CreateTexture(const Texture::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateTexture(const Texture::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
 	[[nodiscard]] RenderResourceHandle CreateHeap(const Heap::Properties& Properties);
@@ -81,7 +78,7 @@ private:
 	ShaderCompiler m_ShaderCompiler;
 	std::vector<std::unique_ptr<RenderCommandContext>> m_RenderCommandContexts[4];
 
-	template <RenderResourceHandle::Type Type, typename T>
+	template <RenderResourceHandle::Types Type, typename T>
 	class RenderResourceContainer
 	{
 	public:
@@ -112,7 +109,7 @@ private:
 				m_ResourceTable.erase(iter);
 		}
 	private:
-		template<RenderResourceHandle::Type Type>
+		template<RenderResourceHandle::Types Type>
 		class RenderResourceHandleFactory
 		{
 		public:
@@ -140,15 +137,13 @@ private:
 		std::mutex m_Mutex;
 	};
 
-	mutable RenderResourceContainer<RenderResourceHandle::Type::Shader, Shader> m_Shaders;
+	mutable RenderResourceContainer<RenderResourceHandle::Types::Shader, Shader> m_Shaders;
 
-	mutable RenderResourceContainer<RenderResourceHandle::Type::Buffer, Buffer> m_Buffers;
-	mutable RenderResourceContainer<RenderResourceHandle::Type::Texture, Texture> m_Textures;
+	mutable RenderResourceContainer<RenderResourceHandle::Types::Buffer, Buffer> m_Buffers;
+	mutable RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_Textures;
 
-	mutable RenderResourceContainer<RenderResourceHandle::Type::Heap, Heap> m_Heaps;
-	mutable RenderResourceContainer<RenderResourceHandle::Type::RootSignature, RootSignature> m_RootSignatures;
-	mutable RenderResourceContainer<RenderResourceHandle::Type::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
-	mutable RenderResourceContainer<RenderResourceHandle::Type::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
+	mutable RenderResourceContainer<RenderResourceHandle::Types::Heap, Heap> m_Heaps;
+	mutable RenderResourceContainer<RenderResourceHandle::Types::RootSignature, RootSignature> m_RootSignatures;
+	mutable RenderResourceContainer<RenderResourceHandle::Types::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
+	mutable RenderResourceContainer<RenderResourceHandle::Types::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
 };
-
-#include "RenderDevice.inl"

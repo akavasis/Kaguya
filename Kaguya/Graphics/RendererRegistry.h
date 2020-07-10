@@ -100,66 +100,66 @@ struct RootParameters
 
 struct Shaders
 {
-	static RenderResourceHandle VS_Default;
-	static RenderResourceHandle VS_Quad;
-	static RenderResourceHandle VS_Sky;
-	static RenderResourceHandle VS_Shadow;
+	inline static RenderResourceHandle VS_Default;
+	inline static RenderResourceHandle VS_Quad;
+	inline static RenderResourceHandle VS_Sky;
+	inline static RenderResourceHandle VS_Shadow;
 
-	static RenderResourceHandle PS_Default;
-	static RenderResourceHandle PS_BlinnPhong;
-	static RenderResourceHandle PS_PBR;
-	static RenderResourceHandle PS_Sepia;
-	static RenderResourceHandle PS_SobelComposite;
-	static RenderResourceHandle PS_BloomMask;
-	static RenderResourceHandle PS_BloomComposite;
-	static RenderResourceHandle PS_ToneMapping;
-	static RenderResourceHandle PS_Sky;
-	static RenderResourceHandle PS_IrradianceConvolution;
-	static RenderResourceHandle PS_PrefilterConvolution;
-	static RenderResourceHandle PS_BRDFIntegration;
+	inline static RenderResourceHandle PS_Default;
+	inline static RenderResourceHandle PS_BlinnPhong;
+	inline static RenderResourceHandle PS_PBR;
+	inline static RenderResourceHandle PS_Sepia;
+	inline static RenderResourceHandle PS_SobelComposite;
+	inline static RenderResourceHandle PS_BloomMask;
+	inline static RenderResourceHandle PS_BloomComposite;
+	inline static RenderResourceHandle PS_ToneMapping;
+	inline static RenderResourceHandle PS_Sky;
+	inline static RenderResourceHandle PS_IrradianceConvolution;
+	inline static RenderResourceHandle PS_PrefilterConvolution;
+	inline static RenderResourceHandle PS_BRDFIntegration;
 
-	static RenderResourceHandle CS_HorizontalBlur;
-	static RenderResourceHandle CS_VerticalBlur;
-	static RenderResourceHandle CS_Sobel;
-	static RenderResourceHandle CS_EquirectangularToCubeMap;
-	static RenderResourceHandle CS_GenerateMips;
+	inline static RenderResourceHandle CS_HorizontalBlur;
+	inline static RenderResourceHandle CS_VerticalBlur;
+	inline static RenderResourceHandle CS_Sobel;
+	inline static RenderResourceHandle CS_EquirectangularToCubeMap;
+	inline static RenderResourceHandle CS_GenerateMips;
 
 	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct RootSignatures
 {
-	static RenderResourceHandle Shadow;
-	static RenderResourceHandle PBR;
-	static RenderResourceHandle Skybox;
+	inline static RenderResourceHandle Shadow;
+	inline static RenderResourceHandle PBR;
+	inline static RenderResourceHandle Skybox;
 
-	static RenderResourceHandle BRDFIntegration;
-	static RenderResourceHandle IrradiaceConvolution;
-	static RenderResourceHandle PrefilterConvolution;
+	inline static RenderResourceHandle BRDFIntegration;
+	inline static RenderResourceHandle IrradiaceConvolution;
+	inline static RenderResourceHandle PrefilterConvolution;
 
-	static RenderResourceHandle GenerateMips;
-	static RenderResourceHandle EquirectangularToCubemap;
+	inline static RenderResourceHandle GenerateMips;
+	inline static RenderResourceHandle EquirectangularToCubemap;
 
 	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct GraphicsPSOs
 {
-	static RenderResourceHandle Shadow;
-	static RenderResourceHandle PBR, PBRWireFrame;
-	static RenderResourceHandle Skybox;
+	inline static RenderResourceHandle Shadow;
+	inline static RenderResourceHandle PBR, PBRWireFrame;
+	inline static RenderResourceHandle Skybox;
 
-	static RenderResourceHandle BRDFIntegration;
-	static RenderResourceHandle IrradiaceConvolution;
-	static RenderResourceHandle PrefilterConvolution;
+	inline static RenderResourceHandle BRDFIntegration;
+	inline static RenderResourceHandle IrradiaceConvolution;
+	inline static RenderResourceHandle PrefilterConvolution;
 
 	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct ComputePSOs
 {
-	static RenderResourceHandle GenerateMips;
-	static RenderResourceHandle EquirectangularToCubemap;
+	inline static RenderResourceHandle GenerateMips;
+	inline static RenderResourceHandle EquirectangularToCubemap;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

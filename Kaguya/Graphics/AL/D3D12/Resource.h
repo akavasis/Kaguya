@@ -30,7 +30,7 @@ protected:
 	class Properties
 	{
 	public:
-		static Resource::Properties Buffer(UINT64 Width, D3D12_RESOURCE_FLAGS Flags);
+		static Resource::Properties Buffer(UINT64 SizeInBytes, D3D12_RESOURCE_FLAGS Flags);
 		static Resource::Properties Texture(Resource::Type Type, DXGI_FORMAT Format,
 			UINT64 Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels,
 			D3D12_RESOURCE_FLAGS Flags, const D3D12_CLEAR_VALUE* pOptimizedClearValue);

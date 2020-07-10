@@ -6,10 +6,6 @@ Transform::Transform()
 	Reset();
 }
 
-Transform::~Transform()
-{
-}
-
 void Transform::Reset()
 {
 	DirectX::XMStoreFloat3(&Position, DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));

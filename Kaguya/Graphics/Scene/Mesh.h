@@ -1,10 +1,8 @@
 #pragma once
-#include "Vertex.h"
 #include "Math/Transform.h"
 
 struct Mesh
 {
-	std::string Name;
 	Transform Transform;
 	DirectX::BoundingBox BoundingBox;
 

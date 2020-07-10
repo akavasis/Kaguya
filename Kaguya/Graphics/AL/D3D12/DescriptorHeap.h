@@ -2,8 +2,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-#include <map>
-#include <optional>
+#include "../../../Core/Allocator/VariableSizedAllocator.h"
 
 class Device;
 class DescriptorHeap;
@@ -38,31 +37,5 @@ public:
 private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_BaseDescriptorHandle;
-	INT m_NumFreeHandles;
-
-	using Offset = UINT;
-	using Size = UINT;
-
-	struct FreeBlocksByOffsetPoolIter;
-	struct FreeBlocksBySizePoolIter;
-	using FreeBlocksByOffsetPool = std::map<Offset, FreeBlocksBySizePoolIter>;
-	using FreeBlocksBySizePool = std::multimap<Size, FreeBlocksByOffsetPoolIter>;
-
-	struct FreeBlocksByOffsetPoolIter
-	{
-		FreeBlocksByOffsetPool::iterator Iterator;
-		FreeBlocksByOffsetPoolIter(FreeBlocksByOffsetPool::iterator iter) : Iterator(iter) {}
-	};
-
-	struct FreeBlocksBySizePoolIter
-	{
-		FreeBlocksBySizePool::iterator Iterator;
-		FreeBlocksBySizePoolIter(FreeBlocksBySizePool::iterator iter) : Iterator(iter) {}
-	};
-
-	FreeBlocksByOffsetPool m_FreeBlocksByOffsetPool;
-	FreeBlocksBySizePool m_SizePool;
-
-	void AllocateFreeBlock(Offset offset, Size size);
-	void FreeBlock(Offset offset, Size size);
+	VariableSizedAllocator m_Allocator;
 };

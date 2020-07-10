@@ -2,10 +2,10 @@
 #include "Resource.h"
 #include "Device.h"
 
-Resource::Properties Resource::Properties::Buffer(UINT64 Width, D3D12_RESOURCE_FLAGS Flags)
+Resource::Properties Resource::Properties::Buffer(UINT64 SizeInBytes, D3D12_RESOURCE_FLAGS Flags)
 {
 	Resource::Properties properties;
-	properties.m_Desc = CD3DX12_RESOURCE_DESC::Buffer(Width, Flags);
+	properties.m_Desc = CD3DX12_RESOURCE_DESC::Buffer(SizeInBytes, Flags);
 	properties.m_ClearValue = std::nullopt;
 	properties.m_NumSubresources = 1;
 	return properties;

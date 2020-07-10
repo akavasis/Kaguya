@@ -7,10 +7,9 @@
 #include "Scene/Scene.h"
 
 #include "RenderDevice.h"
-#include "TexturePool.h"
-
 #include "RenderGraph.h"
 #include "RendererRegistry.h"
+#include "GpuSceneAllocator.h"
 
 class Application;
 class Window;
@@ -22,13 +21,14 @@ public:
 	Renderer(Application& RefApplication, Window& RefWindow);
 	~Renderer();
 
+	inline auto& GetRenderDevice() { return m_RenderDevice; }
+
 	void Update(const Time& Time);
 	void Render();
 	void Present();
 private:
 	Texture& CurrentBackBuffer();
 	void Resize();
-	void RegisterRendererResources();
 
 	Window& m_RefWindow;
 	EventReceiver m_EventReceiver;
@@ -75,9 +75,8 @@ private:
 	DXGIManager m_DXGIManager;
 
 	RenderDevice m_RenderDevice;
-	TexturePool m_TexturePool;
-
 	RenderGraph m_RenderGraph;
+	GpuSceneAllocator m_GpuSceneAllocator;
 
 	// Swapchain resources
 	UINT m_FrameIndex;

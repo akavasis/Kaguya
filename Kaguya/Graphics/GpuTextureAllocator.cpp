@@ -1,13 +1,13 @@
 #include "pch.h"
-#include "TexturePool.h"
+#include "GpuTextureAllocator.h"
+#include "TextureAllocator.h"
 #include "RendererRegistry.h"
 
-TexturePool::TexturePool(std::filesystem::path ExecutableFolderPath, RenderDevice& RefRenderDevice)
-	: m_ExecutableFolderPath(ExecutableFolderPath),
-	m_RefRenderDevice(RefRenderDevice),
+GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
+	: m_RefRenderDevice(RefRenderDevice),
 	m_TextureViewAllocator(&m_RefRenderDevice.GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 {
-	m_MipMapDefaultUAV = m_TextureViewAllocator.Allocate(4);
+	m_MipmapNullUAV = m_TextureViewAllocator.Allocate(4);
 	for (UINT i = 0; i < 4; ++i)
 	{
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -16,7 +16,7 @@ TexturePool::TexturePool(std::filesystem::path ExecutableFolderPath, RenderDevic
 		uavDesc.Texture2D.MipSlice = i;
 		uavDesc.Texture2D.PlaneSlice = 0;
 
-		m_RefRenderDevice.GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_MipMapDefaultUAV[i]);
+		m_RefRenderDevice.GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_MipmapNullUAV[i]);
 	}
 
 	DXGI_FORMAT optionalFormats[] = {
@@ -77,132 +77,84 @@ TexturePool::TexturePool(std::filesystem::path ExecutableFolderPath, RenderDevic
 	}
 }
 
-void TexturePool::Stage(RenderCommandContext* pRenderCommandContext)
+void GpuTextureAllocator::Stage(TextureAllocator* pTextureAllocator, RenderCommandContext* pRenderCommandContext)
 {
-	for (auto iter = m_UnstagedTextures.begin(); iter != m_UnstagedTextures.end(); ++iter)
+	for (auto iter = pTextureAllocator->m_UnstagedTextures.begin(); iter != pTextureAllocator->m_UnstagedTextures.end(); ++iter)
 	{
-		StagingTexture& statgingTexture = iter->second;
+		auto& textureData = iter->second;
 
-		std::vector<D3D12_SUBRESOURCE_DATA> subresources(statgingTexture.scratchImage.GetImageCount());
-		const DirectX::Image* pImages = statgingTexture.scratchImage.GetImages();
-		for (size_t i = 0; i < statgingTexture.scratchImage.GetImageCount(); ++i)
+		Texture::Properties textureProp{};
+		textureProp.Format = textureData.metadata.format;
+		textureProp.MipLevels = textureData.mipLevels;
+		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		textureProp.IsCubemap = textureData.metadata.IsCubemap();
+		textureProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
+
+		switch (textureData.metadata.dimension)
+		{
+		case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
+			textureProp.Type = Resource::Type::Texture1D;
+			textureProp.Width = static_cast<UINT64>(textureData.metadata.width);
+			textureProp.DepthOrArraySize = static_cast<UINT16>(textureData.metadata.arraySize);
+			break;
+		case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
+			textureProp.Type = Resource::Type::Texture2D;
+			textureProp.Width = static_cast<UINT64>(textureData.metadata.width);
+			textureProp.Height = static_cast<UINT>(textureData.metadata.height);
+			textureProp.DepthOrArraySize = static_cast<UINT16>(textureData.metadata.arraySize);
+			break;
+		case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
+			textureProp.Type = Resource::Type::Texture3D;
+			textureProp.Width = static_cast<UINT64>(textureData.metadata.width);
+			textureProp.Height = static_cast<UINT>(textureData.metadata.height);
+			textureProp.DepthOrArraySize = static_cast<UINT16>(textureData.metadata.depth);
+			break;
+		}
+
+		RenderResourceHandle handle = m_RefRenderDevice.CreateTexture(textureProp);
+		Texture* pTexture = m_RefRenderDevice.GetTexture(handle);
+
+		// Stage texture
+		std::vector<D3D12_SUBRESOURCE_DATA> subresources(textureData.scratchImage.GetImageCount());
+		const DirectX::Image* pImages = textureData.scratchImage.GetImages();
+		for (size_t i = 0; i < textureData.scratchImage.GetImageCount(); ++i)
 		{
 			subresources[i].RowPitch = pImages[i].rowPitch;
 			subresources[i].SlicePitch = pImages[i].slicePitch;
 			subresources[i].pData = pImages[i].pixels;
 		}
 
-		Texture* pDstTexture = m_RefRenderDevice.GetTexture(iter->first);
-		Texture* pIntermediate = &statgingTexture.texture;
+		UINT64 totalBytes = GetRequiredIntermediateSize(pTexture->GetD3DResource(), 0, pTexture->GetNumSubresources());
+
+		// Create staging resource
+		Buffer::Properties bufferProp{};
+		bufferProp.SizeInBytes = totalBytes;
+		RenderResourceHandle uploadHandle = m_RefRenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload);
+		Buffer* pUploadBuffer = m_RefRenderDevice.GetBuffer(uploadHandle);
 
 		UpdateSubresources(pRenderCommandContext->GetD3DCommandList(),
-			pDstTexture->GetD3DResource(), pIntermediate->GetD3DResource(), 0,
+			pTexture->GetD3DResource(), pUploadBuffer->GetD3DResource(), 0,
 			0, subresources.size(), subresources.data());
 
-		if (statgingTexture.generateMips)
+		if (textureData.generateMips)
 		{
-			GenerateMips(iter->first, pRenderCommandContext);
+			GenerateMips(handle, pRenderCommandContext);
 		}
-		m_StagedTextures.push_back(iter->first);
+		m_StagedTextures.push_back(handle);
+		m_TemporaryResources.push_back(uploadHandle);
 
-		pRenderCommandContext->TransitionBarrier(pDstTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		pRenderCommandContext->TransitionBarrier(pTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		CORE_INFO("{} Loaded", statgingTexture.fileName);
+		CORE_INFO("{} Loaded", iter->first);
 	}
 }
 
-RenderResourceHandle TexturePool::LoadFromFile(const char* pPath, bool ForceSRGB, bool GenerateMips)
+void GpuTextureAllocator::Bind(RenderCommandContext* pRenderCommandContext) const
 {
-	std::filesystem::path filePath = m_ExecutableFolderPath / pPath;
-	if (!std::filesystem::exists(filePath))
-	{
-		CORE_ERROR("File: {} Not found");
-		return RenderResourceHandle();
-	}
-
-	DirectX::TexMetadata metadata;
-	DirectX::ScratchImage scratchImage;
-	if (filePath.extension() == ".dds")
-	{
-		ThrowCOMIfFailed(DirectX::LoadFromDDSFile(filePath.c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &metadata, scratchImage));
-	}
-	else if (filePath.extension() == ".tga")
-	{
-		ThrowCOMIfFailed(DirectX::LoadFromTGAFile(filePath.c_str(), &metadata, scratchImage));
-	}
-	else if (filePath.extension() == ".hdr")
-	{
-		ThrowCOMIfFailed(DirectX::LoadFromHDRFile(filePath.c_str(), &metadata, scratchImage));
-	}
-	else
-	{
-		ThrowCOMIfFailed(DirectX::LoadFromWICFile(filePath.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_FORCE_RGB, &metadata, scratchImage));
-	}
-
-	bool generateMips = (metadata.mipLevels > 1) ? false : GenerateMips;
-	size_t mipLevels = generateMips ? static_cast<size_t>(std::floor(std::log2(std::max(metadata.width, metadata.height)))) + 1 : 1;
-
-	if (ForceSRGB)
-	{
-		metadata.format = DirectX::MakeSRGB(metadata.format);
-		if (!DirectX::IsSRGB(metadata.format))
-		{
-			CORE_WARN("Failed to convert to SRGB format");
-		}
-	}
-
-	Texture::Properties textureProp{};
-	textureProp.Format = metadata.format;
-	textureProp.MipLevels = mipLevels;
-	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	textureProp.IsCubemap = metadata.IsCubemap();
-	textureProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
-
-	switch (metadata.dimension)
-	{
-	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
-		textureProp.Type = Resource::Type::Texture1D;
-		textureProp.Width = static_cast<UINT64>(metadata.width);
-		textureProp.DepthOrArraySize = static_cast<UINT16>(metadata.arraySize);
-		break;
-	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
-		textureProp.Type = Resource::Type::Texture2D;
-		textureProp.Width = static_cast<UINT64>(metadata.width);
-		textureProp.Height = static_cast<UINT>(metadata.height);
-		textureProp.DepthOrArraySize = static_cast<UINT16>(metadata.arraySize);
-		break;
-	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
-		textureProp.Type = Resource::Type::Texture3D;
-		textureProp.Width = static_cast<UINT64>(metadata.width);
-		textureProp.Height = static_cast<UINT>(metadata.height);
-		textureProp.DepthOrArraySize = static_cast<UINT16>(metadata.depth);
-		break;
-	}
-
-	RenderResourceHandle handle = m_RefRenderDevice.CreateTexture(textureProp);
-	Texture* pTexture = m_RefRenderDevice.GetTexture(handle);
-
-	// Create staging resource
-	Microsoft::WRL::ComPtr<ID3D12Resource> stagingBuffer;
-	auto pD3DDevice = m_RefRenderDevice.GetDevice().GetD3DDevice();
-
-	UINT64 totalBytes = 0;
-	pD3DDevice->GetCopyableFootprints(&pTexture->GetD3DResource()->GetDesc(), 0, pTexture->GetNumSubresources(), 0, nullptr, nullptr, nullptr, &totalBytes);
-
-	const CD3DX12_HEAP_PROPERTIES uploadHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
-	ThrowCOMIfFailed(pD3DDevice->CreateCommittedResource(&uploadHeapProperties, D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(totalBytes), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&stagingBuffer)));
-
-	StagingTexture stagingTexture;
-	stagingTexture.texture = Texture(stagingBuffer);
-	stagingTexture.scratchImage = std::move(scratchImage);
-	stagingTexture.generateMips = generateMips;
-	stagingTexture.fileName = pPath;
-	m_UnstagedTextures[handle] = std::move(stagingTexture);
-	return handle;
+	// TODO: Add bindless strategy
 }
 
-void TexturePool::GenerateMips(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext)
+void GpuTextureAllocator::GenerateMips(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext)
 {
 	Texture* pTexture = m_RefRenderDevice.GetTexture(TextureHandle);
 	if (IsUAVCompatable(pTexture->Format))
@@ -215,7 +167,7 @@ void TexturePool::GenerateMips(RenderResourceHandle TextureHandle, RenderCommand
 	}
 }
 
-void TexturePool::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext)
+void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext)
 {
 	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
 	Descriptor descriptor = m_TextureViewAllocator.Allocate(1);
@@ -287,7 +239,7 @@ void TexturePool::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderComm
 		// Pad any unused mip levels with a default UAV. Doing this keeps the DX12 runtime happy.
 		if (mipCount < 4)
 		{
-			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mipCount, 4 - mipCount, m_MipMapDefaultUAV);
+			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mipCount, 4 - mipCount, m_MipmapNullUAV);
 		}
 
 		UINT threadGroupCountX = dstWidth + 8 - 1 / 8;
@@ -300,7 +252,7 @@ void TexturePool::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderComm
 	}
 }
 
-void TexturePool::GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext)
+void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext)
 {
 	Texture* pTexture = m_RefRenderDevice.GetTexture(TextureHandle);
 
@@ -329,7 +281,7 @@ void TexturePool::GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderCom
 	m_TemporaryResources.push_back(textureCopyHandle);
 }
 
-bool TexturePool::IsUAVCompatable(DXGI_FORMAT Format)
+bool GpuTextureAllocator::IsUAVCompatable(DXGI_FORMAT Format)
 {
 	switch (Format)
 	{
@@ -358,7 +310,7 @@ bool TexturePool::IsUAVCompatable(DXGI_FORMAT Format)
 	return false;
 }
 
-bool TexturePool::IsSRGB(DXGI_FORMAT Format)
+bool GpuTextureAllocator::IsSRGB(DXGI_FORMAT Format)
 {
 	switch (Format)
 	{
@@ -370,7 +322,7 @@ bool TexturePool::IsSRGB(DXGI_FORMAT Format)
 	return false;
 }
 
-DXGI_FORMAT TexturePool::GetUAVCompatableFormat(DXGI_FORMAT Format)
+DXGI_FORMAT GpuTextureAllocator::GetUAVCompatableFormat(DXGI_FORMAT Format)
 {
 	DXGI_FORMAT uavFormat = Format;
 

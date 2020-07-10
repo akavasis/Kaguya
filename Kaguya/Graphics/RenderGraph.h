@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <vector>
-#include <string>
 #include <functional>
 #include <unordered_set>
 
@@ -9,23 +8,9 @@
 #include "RenderDevice.h"
 #include "RenderResourceHandle.h"
 
-class RenderGraphBuilder;
 class RenderGraphRegistry;
 class RenderPassBase;
 class RenderGraph;
-
-class RenderGraphBuilder
-{
-public:
-	RenderGraphBuilder(RenderPassBase* pRenderPassBase, RenderGraph* pRenderGraph);
-
-	void Write();
-	void Read();
-	void Create();
-private:
-	RenderPassBase* m_pRenderPassBase;
-	RenderGraph* m_RenderGraph;
-};
 
 class RenderGraphRegistry
 {
@@ -62,12 +47,6 @@ public:
 
 	bool Enabled;
 	const RenderPassType eRenderPassType;
-private:
-	friend RenderGraphBuilder;
-
-	std::vector<RenderResourceHandle> m_Writes;
-	std::vector<RenderResourceHandle> m_Reads;
-	std::vector<RenderResourceHandle> m_Creates;
 };
 
 template<RenderPassType Type, typename Data>
@@ -99,7 +78,7 @@ public:
 	RenderPass<Type, Data>* GetRenderPass();
 
 	template<RenderPassType Type, typename Data, typename PassCallback = RenderPass<Type, Data>::PassCallback>
-	RenderPass<Type, Data>* AddRenderPass(const char* pName, typename PassCallback&& RenderPassPassCallback);
+	RenderPass<Type, Data>* AddRenderPass(typename PassCallback&& RenderPassPassCallback);
 
 	// Only call once
 	void Setup();
@@ -115,7 +94,6 @@ private:
 	std::vector<std::future<void>> m_Futures;
 
 	unsigned int m_NumRenderPasses;
-	std::vector<std::string> m_RenderPassNames;
 	std::vector<std::unique_ptr<RenderPassBase>> m_RenderPasses;
 	std::vector<RenderCommandContext*> m_RenderContexts;
 

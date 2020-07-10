@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <compare>
 
 #define RENDER_RESOURCE_HANDLE_TYPE_BIT_FIELD (4)
 #define RENDER_RESOURCE_HANDLE_FLAG_BIT_FIELD (8)
@@ -13,15 +14,12 @@ static_assert(RENDER_RESOURCE_HANDLE_TYPE_BIT_FIELD + RENDER_RESOURCE_HANDLE_FLA
 
 struct RenderResourceHandle
 {
-	enum class Type : std::size_t
+	enum class Types : std::size_t
 	{
 		Unknown,
-
 		Shader,
-
 		Buffer,
 		Texture,
-
 		Heap,
 		RootSignature,
 		GraphicsPSO,
@@ -36,16 +34,14 @@ struct RenderResourceHandle
 	};
 
 	RenderResourceHandle();
-	RenderResourceHandle(Type Type, Flags Flag, std::size_t Data);
 
-	bool operator==(const RenderResourceHandle& rhs) const;
+	auto operator<=>(const RenderResourceHandle&) const = default;
 	operator bool() const;
 
-	Type _Type : RENDER_RESOURCE_HANDLE_TYPE_BIT_FIELD;
+	Types _Type : RENDER_RESOURCE_HANDLE_TYPE_BIT_FIELD;
 	Flags _Flag : RENDER_RESOURCE_HANDLE_FLAG_BIT_FIELD;
 	std::size_t _Data : RENDER_RESOURCE_HANDLE_DATA_BIT_FIELD;
 };
-
 static_assert(sizeof(RenderResourceHandle) == sizeof(std::size_t), "Size mismatch");
 
 namespace std
@@ -65,6 +61,7 @@ namespace std
 		{
 			std::size_t seed = 0;
 			hash_combine(seed, std::size_t(renderResourceHandle._Type));
+			hash_combine(seed, std::size_t(renderResourceHandle._Flag));
 			hash_combine(seed, std::size_t(renderResourceHandle._Data));
 			return seed;
 		}

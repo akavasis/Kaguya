@@ -5,18 +5,18 @@
 
 #include "../RenderResourceHandle.h"
 
-enum TextureType
-{
-	Albedo,
-	Normal,
-	Roughness,
-	Metallic,
-	Emissive,
-	NumTextureTypes
-};
-
 struct Material
 {
+	enum Type
+	{
+		Albedo,
+		Normal,
+		Roughness,
+		Metallic,
+		Emissive,
+		NumTextureTypes
+	};
+
 	enum Flags : int
 	{
 		MATERIAL_FLAG_HAVE_ALBEDO_TEXTURE = 0x1,
@@ -29,37 +29,20 @@ struct Material
 
 	struct Properties
 	{
-		DirectX::XMFLOAT3 Albedo;
-		float Metallic;
-		DirectX::XMFLOAT3 Emissive;
-		float Roughness;
-
-		Properties();
+		DirectX::XMFLOAT3 Albedo = { 1.0f, 1.0f, 1.0f };
+		float Metallic = 0.1f;
+		DirectX::XMFLOAT3 Emissive { 0.0f, 0.0f, 0.0f };
+		float Roughness = 0.5f;
 	};
 
-	Material();
-	~Material();
+	Properties Properties;
+	std::string Paths[NumTextureTypes];
+	RenderResourceHandle Textures[NumTextureTypes];
+	int Flags = 0;
 
 	bool HaveAlbedoMap() const;
 	bool HaveNormalMap() const;
 	bool HaveRoughnessMap() const;
 	bool HaveMetallicMap() const;
 	bool HaveEmissiveMap() const;
-
-	std::string Name;
-	Properties Properties;
-	std::string Maps[NumTextureTypes];
-	union
-	{
-		struct
-		{
-			RenderResourceHandle Albedo;
-			RenderResourceHandle Normal;
-			RenderResourceHandle Roughness;
-			RenderResourceHandle Metallic;
-			RenderResourceHandle Emissive;
-		};
-		RenderResourceHandle Textures[NumTextureTypes];
-	};
-	int Flags;
 };

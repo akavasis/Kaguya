@@ -37,9 +37,8 @@ inline RenderPass<Type, Data>* RenderGraph::GetRenderPass()
 }
 
 template<RenderPassType Type, typename Data, typename PassCallback>
-inline RenderPass<Type, Data>* RenderGraph::AddRenderPass(const char* pName, typename PassCallback&& RenderPassPassCallback)
+inline RenderPass<Type, Data>* RenderGraph::AddRenderPass(typename PassCallback&& RenderPassPassCallback)
 {
-	m_RenderPassNames.emplace_back(pName);
 	m_RenderPasses.emplace_back(std::make_unique<RenderPass<Type, Data>>(std::forward<PassCallback>(RenderPassPassCallback)));
 	switch (Type)
 	{

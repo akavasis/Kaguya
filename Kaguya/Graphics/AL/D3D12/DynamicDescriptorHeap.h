@@ -24,7 +24,6 @@ public:
 
 	void Reset();
 private:
-
 	ID3D12DescriptorHeap* QueryDescriptorHeap();
 	void CommitStagedDescriptors(ID3D12GraphicsCommandList* pCommandList, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> SetFunction);
 

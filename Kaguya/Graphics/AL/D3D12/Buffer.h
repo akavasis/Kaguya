@@ -5,11 +5,10 @@
 class Buffer : public Resource
 {
 public:
-	template<typename T, bool UseConstantBufferAlignment>
 	struct Properties
 	{
-		UINT NumElements;
-		UINT Stride = UseConstantBufferAlignment ? Math::AlignUp<UINT>(sizeof(T), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) : sizeof(T);
+		UINT64 SizeInBytes;
+		UINT Stride;
 		D3D12_RESOURCE_FLAGS Flags;
 
 		// Ignored if this is created with CPUAccessibleHeapType
@@ -17,12 +16,10 @@ public:
 	};
 
 	Buffer() = default;
-	template<typename T, bool UseConstantBufferAlignment>
-	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties);
-	template<typename T, bool UseConstantBufferAlignment>
-	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData /*pData is optional for upload vb and ib data*/);
-	template<typename T, bool UseConstantBufferAlignment>
-	Buffer(const Device* pDevice, const Properties<T, UseConstantBufferAlignment>& Properties, const Heap* pHeap, UINT64 HeapOffset);
+	Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
+	Buffer(const Device* pDevice, const Properties& Properties);
+	Buffer(const Device* pDevice, const Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData /*pData is optional for upload vb and ib data*/);
+	Buffer(const Device* pDevice, const Properties& Properties, const Heap* pHeap, UINT64 HeapOffset);
 	~Buffer() override;
 
 	Buffer(Buffer&&) = default;
@@ -31,7 +28,7 @@ public:
 	Buffer(const Buffer&) = delete;
 	Buffer& operator=(const Buffer&) = delete;
 
-	inline auto GetNumElements() const { return m_NumElements; }
+	inline auto GetSizeInBytes() const { return m_SizeInBytes; }
 	inline auto GetStride() const { return m_Stride; }
 
 	BYTE* Map();
@@ -39,10 +36,10 @@ public:
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetBufferLocationAt(INT Index);
 	template<typename T>
-	void Update(UINT ElementIndex, const T& Data);
+	void Update(INT ElementIndex, const T& Data);
 private:
 	BYTE* m_pMappedData = nullptr;
-	UINT m_NumElements = 0;
+	UINT m_SizeInBytes = 0;
 	UINT m_Stride = 0;
 	std::optional<CPUAccessibleHeapType> m_CPUAccessibleHeapType = std::nullopt;
 };

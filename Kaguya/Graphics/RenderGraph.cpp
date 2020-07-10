@@ -34,7 +34,7 @@ void RenderGraph::Execute()
 		if (!m_RenderPasses[i]->Enabled)
 			continue;
 
-		m_Futures[i] = m_ThreadPool->AddWork([this, i]() -> void
+		m_Futures[i] = m_ThreadPool->AddWork([this, i]()
 		{
 			RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice);
 			m_RenderPasses[i]->Execute(renderGraphRegistry, m_RenderContexts[i]);
@@ -54,5 +54,4 @@ void RenderGraph::ThreadBarrier()
 		if (future.valid())
 			future.wait();
 	}
-	CORE_INFO("{} invoked", __FUNCTION__);
 }

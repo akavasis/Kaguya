@@ -17,6 +17,7 @@
 #include "Core/Window.h"
 #include "Core/Time.h"
 #include "Graphics/Renderer.h"
+#include "Graphics/ModelAllocator.h"
 
 int main(int argc, char** argv)
 {
@@ -28,12 +29,16 @@ int main(int argc, char** argv)
 #endif
 
 		Application application;
-		Window window{ L"DirectX12 Window" };
+		Window window{ L"Kaguya Shinomiya" };
 		Renderer renderer{ application, window };
 
-		PerspectiveCamera camera;
-		camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
-		camera.SetPosition(0.0f, 5.0f, -10.0f);
+		ModelLoader modelLoader{ application.ExecutableFolderPath() };
+		modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx");
+		modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj");
+
+		Scene scene;
+		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
+		scene.Camera.SetPosition(0.0f, 5.0f, -10.0f);
 
 		Time time;
 		time.Restart();
@@ -67,17 +72,17 @@ int main(int argc, char** argv)
 			if (!window.CursorEnabled())
 			{
 				if (window.GetKeyboard().IsKeyPressed('W'))
-					camera.Translate(0.0f, 0.0f, time.DeltaTime());
+					scene.Camera.Translate(0.0f, 0.0f, time.DeltaTime());
 				if (window.GetKeyboard().IsKeyPressed('A'))
-					camera.Translate(-time.DeltaTime(), 0.0f, 0.0f);
+					scene.Camera.Translate(-time.DeltaTime(), 0.0f, 0.0f);
 				if (window.GetKeyboard().IsKeyPressed('S'))
-					camera.Translate(0.0f, 0.0f, -time.DeltaTime());
+					scene.Camera.Translate(0.0f, 0.0f, -time.DeltaTime());
 				if (window.GetKeyboard().IsKeyPressed('D'))
-					camera.Translate(time.DeltaTime(), 0.0f, 0.0f);
+					scene.Camera.Translate(time.DeltaTime(), 0.0f, 0.0f);
 				if (window.GetKeyboard().IsKeyPressed('Q'))
-					camera.Translate(0.0f, time.DeltaTime(), 0.0f);
+					scene.Camera.Translate(0.0f, time.DeltaTime(), 0.0f);
 				if (window.GetKeyboard().IsKeyPressed('E'))
-					camera.Translate(0.0f, -time.DeltaTime(), 0.0f);
+					scene.Camera.Translate(0.0f, -time.DeltaTime(), 0.0f);
 			}
 
 			while (!window.GetMouse().RawDeltaBufferIsEmpty())
@@ -85,13 +90,13 @@ int main(int argc, char** argv)
 				const auto delta = window.GetMouse().ReadRawDelta();
 				if (!window.CursorEnabled())
 				{
-					camera.Rotate(delta.Y * time.DeltaTime(), delta.X * time.DeltaTime());
+					scene.Camera.Rotate(delta.Y * time.DeltaTime(), delta.X * time.DeltaTime());
 				}
 			}
 
 			time.Signal();
 			renderer.Update(time);
-			renderer.Render();
+			//renderer.Render();
 			//renderer.Present();
 		});
 	}

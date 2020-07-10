@@ -1,5 +1,6 @@
 #pragma once
 #include <DirectXMath.h>
+#include <DirectXCollision.h>
 
 namespace Math
 {
@@ -80,7 +81,17 @@ constexpr float operator"" _Rad(long double Radians)
 	return DirectX::XMConvertToDegrees(static_cast<float>(Radians));
 }
 
-constexpr std::size_t operator"" _Kb(std::size_t Byte)
+constexpr std::size_t operator"" _KiB(std::size_t Byte)
 {
-	return Byte << 10;
+	return Byte * 1024;
+}
+
+constexpr std::size_t operator"" _MiB(std::size_t Byte)
+{
+	return Byte * 1024 * 1024;
+}
+
+constexpr std::size_t operator"" _GiB(std::size_t Byte)
+{
+	return Byte * 1024 * 1024 * 1024;
 }

@@ -8,7 +8,6 @@ struct Transform
 	DirectX::XMFLOAT4 Orientation;
 
 	Transform();
-	~Transform();
 
 	void Reset();
 

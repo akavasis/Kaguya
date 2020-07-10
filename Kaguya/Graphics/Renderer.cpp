@@ -9,9 +9,9 @@
 
 #include <DXProgrammableCapture.h>
 #include "pix3.h"
-struct PIXMarker
+class PIXMarker
 {
-	ID3D12GraphicsCommandList* pCommandList;
+public:
 	PIXMarker(ID3D12GraphicsCommandList* pCommandList, LPCWSTR pMsg)
 		: pCommandList(pCommandList)
 	{
@@ -21,6 +21,26 @@ struct PIXMarker
 	{
 		PIXEndEvent(pCommandList);
 	}
+private:
+	ID3D12GraphicsCommandList* pCommandList;
+};
+
+class PIXCapture
+{
+public:
+	PIXCapture()
+	{
+		HRESULT hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphicsAnalysis));
+		if (graphicsAnalysis)
+			graphicsAnalysis->BeginCapture();
+	}
+	~PIXCapture()
+	{
+		if (graphicsAnalysis)
+			graphicsAnalysis->EndCapture();
+	}
+private:
+	Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> graphicsAnalysis;
 };
 
 using namespace DirectX;
@@ -75,7 +95,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	: m_RefWindow(RefWindow),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(m_RenderDevice),
-	m_TexturePool(RefApplication.ExecutableFolderPath(), m_RenderDevice)
+	m_GpuSceneAllocator(m_RenderDevice)
 {
 	m_EventReceiver.Register(m_RefWindow, [&](const Event& event)
 	{
@@ -92,7 +112,11 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 	m_AspectRatio = static_cast<float>(m_RefWindow.GetWindowWidth()) / static_cast<float>(m_RefWindow.GetWindowHeight());
 
-	std::future<void> voidFuture = std::async(std::launch::async, &Renderer::RegisterRendererResources, this);
+	Shaders::Register(&m_RenderDevice);
+	RootSignatures::Register(&m_RenderDevice);
+	GraphicsPSOs::Register(&m_RenderDevice);
+	ComputePSOs::Register(&m_RenderDevice);
+
 	// Create swap chain after command objects have been created
 	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue(), m_RefWindow, RendererFormats::SwapChainBufferFormat, SwapChainBufferCount);
 
@@ -123,53 +147,65 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0);
 	m_FrameDepthStencilBuffer = m_RenderDevice.CreateTexture(textureProp);
 
-	Buffer::Properties<RenderPassConstantsCPU, true> bufferProp{};
-	bufferProp.NumElements = 1;
+	Buffer::Properties bufferProp{};
+	bufferProp.SizeInBytes = Math::AlignUp<UINT64>(1 * sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+	bufferProp.Stride = sizeof(RenderPassConstantsCPU);
 	m_RenderPassCBs = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
-
-	voidFuture.wait();
-
-	Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> ga;
-	HRESULT hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga));
-
-	auto albedo = m_TexturePool.LoadFromFile("Assets/Models/Cerberus/Textures/Cerberus_A.tga", true, true);
-	auto context = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
-
-	if (SUCCEEDED(hr))
-		ga->BeginCapture();
-	m_TexturePool.Stage(context);
-
-	m_RenderDevice.ExecuteRenderCommandContexts(1, &context);
-	if (SUCCEEDED(hr))
-		ga->EndCapture();
 
 	struct CubemapGenerationData
 	{
 
 	};
 
-	auto pCubemapGenerationPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, CubemapGenerationData>("CubemapGenerationPass",
+	auto pCubemapGenerationPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, CubemapGenerationData>(
 		[](CubemapGenerationData& Data, RenderDevice& RenderDevice)
 	{
-		CORE_INFO("Cubemap generation pass setup");
 		return [=](const CubemapGenerationData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
-			CORE_INFO("Cubemap generation pass executing");
 		};
 	});
 
 	struct ShadowPassData
 	{
+		enum { NumCascades = 4 };
 
+		UINT resolution;
+		float lambda;
+
+		RenderResourceHandle uploadBuffer;
+		RenderResourceHandle outputDepthBuffer;
+		Cascade cascades[NumCascades];
 	};
 
-	auto pShadowPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowPassData>("ShadowPass",
+	auto pShadowPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowPassData>(
 		[](ShadowPassData& Data, RenderDevice& RenderDevice)
 	{
-		CORE_INFO("Shadow pass setup");
+		Data.resolution = 2048;
+		Data.lambda = 0.5f;
+
+		struct ShadowPassConstantsCPU
+		{
+			DirectX::XMFLOAT4X4 ViewProjection;
+		};
+		Buffer::Properties bufferProp{};
+		bufferProp.SizeInBytes = Math::AlignUp<UINT64>(ShadowPassData::NumCascades * sizeof(ShadowPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+		bufferProp.Stride = sizeof(ShadowPassConstantsCPU);
+		Data.uploadBuffer = RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload);
+
+		Texture::Properties textureProp{};
+		textureProp.Type = Resource::Type::Texture2D;
+		textureProp.Format = DXGI_FORMAT_R32_TYPELESS;
+		textureProp.Width = textureProp.Height = Data.resolution;
+		textureProp.DepthOrArraySize = ShadowPassData::NumCascades;
+		textureProp.MipLevels = 1;
+		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		textureProp.IsCubemap = false;
+		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
+		textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		Data.outputDepthBuffer = RenderDevice.CreateTexture(textureProp);
+
 		return [=](const ShadowPassData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
-			CORE_INFO("Shadow pass executing");
 		};
 	});
 
@@ -178,13 +214,11 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 	};
 
-	auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>("ForwardPass",
+	auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>(
 		[](ForwardPassData& Data, RenderDevice& RenderDevice)
 	{
-		CORE_INFO("Forward pass setup");
 		return [=](const ForwardPassData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
-			CORE_INFO("Forward pass executing");
 		};
 	});
 
@@ -269,12 +303,4 @@ void Renderer::Resize()
 	}
 	// Wait until resize is complete.
 	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
-}
-
-void Renderer::RegisterRendererResources()
-{
-	Shaders::Register(&m_RenderDevice);
-	RootSignatures::Register(&m_RenderDevice);
-	GraphicsPSOs::Register(&m_RenderDevice);
-	ComputePSOs::Register(&m_RenderDevice);
 }

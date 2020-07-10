@@ -1,32 +1,22 @@
 #include "pch.h"
 #include "Scene.h"
 
-Scene::Scene()
+PointLight& Scene::AddPointLight(PointLight PointLight)
 {
+	PointLights.push_back(std::move(PointLight));
+	return PointLights.back();
 }
 
-Scene::~Scene()
+SpotLight& Scene::AddSpotLight(SpotLight SpotLight)
 {
+	SpotLights.push_back(std::move(SpotLight));
+	return SpotLights.back();
 }
 
-void Scene::AddModel(const char* FileName, float Scale)
+Model& Scene::AddModel(Model Model)
 {
-	Models.push_back(std::make_unique<Model>(FileName, Scale));
-}
-
-void Scene::AddModel(std::unique_ptr<Model> pModel)
-{
-	Models.push_back(std::move(pModel));
-}
-
-void Scene::AddPointLight(PointLight PointLight)
-{
-	PointLights.push_back(PointLight);
-}
-
-void Scene::AddSpotLight(SpotLight SpotLight)
-{
-	SpotLights.push_back(SpotLight);
+	Models.push_back(std::move(Model));
+	return Models.back();
 }
 
 void Scene::RenderImGuiWindow()
@@ -41,10 +31,6 @@ void Scene::RenderImGuiWindow()
 		for (auto& SpotLight : SpotLights)
 		{
 			SpotLight.RenderImGuiWindow();
-		}
-		for (auto& Model : Models)
-		{
-			Model->RenderImGuiWindow();
 		}
 	}
 	ImGui::End();

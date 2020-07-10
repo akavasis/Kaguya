@@ -1,24 +1,21 @@
 #pragma once
-#include <memory>
+#include <list>
 #include "Model.h"
 #include "Camera.h"
 #include "Light.h"
+#include "Skybox.h"
 
 struct Scene
 {
-	Scene();
-	~Scene();
-
-	std::vector<std::unique_ptr<Model>> Models;
+	PerspectiveCamera Camera;
 	DirectionalLight DirectionalLight;
-	std::vector<PointLight> PointLights;
-	std::vector<SpotLight> SpotLights;
+	std::list<PointLight> PointLights;
+	std::list<SpotLight> SpotLights;
+	std::list<Model> Models;
 
-	void AddModel(const char* FileName, float Scale);
-	void AddModel(std::unique_ptr<Model> pModel);
-
-	void AddPointLight(PointLight PointLight);
-	void AddSpotLight(SpotLight SpotLight);
+	PointLight& AddPointLight(PointLight PointLight);
+	SpotLight& AddSpotLight(SpotLight SpotLight);
+	Model& AddModel(Model Model);
 
 	void RenderImGuiWindow();
 };

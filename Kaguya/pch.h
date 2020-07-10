@@ -21,13 +21,14 @@
 #include <iostream>
 #include <exception>
 
-// Data Structures
+// C++ STL
 #include <array>
 #include <vector>
+#include <set>
 #include <unordered_set>
+#include <map>
 #include <unordered_map>
 #include <queue>
-#include <set>
 
 // Third parties
 #include <DirectXTex.h>

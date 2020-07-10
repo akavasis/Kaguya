@@ -2,7 +2,7 @@
 #include "Device.h"
 using Microsoft::WRL::ComPtr;
 
-Device::Device(IUnknown* pAdapter)
+Device::Device(IDXGIAdapter4* pAdapter)
 	: m_CBVAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
 	m_SRVAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
 	m_UAVAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
@@ -65,4 +65,8 @@ Device::Device(IUnknown* pAdapter)
 
 	ThrowCOMIfFailed(pInfoQueue->PushStorageFilter(&infoQueueFilter));
 #endif
+}
+
+Device::~Device()
+{
 }

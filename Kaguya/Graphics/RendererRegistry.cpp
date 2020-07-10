@@ -1,56 +1,6 @@
 #include "pch.h"
 #include "RendererRegistry.h"
 
-/* Shader init */
-RenderResourceHandle Shaders::VS_Default;
-RenderResourceHandle Shaders::VS_Quad;
-RenderResourceHandle Shaders::VS_Sky;
-RenderResourceHandle Shaders::VS_Shadow;
-
-RenderResourceHandle Shaders::PS_Default;
-RenderResourceHandle Shaders::PS_BlinnPhong;
-RenderResourceHandle Shaders::PS_PBR;
-RenderResourceHandle Shaders::PS_Sepia;
-RenderResourceHandle Shaders::PS_SobelComposite;
-RenderResourceHandle Shaders::PS_BloomMask;
-RenderResourceHandle Shaders::PS_BloomComposite;
-RenderResourceHandle Shaders::PS_ToneMapping;
-RenderResourceHandle Shaders::PS_Sky;
-RenderResourceHandle Shaders::PS_IrradianceConvolution;
-RenderResourceHandle Shaders::PS_PrefilterConvolution;
-RenderResourceHandle Shaders::PS_BRDFIntegration;
-
-RenderResourceHandle Shaders::CS_HorizontalBlur;
-RenderResourceHandle Shaders::CS_VerticalBlur;
-RenderResourceHandle Shaders::CS_Sobel;
-RenderResourceHandle Shaders::CS_EquirectangularToCubeMap;
-RenderResourceHandle Shaders::CS_GenerateMips;
-
-/* Root Signature init */
-RenderResourceHandle RootSignatures::Shadow;
-RenderResourceHandle RootSignatures::PBR;
-RenderResourceHandle RootSignatures::Skybox;
-
-RenderResourceHandle RootSignatures::BRDFIntegration;
-RenderResourceHandle RootSignatures::IrradiaceConvolution;
-RenderResourceHandle RootSignatures::PrefilterConvolution;
-
-RenderResourceHandle RootSignatures::GenerateMips;
-RenderResourceHandle RootSignatures::EquirectangularToCubemap;
-
-/* Graphics PSO init */
-RenderResourceHandle GraphicsPSOs::Shadow;
-RenderResourceHandle GraphicsPSOs::PBR, GraphicsPSOs::PBRWireFrame;
-RenderResourceHandle GraphicsPSOs::Skybox;
-
-RenderResourceHandle GraphicsPSOs::BRDFIntegration;
-RenderResourceHandle GraphicsPSOs::IrradiaceConvolution;
-RenderResourceHandle GraphicsPSOs::PrefilterConvolution;
-
-/* Compute PSO init */
-RenderResourceHandle ComputePSOs::GenerateMips;
-RenderResourceHandle ComputePSOs::EquirectangularToCubemap;
-
 enum class SamplerState : UINT
 {
 	PointWrap,
@@ -157,7 +107,6 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 
 void RootSignatures::Register(RenderDevice* pDevice)
 {
-	CORE_INFO("RootSignatures::Register invoked");
 	auto staticSamplers = GetStaticSamplerStates();
 
 	// Shadow RS
@@ -339,12 +288,10 @@ void RootSignatures::Register(RenderDevice* pDevice)
 
 		RootSignatures::EquirectangularToCubemap = pDevice->CreateRootSignature(prop);
 	}
-	CORE_INFO("RootSignatures::Register complete");
 }
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 {
-	CORE_INFO("GraphicsPSOs::Register invoked");
 	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout =
 	{
 		{"POSITION"  , 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -480,12 +427,10 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 			}
 		}
 	}
-	CORE_INFO("GraphicsPSOs::Register complete");
 }
 
 void ComputePSOs::Register(RenderDevice* pRenderDevice)
 {
-	CORE_INFO("ComputePSOs::Register invoked");
 	// Generate mips PSO
 	{
 		ComputePipelineState::Properties prop{};
@@ -505,5 +450,4 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 
 		ComputePSOs::EquirectangularToCubemap = pRenderDevice->CreateComputePipelineState(prop);
 	}
-	CORE_INFO("ComputePSOs::Register complete");
 }
