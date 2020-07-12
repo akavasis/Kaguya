@@ -26,7 +26,7 @@ void RenderDevice::ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, R
 	for (UINT i = 0; i < NumRenderCommandContexts; ++i)
 	{
 		RenderCommandContext* pRenderCommandContext = ppRenderCommandContexts[i];
-		if (pRenderCommandContext->Close(m_GlobalResourceTracker));
+		if (pRenderCommandContext->Close(m_GlobalResourceTracker))
 		{
 			commandlistsToBeExecuted.push_back(pRenderCommandContext->m_pPendingCommandList.Get());
 		}
@@ -34,7 +34,14 @@ void RenderDevice::ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, R
 	}
 
 	m_GraphicsQueue.GetD3DCommandQueue()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
-	m_GraphicsQueue.WaitForIdle(); // TODO: REMOVE
+	UINT64 fenceValue = m_GraphicsQueue.Signal();
+	for (UINT i = 0; i < NumRenderCommandContexts; ++i)
+	{
+		RenderCommandContext* pRenderCommandContext = ppRenderCommandContexts[i];
+		pRenderCommandContext->RequestNewAllocator(fenceValue);
+		pRenderCommandContext->Reset();
+	}
+	m_GraphicsQueue.Flush();
 }
 
 RenderResourceHandle RenderDevice::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)

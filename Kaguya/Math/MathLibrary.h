@@ -22,28 +22,28 @@ namespace Math
 
 	// Returns the minimum of a or b
 	template<typename T>
-	constexpr T Min(const T& a, const T& b)
+	constexpr inline T Min(const T& a, const T& b)
 	{
 		return a < b ? a : b;
 	}
 
 	// Returns the maximum of a or b
 	template<typename T>
-	constexpr T Max(const T& a, const T& b)
+	constexpr inline T Max(const T& a, const T& b)
 	{
 		return a > b ? a : b;
 	}
 
 	// Returns the interpolated value in [v0, v1]
 	template<typename T>
-	constexpr T Lerp(const T& v0, const T& v1, float t)
+	constexpr inline T Lerp(const T& v0, const T& v1, float t)
 	{
 		return ((T)1 - t) * v0 + t * v1;
 	}
 
 	// Returns the clamped value between [min, max]
 	template<typename T>
-	constexpr T Clamp(const T& value, const T& min, const T& max)
+	constexpr inline T Clamp(const T& value, const T& min, const T& max)
 	{
 		return value < min ? min : (value > max ? max : value);
 	}
@@ -57,41 +57,47 @@ namespace Math
 	DirectX::XMFLOAT4X4 Identity();
 
 	template<typename T>
-	constexpr T AlignUp(T Size, T Alignment)
+	constexpr inline T AlignUp(T Size, T Alignment)
 	{
 		return (T)(((size_t)Size + (size_t)Alignment - 1) & ~((size_t)Alignment - 1));
 	}
 
 	template<typename T>
-	constexpr T AlignDown(T Size, T Alignment)
+	constexpr inline T AlignDown(T Size, T Alignment)
 	{
 		return (T)((size_t)Size & ~((size_t)Alignment - 1));
+	}
+
+	template <typename T>
+	constexpr inline T DivideByMultiple(T value, size_t alignment)
+	{
+		return (T)((value + alignment - 1) / alignment);
 	}
 }
 
 // Returns radians
-constexpr float operator"" _Deg(long double Degrees)
+constexpr inline float operator"" _Deg(long double Degrees)
 {
 	return DirectX::XMConvertToRadians(static_cast<float>(Degrees));
 }
 
 // Returns degrees
-constexpr float operator"" _Rad(long double Radians)
+constexpr inline float operator"" _Rad(long double Radians)
 {
 	return DirectX::XMConvertToDegrees(static_cast<float>(Radians));
 }
 
-constexpr std::size_t operator"" _KiB(std::size_t Byte)
+constexpr inline std::size_t operator"" _KiB(std::size_t Byte)
 {
 	return Byte * 1024;
 }
 
-constexpr std::size_t operator"" _MiB(std::size_t Byte)
+constexpr inline std::size_t operator"" _MiB(std::size_t Byte)
 {
 	return Byte * 1024 * 1024;
 }
 
-constexpr std::size_t operator"" _GiB(std::size_t Byte)
+constexpr inline std::size_t operator"" _GiB(std::size_t Byte)
 {
 	return Byte * 1024 * 1024 * 1024;
 }

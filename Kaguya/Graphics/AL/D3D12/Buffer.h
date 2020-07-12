@@ -30,6 +30,7 @@ public:
 
 	inline auto GetSizeInBytes() const { return m_SizeInBytes; }
 	inline auto GetStride() const { return m_Stride; }
+	inline auto GetCPUAccessibleHeapType() const { return m_CPUAccessibleHeapType; }
 
 	BYTE* Map();
 	void Unmap();

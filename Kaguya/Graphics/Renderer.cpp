@@ -164,7 +164,10 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 		return [=](const SceneStagingData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
-			Data.pGpuSceneAllocator->Stage(pRenderCommandContext);
+			{
+				PIXCapture cap;
+				Data.pGpuSceneAllocator->Stage(pRenderCommandContext);
+			}
 
 			m_RenderGraph.GetRenderPass<RenderPassType::Graphics, SceneStagingData>()->Enabled = false;
 		};

@@ -63,6 +63,8 @@ void RenderCommandContext::RequestNewAllocator(UINT64 FenceValue)
 {
 	pOwningCommandQueue->MarkAllocatorAsActive(FenceValue, m_pCurrentAllocator);
 	m_pCurrentAllocator = pOwningCommandQueue->RequestAllocator();
+	pOwningCommandQueue->MarkAllocatorAsActive(FenceValue, m_pCurrentPendingAllocator);
+	m_pCurrentPendingAllocator = pOwningCommandQueue->RequestAllocator();
 }
 
 void RenderCommandContext::SetPipelineState(const PipelineState* pPipelineState)
@@ -142,7 +144,8 @@ void RenderCommandContext::CopyResource(Resource* pDstResource, Resource* pSrcRe
 void RenderCommandContext::CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset, Buffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
 {
 	TransitionBarrier(pDstBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
-	TransitionBarrier(pSrcBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	if (!pSrcBuffer->GetCPUAccessibleHeapType().has_value()) // Upload resources have to be in D3D12_RESOURCE_STATE_GENERIC_READ so dont need to transition them
+		TransitionBarrier(pSrcBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	FlushResourceBarriers();
 	m_pCommandList->CopyBufferRegion(pDstBuffer->GetD3DResource(), DstOffset, pSrcBuffer->GetD3DResource(), SrcOffset, NumBytes);
 }

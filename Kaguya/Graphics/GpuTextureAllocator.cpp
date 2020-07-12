@@ -357,8 +357,8 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mipCount, 4 - mipCount, m_MipsNullUAV);
 		}
 
-		UINT threadGroupCountX = dstWidth + 8 - 1 / 8;
-		UINT threadGroupCountY = dstHeight + 8 - 1 / 8;
+		UINT threadGroupCountX = Math::DivideByMultiple(dstWidth, 8);
+		UINT threadGroupCountY = Math::DivideByMultiple(dstHeight, 8);
 		pRenderCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
 
 		pRenderCommandContext->UAVBarrier(pTexture);
@@ -423,12 +423,6 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 
 	EquirectangularToCubemapCPUData panoToCubemapCB;
 
-	//D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-	//uavDesc.Format = GetUAVCompatableFormat(cubemapDesc.Format);
-	//uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-	//uavDesc.Texture2DArray.FirstArraySlice = 0;
-	//uavDesc.Texture2DArray.ArraySize = 6;
-
 	for (uint32_t mipSlice = 0; mipSlice < resourceDesc.MipLevels; )
 	{
 		// Maximum number of mips to generate per pass is 5.
@@ -458,8 +452,8 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 			// Pad unused mips. This keeps DX12 runtime happy.
 			pRenderCommandContext->SetUAV(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_DstMips, panoToCubemapCB.NumMips, 5 - numMips, m_EquirectangularToCubeMapNullUAV);
 		}
-
-		UINT threadGroupCount = panoToCubemapCB.CubemapSize + 16 - 1 / 16;
+		
+		UINT threadGroupCount = Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16);
 		pRenderCommandContext->Dispatch(threadGroupCount, threadGroupCount, 6);
 
 		mipSlice += numMips;
