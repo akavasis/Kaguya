@@ -23,7 +23,7 @@ GpuBufferAllocator::GpuBufferAllocator(std::size_t VertexBufferByteSize, std::si
 	m_pUploadIndexBuffer = m_RefRenderDevice.GetBuffer(m_UploadIndexBuffer);
 }
 
-void GpuBufferAllocator::Stage(Scene* pScene, RenderCommandContext* pRenderCommandContext)
+void GpuBufferAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext)
 {
 	m_VertexBufferAllocator.Reset();
 	m_IndexBufferAllocator.Reset();
@@ -34,11 +34,11 @@ void GpuBufferAllocator::Stage(Scene* pScene, RenderCommandContext* pRenderComma
 		std::vector<Vertex> vertices = std::move(skyboxModel.Vertices);
 		std::vector<UINT> indices = std::move(skyboxModel.Indices);
 
-		pScene->Skybox.Mesh.BoundingBox = skyboxModel.BoundingBox;
-		pScene->Skybox.Mesh.IndexCount = indices.size();
-		pScene->Skybox.Mesh.StartIndexLocation = 0;
-		pScene->Skybox.Mesh.VertexCount = vertices.size();
-		pScene->Skybox.Mesh.BaseVertexLocation = 0;
+		Scene.Skybox.Mesh.BoundingBox = skyboxModel.BoundingBox;
+		Scene.Skybox.Mesh.IndexCount = indices.size();
+		Scene.Skybox.Mesh.StartIndexLocation = 0;
+		Scene.Skybox.Mesh.VertexCount = vertices.size();
+		Scene.Skybox.Mesh.BaseVertexLocation = 0;
 
 		UINT64 totalVertexBytes = vertices.size() * sizeof(Vertex);
 		UINT64 totalIndexBytes = indices.size() * sizeof(UINT);
@@ -78,7 +78,7 @@ void GpuBufferAllocator::Stage(Scene* pScene, RenderCommandContext* pRenderComma
 		}
 	}
 
-	for (auto iter = pScene->Models.begin(); iter != pScene->Models.end(); ++iter)
+	for (auto iter = Scene.Models.begin(); iter != Scene.Models.end(); ++iter)
 	{
 		auto& model = (*iter);
 

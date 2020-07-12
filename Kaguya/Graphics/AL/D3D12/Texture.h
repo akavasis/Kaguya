@@ -23,7 +23,7 @@ public:
 	Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
 	Texture(const Device* pDevice, const Properties& Properties);
 	Texture(const Device* pDevice, const Properties& Properties, const Heap* pHeap, UINT64 HeapOffset);
-	~Texture() override;
+	~Texture() override = default;
 
 	Texture(Texture&&) = default;
 	Texture& operator=(Texture&&) = default;

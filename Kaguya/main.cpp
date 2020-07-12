@@ -46,6 +46,7 @@ int main(int argc, char** argv)
 		auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 
 		renderer.SetScene(&scene);
+		renderer.TEST();
 
 		Time time;
 		time.Restart();
@@ -103,7 +104,7 @@ int main(int argc, char** argv)
 
 			time.Signal();
 			renderer.Update(time);
-			renderer.Render();
+			//renderer.Render();
 			//renderer.Present();
 		});
 	}

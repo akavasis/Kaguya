@@ -1,4 +1,5 @@
 #pragma once
+#include "Scene/Light.h"
 #include "RenderDevice.h"
 
 enum CubemapConvolution
@@ -8,10 +9,11 @@ enum CubemapConvolution
 	CubemapConvolution_Count
 };
 
-struct CubemapConvolutionResolution
+struct Resolutions
 {
-	static constexpr UINT Irradiance = 64u;
-	static constexpr UINT Prefilter = 512u;
+	enum { BRDFLUT = 512u };
+	enum { Irradiance = 64u };
+	enum { Prefilter = 512u };
 };
 
 struct IrradianceConvolutionSetting
@@ -50,6 +52,52 @@ struct RendererFormats
 	static constexpr DXGI_FORMAT BRDFLUTFormat = DXGI_FORMAT_R16G16_FLOAT;
 	static constexpr DXGI_FORMAT IrradianceFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	static constexpr DXGI_FORMAT PrefilterFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+};
+
+#define MAX_POINT_LIGHT 5
+#define MAX_SPOT_LIGHT 5
+struct LightSettings
+{
+	enum
+	{
+		NumPointLights = 1,
+		NumSpotLights = 0
+	};
+	static_assert(NumPointLights <= MAX_POINT_LIGHT);
+	static_assert(NumSpotLights <= MAX_SPOT_LIGHT);
+};
+
+struct ObjectConstantsCPU
+{
+	DirectX::XMFLOAT4X4 World;
+};
+
+struct MaterialDataCPU
+{
+	DirectX::XMFLOAT3 Albedo;
+	float Metallic;
+	DirectX::XMFLOAT3 Emissive;
+	float Roughness;
+	int Flags;
+	DirectX::XMFLOAT3 _padding;
+};
+
+struct RenderPassConstantsCPU
+{
+	DirectX::XMFLOAT4X4 ViewProjection;
+	DirectX::XMFLOAT3 EyePosition;
+	float _padding;
+
+	int NumPointLights;
+	int NumSpotLights;
+	DirectX::XMFLOAT2 _padding2;
+	DirectionalLight DirectionalLight;
+	PointLight PointLights[MAX_POINT_LIGHT];
+	SpotLight SpotLights[MAX_SPOT_LIGHT];
+	Cascade Cascades[4];
+	int VisualizeCascade;
+	int DebugViewInput;
+	DirectX::XMFLOAT2 _padding3;
 };
 
 struct RootParameters

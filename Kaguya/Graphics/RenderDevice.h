@@ -58,8 +58,10 @@ public:
 	void Destroy(RenderResourceHandle& RenderResourceHandle);
 
 	// Resource view creation
-	void CreateSRVForTexture(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
-	void CreateUAVForTexture(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> MipSlice);
+	void CreateSRV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
+	void CreateUAV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice);
+	void CreateRTV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
+	void CreateDSV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice);
 
 	// Returns nullptr if a resource is not found
 	[[nodiscard]] inline Shader* GetShader(RenderResourceHandle RenderResourceHandle) const { return m_Shaders.GetResource(RenderResourceHandle); }

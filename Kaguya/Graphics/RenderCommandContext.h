@@ -30,8 +30,9 @@ public:
 	void UAVBarrier(Resource* pResource);
 	void FlushResourceBarriers();
 
-	void CopyResource(Resource* pDstResource, Resource* pSrcResource);
 	void CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset, Buffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes);
+	void CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION* pDst, UINT DstX, UINT DstY, UINT DstZ, const D3D12_TEXTURE_COPY_LOCATION* pSrc, const D3D12_BOX* pSrcBox);
+	void CopyResource(Resource* pDstResource, Resource* pSrcResource);
 
 	void SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor);
 	void SetUAV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor);
@@ -50,6 +51,13 @@ public:
 
 	inline void SetViewports(UINT NumViewports, const D3D12_VIEWPORT* pViewports);
 	inline void SetScissorRects(UINT NumRects, const D3D12_RECT* pRects);
+	void SetRenderTargets(UINT RenderTargetDescriptorOffset, UINT NumHandlesWithinRenderTargetDescriptor, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange,
+		UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor)
+	{
+		const D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescriptors = RenderTargetDescriptors ? &RenderTargetDescriptors[RenderTargetDescriptorOffset] : nullptr;
+		const D3D12_CPU_DESCRIPTOR_HANDLE* pDepthStencilDescriptor = DepthStencilDescriptor ? &DepthStencilDescriptor[DepthStencilDescriptorOffset] : nullptr;
+		m_pCommandList->OMSetRenderTargets(NumHandlesWithinRenderTargetDescriptor, pRenderTargetDescriptors, RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
+	}
 
 	void DrawInstanced(UINT VertexCount, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation);
 	void DrawIndexedInstanced(UINT IndexCount, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation);

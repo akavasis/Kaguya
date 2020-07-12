@@ -9,7 +9,8 @@
 #include "RenderDevice.h"
 #include "RenderGraph.h"
 #include "RendererRegistry.h"
-#include "GpuSceneAllocator.h"
+#include "GpuBufferAllocator.h"
+#include "GpuTextureAllocator.h"
 
 class Application;
 class Window;
@@ -23,6 +24,7 @@ public:
 
 	inline auto& GetRenderDevice() { return m_RenderDevice; }
 	void SetScene(Scene* pScene);
+	void TEST();
 
 	void Update(const Time& Time);
 	void Render();
@@ -77,7 +79,8 @@ private:
 
 	RenderDevice m_RenderDevice;
 	RenderGraph m_RenderGraph;
-	GpuSceneAllocator m_GpuSceneAllocator;
+	GpuBufferAllocator m_GpuBufferAllocator;
+	GpuTextureAllocator m_GpuTextureAllocator;
 
 	// Swapchain resources
 	UINT m_FrameIndex;

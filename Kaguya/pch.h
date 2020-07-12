@@ -44,3 +44,5 @@
 #include "Core/Log.h"
 #include "Core/Exception.h"
 #include "Math/MathLibrary.h"
+#include "Graphics/Debug/PIXMarker.h"
+#include "Graphics/Debug/PIXCapture.h"

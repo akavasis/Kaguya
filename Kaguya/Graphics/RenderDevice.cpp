@@ -159,7 +159,7 @@ void RenderDevice::Destroy(RenderResourceHandle& RenderResourceHandle)
 	RenderResourceHandle._Data = 0;
 }
 
-void RenderDevice::CreateSRVForTexture(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
+void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
 	assert(texture != nullptr && "Could not find texture given the handle");
@@ -178,6 +178,7 @@ void RenderDevice::CreateSRVForTexture(RenderResourceHandle RenderResourceHandle
 		switch (texture->Type)
 		{
 		case Resource::Type::Texture1D:
+		{
 			if (texture->DepthOrArraySize > 1)
 			{
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
@@ -189,9 +190,11 @@ void RenderDevice::CreateSRVForTexture(RenderResourceHandle RenderResourceHandle
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
 				desc.Texture1D.MipLevels = texture->MipLevels;
 			}
-			break;
+		}
+		break;
 
 		case Resource::Type::Texture2D:
+		{
 			if (texture->DepthOrArraySize > 1)
 			{
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
@@ -203,27 +206,32 @@ void RenderDevice::CreateSRVForTexture(RenderResourceHandle RenderResourceHandle
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 				desc.Texture2D.MipLevels = texture->MipLevels;
 			}
-			break;
+		}
+		break;
 
 		case Resource::Type::Texture3D:
+		{
 			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
 			desc.Texture3D.MipLevels = texture->MipLevels;
-			break;
+		}
+		break;
 		}
 	}
 
 	m_Device.GetD3DDevice()->CreateShaderResourceView(texture->GetD3DResource(), &desc, DestDescriptor);
 }
 
-void RenderDevice::CreateUAVForTexture(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> MipSlice)
+void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
 	assert(texture != nullptr && "Could not find texture given the handle");
 
+	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
 	desc.Format = texture->Format;
 
+	// TODO: Add buffer support
 	switch (texture->Type)
 	{
 	case Resource::Type::Texture1D:
@@ -232,6 +240,7 @@ void RenderDevice::CreateUAVForTexture(RenderResourceHandle RenderResourceHandle
 		{
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
 			desc.Texture1DArray.MipSlice = mipSlice;
+			desc.Texture1DArray.FirstArraySlice = arraySlice;
 			desc.Texture1DArray.ArraySize = texture->DepthOrArraySize;
 		}
 		else
@@ -248,12 +257,15 @@ void RenderDevice::CreateUAVForTexture(RenderResourceHandle RenderResourceHandle
 		{
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
 			desc.Texture2DArray.MipSlice = mipSlice;
+			desc.Texture2DArray.FirstArraySlice = arraySlice;
 			desc.Texture2DArray.ArraySize = texture->DepthOrArraySize;
+			desc.Texture2DArray.PlaneSlice = 0;
 		}
 		else
 		{
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 			desc.Texture2D.MipSlice = mipSlice;
+			desc.Texture2D.PlaneSlice = 0;
 		}
 	}
 	break;
@@ -262,9 +274,132 @@ void RenderDevice::CreateUAVForTexture(RenderResourceHandle RenderResourceHandle
 	{
 		desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 		desc.Texture3D.MipSlice = mipSlice;
+		desc.Texture3D.FirstWSlice = 0;
+		desc.Texture3D.WSize = 0;
 	}
 	break;
 	}
 
 	m_Device.GetD3DDevice()->CreateUnorderedAccessView(texture->GetD3DResource(), nullptr, &desc, DestDescriptor);
+}
+
+void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+{
+	Texture* texture = GetTexture(RenderResourceHandle);
+	assert(texture != nullptr && "Could not find texture given the handle");
+
+	UINT arraySlice = ArraySlice.value_or(0);
+	UINT mipSlice = MipSlice.value_or(0);
+	UINT arraySize = ArraySize.value_or(texture->DepthOrArraySize);
+	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
+	desc.Format = texture->Format;
+
+	// TODO: Add buffer support and MS support
+	switch (texture->Type)
+	{
+	case Resource::Type::Texture1D:
+	{
+		if (texture->DepthOrArraySize > 1)
+		{
+			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+			desc.Texture1DArray.MipSlice = mipSlice;
+			desc.Texture1DArray.FirstArraySlice = arraySlice;
+			desc.Texture1DArray.ArraySize = arraySize;
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+			desc.Texture1D.MipSlice = mipSlice;
+		}
+	}
+	break;
+
+	case Resource::Type::Texture2D:
+	{
+		if (texture->DepthOrArraySize > 1)
+		{
+			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			desc.Texture2DArray.MipSlice = mipSlice;
+			desc.Texture2DArray.FirstArraySlice = arraySlice;
+			desc.Texture2DArray.ArraySize = arraySize;
+			desc.Texture2DArray.PlaneSlice = 0;
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipSlice = mipSlice;
+			desc.Texture2D.PlaneSlice = 0;
+		}
+	}
+	break;
+
+	case Resource::Type::Texture3D:
+	{
+		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+		desc.Texture3D.MipSlice = mipSlice;
+		desc.Texture3D.FirstWSlice = 0;
+		desc.Texture3D.WSize = 0;
+	}
+	break;
+	}
+
+	m_Device.GetD3DDevice()->CreateRenderTargetView(texture->GetD3DResource(), &desc, DestDescriptor);
+}
+
+void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
+{
+	Texture* texture = GetTexture(RenderResourceHandle);
+	assert(texture != nullptr && "Could not find texture given the handle");
+
+	UINT arraySlice = ArraySlice.value_or(0);
+	UINT mipSlice = MipSlice.value_or(0);
+	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
+	desc.Format = texture->Format;
+	desc.Flags = D3D12_DSV_FLAG_NONE;
+
+	// TODO: Add support and MS support
+	switch (texture->Type)
+	{
+	case Resource::Type::Texture1D:
+	{
+		if (texture->DepthOrArraySize > 1)
+		{
+			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+			desc.Texture1DArray.MipSlice = mipSlice;
+			desc.Texture1DArray.FirstArraySlice = arraySlice;
+			desc.Texture1DArray.ArraySize = texture->DepthOrArraySize;
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+			desc.Texture1D.MipSlice = mipSlice;
+		}
+	}
+	break;
+
+	case Resource::Type::Texture2D:
+	{
+		if (texture->DepthOrArraySize > 1)
+		{
+			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+			desc.Texture2DArray.MipSlice = mipSlice;
+			desc.Texture2DArray.FirstArraySlice = arraySlice;
+			desc.Texture2DArray.ArraySize = texture->DepthOrArraySize;
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipSlice = mipSlice;
+		}
+	}
+	break;
+
+	case Resource::Type::Texture3D:
+	{
+		assert("Cannot create DSV for Texture3D resource type");
+	}
+	break;
+	}
+
+	m_Device.GetD3DDevice()->CreateDepthStencilView(texture->GetD3DResource(), &desc, DestDescriptor);
 }

@@ -7,95 +7,14 @@
 // MT
 #include <future>
 
-#include <DXProgrammableCapture.h>
-#include "pix3.h"
-class PIXMarker
-{
-public:
-	PIXMarker(ID3D12GraphicsCommandList* pCommandList, LPCWSTR pMsg)
-		: pCommandList(pCommandList)
-	{
-		PIXBeginEvent(pCommandList, 0, pMsg);
-	}
-	~PIXMarker()
-	{
-		PIXEndEvent(pCommandList);
-	}
-private:
-	ID3D12GraphicsCommandList* pCommandList;
-};
-
-class PIXCapture
-{
-public:
-	PIXCapture()
-	{
-		HRESULT hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphicsAnalysis));
-		if (graphicsAnalysis)
-			graphicsAnalysis->BeginCapture();
-	}
-	~PIXCapture()
-	{
-		if (graphicsAnalysis)
-			graphicsAnalysis->EndCapture();
-	}
-private:
-	Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> graphicsAnalysis;
-};
-
 using namespace DirectX;
-
-#define MAX_POINT_LIGHT 5
-#define MAX_SPOT_LIGHT 5
-struct LightSettings
-{
-	enum
-	{
-		NumPointLights = 1,
-		NumSpotLights = 0
-	};
-	static_assert(NumPointLights <= MAX_POINT_LIGHT);
-	static_assert(NumSpotLights <= MAX_SPOT_LIGHT);
-};
-
-struct ObjectConstantsCPU
-{
-	DirectX::XMFLOAT4X4 World;
-};
-
-struct MaterialDataCPU
-{
-	DirectX::XMFLOAT3 Albedo;
-	float Metallic;
-	DirectX::XMFLOAT3 Emissive;
-	float Roughness;
-	int Flags;
-	DirectX::XMFLOAT3 _padding;
-};
-
-struct RenderPassConstantsCPU
-{
-	DirectX::XMFLOAT4X4 ViewProjection;
-	DirectX::XMFLOAT3 EyePosition;
-	float _padding;
-
-	int NumPointLights;
-	int NumSpotLights;
-	DirectX::XMFLOAT2 _padding2;
-	DirectionalLight DirectionalLight;
-	PointLight PointLights[MAX_POINT_LIGHT];
-	SpotLight SpotLights[MAX_SPOT_LIGHT];
-	Cascade Cascades[4];
-	int VisualizeCascade;
-	int DebugViewInput;
-	DirectX::XMFLOAT2 _padding3;
-};
 
 Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	: m_RefWindow(RefWindow),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(m_RenderDevice),
-	m_GpuSceneAllocator(m_RenderDevice)
+	m_GpuBufferAllocator(256_MiB, 256_MiB, m_RenderDevice),
+	m_GpuTextureAllocator(m_RenderDevice)
 {
 	m_EventReceiver.Register(m_RefWindow, [&](const Event& event)
 	{
@@ -148,40 +67,44 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	m_FrameDepthStencilBuffer = m_RenderDevice.CreateTexture(textureProp);
 
 	Buffer::Properties bufferProp{};
-	bufferProp.SizeInBytes = Math::AlignUp<UINT64>(1 * sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-	bufferProp.Stride = sizeof(RenderPassConstantsCPU);
+	bufferProp.SizeInBytes = Math::AlignUp<UINT64>(sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+	bufferProp.Stride = Math::AlignUp<UINT64>(sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 	m_RenderPassCBs = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
 
 	struct SceneStagingData
 	{
-		GpuSceneAllocator* pGpuSceneAllocator;
+		GpuBufferAllocator* pGpuBufferAllocator;
+		GpuTextureAllocator* pGpuTextureAllocator;
 	};
 
 	auto pSceneStagingPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, SceneStagingData>(
 		[&](SceneStagingData& Data, RenderDevice& RenderDevice)
 	{
-		Data.pGpuSceneAllocator = &m_GpuSceneAllocator;
+		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
+		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
 
 		return [=](const SceneStagingData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 			{
-				PIXCapture cap;
-				Data.pGpuSceneAllocator->Stage(pRenderCommandContext);
+				PIXCapture();
+				Data.pGpuBufferAllocator->Stage(Scene, pRenderCommandContext);
+				Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
+				Data.pGpuTextureAllocator->Stage(Scene, pRenderCommandContext);
 			}
 
 			m_RenderGraph.GetRenderPass<RenderPassType::Graphics, SceneStagingData>()->Enabled = false;
 		};
 	});
 
-	struct CubemapGenerationData
+	struct SkyboxConvolutionData
 	{
 
 	};
 
-	auto pCubemapGenerationPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, CubemapGenerationData>(
-		[&](CubemapGenerationData& Data, RenderDevice& RenderDevice)
+	auto pSkyboxConvolutionPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, SkyboxConvolutionData>(
+		[&](SkyboxConvolutionData& Data, RenderDevice& RenderDevice)
 	{
-		return [=](const CubemapGenerationData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [=](const SkyboxConvolutionData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 		};
 	});
@@ -252,8 +175,17 @@ Renderer::~Renderer()
 
 void Renderer::SetScene(Scene* pScene)
 {
-	m_GpuSceneAllocator.SetScene(pScene);
 	m_pScene = pScene;
+}
+
+void Renderer::TEST()
+{
+	PIXCapture();
+	auto context = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_GpuBufferAllocator.Stage(*m_pScene, context);
+	m_GpuBufferAllocator.Bind(context);
+	m_GpuTextureAllocator.Stage(*m_pScene, context);
+	m_RenderDevice.ExecuteRenderCommandContexts(1, &context);
 }
 
 void Renderer::Update(const Time& Time)

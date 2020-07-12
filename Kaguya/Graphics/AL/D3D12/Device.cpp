@@ -11,7 +11,7 @@ Device::Device(IDXGIAdapter4* pAdapter)
 	m_SamplerAllocator(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 {
 #if defined(_DEBUG)
-	constexpr BOOL gpuBasedValidation = FALSE;
+	constexpr BOOL gpuBasedValidation = FALSE; // Enabling this will cause texture copying to copy black pixels
 	constexpr BOOL synchronizedCmdQueueValidation = TRUE;
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
 	ComPtr<ID3D12Debug1> pDebug1;

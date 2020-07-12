@@ -133,14 +133,6 @@ void RenderCommandContext::FlushResourceBarriers()
 	m_ResourceStateTracker.FlushResourceBarriers(m_pCommandList.Get());
 }
 
-void RenderCommandContext::CopyResource(Resource* pDstResource, Resource* pSrcResource)
-{
-	TransitionBarrier(pDstResource, D3D12_RESOURCE_STATE_COPY_DEST);
-	TransitionBarrier(pSrcResource, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	FlushResourceBarriers();
-	m_pCommandList->CopyResource(pDstResource->GetD3DResource(), pSrcResource->GetD3DResource());
-}
-
 void RenderCommandContext::CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset, Buffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
 {
 	TransitionBarrier(pDstBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -148,6 +140,19 @@ void RenderCommandContext::CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset
 		TransitionBarrier(pSrcBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	FlushResourceBarriers();
 	m_pCommandList->CopyBufferRegion(pDstBuffer->GetD3DResource(), DstOffset, pSrcBuffer->GetD3DResource(), SrcOffset, NumBytes);
+}
+
+void RenderCommandContext::CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION* pDst, UINT DstX, UINT DstY, UINT DstZ, const D3D12_TEXTURE_COPY_LOCATION* pSrc, const D3D12_BOX* pSrcBox)
+{
+	m_pCommandList->CopyTextureRegion(pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
+}
+
+void RenderCommandContext::CopyResource(Resource* pDstResource, Resource* pSrcResource)
+{
+	TransitionBarrier(pDstResource, D3D12_RESOURCE_STATE_COPY_DEST);
+	TransitionBarrier(pSrcResource, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	FlushResourceBarriers();
+	m_pCommandList->CopyResource(pDstResource->GetD3DResource(), pSrcResource->GetD3DResource());
 }
 
 void RenderCommandContext::SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor)

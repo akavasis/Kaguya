@@ -36,6 +36,8 @@ Texture::Texture(const Device* pDevice, const Properties& Properties)
 	MipLevels(Properties.MipLevels),
 	IsCubemap(Properties.IsCubemap)
 {
+	D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
+	MipLevels = desc.MipLevels;
 }
 
 Texture::Texture(const Device* pDevice, const Properties& Properties, const Heap* pHeap, UINT64 HeapOffset)
@@ -55,10 +57,8 @@ Texture::Texture(const Device* pDevice, const Properties& Properties, const Heap
 	MipLevels(Properties.MipLevels),
 	IsCubemap(Properties.IsCubemap)
 {
-}
-
-Texture::~Texture()
-{
+	D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
+	MipLevels = desc.MipLevels;
 }
 
 bool Texture::IsArray() const
