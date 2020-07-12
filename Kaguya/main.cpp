@@ -17,7 +17,9 @@
 #include "Core/Window.h"
 #include "Core/Time.h"
 #include "Graphics/Renderer.h"
-#include "Graphics/ModelAllocator.h"
+
+#include "Graphics/Scene/ModelLoader.h"
+#include "Graphics/Scene/Scene.h"
 
 int main(int argc, char** argv)
 {
@@ -33,12 +35,17 @@ int main(int argc, char** argv)
 		Renderer renderer{ application, window };
 
 		ModelLoader modelLoader{ application.ExecutableFolderPath() };
-		modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx");
-		modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj");
 
 		Scene scene;
+		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
+
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 		scene.Camera.SetPosition(0.0f, 5.0f, -10.0f);
+
+		auto& cerberus = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx"));
+		auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+
+		renderer.SetScene(&scene);
 
 		Time time;
 		time.Restart();
@@ -96,7 +103,7 @@ int main(int argc, char** argv)
 
 			time.Signal();
 			renderer.Update(time);
-			//renderer.Render();
+			renderer.Render();
 			//renderer.Present();
 		});
 	}

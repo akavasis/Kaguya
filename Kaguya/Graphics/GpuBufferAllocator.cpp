@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "GpuBufferAllocator.h"
-#include "ModelAllocator.h"
 
 GpuBufferAllocator::GpuBufferAllocator(std::size_t VertexBufferByteSize, std::size_t IndexBufferByteSize, RenderDevice& RefRenderDevice)
 	: m_RefRenderDevice(RefRenderDevice),
@@ -24,56 +23,118 @@ GpuBufferAllocator::GpuBufferAllocator(std::size_t VertexBufferByteSize, std::si
 	m_pUploadIndexBuffer = m_RefRenderDevice.GetBuffer(m_UploadIndexBuffer);
 }
 
-void GpuBufferAllocator::Stage(RenderCommandContext* pRenderCommandContext)
+void GpuBufferAllocator::Stage(Scene* pScene, RenderCommandContext* pRenderCommandContext)
 {
-	//for (auto iter = pModelAllocator->m_ModelData.begin(); iter != pModelAllocator->m_ModelData.end(); ++iter)
-	//{
-	//	auto& modelData = (*iter);
+	m_VertexBufferAllocator.Reset();
+	m_IndexBufferAllocator.Reset();
 
-	//	UINT64 totalIndexBytes = modelData.indices.size() * sizeof(UINT);
-	//	UINT64 totalVertexBytes = modelData.vertices.size() * sizeof(Vertex);
+	// Stage skybox mesh
+	{
+		auto skyboxModel = CreateBox(1.0f, 1.0f, 1.0f, 0, Material());
+		std::vector<Vertex> vertices = std::move(skyboxModel.Vertices);
+		std::vector<UINT> indices = std::move(skyboxModel.Indices);
 
-	//	auto pair = m_VertexBufferAllocator.Allocate(totalVertexBytes);
-	//	if (!pair.has_value())
-	//	{
-	//		CORE_WARN("{} : Unable to allocate vertex data, consider increasing memory", __FUNCTION__);
-	//		assert(false);
-	//	}
-	//	auto [vertexOffset, vertexSize] = pair.value();
+		pScene->Skybox.Mesh.BoundingBox = skyboxModel.BoundingBox;
+		pScene->Skybox.Mesh.IndexCount = indices.size();
+		pScene->Skybox.Mesh.StartIndexLocation = 0;
+		pScene->Skybox.Mesh.VertexCount = vertices.size();
+		pScene->Skybox.Mesh.BaseVertexLocation = 0;
 
-	//	pair = m_IndexBufferAllocator.Allocate(totalIndexBytes);
-	//	if (!pair.has_value())
-	//	{
-	//		CORE_WARN("{} : Unable to allocate index data, consider increasing memory", __FUNCTION__);
-	//		assert(false);
-	//	}
-	//	auto [indexOffset, indexSize] = pair.value();
+		UINT64 totalVertexBytes = vertices.size() * sizeof(Vertex);
+		UINT64 totalIndexBytes = indices.size() * sizeof(UINT);
 
-	//	// Stage vertex
-	//	{
-	//		auto pGPU = m_pUploadVertexBuffer->Map();
-	//		auto pCPU = modelData.vertices.data();
-	//		memcpy(&pGPU[vertexOffset], pCPU, vertexSize);
+		auto pair = m_VertexBufferAllocator.Allocate(totalVertexBytes);
+		if (!pair.has_value())
+		{
+			CORE_WARN("{} : Unable to allocate vertex data, consider increasing memory", __FUNCTION__);
+			assert(false);
+		}
+		auto [vertexOffset, vertexSize] = pair.value();
 
-	//		pRenderCommandContext->CopyBufferRegion(m_pVertexBuffer, vertexOffset, m_pUploadVertexBuffer, vertexOffset, vertexSize);
-	//	}
+		pair = m_IndexBufferAllocator.Allocate(totalIndexBytes);
+		if (!pair.has_value())
+		{
+			CORE_WARN("{} : Unable to allocate index data, consider increasing memory", __FUNCTION__);
+			assert(false);
+		}
+		auto [indexOffset, indexSize] = pair.value();
 
-	//	// Stage index
-	//	{
-	//		auto pGPU = m_pUploadIndexBuffer->Map();
-	//		auto pCPU = modelData.indices.data();
-	//		memcpy(&pGPU[indexOffset], pCPU, indexSize);
+		// Stage vertex
+		{
+			auto pGPU = m_pUploadVertexBuffer->Map();
+			auto pCPU = vertices.data();
+			memcpy(&pGPU[vertexOffset], pCPU, vertexSize);
 
-	//		pRenderCommandContext->CopyBufferRegion(m_pIndexBuffer, indexOffset, m_pUploadIndexBuffer, indexOffset, indexSize);
-	//	}
+			pRenderCommandContext->CopyBufferRegion(m_pVertexBuffer, vertexOffset, m_pUploadVertexBuffer, vertexOffset, vertexSize);
+		}
 
-	//	CORE_INFO("{} Loaded", modelData.fileName.generic_string());
-	//}
+		// Stage index
+		{
+			auto pGPU = m_pUploadIndexBuffer->Map();
+			auto pCPU = indices.data();
+			memcpy(&pGPU[indexOffset], pCPU, indexSize);
+
+			pRenderCommandContext->CopyBufferRegion(m_pIndexBuffer, indexOffset, m_pUploadIndexBuffer, indexOffset, indexSize);
+		}
+	}
+
+	for (auto iter = pScene->Models.begin(); iter != pScene->Models.end(); ++iter)
+	{
+		auto& model = (*iter);
+
+		UINT64 totalVertexBytes = model.Vertices.size() * sizeof(Vertex);
+		UINT64 totalIndexBytes = model.Indices.size() * sizeof(UINT);
+
+		auto pair = m_VertexBufferAllocator.Allocate(totalVertexBytes);
+		if (!pair.has_value())
+		{
+			CORE_WARN("{} : Unable to allocate vertex data, consider increasing memory", __FUNCTION__);
+			assert(false);
+		}
+		auto [vertexOffset, vertexSize] = pair.value();
+
+		pair = m_IndexBufferAllocator.Allocate(totalIndexBytes);
+		if (!pair.has_value())
+		{
+			CORE_WARN("{} : Unable to allocate index data, consider increasing memory", __FUNCTION__);
+			assert(false);
+		}
+		auto [indexOffset, indexSize] = pair.value();
+
+		// Stage vertex
+		{
+			auto pGPU = m_pUploadVertexBuffer->Map();
+			auto pCPU = model.Vertices.data();
+			memcpy(&pGPU[vertexOffset], pCPU, vertexSize);
+
+			pRenderCommandContext->CopyBufferRegion(m_pVertexBuffer, vertexOffset, m_pUploadVertexBuffer, vertexOffset, vertexSize);
+		}
+
+		// Stage index
+		{
+			auto pGPU = m_pUploadIndexBuffer->Map();
+			auto pCPU = model.Indices.data();
+			memcpy(&pGPU[indexOffset], pCPU, indexSize);
+
+			pRenderCommandContext->CopyBufferRegion(m_pIndexBuffer, indexOffset, m_pUploadIndexBuffer, indexOffset, indexSize);
+		}
+
+		for (auto& mesh : model.Meshes)
+		{
+			mesh.BaseVertexLocation += vertexOffset;
+			mesh.StartIndexLocation += indexOffset;
+		}
+
+		CORE_INFO("{} Loaded", model.Path);
+	}
+
+	pRenderCommandContext->TransitionBarrier(m_pVertexBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+	pRenderCommandContext->TransitionBarrier(m_pIndexBuffer, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 }
 
 void GpuBufferAllocator::Bind(RenderCommandContext* pRenderCommandContext) const
 {
-	/*D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 	vertexBufferView.BufferLocation = m_pVertexBuffer->GetGPUVirtualAddress();
 	vertexBufferView.SizeInBytes = m_VertexBufferAllocator.GetCurrentSize();
 	vertexBufferView.StrideInBytes = sizeof(Vertex);
@@ -83,5 +144,5 @@ void GpuBufferAllocator::Bind(RenderCommandContext* pRenderCommandContext) const
 	indexBufferView.BufferLocation = m_pIndexBuffer->GetGPUVirtualAddress();
 	indexBufferView.SizeInBytes = m_IndexBufferAllocator.GetCurrentSize();
 	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	pRenderCommandContext->SetIndexBuffer(&indexBufferView);*/
+	pRenderCommandContext->SetIndexBuffer(&indexBufferView);
 }

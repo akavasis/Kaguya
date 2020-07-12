@@ -1,10 +1,10 @@
 #pragma once
+#include <filesystem>
+
 #include "Mesh.h"
-#include "../RenderResourceHandle.h"
 
 struct Skybox
 {
+	std::filesystem::path Path;
 	Mesh Mesh;
-	RenderResourceHandle VertexBuffer;
-	RenderResourceHandle IndexBuffer;
 };

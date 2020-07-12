@@ -2,13 +2,14 @@
 
 #include "RenderDevice.h"
 #include "../Core/Allocator/VariableSizedAllocator.h"
+#include "Scene/Scene.h"
 
 class GpuBufferAllocator
 {
 public:
 	GpuBufferAllocator(std::size_t VertexBufferByteSize, std::size_t IndexBufferByteSize, RenderDevice& RefRenderDevice);
 
-	void Stage(RenderCommandContext* pRenderCommandContext);
+	void Stage(Scene* pScene, RenderCommandContext* pRenderCommandContext);
 	void Bind(RenderCommandContext* pRenderCommandContext) const;
 private:
 	RenderDevice& m_RefRenderDevice;

@@ -220,6 +220,7 @@ void RenderDevice::CreateUAVForTexture(RenderResourceHandle RenderResourceHandle
 	switch (texture->Type)
 	{
 	case Resource::Type::Texture1D:
+	{
 		if (texture->DepthOrArraySize > 1)
 		{
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
@@ -231,9 +232,11 @@ void RenderDevice::CreateUAVForTexture(RenderResourceHandle RenderResourceHandle
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
 			desc.Texture1D.MipSlice = mipSlice;
 		}
-		break;
+	}
+	break;
 
 	case Resource::Type::Texture2D:
+	{
 		if (texture->DepthOrArraySize > 1)
 		{
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
@@ -245,12 +248,15 @@ void RenderDevice::CreateUAVForTexture(RenderResourceHandle RenderResourceHandle
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 			desc.Texture2D.MipSlice = mipSlice;
 		}
-		break;
+	}
+	break;
 
 	case Resource::Type::Texture3D:
+	{
 		desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 		desc.Texture3D.MipSlice = mipSlice;
-		break;
+	}
+	break;
 	}
 
 	m_Device.GetD3DDevice()->CreateUnorderedAccessView(texture->GetD3DResource(), nullptr, &desc, DestDescriptor);

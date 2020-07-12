@@ -16,6 +16,7 @@ public:
 	// Return val: OffsetType: Where the new offset is, SizeType the Size that was passed in the function parameter
 	std::optional<std::pair<OffsetType, SizeType>> Allocate(SizeType Size);
 	void Free(OffsetType Offset, SizeType Size);
+	void Reset();
 private:
 	void AllocateFreeBlock(OffsetType offset, SizeType size);
 

@@ -7,14 +7,16 @@ RenderPassBase::RenderPassBase(RenderPassType RenderPassType)
 {
 }
 
-RenderPassBase::~RenderPassBase()
+RenderGraph::RenderGraph(RenderDevice& RefRenderDevice)
+	: m_RefRenderDevice(RefRenderDevice),
+	m_ExecutionPolicy(Sequenced),
+	m_NumRenderPasses(0)
 {
 }
 
-RenderGraph::RenderGraph(RenderDevice& RefRenderDevice)
-	: m_RefRenderDevice(RefRenderDevice),
-	m_NumRenderPasses(0)
+void RenderGraph::SetExecutionPolicy(ExecutionPolicy ExecutionPolicy)
 {
+	m_ExecutionPolicy = ExecutionPolicy;
 }
 
 void RenderGraph::Setup()
@@ -27,18 +29,32 @@ void RenderGraph::Setup()
 	m_Futures.resize(m_NumRenderPasses);
 }
 
-void RenderGraph::Execute()
+void RenderGraph::Execute(Scene& Scene)
 {
 	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
 	{
 		if (!m_RenderPasses[i]->Enabled)
 			continue;
 
-		m_Futures[i] = m_ThreadPool->AddWork([this, i]()
+		switch (m_ExecutionPolicy)
+		{
+		case ExecutionPolicy::Sequenced:
 		{
 			RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice);
-			m_RenderPasses[i]->Execute(renderGraphRegistry, m_RenderContexts[i]);
-		});
+			m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_RenderContexts[i]);
+		}
+		break;
+
+		case ExecutionPolicy::Parallel:
+		{
+			m_Futures[i] = m_ThreadPool->AddWork([this, i, &Scene = Scene]()
+			{
+				RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice);
+				m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_RenderContexts[i]);
+			});
+		}
+		break;
+		}
 	}
 }
 

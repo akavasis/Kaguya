@@ -7,20 +7,15 @@
 class GpuSceneAllocator
 {
 public:
-	GpuSceneAllocator(RenderDevice& RefRenderDevice)
-		: m_GpuTextureAllocator(RefRenderDevice),
-		m_GpuBufferAllocator(100_MiB, 100_MiB, RefRenderDevice)
-	{
-	}
+	GpuSceneAllocator(RenderDevice& RefRenderDevice);
 
-	void SetScene(Scene* pScene)
-	{
-		m_pScene = pScene;
-	}
+	void SetScene(Scene* pScene);
 
 	void Stage(RenderCommandContext* pRenderCommandContext);
+	void Bind(RenderCommandContext* pRenderCommandContext);
 private:
 	Scene* m_pScene;
+	bool m_Staged;
 	GpuTextureAllocator m_GpuTextureAllocator;
 	GpuBufferAllocator m_GpuBufferAllocator;
 };

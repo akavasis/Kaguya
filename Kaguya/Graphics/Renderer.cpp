@@ -152,15 +152,33 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	bufferProp.Stride = sizeof(RenderPassConstantsCPU);
 	m_RenderPassCBs = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
 
+	struct SceneStagingData
+	{
+		GpuSceneAllocator* pGpuSceneAllocator;
+	};
+
+	auto pSceneStagingPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, SceneStagingData>(
+		[&](SceneStagingData& Data, RenderDevice& RenderDevice)
+	{
+		Data.pGpuSceneAllocator = &m_GpuSceneAllocator;
+
+		return [=](const SceneStagingData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		{
+			Data.pGpuSceneAllocator->Stage(pRenderCommandContext);
+
+			m_RenderGraph.GetRenderPass<RenderPassType::Graphics, SceneStagingData>()->Enabled = false;
+		};
+	});
+
 	struct CubemapGenerationData
 	{
 
 	};
 
 	auto pCubemapGenerationPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, CubemapGenerationData>(
-		[](CubemapGenerationData& Data, RenderDevice& RenderDevice)
+		[&](CubemapGenerationData& Data, RenderDevice& RenderDevice)
 	{
-		return [=](const CubemapGenerationData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [=](const CubemapGenerationData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 		};
 	});
@@ -178,7 +196,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	};
 
 	auto pShadowPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowPassData>(
-		[](ShadowPassData& Data, RenderDevice& RenderDevice)
+		[&](ShadowPassData& Data, RenderDevice& RenderDevice)
 	{
 		Data.resolution = 2048;
 		Data.lambda = 0.5f;
@@ -204,7 +222,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		Data.outputDepthBuffer = RenderDevice.CreateTexture(textureProp);
 
-		return [=](const ShadowPassData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [=](const ShadowPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 		};
 	});
@@ -215,9 +233,9 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	};
 
 	auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>(
-		[](ForwardPassData& Data, RenderDevice& RenderDevice)
+		[&](ForwardPassData& Data, RenderDevice& RenderDevice)
 	{
-		return [=](const ForwardPassData& Data, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [=](const ForwardPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 		};
 	});
@@ -227,6 +245,12 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 Renderer::~Renderer()
 {
+}
+
+void Renderer::SetScene(Scene* pScene)
+{
+	m_GpuSceneAllocator.SetScene(pScene);
+	m_pScene = pScene;
 }
 
 void Renderer::Update(const Time& Time)
@@ -244,9 +268,9 @@ void Renderer::Update(const Time& Time)
 
 void Renderer::Render()
 {
-	m_RenderGraph.Execute();
+	m_RenderGraph.Execute(*m_pScene);
 	m_RenderGraph.ThreadBarrier();
-	//m_RenderGraph.ExecuteCommandContexts();
+	m_RenderGraph.ExecuteCommandContexts();
 }
 
 void Renderer::Present()

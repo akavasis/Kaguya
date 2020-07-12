@@ -1,15 +1,15 @@
 #pragma once
+#include <vector>
+
 #include "Math/Transform.h"
 
 struct Mesh
 {
 	Transform Transform;
 	DirectX::BoundingBox BoundingBox;
-
-	INT MaterialIndex;
-
-	UINT IndexCount;
-	UINT StartIndexLocation;
-	UINT VertexCount;
-	UINT BaseVertexLocation;
+	std::uint32_t IndexCount;
+	std::uint32_t StartIndexLocation;
+	std::uint32_t VertexCount;
+	std::uint32_t BaseVertexLocation;
+	std::size_t MaterialIdx;
 };

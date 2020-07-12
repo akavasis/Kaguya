@@ -17,24 +17,18 @@ ModelLoader::~ModelLoader()
 {
 }
 
-ModelData* ModelLoader::LoadFromFile(const char* pPath)
+Model ModelLoader::LoadFromFile(const char* pPath, float Scale)
 {
 	if (!pPath)
 	{
-		return nullptr;
+		return Model();
 	}
 
 	std::filesystem::path filePath = m_ExecutableFolderPath / pPath;
 	if (!std::filesystem::exists(filePath))
 	{
 		CORE_ERROR("File: {} Not found", filePath.generic_string());
-		return nullptr;
-	}
-
-	auto iter = m_ModelData.find(filePath.generic_string());
-	if (iter != m_ModelData.end())
-	{
-		return iter->second.get();
+		return Model();
 	}
 
 	const aiScene* paiScene = importer.ReadFile(filePath.generic_string().data(),
@@ -47,26 +41,28 @@ ModelData* ModelLoader::LoadFromFile(const char* pPath)
 	if (paiScene == nullptr)
 	{
 		CORE_ERROR("Assimp::Importer error: {}", importer.GetErrorString());
-		return nullptr;
+		return Model();
 	}
 
-	auto modelData = std::make_unique<ModelData>();
+	Model model;
 
 	// Load embedded textures
 	if (paiScene->HasTextures())
 	{
-		modelData->EmbeddedTextures.reserve(paiScene->mNumTextures);
+		model.EmbeddedTextures.reserve(paiScene->mNumTextures);
 
 		for (unsigned int embeddedTextureIdx = 0; embeddedTextureIdx < paiScene->mNumTextures; ++embeddedTextureIdx)
 		{
 			const aiTexture* paiTexture = paiScene->mTextures[embeddedTextureIdx];
 
-			EmbeddedTexture embeddedTexture;
+			EmbeddedTexture embeddedTexture{};
 
 			embeddedTexture.Width = paiTexture->mWidth;
 			embeddedTexture.Height = paiTexture->mHeight;
 			embeddedTexture.IsCompressed = paiTexture->mHeight == 0 ? true : false;
-			embeddedTexture.Extension = std::string(paiTexture->achFormatHint);
+			std::string ext = paiTexture->achFormatHint;
+			std::transform(ext.begin(), ext.end(), embeddedTexture.Extension.begin(),
+				[](unsigned char c) { return std::tolower(c); });
 
 			if (embeddedTexture.IsCompressed)
 			{
@@ -75,28 +71,28 @@ ModelData* ModelLoader::LoadFromFile(const char* pPath)
 			}
 			else
 			{
-				std::size_t textureArea = embeddedTexture.Width * embeddedTexture.Height;
+				std::size_t textureArea = std::size_t(embeddedTexture.Width) * std::size_t(embeddedTexture.Height);
 				embeddedTexture.Data.resize(textureArea * 4);
 				for (unsigned int i = 0; i < textureArea; ++i)
 				{
-					embeddedTexture.Data[i * 4 + 0] = paiTexture->pcData[i].r;
-					embeddedTexture.Data[i * 4 + 1] = paiTexture->pcData[i].g;
-					embeddedTexture.Data[i * 4 + 2] = paiTexture->pcData[i].b;
-					embeddedTexture.Data[i * 4 + 3] = paiTexture->pcData[i].a;
+					embeddedTexture.Data[std::size_t(i) * 4 + 0] = paiTexture->pcData[i].r;
+					embeddedTexture.Data[std::size_t(i) * 4 + 1] = paiTexture->pcData[i].g;
+					embeddedTexture.Data[std::size_t(i) * 4 + 2] = paiTexture->pcData[i].b;
+					embeddedTexture.Data[std::size_t(i) * 4 + 3] = paiTexture->pcData[i].a;
 				}
 			}
 
-			modelData->EmbeddedTextures.push_back(std::move(embeddedTexture));
+			model.EmbeddedTextures.push_back(std::move(embeddedTexture));
 		}
 	}
 
 	// Load materials
-	modelData->Materials.reserve(paiScene->mNumMaterials);
+	model.Materials.reserve(paiScene->mNumMaterials);
 	for (unsigned int materialIdx = 0; materialIdx < paiScene->mNumMaterials; ++materialIdx)
 	{
 		const aiMaterial* paiMaterial = paiScene->mMaterials[materialIdx];
 
-		MaterialData material;
+		Material material{};
 
 		auto loadTexture = [&](TextureTypes Type)
 		{
@@ -125,7 +121,7 @@ ModelData* ModelLoader::LoadFromFile(const char* pPath)
 				}
 				else
 				{
-					material.Textures[Type].Path = std::string(path.C_Str());
+					material.Textures[Type].Path = filePath.parent_path() / std::string(path.C_Str());
 					material.Textures[Type].Flag = TextureFlags::Disk;
 				}
 			}
@@ -141,54 +137,56 @@ ModelData* ModelLoader::LoadFromFile(const char* pPath)
 		loadTexture(TextureTypes::Metallic);
 		loadTexture(TextureTypes::Emissive);
 
-		modelData->Materials.push_back(std::move(material));
+		model.Materials.push_back(std::move(material));
 	}
 
 	// Load meshes
-	modelData->Meshes.reserve(paiScene->mNumMeshes);
+	model.Meshes.reserve(paiScene->mNumMeshes);
 	for (unsigned int meshIdx = 0; meshIdx < paiScene->mNumMeshes; ++meshIdx)
 	{
 		const aiMesh* paiMesh = paiScene->mMeshes[meshIdx];
 
-		MeshData mesh;
+		Mesh mesh{};
 
 		// Parse vertex data
-		mesh.Positions.resize(paiMesh->mNumVertices);
-		mesh.TextureCoords.resize(paiMesh->mNumVertices);
-		mesh.Normals.resize(paiMesh->mNumVertices);
-		mesh.Tangents.resize(paiMesh->mNumVertices);
+		std::vector<Vertex> vertices;
+		vertices.reserve(paiMesh->mNumVertices);
 
-		std::size_t byteSize = paiMesh->mNumVertices * sizeof(aiVector3D);
-		memcpy(mesh.Positions.data(), paiMesh->mVertices, byteSize);
-
-		if (paiMesh->HasTextureCoords(0))
+		// Parse vertex data
+		for (unsigned int VertexID = 0; VertexID < paiMesh->mNumVertices; ++VertexID)
 		{
-			memcpy(mesh.TextureCoords.data(), paiMesh->mTextureCoords[0], byteSize);
-		}
+			Vertex v{};
+			// Position
+			v.Position = DirectX::XMFLOAT3(paiMesh->mVertices[VertexID].x * Scale, paiMesh->mVertices[VertexID].y * Scale, paiMesh->mVertices[VertexID].z * Scale);
 
-		if (paiMesh->HasNormals())
-		{
-			memcpy(mesh.Normals.data(), paiMesh->mNormals, byteSize);
-		}
+			// Texture coords
+			if (paiMesh->HasTextureCoords(0))
+				v.Texture = DirectX::XMFLOAT2(paiMesh->mTextureCoords[0][VertexID].x, paiMesh->mTextureCoords[0][VertexID].y);
 
-		if (paiMesh->HasTangentsAndBitangents())
-		{
-			memcpy(mesh.Tangents.data(), paiMesh->mTangents, byteSize);
+			// Normal
+			v.Normal = DirectX::XMFLOAT3(paiMesh->mNormals[VertexID].x, paiMesh->mNormals[VertexID].y, paiMesh->mNormals[VertexID].z);
+
+			// Tangents and Bitangents
+			if (paiMesh->HasTangentsAndBitangents())
+				v.Tangent = DirectX::XMFLOAT3(paiMesh->mTangents[VertexID].x, paiMesh->mTangents[VertexID].y, paiMesh->mTangents[VertexID].z);
+
+			vertices.push_back(v);
 		}
 
 		// Parse index data
-		mesh.Indices.reserve(size_t(paiMesh->mNumFaces) * 3);
+		std::vector<std::uint32_t> indices;
+		indices.reserve(size_t(paiMesh->mNumFaces) * 3);
 		for (unsigned int faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx)
 		{
 			const aiFace& aiFace = paiMesh->mFaces[faceIdx];
 			assert(aiFace.mNumIndices == 3);
 
-			mesh.Indices.push_back(aiFace.mIndices[0]);
-			mesh.Indices.push_back(aiFace.mIndices[1]);
-			mesh.Indices.push_back(aiFace.mIndices[2]);
+			indices.push_back(aiFace.mIndices[0]);
+			indices.push_back(aiFace.mIndices[1]);
+			indices.push_back(aiFace.mIndices[2]);
 		}
 
-		// Parse aabb data
+		// Parse aabb data for mesh
 		// center = 0.5 * (min + max)
 		DirectX::XMVECTOR min = DirectX::XMVectorSet(paiMesh->mAABB.mMin.x, paiMesh->mAABB.mMin.y, paiMesh->mAABB.mMin.z, 0.0f);
 		DirectX::XMVECTOR max = DirectX::XMVectorSet(paiMesh->mAABB.mMax.x, paiMesh->mAABB.mMax.y, paiMesh->mAABB.mMax.z, 0.0f);
@@ -196,12 +194,26 @@ ModelData* ModelLoader::LoadFromFile(const char* pPath)
 		// extents = 0.5f (max - min)
 		DirectX::XMStoreFloat3(&mesh.BoundingBox.Extents, DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorSubtract(max, min)));
 
+		// Parse mesh indices
+		mesh.VertexCount = vertices.size();
+		mesh.BaseVertexLocation = model.Vertices.empty() ? 0 : model.Vertices.size();
+		mesh.IndexCount = indices.size();
+		mesh.StartIndexLocation = model.Indices.empty() ? 0 : model.Indices.size();
+
 		// Parse material index
 		mesh.MaterialIdx = paiMesh->mMaterialIndex;
 
-		modelData->Meshes.push_back(std::move(mesh));
+		// Insert data into model
+		model.Vertices.insert(model.Vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
+		model.Indices.insert(model.Indices.end(), std::make_move_iterator(indices.begin()), std::make_move_iterator(indices.end()));
+
+		model.Meshes.push_back(std::move(mesh));
 	}
 
-	m_ModelData[filePath.generic_string()] = std::move(modelData);
-	return m_ModelData[filePath.generic_string()].get();
+	DirectX::BoundingBox::CreateFromPoints(model.BoundingBox, model.Vertices.size(), &model.Vertices[0].Position, sizeof(Vertex));
+
+	// Parse file path
+	model.Path = filePath.generic_string();
+
+	return model;
 }

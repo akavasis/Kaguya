@@ -104,6 +104,14 @@ void VariableSizedAllocator::Free(OffsetType Offset, SizeType Size)
 	AllocateFreeBlock(Offset, Size);
 }
 
+void VariableSizedAllocator::Reset()
+{
+	m_FreeBlocksByOffsetPool.clear();
+	m_FreeBlocksBySizePool.clear();
+	m_AvailableSize = m_Size;
+	AllocateFreeBlock(0, m_AvailableSize);
+}
+
 void VariableSizedAllocator::AllocateFreeBlock(OffsetType offset, SizeType size)
 {
 	auto offsetElement = m_FreeBlocksByOffsetPool.emplace(offset, m_FreeBlocksBySizePool.begin());

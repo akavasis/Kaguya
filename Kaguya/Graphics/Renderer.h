@@ -22,6 +22,7 @@ public:
 	~Renderer();
 
 	inline auto& GetRenderDevice() { return m_RenderDevice; }
+	void SetScene(Scene* pScene);
 
 	void Update(const Time& Time);
 	void Render();
@@ -87,4 +88,6 @@ private:
 	RenderResourceHandle m_FrameBuffer;
 	RenderResourceHandle m_FrameDepthStencilBuffer;
 	RenderResourceHandle m_RenderPassCBs;
+
+	Scene* m_pScene;
 };

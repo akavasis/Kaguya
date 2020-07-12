@@ -7,6 +7,7 @@
 #include "../Core/ThreadPool.h"
 #include "RenderDevice.h"
 #include "RenderResourceHandle.h"
+#include "Scene/Scene.h"
 
 class RenderGraphRegistry;
 class RenderPassBase;
@@ -40,27 +41,29 @@ class RenderPassBase
 {
 public:
 	RenderPassBase(RenderPassType RenderPassType);
-	virtual ~RenderPassBase() = 0;
+	virtual ~RenderPassBase() = default;
 
 	virtual void Setup(RenderDevice&) = 0;
-	virtual void Execute(RenderGraphRegistry&, RenderCommandContext*) = 0;
+	virtual void Execute(Scene&, RenderGraphRegistry&, RenderCommandContext*) = 0;
 
 	bool Enabled;
 	const RenderPassType eRenderPassType;
 };
 
+struct VoidRenderPassData {};
+
 template<RenderPassType Type, typename Data>
 class RenderPass : public RenderPassBase
 {
 public:
-	using ExecuteCallback = Delegate<void(const Data&, RenderGraphRegistry&, RenderCommandContext*)>;
+	using ExecuteCallback = Delegate<void(const Data&, Scene&, RenderGraphRegistry&, RenderCommandContext*)>;
 	using PassCallback = Delegate<ExecuteCallback(Data&, RenderDevice&)>;
 
 	RenderPass(PassCallback&& RenderPassPassCallback);
-	~RenderPass() override;
+	~RenderPass() override = default;
 
 	void Setup(RenderDevice& RefRenderDevice) override;
-	void Execute(RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* RenderCommandContext) override;
+	void Execute(Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* RenderCommandContext) override;
 private:
 	friend class RenderGraph;
 
@@ -72,7 +75,15 @@ private:
 class RenderGraph
 {
 public:
+	enum ExecutionPolicy
+	{
+		Sequenced, // Single threaded (Same thread as renderer), useful for debug, this is by default
+		Parallel // Multi threaded, maximize performance
+	};
+
 	RenderGraph(RenderDevice& RefRenderDevice);
+
+	void SetExecutionPolicy(ExecutionPolicy ExecutionPolicy);
 
 	template<RenderPassType Type, typename Data>
 	RenderPass<Type, Data>* GetRenderPass();
@@ -84,12 +95,13 @@ public:
 	void Setup();
 
 	// Call every frame
-	void Execute();
+	void Execute(Scene& Scene);
 	void ExecuteCommandContexts();
 
 	void ThreadBarrier();
 private:
 	RenderDevice& m_RefRenderDevice;
+	ExecutionPolicy m_ExecutionPolicy;
 	std::unique_ptr<ThreadPool> m_ThreadPool;
 	std::vector<std::future<void>> m_Futures;
 

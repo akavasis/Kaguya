@@ -1,13 +1,12 @@
 #include "pch.h"
 #include "GpuTextureAllocator.h"
-#include "TextureAllocator.h"
 #include "RendererRegistry.h"
 
 GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
 	: m_RefRenderDevice(RefRenderDevice),
 	m_TextureViewAllocator(&m_RefRenderDevice.GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 {
-	m_MipmapNullUAV = m_TextureViewAllocator.Allocate(4);
+	m_MipsNullUAV = m_TextureViewAllocator.Allocate(4);
 	for (UINT i = 0; i < 4; ++i)
 	{
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -16,7 +15,21 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
 		uavDesc.Texture2D.MipSlice = i;
 		uavDesc.Texture2D.PlaneSlice = 0;
 
-		m_RefRenderDevice.GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_MipmapNullUAV[i]);
+		m_RefRenderDevice.GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_MipsNullUAV[i]);
+	}
+
+	m_EquirectangularToCubeMapNullUAV = m_TextureViewAllocator.Allocate(5);
+	for (UINT i = 0; i < 5; ++i)
+	{
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+		uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		uavDesc.Texture2DArray.ArraySize = 6; // Cubemap.
+		uavDesc.Texture2DArray.FirstArraySlice = 0;
+		uavDesc.Texture2DArray.MipSlice = i;
+		uavDesc.Texture2DArray.PlaneSlice = 0;
+
+		m_RefRenderDevice.GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_EquirectangularToCubeMapNullUAV[i]);
 	}
 
 	DXGI_FORMAT optionalFormats[] = {
@@ -77,81 +90,181 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
 	}
 }
 
-void GpuTextureAllocator::Stage(TextureAllocator* pTextureAllocator, RenderCommandContext* pRenderCommandContext)
+void GpuTextureAllocator::Stage(Scene* pScene, RenderCommandContext* pRenderCommandContext)
 {
-	for (auto iter = pTextureAllocator->m_UnstagedTextures.begin(); iter != pTextureAllocator->m_UnstagedTextures.end(); ++iter)
 	{
-		auto& textureData = iter->second;
+		// Need to generate mips for equirectangular because EquirectangularToCubemap shader assumes the SrvTexture contains mips
+		RenderResourceHandle hdrTextureHandle = LoadFromFile(pScene->Skybox.Path, false, true);
+		Texture* pHDRTexture = m_RefRenderDevice.GetTexture(hdrTextureHandle);
 
-		Texture::Properties textureProp{};
-		textureProp.Format = textureData.metadata.format;
-		textureProp.MipLevels = textureData.mipLevels;
-		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-		textureProp.IsCubemap = textureData.metadata.IsCubemap();
-		textureProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
+		Texture::Properties radianceTextureProp{};
+		radianceTextureProp.Type = pHDRTexture->Type;
+		radianceTextureProp.Format = pHDRTexture->Format;
+		radianceTextureProp.Width = radianceTextureProp.Height = 1024;
+		radianceTextureProp.DepthOrArraySize = 6;
+		radianceTextureProp.MipLevels = 0;
+		radianceTextureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		radianceTextureProp.IsCubemap = true;
 
-		switch (textureData.metadata.dimension)
+		radianceTextureProp.pOptimizedClearValue = nullptr;
+		radianceTextureProp.InitialState = D3D12_RESOURCE_STATE_COMMON;
+		RenderResourceHandle radianceTextureHandle = m_RefRenderDevice.CreateTexture(radianceTextureProp);
+
+		EquirectangularToCubemap(hdrTextureHandle, radianceTextureHandle, pRenderCommandContext);
+	}
+
+	for (auto iter = pScene->Models.begin(); iter != pScene->Models.end(); ++iter)
+	{
+		auto& model = (*iter);
+
+		for (auto& material : model.Materials)
 		{
-		case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
-			textureProp.Type = Resource::Type::Texture1D;
-			textureProp.Width = static_cast<UINT64>(textureData.metadata.width);
-			textureProp.DepthOrArraySize = static_cast<UINT16>(textureData.metadata.arraySize);
-			break;
-		case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
-			textureProp.Type = Resource::Type::Texture2D;
-			textureProp.Width = static_cast<UINT64>(textureData.metadata.width);
-			textureProp.Height = static_cast<UINT>(textureData.metadata.height);
-			textureProp.DepthOrArraySize = static_cast<UINT16>(textureData.metadata.arraySize);
-			break;
-		case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
-			textureProp.Type = Resource::Type::Texture3D;
-			textureProp.Width = static_cast<UINT64>(textureData.metadata.width);
-			textureProp.Height = static_cast<UINT>(textureData.metadata.height);
-			textureProp.DepthOrArraySize = static_cast<UINT16>(textureData.metadata.depth);
-			break;
+			LoadMaterial(material);
 		}
+	}
 
-		RenderResourceHandle handle = m_RefRenderDevice.CreateTexture(textureProp);
+	for (auto iter = m_UnstagedTextures.begin(); iter != m_UnstagedTextures.end(); ++iter)
+	{
+		auto handle = iter->first;
+		auto& stagingTexture = iter->second;
+
 		Texture* pTexture = m_RefRenderDevice.GetTexture(handle);
+		Texture* pStagingResourceTexture = &stagingTexture.texture;
 
 		// Stage texture
-		std::vector<D3D12_SUBRESOURCE_DATA> subresources(textureData.scratchImage.GetImageCount());
-		const DirectX::Image* pImages = textureData.scratchImage.GetImages();
-		for (size_t i = 0; i < textureData.scratchImage.GetImageCount(); ++i)
+		std::vector<D3D12_SUBRESOURCE_DATA> subresources(stagingTexture.scratchImage.GetImageCount());
+		const DirectX::Image* pImages = stagingTexture.scratchImage.GetImages();
+		for (size_t i = 0; i < stagingTexture.scratchImage.GetImageCount(); ++i)
 		{
 			subresources[i].RowPitch = pImages[i].rowPitch;
 			subresources[i].SlicePitch = pImages[i].slicePitch;
 			subresources[i].pData = pImages[i].pixels;
 		}
 
-		UINT64 totalBytes = GetRequiredIntermediateSize(pTexture->GetD3DResource(), 0, pTexture->GetNumSubresources());
-
-		// Create staging resource
-		Buffer::Properties bufferProp{};
-		bufferProp.SizeInBytes = totalBytes;
-		RenderResourceHandle uploadHandle = m_RefRenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload);
-		Buffer* pUploadBuffer = m_RefRenderDevice.GetBuffer(uploadHandle);
-
 		UpdateSubresources(pRenderCommandContext->GetD3DCommandList(),
-			pTexture->GetD3DResource(), pUploadBuffer->GetD3DResource(), 0,
+			pTexture->GetD3DResource(), pStagingResourceTexture->GetD3DResource(), 0,
 			0, subresources.size(), subresources.data());
 
-		if (textureData.generateMips)
+		if (stagingTexture.generateMips)
 		{
 			GenerateMips(handle, pRenderCommandContext);
 		}
-		m_StagedTextures.push_back(handle);
-		m_TemporaryResources.push_back(uploadHandle);
 
 		pRenderCommandContext->TransitionBarrier(pTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		CORE_INFO("{} Loaded", iter->first);
+		m_StagedTextures[stagingTexture.Path] = handle;
+		CORE_INFO("{} Loaded", stagingTexture.Path);
 	}
 }
 
 void GpuTextureAllocator::Bind(RenderCommandContext* pRenderCommandContext) const
 {
 	// TODO: Add bindless strategy
+}
+
+RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips)
+{	
+	if (!std::filesystem::exists(Path))
+	{
+		CORE_ERROR("File: {} Not found");
+		assert(false);
+	}
+
+	StagingTexture stagingTexture;
+	stagingTexture.Path = Path.generic_string();
+	if (Path.extension() == ".dds")
+	{
+		ThrowCOMIfFailed(DirectX::LoadFromDDSFile(Path.c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &stagingTexture.metadata, stagingTexture.scratchImage));
+	}
+	else if (Path.extension() == ".tga")
+	{
+		ThrowCOMIfFailed(DirectX::LoadFromTGAFile(Path.c_str(), &stagingTexture.metadata, stagingTexture.scratchImage));
+	}
+	else if (Path.extension() == ".hdr")
+	{
+		ThrowCOMIfFailed(DirectX::LoadFromHDRFile(Path.c_str(), &stagingTexture.metadata, stagingTexture.scratchImage));
+	}
+	else
+	{
+		ThrowCOMIfFailed(DirectX::LoadFromWICFile(Path.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_FORCE_RGB, &stagingTexture.metadata, stagingTexture.scratchImage));
+	}
+	// if metadata mip levels is > 1 then is already generated, other wise generate mip maps
+	stagingTexture.generateMips = (stagingTexture.metadata.mipLevels > 1) ? false : GenerateMips;
+	stagingTexture.mipLevels = stagingTexture.generateMips ? static_cast<size_t>(std::floor(std::log2(std::max(stagingTexture.metadata.width, stagingTexture.metadata.height)))) + 1 : 1;
+
+	if (ForceSRGB)
+	{
+		stagingTexture.metadata.format = DirectX::MakeSRGB(stagingTexture.metadata.format);
+		if (!DirectX::IsSRGB(stagingTexture.metadata.format))
+		{
+			CORE_WARN("Failed to convert to SRGB format");
+		}
+	}
+
+	Texture::Properties textureProp{};
+	textureProp.Format = stagingTexture.metadata.format;
+	textureProp.MipLevels = stagingTexture.mipLevels;
+	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	textureProp.IsCubemap = stagingTexture.metadata.IsCubemap();
+	textureProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
+
+	switch (stagingTexture.metadata.dimension)
+	{
+	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
+		textureProp.Type = Resource::Type::Texture1D;
+		textureProp.Width = static_cast<UINT64>(stagingTexture.metadata.width);
+		textureProp.DepthOrArraySize = static_cast<UINT16>(stagingTexture.metadata.arraySize);
+		break;
+	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
+		textureProp.Type = Resource::Type::Texture2D;
+		textureProp.Width = static_cast<UINT64>(stagingTexture.metadata.width);
+		textureProp.Height = static_cast<UINT>(stagingTexture.metadata.height);
+		textureProp.DepthOrArraySize = static_cast<UINT16>(stagingTexture.metadata.arraySize);
+		break;
+	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
+		textureProp.Type = Resource::Type::Texture3D;
+		textureProp.Width = static_cast<UINT64>(stagingTexture.metadata.width);
+		textureProp.Height = static_cast<UINT>(stagingTexture.metadata.height);
+		textureProp.DepthOrArraySize = static_cast<UINT16>(stagingTexture.metadata.depth);
+		break;
+	}
+
+	RenderResourceHandle handle = m_RefRenderDevice.CreateTexture(textureProp);
+	Texture* pTexture = m_RefRenderDevice.GetTexture(handle);
+
+	UINT64 totalBytes = GetRequiredIntermediateSize(pTexture->GetD3DResource(), 0, pTexture->GetNumSubresources());
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> stagingResource;
+	m_RefRenderDevice.GetDevice().GetD3DDevice()->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(totalBytes), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(stagingResource.ReleaseAndGetAddressOf()));
+
+	stagingTexture.texture = Texture(stagingResource);
+
+	m_UnstagedTextures[handle] = std::move(stagingTexture);
+	return handle;
+}
+
+void GpuTextureAllocator::LoadMaterial(Material& Material)
+{
+	for (unsigned int i = 0; i < NumTextureTypes; ++i)
+	{
+		switch (Material.Textures[i].Flag)
+		{
+		case TextureFlags::Disk:
+		{
+			bool srgb = i == Albedo || i == Emissive;
+
+			LoadFromFile(Material.Textures[i].Path, srgb, true);
+		}
+		break;
+
+		case TextureFlags::Embedded:
+		{
+			assert(false); // Currently not supported
+		}
+		break;
+		}
+	}
 }
 
 void GpuTextureAllocator::GenerateMips(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext)
@@ -172,9 +285,10 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
 	Descriptor descriptor = m_TextureViewAllocator.Allocate(1);
 	m_RefRenderDevice.CreateSRVForTexture(TextureHandle, descriptor[0]);
+	m_TemporaryDescriptors.push_back(descriptor);
+
 	Texture* pTexture = m_RefRenderDevice.GetTexture(TextureHandle);
-	auto resource = pTexture->GetD3DResource();
-	auto resourceDesc = resource->GetDesc();
+	auto resourceDesc = pTexture->GetD3DResource()->GetDesc();
 
 	pRenderCommandContext->SetPipelineState(m_RefRenderDevice.GetComputePSO(ComputePSOs::GenerateMips));
 	pRenderCommandContext->SetComputeRootSignature(m_RefRenderDevice.GetRootSignature(RootSignatures::GenerateMips));
@@ -229,17 +343,18 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			Descriptor descriptor = m_TextureViewAllocator.Allocate(1);
-			m_RefRenderDevice.CreateUAVForTexture(TextureHandle, descriptor[0], srcMip + mip + 1);
+			Descriptor uavDescriptor = m_TextureViewAllocator.Allocate(1);
+			m_RefRenderDevice.CreateUAVForTexture(TextureHandle, uavDescriptor[0], srcMip + mip + 1);
+			m_TemporaryDescriptors.push_back(uavDescriptor);
 
 			pRenderCommandContext->TransitionBarrier(pTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, srcMip + mip + 1);
-			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mip, descriptor.NumDescriptors(), descriptor);
+			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mip, uavDescriptor.NumDescriptors(), uavDescriptor);
 		}
 
 		// Pad any unused mip levels with a default UAV. Doing this keeps the DX12 runtime happy.
 		if (mipCount < 4)
 		{
-			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mipCount, 4 - mipCount, m_MipmapNullUAV);
+			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mipCount, 4 - mipCount, m_MipsNullUAV);
 		}
 
 		UINT threadGroupCountX = dstWidth + 8 - 1 / 8;
@@ -268,7 +383,6 @@ void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, R
 	textureProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
 
 	RenderResourceHandle textureCopyHandle = m_RefRenderDevice.CreateTexture(textureProp);
-	m_TemporaryResources.push_back(textureCopyHandle);
 
 	Texture* pDstTexture = m_RefRenderDevice.GetTexture(textureCopyHandle);
 
@@ -277,6 +391,105 @@ void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, R
 	GenerateMipsUAV(textureCopyHandle, pRenderCommandContext);
 
 	pRenderCommandContext->CopyResource(pTexture, pDstTexture);
+
+	m_TemporaryResources.push_back(textureCopyHandle);
+}
+
+void GpuTextureAllocator::EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderCommandContext* pRenderCommandContext)
+{
+	Texture* pCubemap = m_RefRenderDevice.GetTexture(Cubemap);
+	if (IsUAVCompatable(pCubemap->Format))
+	{
+		EquirectangularToCubemapUAV(EquirectangularMap, Cubemap, pRenderCommandContext);
+	}
+	else if (IsSRGB(pCubemap->Format))
+	{
+		EquirectangularToCubemapSRGB(EquirectangularMap, Cubemap, pRenderCommandContext);
+	}
+}
+
+void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderCommandContext* pRenderCommandContext)
+{
+	Descriptor descriptor = m_TextureViewAllocator.Allocate(1);
+	m_RefRenderDevice.CreateSRVForTexture(EquirectangularMap, descriptor[0]);
+	m_TemporaryDescriptors.push_back(descriptor);
+
+	Texture* pEquirectangularMap = m_RefRenderDevice.GetTexture(EquirectangularMap);
+	Texture* pCubemap = m_RefRenderDevice.GetTexture(Cubemap);
+	auto resourceDesc = pCubemap->GetD3DResource()->GetDesc();
+
+	pRenderCommandContext->SetPipelineState(m_RefRenderDevice.GetComputePSO(ComputePSOs::EquirectangularToCubemap));
+	pRenderCommandContext->SetComputeRootSignature(m_RefRenderDevice.GetRootSignature(RootSignatures::EquirectangularToCubemap));
+
+	EquirectangularToCubemapCPUData panoToCubemapCB;
+
+	//D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	//uavDesc.Format = GetUAVCompatableFormat(cubemapDesc.Format);
+	//uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+	//uavDesc.Texture2DArray.FirstArraySlice = 0;
+	//uavDesc.Texture2DArray.ArraySize = 6;
+
+	for (uint32_t mipSlice = 0; mipSlice < resourceDesc.MipLevels; )
+	{
+		// Maximum number of mips to generate per pass is 5.
+		uint32_t numMips = std::min<uint32_t>(5, resourceDesc.MipLevels - mipSlice);
+
+		panoToCubemapCB.FirstMip = mipSlice;
+		panoToCubemapCB.CubemapSize = std::max<uint32_t>(static_cast<uint32_t>(resourceDesc.Width), resourceDesc.Height) >> mipSlice;
+		panoToCubemapCB.NumMips = numMips;
+
+		pRenderCommandContext->SetComputeRoot32BitConstants(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_PanoToCubemapCB, 3, &panoToCubemapCB, 0);
+
+		pRenderCommandContext->TransitionBarrier(pEquirectangularMap, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		pRenderCommandContext->SetSRV(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_SrcTexture, 0, descriptor.NumDescriptors(), descriptor);
+
+		for (uint32_t mip = 0; mip < numMips; ++mip)
+		{
+			Descriptor uavDescriptor = m_TextureViewAllocator.Allocate(1);
+			m_RefRenderDevice.CreateUAVForTexture(Cubemap, uavDescriptor[0], mipSlice + mip);
+			m_TemporaryDescriptors.push_back(uavDescriptor);
+
+			pRenderCommandContext->TransitionBarrier(pCubemap, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			pRenderCommandContext->SetUAV(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_DstMips, mip, uavDescriptor.NumDescriptors(), uavDescriptor);
+		}
+
+		if (numMips < 5)
+		{
+			// Pad unused mips. This keeps DX12 runtime happy.
+			pRenderCommandContext->SetUAV(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_DstMips, panoToCubemapCB.NumMips, 5 - numMips, m_EquirectangularToCubeMapNullUAV);
+		}
+
+		UINT threadGroupCount = panoToCubemapCB.CubemapSize + 16 - 1 / 16;
+		pRenderCommandContext->Dispatch(threadGroupCount, threadGroupCount, 6);
+
+		mipSlice += numMips;
+	}
+}
+
+void GpuTextureAllocator::EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderCommandContext* pRenderCommandContext)
+{
+	Texture* pCubemap = m_RefRenderDevice.GetTexture(Cubemap);
+
+	Texture::Properties textureProp{};
+	textureProp.Type = pCubemap->Type;
+	textureProp.Format = GetUAVCompatableFormat(pCubemap->Format);
+	textureProp.Width = static_cast<UINT64>(pCubemap->Width);
+	textureProp.Height = static_cast<UINT>(pCubemap->Height);
+	textureProp.DepthOrArraySize = static_cast<UINT16>(pCubemap->DepthOrArraySize);
+	textureProp.MipLevels = pCubemap->MipLevels;
+	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	textureProp.IsCubemap = pCubemap->IsCubemap;
+	textureProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
+
+	RenderResourceHandle textureCopyHandle = m_RefRenderDevice.CreateTexture(textureProp);
+
+	Texture* pDstTexture = m_RefRenderDevice.GetTexture(textureCopyHandle);
+
+	pRenderCommandContext->CopyResource(pDstTexture, pCubemap);
+
+	EquirectangularToCubemapUAV(EquirectangularMap, textureCopyHandle, pRenderCommandContext);
+
+	pRenderCommandContext->CopyResource(pCubemap, pDstTexture);
 
 	m_TemporaryResources.push_back(textureCopyHandle);
 }
