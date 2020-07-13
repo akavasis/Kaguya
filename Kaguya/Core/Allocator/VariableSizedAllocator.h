@@ -11,6 +11,7 @@ public:
 	VariableSizedAllocator(SizeType Size);
 	~VariableSizedAllocator();
 
+	inline auto GetSize() const { return m_Size; }
 	inline auto GetCurrentSize() const { return m_AvailableSize; }
 
 	// Return val: OffsetType: Where the new offset is, SizeType the Size that was passed in the function parameter

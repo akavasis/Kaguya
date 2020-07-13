@@ -51,12 +51,15 @@ public:
 
 	inline void SetViewports(UINT NumViewports, const D3D12_VIEWPORT* pViewports);
 	inline void SetScissorRects(UINT NumRects, const D3D12_RECT* pRects);
-	void SetRenderTargets(UINT RenderTargetDescriptorOffset, UINT NumHandlesWithinRenderTargetDescriptor, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange,
-		UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor)
+	inline void SetRenderTargets(UINT RenderTargetDescriptorOffset, UINT NumHandlesWithinRenderTargetDescriptor, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange,
+		UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor);
+	void ClearRenderTarget(Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects)
 	{
-		const D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescriptors = RenderTargetDescriptors ? &RenderTargetDescriptors[RenderTargetDescriptorOffset] : nullptr;
-		const D3D12_CPU_DESCRIPTOR_HANDLE* pDepthStencilDescriptor = DepthStencilDescriptor ? &DepthStencilDescriptor[DepthStencilDescriptorOffset] : nullptr;
-		m_pCommandList->OMSetRenderTargets(NumHandlesWithinRenderTargetDescriptor, pRenderTargetDescriptors, RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
+		m_pCommandList->ClearRenderTargetView(RenderTargetDescriptor[0], Color, NumRects, pRects);
+	}
+	void ClearDepthStencil(UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT* pRects)
+	{
+		m_pCommandList->ClearDepthStencilView(DepthStencilDescriptor[DepthStencilDescriptorOffset], ClearFlags, Depth, Stencil, NumRects, pRects);
 	}
 
 	void DrawInstanced(UINT VertexCount, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation);

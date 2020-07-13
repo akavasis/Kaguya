@@ -41,8 +41,6 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
 		m_RefRenderDevice.GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_EquirectangularToCubeMapNullUAVs[i]);
 	}
 
-	m_BRDFLUTRTV = m_RefRenderDevice.GetDevice().GetDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>().Allocate(1);
-
 	// +1 for radiance, +1 for irradiance, +1 for prefiltered
 	m_SkyboxSRVs = m_TextureViewAllocator.Allocate(3);
 
@@ -62,7 +60,6 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
 		.InitialState = D3D12_RESOURCE_STATE_RENDER_TARGET
 	};
 	m_BRDFLUTHandle = m_RefRenderDevice.CreateTexture(textureProp);
-	m_RefRenderDevice.CreateRTV(m_BRDFLUTHandle, m_BRDFLUTRTV[0], {}, {}, {});
 
 	Buffer::Properties bufferProp =
 	{
@@ -293,7 +290,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 				pRenderCommandContext->SetRenderTargets(renderTargetDescriptorOffset, 1, cubemapRTVs, TRUE, 0, Descriptor());
 
 				Buffer* pCubemapCameras = m_RefRenderDevice.GetBuffer(m_CubemapCamerasHandle);
-				pRenderCommandContext->SetGraphicsRootCBV(RootParameters::CubemapConvolution::CubemapConvolutionRootParameter_RenderPassCBuffer, pCubemapCameras->GetBufferLocationAt(face));
+				pRenderCommandContext->SetGraphicsRootCBV(RootParameters::CubemapConvolution::CubemapConvolutionRootParameter_RenderPassCBuffer, pCubemapCameras->GetGpuVAAt(face));
 				switch (i)
 				{
 				case Irradiance:
@@ -314,6 +311,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 			}
 		}
 
+		m_RefRenderDevice.GetDevice().GetDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>().Free(cubemapRTVs);
 		// Set cubemap
 		switch (i)
 		{
@@ -350,10 +348,15 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 		pRenderCommandContext->SetPipelineState(m_RefRenderDevice.GetGraphicsPSO(GraphicsPSOs::BRDFIntegration));
 		pRenderCommandContext->SetGraphicsRootSignature(m_RefRenderDevice.GetRootSignature(RootSignatures::BRDFIntegration));
 
-		pRenderCommandContext->SetRenderTargets(0, 1, m_BRDFLUTRTV, TRUE, 0, Descriptor());
+		Descriptor BRDFLUTRTV = m_RefRenderDevice.GetDevice().GetDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>().Allocate(1);
+		m_RefRenderDevice.CreateRTV(m_BRDFLUTHandle, BRDFLUTRTV[0], {}, {}, {});
+
+		pRenderCommandContext->SetRenderTargets(0, 1, BRDFLUTRTV, TRUE, 0, Descriptor());
 		pRenderCommandContext->SetViewports(1, &vp);
 		pRenderCommandContext->SetScissorRects(1, &sr);
 		pRenderCommandContext->DrawInstanced(3, 1, 0, 0);
+
+		m_RefRenderDevice.GetDevice().GetDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>().Free(BRDFLUTRTV);
 	}
 }
 

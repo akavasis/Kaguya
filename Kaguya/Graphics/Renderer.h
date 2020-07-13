@@ -32,6 +32,10 @@ public:
 private:
 	Texture& CurrentBackBuffer();
 	void Resize();
+	UINT CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vector<const Model*>& Indices);
+	UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelList& Models, std::vector<const Model*>& Indices);
+	UINT CullMeshes(const Camera* pCamera, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices);
+	UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices);
 
 	Window& m_RefWindow;
 	EventReceiver m_EventReceiver;
@@ -93,4 +97,6 @@ private:
 	RenderResourceHandle m_RenderPassCBs;
 
 	Scene* m_pScene;
+	std::vector<const Model*> m_VisibleModelsIndices;
+	std::unordered_map<const Model*, std::vector<UINT>> m_VisibleMeshesIndices;
 };

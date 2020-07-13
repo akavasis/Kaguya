@@ -1,3 +1,4 @@
+#include "RenderCommandContext.h"
 inline void RenderCommandContext::SetGraphicsRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
 {
 	m_pCommandList->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
@@ -8,7 +9,7 @@ inline void RenderCommandContext::SetGraphicsRoot32BitConstants(UINT RootParamet
 	m_pCommandList->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
 }
 
-void RenderCommandContext::SetGraphicsRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
+inline void RenderCommandContext::SetGraphicsRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
 	m_pCommandList->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation);
 }
@@ -46,6 +47,13 @@ inline void RenderCommandContext::SetViewports(UINT NumViewports, const D3D12_VI
 inline void RenderCommandContext::SetScissorRects(UINT NumRects, const D3D12_RECT* pRects)
 {
 	m_pCommandList->RSSetScissorRects(NumRects, pRects);
+}
+
+inline void RenderCommandContext::SetRenderTargets(UINT RenderTargetDescriptorOffset, UINT NumHandlesWithinRenderTargetDescriptor, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange, UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor)
+{
+	const D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescriptors = RenderTargetDescriptors ? &RenderTargetDescriptors[RenderTargetDescriptorOffset] : nullptr;
+	const D3D12_CPU_DESCRIPTOR_HANDLE* pDepthStencilDescriptor = DepthStencilDescriptor ? &DepthStencilDescriptor[DepthStencilDescriptorOffset] : nullptr;
+	m_pCommandList->OMSetRenderTargets(NumHandlesWithinRenderTargetDescriptor, pRenderTargetDescriptors, RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
 }
 
 inline void RenderCommandContext::SetComputeRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)

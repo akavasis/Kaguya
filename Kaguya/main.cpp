@@ -43,10 +43,13 @@ int main(int argc, char** argv)
 		scene.Camera.SetPosition(0.0f, 5.0f, -10.0f);
 
 		auto& cerberus = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx"));
+		cerberus.Translate(0.0f, 5.0f, -5.0f);
+		cerberus.Rotate(DirectX::XMConvertToRadians(90.0f), DirectX::XMConvertToRadians(90.0f), 0.0f);
+		
 		auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 
 		renderer.SetScene(&scene);
-		renderer.TEST();
+		//renderer.TEST();
 
 		Time time;
 		time.Restart();
@@ -104,13 +107,18 @@ int main(int argc, char** argv)
 
 			time.Signal();
 			renderer.Update(time);
-			//renderer.Render();
+			renderer.Render();
 			//renderer.Present();
 		});
 	}
 	catch (std::exception& e)
 	{
 		MessageBoxA(nullptr, e.what(), "ERROR: !KAI LAUNCHED NUCLEAR BOMBS!", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
+		return 0;
+	}
+	catch (...)
+	{
+		MessageBoxA(nullptr, "ERROR: UNKNOWN", "ERROR: !KAI LAUNCHED NUCLEAR BOMBS!", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 		return 0;
 	}
 }

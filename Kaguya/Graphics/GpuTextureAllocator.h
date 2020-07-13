@@ -51,7 +51,6 @@ private:
 	DescriptorAllocator m_TextureViewAllocator;
 	Descriptor m_MipsNullUAVs;
 	Descriptor m_EquirectangularToCubeMapNullUAVs;
-	Descriptor m_BRDFLUTRTV;
 	Descriptor m_SkyboxSRVs;
 
 	std::unordered_set<DXGI_FORMAT> m_UAVSupportedFormat;

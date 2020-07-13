@@ -15,6 +15,7 @@ struct EmbeddedTexture
 struct Model
 {
 	std::string Path;
+	Transform Transform;
 	DirectX::BoundingBox BoundingBox;
 	std::vector<Vertex> Vertices;
 	std::vector<std::uint32_t> Indices;

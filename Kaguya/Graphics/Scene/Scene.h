@@ -7,12 +7,16 @@
 
 struct Scene
 {
+	using PointLightList = std::list<PointLight>;
+	using SpotLightList = std::list<SpotLight>;
+	using ModelList = std::list<Model>;
+
 	Skybox Skybox;
 	PerspectiveCamera Camera;
 	DirectionalLight DirectionalLight;
-	std::list<PointLight> PointLights;
-	std::list<SpotLight> SpotLights;
-	std::list<Model> Models;
+	PointLightList PointLights;
+	SpotLightList SpotLights;
+	ModelList Models;
 
 	PointLight& AddPointLight(PointLight&& PointLight);
 	SpotLight& AddSpotLight(SpotLight&& SpotLight);

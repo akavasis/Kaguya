@@ -42,6 +42,8 @@ UINT Descriptor::NumDescriptors() const
 DescriptorHeap::DescriptorHeap(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type, UINT NumDescriptors)
 	: m_Allocator(NumDescriptors)
 {
+	// If you recorded a CPU descriptor handle into the command list (render target or depth stencil) then that descriptor can be reused, 
+	// if you recorded a GPU descriptor handle into the command list (everything else) then that descriptor cannot be reused
 	D3D12_DESCRIPTOR_HEAP_DESC desc;
 	desc.Type = Type;
 	desc.NumDescriptors = NumDescriptors;

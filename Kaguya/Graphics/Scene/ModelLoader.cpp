@@ -201,7 +201,7 @@ Model ModelLoader::LoadFromFile(const char* pPath, float Scale)
 		mesh.StartIndexLocation = model.Indices.empty() ? 0 : model.Indices.size();
 
 		// Parse material index
-		mesh.MaterialIdx = paiMesh->mMaterialIndex;
+		mesh.MaterialIndex = paiMesh->mMaterialIndex;
 
 		// Insert data into model
 		model.Vertices.insert(model.Vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));

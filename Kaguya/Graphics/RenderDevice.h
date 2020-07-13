@@ -35,7 +35,7 @@ public:
 	RenderDevice& operator=(const RenderDevice&) = delete;
 
 	[[nodiscard]] inline Device& GetDevice() { return m_Device; }
-	[[nodiscard]] inline ResourceStateTracker& GetGlobalResourceStateTracker() { return m_GlobalResourceTracker; }
+	[[nodiscard]] inline ResourceStateTracker& GetGlobalResourceStateTracker() { return m_GlobalResourceStateTracker; }
 	[[nodiscard]] inline CommandQueue* GetGraphicsQueue() { return &m_GraphicsQueue; }
 	[[nodiscard]] inline CommandQueue* GetComputeQueue() { return &m_ComputeQueue; }
 	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
@@ -61,7 +61,7 @@ public:
 	void CreateSRV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
 	void CreateUAV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice);
 	void CreateRTV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
-	void CreateDSV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice);
+	void CreateDSV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
 
 	// Returns nullptr if a resource is not found
 	[[nodiscard]] inline Shader* GetShader(RenderResourceHandle RenderResourceHandle) const { return m_Shaders.GetResource(RenderResourceHandle); }
@@ -76,7 +76,7 @@ private:
 	CommandQueue m_GraphicsQueue;
 	CommandQueue m_ComputeQueue;
 	CommandQueue m_CopyQueue;
-	ResourceStateTracker m_GlobalResourceTracker;
+	ResourceStateTracker m_GlobalResourceStateTracker;
 	ShaderCompiler m_ShaderCompiler;
 	std::vector<std::unique_ptr<RenderCommandContext>> m_RenderCommandContexts[4];
 

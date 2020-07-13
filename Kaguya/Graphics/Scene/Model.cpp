@@ -3,6 +3,7 @@
 
 void Model::SetTransform(DirectX::FXMMATRIX M)
 {
+	Transform.SetTransform(M);
 	for (auto& mesh : Meshes)
 	{
 		mesh.Transform.SetTransform(M);
@@ -11,6 +12,7 @@ void Model::SetTransform(DirectX::FXMMATRIX M)
 
 void Model::Translate(float DeltaX, float DeltaY, float DeltaZ)
 {
+	Transform.Translate(DeltaX, DeltaY, DeltaZ);
 	for (auto& mesh : Meshes)
 	{
 		mesh.Transform.Translate(DeltaX, DeltaY, DeltaZ);
@@ -19,6 +21,7 @@ void Model::Translate(float DeltaX, float DeltaY, float DeltaZ)
 
 void Model::Rotate(float AngleX, float AngleY, float AngleZ)
 {
+	Transform.Rotate(AngleX, AngleY, AngleZ);
 	for (auto& mesh : Meshes)
 	{
 		mesh.Transform.Rotate(AngleX, AngleY, AngleZ);
@@ -126,7 +129,7 @@ Model CreateFromMeshData(MeshData& meshData, Material material)
 	// Create mesh
 	Mesh mesh{};
 	mesh.BoundingBox = model.BoundingBox;
-	mesh.MaterialIdx = 0;
+	mesh.MaterialIndex = 0;
 	mesh.IndexCount = model.Indices.size();
 	mesh.StartIndexLocation = 0;
 	mesh.VertexCount = model.Vertices.size();
