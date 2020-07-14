@@ -27,7 +27,11 @@ Device::Device(IDXGIAdapter4* pAdapter)
 
 	// Check for different features
 	D3D12_FEATURE_DATA_D3D12_OPTIONS features = {};
-	m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &features, sizeof(features));
+	ThrowCOMIfFailed(m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &features, sizeof(features)));
+
+	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureDataRootSignature = {};
+	featureDataRootSignature.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+	ThrowCOMIfFailed(m_pDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureDataRootSignature, sizeof(featureDataRootSignature)));
 
 	// Query descriptor size (descriptor size vary based on GPU vendor) and create descriptor allocator
 	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)

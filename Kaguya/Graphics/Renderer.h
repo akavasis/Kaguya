@@ -23,19 +23,14 @@ public:
 	~Renderer();
 
 	inline auto& GetRenderDevice() { return m_RenderDevice; }
-	void SetScene(Scene* pScene);
-	void TEST();
+	void TEST(Scene& Scene);
 
 	void Update(const Time& Time);
-	void Render();
+	void Render(Scene& Scene);
 	void Present();
 private:
 	Texture& CurrentBackBuffer();
 	void Resize();
-	UINT CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vector<const Model*>& Indices);
-	UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelList& Models, std::vector<const Model*>& Indices);
-	UINT CullMeshes(const Camera* pCamera, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices);
-	UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices);
 
 	Window& m_RefWindow;
 	EventReceiver m_EventReceiver;
@@ -45,6 +40,11 @@ private:
 	enum { SwapChainBufferCount = 3 };
 	enum { NodeMask = 0 };
 	enum { NumFramesToBuffer = 3 }; // Not used yet
+
+	struct Constants
+	{
+		static constexpr UINT64 SunShadowMapResolution = 2048;
+	};
 
 	struct Statistics
 	{
@@ -74,11 +74,6 @@ private:
 		int DebugViewInput = 0;
 	} m_Debug;
 
-	struct Status
-	{
-		bool IsBRDFLUTGenerated = false;
-	} m_Status;
-
 	DXGIManager m_DXGIManager;
 
 	RenderDevice m_RenderDevice;
@@ -92,11 +87,11 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 	Texture m_BackBufferTexture[SwapChainBufferCount];
 
-	RenderResourceHandle m_FrameBuffer;
-	RenderResourceHandle m_FrameDepthStencilBuffer;
-	RenderResourceHandle m_RenderPassCBs;
+	RenderResourceHandle m_FrameBufferHandle;
+	RenderResourceHandle m_FrameDepthStencilBufferHandle;
+	RenderResourceHandle m_RenderPassConstantBufferHandle;
 
-	Scene* m_pScene;
-	std::vector<const Model*> m_VisibleModelsIndices;
-	std::unordered_map<const Model*, std::vector<UINT>> m_VisibleMeshesIndices;
+	Texture* m_pFrameBuffer;
+	Texture* m_pFrameDepthStencilBuffer;
+	Buffer* m_pRenderPassConstantBuffer;
 };

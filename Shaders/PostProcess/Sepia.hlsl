@@ -1,4 +1,4 @@
-#include "StaticSamplers.hlsli"
+#include "../StaticSamplers.hlsli"
 
 struct Setting
 {

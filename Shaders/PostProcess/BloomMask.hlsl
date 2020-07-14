@@ -1,5 +1,5 @@
-#include "HLSLCommon.hlsli"
-#include "StaticSamplers.hlsli"
+#include "../HLSLCommon.hlsli"
+#include "../StaticSamplers.hlsli"
 
 Texture2D InputMap : register(t0);
 

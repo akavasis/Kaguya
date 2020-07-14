@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 
 		Scene scene;
 		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
-
+		
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 		scene.Camera.SetPosition(0.0f, 5.0f, -10.0f);
 
@@ -48,8 +48,7 @@ int main(int argc, char** argv)
 		
 		auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 
-		renderer.SetScene(&scene);
-		//renderer.TEST();
+		//renderer.TEST(scene);
 
 		Time time;
 		time.Restart();
@@ -107,7 +106,7 @@ int main(int argc, char** argv)
 
 			time.Signal();
 			renderer.Update(time);
-			renderer.Render();
+			renderer.Render(scene);
 			//renderer.Present();
 		});
 	}

@@ -1,4 +1,4 @@
-#include "StaticSamplers.hlsli"
+#include "../StaticSamplers.hlsli"
 
 Texture2D InputMap : register(t0);
 Texture2D SobelEdgeMap : register(t1);

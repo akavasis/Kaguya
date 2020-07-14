@@ -1,6 +1,6 @@
 #include "HLSLCommon.hlsli"
 
-ConstantBuffer<RenderPass> RenderPassConstantsGPU : register(b0);
+ConstantBuffer<RenderPassConstants> RenderPassConstantsGPU : register(b0);
 
 struct InputVertex
 {

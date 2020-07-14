@@ -1,55 +1,72 @@
-#pragma once
-#include <DirectXMath.h>
+#ifndef __LIGHT_H__
+#define __LIGHT_H__
+#include "SharedDefines.h"
 
+#ifdef __cplusplus
+#include <array>
+#include "Camera.h"
+#endif
+
+#define NUM_CASCADES 4
 // Following HLSL packing rules
+struct Cascade
+{
+	row_major matrix ShadowTransform;
+	float4 Offset;
+	float4 Scale;
+	float Split;
+	float3 _padding;
+};
+
 struct DirectionalLight
 {
-	DirectX::XMFLOAT3 Strength;
+	float3 Strength;
 	float Intensity;
-	DirectX::XMFLOAT3 Direction;
-	float _padding;
+	float3 Direction;
+	float Lambda;
+	Cascade Cascades[NUM_CASCADES];
 
+#ifdef __cplusplus
 	DirectionalLight();
 
 	void RenderImGuiWindow();
 	void Reset();
+
+	std::array<OrthographicCamera, NUM_CASCADES> GenerateCascades(const Camera& Camera, unsigned int Resolution);
+#endif
 };
 
 struct PointLight
 {
-	DirectX::XMFLOAT3 Strength;
+	float3 Strength;
 	float Intensity;
-	DirectX::XMFLOAT3 Position;
+	float3 Position;
 	float Radius;
 
+#ifdef __cplusplus
 	PointLight();
 
 	void RenderImGuiWindow();
 	void Reset();
+#endif
 };
 
 struct SpotLight
 {
-	DirectX::XMFLOAT3 Strength;
+	float3 Strength;
 	float Intensity;
-	DirectX::XMFLOAT3 Position;
+	float3 Position;
 	float InnerConeAngle;
-	DirectX::XMFLOAT3 Direction;
+	float3 Direction;
 	float OuterConeAngle;
 	float Radius;
-	DirectX::XMFLOAT3 _padding;
+	float3 _padding;
 
+#ifdef __cplusplus
 	SpotLight();
 
 	void RenderImGuiWindow();
 	void Reset();
+#endif
 };
-
-struct Cascade
-{
-	DirectX::XMFLOAT4X4 ShadowTransform;
-	DirectX::XMFLOAT4 Offset;
-	DirectX::XMFLOAT4 Scale;
-	float Split;
-	DirectX::XMFLOAT3 _padding;
-};
+#endif

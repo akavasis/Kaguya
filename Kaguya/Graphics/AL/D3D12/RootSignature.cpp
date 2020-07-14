@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "RootSignature.h"
 #include "Device.h"
-using Microsoft::WRL::ComPtr;
 
 RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
 {
@@ -10,20 +9,19 @@ RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
 
 	auto& rootSignatureDesc = Properties.Desc;
 	UINT numParameters = rootSignatureDesc.NumParameters;
-	D3D12_ROOT_PARAMETER* pParameters = numParameters > 0 ? new D3D12_ROOT_PARAMETER[numParameters] : nullptr;
+	D3D12_ROOT_PARAMETER1* pParameters = numParameters > 0 ? new D3D12_ROOT_PARAMETER1[numParameters] : nullptr;
 
 	for (UINT i = 0; i < numParameters; ++i)
 	{
-		const D3D12_ROOT_PARAMETER& rootParameter = rootSignatureDesc.pParameters[i];
+		const D3D12_ROOT_PARAMETER1& rootParameter = rootSignatureDesc.pParameters[i];
 		pParameters[i] = rootParameter;
 
 		if (rootParameter.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
 		{
 			UINT numDescriptorRanges = rootParameter.DescriptorTable.NumDescriptorRanges;
-			D3D12_DESCRIPTOR_RANGE* pDescriptorRanges = numDescriptorRanges > 0 ? new D3D12_DESCRIPTOR_RANGE[numDescriptorRanges] : nullptr;
+			D3D12_DESCRIPTOR_RANGE1* pDescriptorRanges = numDescriptorRanges > 0 ? new D3D12_DESCRIPTOR_RANGE1[numDescriptorRanges] : nullptr;
 
-			memcpy(pDescriptorRanges, rootParameter.DescriptorTable.pDescriptorRanges,
-				sizeof(D3D12_DESCRIPTOR_RANGE) * numDescriptorRanges);
+			memcpy(pDescriptorRanges, rootParameter.DescriptorTable.pDescriptorRanges, sizeof(decltype(*pDescriptorRanges)) * numDescriptorRanges);
 
 			pParameters[i].DescriptorTable.NumDescriptorRanges = numDescriptorRanges;
 			pParameters[i].DescriptorTable.pDescriptorRanges = pDescriptorRanges;
@@ -47,7 +45,10 @@ RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
 			// Count the number of descriptors in the descriptor table.
 			for (UINT j = 0; j < numDescriptorRanges; ++j)
 			{
-				m_NumDescriptorsPerTable[i] += pDescriptorRanges[j].NumDescriptors;
+				if (pDescriptorRanges[j].NumDescriptors == UINT_MAX)
+					m_NumDescriptorsPerTable[i] = pDescriptorRanges[j].NumDescriptors;
+				else
+					m_NumDescriptorsPerTable[i] += pDescriptorRanges[j].NumDescriptors;
 			}
 		}
 	}
@@ -69,14 +70,18 @@ RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
 	m_RootSignatureDesc.Flags = rootSignatureDesc.Flags;
 
 	// Serialize the root signature.
-	ComPtr<ID3DBlob> pSerializedRootSignatureBlob;
-	ComPtr<ID3DBlob> pErrorBlob;
+	Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSignatureBlob;
+	Microsoft::WRL::ComPtr<ID3DBlob> pErrorBlob;
 
-	ThrowCOMIfFailed(D3D12SerializeRootSignature(&m_RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &pSerializedRootSignatureBlob, &pErrorBlob));
+	D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc = {};
+	desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+	desc.Desc_1_1 = m_RootSignatureDesc;
 
-	if (pErrorBlob)
+	HRESULT hr = ::D3D12SerializeVersionedRootSignature(&desc, &pSerializedRootSignatureBlob, &pErrorBlob);
+	if (FAILED(hr))
 	{
-		CORE_ERROR("{} Failed: {}", __FUNCTION__, pErrorBlob->GetBufferPointer());
+		const char* pError = pErrorBlob ? reinterpret_cast<const char*>(pErrorBlob->GetBufferPointer()) : "";
+		CORE_ERROR("{} Failed: {}", "D3D12SerializeVersionedRootSignature", pError);
 	}
 
 	// Create the root signature.
@@ -88,7 +93,7 @@ RootSignature::~RootSignature()
 {
 	for (UINT i = 0; i < m_RootSignatureDesc.NumParameters; ++i)
 	{
-		const D3D12_ROOT_PARAMETER& rootParameter = m_RootSignatureDesc.pParameters[i];
+		const auto& rootParameter = m_RootSignatureDesc.pParameters[i];
 		if (rootParameter.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
 		{
 			delete[] rootParameter.DescriptorTable.pDescriptorRanges;
@@ -107,16 +112,13 @@ RootSignature::RootSignature(RootSignature&& rvalue) noexcept
 RootSignature& RootSignature::operator=(RootSignature&& rvalue) noexcept
 {
 	m_RootSignature = std::move(rvalue.m_RootSignature);
-	m_RootSignatureDesc = rvalue.m_RootSignatureDesc;
+	m_RootSignatureDesc = std::move(rvalue.m_RootSignatureDesc);
 	for (UINT i = 0; i < MaxDescriptorTables; ++i)
-		m_NumDescriptorsPerTable[i] = rvalue.m_NumDescriptorsPerTable[i];
-	m_DescriptorTableBitMask = rvalue.m_DescriptorTableBitMask;
-	m_SamplerTableBitMask = rvalue.m_SamplerTableBitMask;
+		m_NumDescriptorsPerTable[i] = std::move(rvalue.m_NumDescriptorsPerTable[i]);
+	m_DescriptorTableBitMask = std::move(rvalue.m_DescriptorTableBitMask);
+	m_SamplerTableBitMask = std::move(rvalue.m_SamplerTableBitMask);
 
-	ZeroMemory(&rvalue.m_RootSignatureDesc, sizeof(rvalue.m_RootSignatureDesc));
-	ZeroMemory(&rvalue.m_NumDescriptorsPerTable, sizeof(rvalue.m_NumDescriptorsPerTable));
-	rvalue.m_DescriptorTableBitMask.reset();
-	rvalue.m_SamplerTableBitMask.reset();
+	ZeroMemory(&rvalue, sizeof(rvalue));
 	return *this;
 }
 

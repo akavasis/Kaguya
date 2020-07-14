@@ -1,13 +1,12 @@
 #include "HLSLCommon.hlsli"
 
-ConstantBuffer<RenderPass> RenderPassConstantsGPU : register(b0);
-cbuffer Settings : register(b1)
+cbuffer Settings : register(b0)
 {
 	float DeltaPhi;
 	float DeltaTheta;
 }
 
-TextureCube CubeMap : register(t0);
+TextureCube Cubemap : register(t0);
 SamplerState s_SamplerLinearClamp : register(s0);
 
 struct OutputVertex
@@ -30,7 +29,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 		{
 			float3 tempVec = cos(phi) * right + sin(phi) * up;
 			float3 sampleVector = cos(theta) * normal + sin(theta) * tempVec;
-			irradiance += CubeMap.Sample(s_SamplerLinearClamp, sampleVector).rgb * cos(theta) * sin(theta);
+			irradiance += Cubemap.Sample(s_SamplerLinearClamp, sampleVector).rgb * cos(theta) * sin(theta);
 			numSamples++;
 		}
 	}

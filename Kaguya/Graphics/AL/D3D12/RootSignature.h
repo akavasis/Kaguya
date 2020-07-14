@@ -11,7 +11,7 @@ class RootSignature
 public:
 	struct Properties
 	{
-		D3D12_ROOT_SIGNATURE_DESC Desc;
+		D3D12_ROOT_SIGNATURE_DESC1 Desc;
 	};
 
 	RootSignature() = default;
@@ -35,7 +35,7 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
 
-	D3D12_ROOT_SIGNATURE_DESC m_RootSignatureDesc;
+	D3D12_ROOT_SIGNATURE_DESC1 m_RootSignatureDesc;
 
 	// Need to know the number of descriptors per descriptor table.
 	// A maximum of 32 descriptor tables are supported (since a 32-bit

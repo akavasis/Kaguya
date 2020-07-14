@@ -1,7 +1,7 @@
-#ifndef HLSL_COMMON_HLSLI
-#define HLSL_COMMON_HLSLI
-#include "Light.hlsli"
-#define NUM_CASCADES 4
+#ifndef __HLSL_COMMON_HLSLI__
+#define __HLSL_COMMON_HLSLI__
+#include "../Kaguya/Graphics/Scene/Light.h"
+#include "../Kaguya/Graphics/Scene/SharedTypes.h"
 
 static const float s_PI = 3.141592654f;
 static const float s_2PI = 6.283185307f;
@@ -31,52 +31,7 @@ float3 SphericalToCartesian(float radius, float theta, float phi)
 	return float3(x, y, z);
 }
 
-#define	MATERIAL_FLAG_HAVE_ALBEDO_TEXTURE 0x1
-#define	MATERIAL_FLAG_HAVE_NORMAL_TEXTURE 0x2
-#define	MATERIAL_FLAG_HAVE_ROUGHNESS_TEXTURE 0x4
-#define	MATERIAL_FLAG_HAVE_METALLIC_TEXTURE 0x8
-#define	MATERIAL_FLAG_HAVE_EMISSIVE_TEXTURE 0x10
-#define	MATERIAL_FLAG_IS_MASKED 0x20
-
-bool HaveAlbedoMap(int Flags)
-{
-	return (Flags & MATERIAL_FLAG_HAVE_ALBEDO_TEXTURE) > 0;
-}
-
-bool HaveNormalMap(int Flags)
-{
-	return (Flags & MATERIAL_FLAG_HAVE_NORMAL_TEXTURE) > 0;
-}
-
-bool HaveRoughnessMap(int Flags)
-{
-	return (Flags & MATERIAL_FLAG_HAVE_ROUGHNESS_TEXTURE) > 0;
-}
-
-bool HaveMetallicMap(int Flags)
-{
-	return (Flags & MATERIAL_FLAG_HAVE_METALLIC_TEXTURE) > 0;
-}
-
-bool HaveEmissiveMap(int Flags)
-{
-	return (Flags & MATERIAL_FLAG_HAVE_EMISSIVE_TEXTURE) > 0;
-}
-
-bool IsMasked(int Flags)
-{
-	return (Flags & MATERIAL_FLAG_IS_MASKED) > 0;
-}
-
-struct MaterialSurfaceBlinnPhong
-{
-	float3 Diffuse;
-	float SpecularIntensity;
-	float3 Specular;
-	float Shininess;
-};
-
-struct MaterialSurfacePBR
+struct MaterialSurface
 {
 	float3 Albedo;
 	float Metallic;
@@ -149,37 +104,4 @@ float3 CalcSpotLightRadiance(uniform SpotLight spotLight, float3 P)
 		
 	return spotLight.Strength * spotLight.Intensity * pointAttenuation * spotAttenuation;
 }
-
-struct Object
-{
-	float4x4 World;
-};
-
-struct Material
-{
-	float3 Albedo;
-	float Metallic;
-	float3 Emissive;
-	float Roughness;
-	int Flags;
-	float3 _padding;
-};
-
-struct RenderPass
-{
-	float4x4 ViewProjection;
-	float3 EyePosition;
-	float _padding;
-
-	int NumPointLights;
-	int NumSpotLights;
-	float2 _padding2;
-	DirectionalLight DLight;
-	PointLight PLights[MAX_POINT_LIGHT];
-	SpotLight SLights[MAX_SPOT_LIGHT];
-	Cascade Cascades[4];
-	int VisualizeCascade;
-	int DebugViewInput;
-	float2 _padding3;
-};
 #endif

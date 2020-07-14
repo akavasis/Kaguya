@@ -1,13 +1,12 @@
 #include "HLSLCommon.hlsli"
 
-ConstantBuffer<RenderPass> RenderPassConstantsGPU : register(b0);
-cbuffer Settings : register(b1)
+cbuffer Settings : register(b0)
 {
 	float Roughness;
 	uint NumSamples;
 }
 
-TextureCube CubeMap : register(t0);
+TextureCube Cubemap : register(t0);
 SamplerState s_SamplerLinearClamp : register(s0);
 
 float random(float2 co);
@@ -30,7 +29,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 	float totalWeight = 0.0f;
 	
 	uint width, height, numMips;
-	CubeMap.GetDimensions(0, width, height, numMips);
+	Cubemap.GetDimensions(0, width, height, numMips);
 	float dimension = float(width);
 	for (uint i = 0u; i < NumSamples; i++)
 	{
@@ -52,7 +51,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 			float omegaP = 4.0 * s_PI / (6.0f * dimension * dimension);
 			// Biased (+1.0) mip level for better result
 			float mipLevel = Roughness == 0.0 ? 0.0 : max(0.5 * log2(omegaS / omegaP) + 1.0, 0.0f);
-			prefilteredColor += CubeMap.SampleLevel(s_SamplerLinearClamp, L, mipLevel).rgb.rgb * NdotL;
+			prefilteredColor += Cubemap.SampleLevel(s_SamplerLinearClamp, L, mipLevel).rgb.rgb * NdotL;
 			totalWeight += NdotL;
 		}
 	}

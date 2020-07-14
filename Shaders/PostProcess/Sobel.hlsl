@@ -1,5 +1,6 @@
 #pragma pack_matrix(row_major)
-#include "HLSLCommon.hlsli"
+#include "../HLSLCommon.hlsli"
+
 Texture2D InputTexture2D : register(t0);
 RWTexture2D<float4> OutputRWTexture2D : register(u0);
 

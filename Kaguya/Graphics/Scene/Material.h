@@ -27,4 +27,5 @@ struct Material
 		TextureFlags Flag;
 	};
 	Texture Textures[NumTextureTypes];
+	unsigned int TextureIndices[NumTextureTypes];
 };

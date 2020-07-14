@@ -53,9 +53,9 @@ public:
 	inline void SetScissorRects(UINT NumRects, const D3D12_RECT* pRects);
 	inline void SetRenderTargets(UINT RenderTargetDescriptorOffset, UINT NumHandlesWithinRenderTargetDescriptor, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange,
 		UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor);
-	void ClearRenderTarget(Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects)
+	void ClearRenderTarget(UINT RenderTargetDescriptorOffset, Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects)
 	{
-		m_pCommandList->ClearRenderTargetView(RenderTargetDescriptor[0], Color, NumRects, pRects);
+		m_pCommandList->ClearRenderTargetView(RenderTargetDescriptor[RenderTargetDescriptorOffset], Color, NumRects, pRects);
 	}
 	void ClearDepthStencil(UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT* pRects)
 	{

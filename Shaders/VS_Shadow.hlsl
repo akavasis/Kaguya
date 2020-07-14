@@ -1,11 +1,7 @@
 #include "HLSLCommon.hlsli"
 
-ConstantBuffer<Object> ObjectConstantsGPU : register(b0);
-struct ShadowPass
-{
-	float4x4 ViewProjection;
-};
-ConstantBuffer<ShadowPass> ShadowPassConstantsGPU : register(b1);
+ConstantBuffer<ObjectConstants> ObjectConstantsGPU : register(b0);
+ConstantBuffer<RenderPassConstants> RenderPassConstantsGPU : register(b1);
 
 struct InputVertex
 {
@@ -25,7 +21,7 @@ OutputVertex main(InputVertex inputVertex)
 	// Transform to world space
 	output.positionW = mul(float4(inputVertex.positionL, 1.0f), ObjectConstantsGPU.World).xyz;
 	// Transform to homogeneous/clip space
-	output.positionH = mul(float4(output.positionW, 1.0f), ShadowPassConstantsGPU.ViewProjection);
+	output.positionH = mul(float4(output.positionW, 1.0f), RenderPassConstantsGPU.ViewProjection);
 	
 	return output;
 }

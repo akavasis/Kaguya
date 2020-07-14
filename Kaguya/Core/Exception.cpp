@@ -49,14 +49,11 @@ std::string COMException::Type() const noexcept
 
 std::string COMException::Error() const noexcept
 {
-	HRESULT hr = S_FALSE;
-	if (FACILITY_WINDOWS == HRESULT_FACILITY(m_HR))
-		hr = HRESULT_CODE(hr);
 	TCHAR* szErrMsg;
 
 	if (FormatMessage(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-		NULL, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		NULL, m_HR, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(LPTSTR)&szErrMsg, 0, NULL) != 0)
 	{
 		using convert_type = std::codecvt_utf8<wchar_t>;

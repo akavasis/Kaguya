@@ -1,5 +1,6 @@
 #pragma once
 #include "Scene/Light.h"
+#include "Scene/SharedTypes.h"
 #include "RenderDevice.h"
 
 enum CubemapConvolution
@@ -16,13 +17,13 @@ struct Resolutions
 	enum { Prefilter = 512u };
 };
 
-struct IrradianceConvolutionSetting
+struct ConvolutionIrradianceSetting
 {
 	float DeltaPhi = (2.0f * float(DirectX::XM_PI)) / 180.0f;
 	float DeltaTheta = (0.5f * float(DirectX::XM_PI)) / 64.0f;
 };
 
-struct PrefilterConvolutionSetting
+struct ConvolutionPrefilterSetting
 {
 	float Roughness;
 	UINT NumSamples = 32u;
@@ -54,136 +55,114 @@ struct RendererFormats
 	static constexpr DXGI_FORMAT PrefilterFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
 };
 
-#define MAX_POINT_LIGHT 5
-#define MAX_SPOT_LIGHT 5
-struct LightSettings
-{
-	enum
-	{
-		NumPointLights = 1,
-		NumSpotLights = 0
-	};
-	static_assert(NumPointLights <= MAX_POINT_LIGHT);
-	static_assert(NumSpotLights <= MAX_SPOT_LIGHT);
-};
-
-struct ObjectConstantsCPU
-{
-	DirectX::XMFLOAT4X4 World;
-};
-
-struct MaterialDataCPU
-{
-	DirectX::XMFLOAT3 Albedo;
-	float Metallic;
-	DirectX::XMFLOAT3 Emissive;
-	float Roughness;
-	int Flags;
-	DirectX::XMFLOAT3 _padding;
-};
-
-struct RenderPassConstantsCPU
-{
-	DirectX::XMFLOAT4X4 ViewProjection;
-	DirectX::XMFLOAT3 EyePosition;
-	float _padding;
-
-	int NumPointLights;
-	int NumSpotLights;
-	DirectX::XMFLOAT2 _padding2;
-	DirectionalLight DirectionalLight;
-	PointLight PointLights[MAX_POINT_LIGHT];
-	SpotLight SpotLights[MAX_SPOT_LIGHT];
-	Cascade Cascades[4];
-	int VisualizeCascade;
-	int DebugViewInput;
-	DirectX::XMFLOAT2 _padding3;
-};
-
 struct RootParameters
 {
-	enum Shadow
+	struct Shadow
 	{
-		ShadowRootParameter_ObjectCBuffer,
-		ShadowRootParameter_ShadowPassCBuffer,
-		ShadowRootParameter_Count
+		enum
+		{
+			ObjectCBuffer,
+			RenderPassCBuffer,
+			Count
+		};
 	};
-	enum PBR
+	struct PBR
 	{
-		PBRRootParameter_ObjectCBuffer,
-		PBRRootParameter_MaterialCBuffer,
-		PBRRootParameter_RenderPassCBuffer,
-		PBRRootParameter_MaterialTexturesSRV,
-		PBRRootParameter_ShadowMapAndEnvironmentMapsSRV,
-		PBRRootParameter_Count
+		enum
+		{
+			ObjectCBuffer,
+			RenderPassCBuffer,
+			MaterialTextureIndicesSBuffer,
+			StandardDescriptorTables,
+			Count
+		};
 	};
-	enum Skybox
+	struct Skybox
 	{
-		SkyboxRootParameter_RenderPassCBuffer,
-		SkyboxRootParameter_CubeMapSRV,
-		SkyboxRootParameter_Count
+		enum
+		{
+			RenderPassCBuffer,
+			StandardDescriptorTables,
+			Count
+		};
 	};
-	enum CubemapConvolution
+	struct CubemapConvolution
 	{
-		CubemapConvolutionRootParameter_RenderPassCBuffer,
-		CubemapConvolutionRootParameter_Setting,
-		CubemapConvolutionRootParameter_CubemapSRV,
-		CubemapConvolutionRootParameter_Count,
+		enum
+		{
+			RenderPassCBuffer,
+			Setting,
+			CubemapSRV,
+			Count,
+		};
 	};
-	enum GenerateMips
+	struct GenerateMips
 	{
-		GenerateMipsRootParameter_GenerateMipsCB,
-		GenerateMipsRootParameter_SrcMip,
-		GenerateMipsRootParameter_OutMip,
-		GenerateMipsRootParameter_Count
+		enum
+		{
+			GenerateMipsCBuffer,
+			SrcMip,
+			OutMip,
+			Count
+		};
 	};
-	enum EquirectangularToCubemap
+	struct EquirectangularToCubemap
 	{
-		EquirectangularToCubemapRootParameter_PanoToCubemapCB,
-		EquirectangularToCubemapRootParameter_SrcTexture,
-		EquirectangularToCubemapRootParameter_DstMips,
-		EquirectangularToCubemapRootParameter_Count
+		enum
+		{
+			PanoToCubemapCBuffer,
+			SrcTexture,
+			DstMips,
+			Count
+		};
 	};
 };
 
 struct Shaders
 {
-	inline static RenderResourceHandle VS_Default;
-	inline static RenderResourceHandle VS_Quad;
-	inline static RenderResourceHandle VS_Sky;
-	inline static RenderResourceHandle VS_Shadow;
+	struct VS
+	{
+		inline static RenderResourceHandle Default;
+		inline static RenderResourceHandle Quad;
+		inline static RenderResourceHandle Shadow;
+		inline static RenderResourceHandle Sky;
+	};
 
-	inline static RenderResourceHandle PS_Default;
-	inline static RenderResourceHandle PS_BlinnPhong;
-	inline static RenderResourceHandle PS_PBR;
-	inline static RenderResourceHandle PS_Sepia;
-	inline static RenderResourceHandle PS_SobelComposite;
-	inline static RenderResourceHandle PS_BloomMask;
-	inline static RenderResourceHandle PS_BloomComposite;
-	inline static RenderResourceHandle PS_ToneMapping;
-	inline static RenderResourceHandle PS_Sky;
-	inline static RenderResourceHandle PS_IrradianceConvolution;
-	inline static RenderResourceHandle PS_PrefilterConvolution;
-	inline static RenderResourceHandle PS_BRDFIntegration;
+	struct PS
+	{
+		inline static RenderResourceHandle BRDFIntegration;
+		inline static RenderResourceHandle ConvolutionIrradiance;
+		inline static RenderResourceHandle ConvolutionPrefilter;
+		inline static RenderResourceHandle PBR;
+		inline static RenderResourceHandle Sky;
+		inline static RenderResourceHandle PostProcess_BloomComposite;
+		inline static RenderResourceHandle PostProcess_BloomMask;
+		inline static RenderResourceHandle PostProcess_Sepia;
+		inline static RenderResourceHandle PostProcess_SobelComposite;
+		inline static RenderResourceHandle PostProcess_ToneMapping;
+	};
 
-	inline static RenderResourceHandle CS_HorizontalBlur;
-	inline static RenderResourceHandle CS_VerticalBlur;
-	inline static RenderResourceHandle CS_Sobel;
-	inline static RenderResourceHandle CS_EquirectangularToCubeMap;
-	inline static RenderResourceHandle CS_GenerateMips;
+	struct CS
+	{
+		inline static RenderResourceHandle EquirectangularToCubemap;
+		inline static RenderResourceHandle GenerateMips;
+		inline static RenderResourceHandle PostProcess_BlurHorizontal;
+		inline static RenderResourceHandle PostProcess_BlurVertical;
+		inline static RenderResourceHandle PostProcess_Sobel;
+	};
 
 	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct RootSignatures
 {
-	inline static RenderResourceHandle Shadow;
-	inline static RenderResourceHandle PBR;
-	inline static RenderResourceHandle Skybox;
-
 	inline static RenderResourceHandle BRDFIntegration;
-	inline static RenderResourceHandle IrradiaceConvolution;
-	inline static RenderResourceHandle PrefilterConvolution;
+	inline static RenderResourceHandle ConvolutionIrradiace;
+	inline static RenderResourceHandle ConvolutionPrefilter;
+
+	inline static RenderResourceHandle PBR;
+	inline static RenderResourceHandle Shadow;
+	inline static RenderResourceHandle Skybox;
 
 	inline static RenderResourceHandle GenerateMips;
 	inline static RenderResourceHandle EquirectangularToCubemap;
@@ -193,13 +172,13 @@ struct RootSignatures
 
 struct GraphicsPSOs
 {
-	inline static RenderResourceHandle Shadow;
-	inline static RenderResourceHandle PBR, PBRWireFrame;
-	inline static RenderResourceHandle Skybox;
-
 	inline static RenderResourceHandle BRDFIntegration;
-	inline static RenderResourceHandle IrradiaceConvolution;
-	inline static RenderResourceHandle PrefilterConvolution;
+	inline static RenderResourceHandle ConvolutionIrradiace;
+	inline static RenderResourceHandle ConvolutionPrefilter;
+
+	inline static RenderResourceHandle PBR;
+	inline static RenderResourceHandle Shadow;
+	inline static RenderResourceHandle Skybox;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

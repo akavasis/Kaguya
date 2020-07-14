@@ -13,23 +13,6 @@ class RenderGraphRegistry;
 class RenderPassBase;
 class RenderGraph;
 
-class RenderGraphRegistry
-{
-public:
-	RenderGraphRegistry(RenderDevice& RefRenderDevice)
-		: m_RefRenderDevice(RefRenderDevice)
-	{}
-
-	[[nodiscard]] inline Buffer* GetBuffer(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetBuffer(RenderResourceHandle); }
-	[[nodiscard]] inline Texture* GetTexture(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetTexture(RenderResourceHandle); }
-	[[nodiscard]] inline Heap* GetHeap(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetHeap(RenderResourceHandle); }
-	[[nodiscard]] inline RootSignature* GetRootSignature(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetRootSignature(RenderResourceHandle); }
-	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetGraphicsPSO(RenderResourceHandle); }
-	[[nodiscard]] inline ComputePipelineState* GetComputePSO(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetComputePSO(RenderResourceHandle); }
-private:
-	RenderDevice& m_RefRenderDevice;
-};
-
 enum class RenderPassType
 {
 	Graphics,
@@ -62,6 +45,9 @@ public:
 	RenderPass(PassCallback&& RenderPassPassCallback);
 	~RenderPass() override = default;
 
+	inline auto& GetData() { return m_Data; }
+	inline const auto& GetData() const { return m_Data; }
+
 	void Setup(RenderDevice& RefRenderDevice) override;
 	void Execute(Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* RenderCommandContext) override;
 private:
@@ -70,6 +56,28 @@ private:
 	Data m_Data;
 	PassCallback m_PassCallback;
 	ExecuteCallback m_ExecuteCallback;
+};
+
+class RenderGraphRegistry
+{
+public:
+	RenderGraphRegistry(RenderDevice& RefRenderDevice, RenderGraph& RefRenderGraph)
+		: m_RefRenderDevice(RefRenderDevice),
+		m_RefRenderGraph(RefRenderGraph)
+	{}
+
+	[[nodiscard]] inline Buffer* GetBuffer(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetBuffer(RenderResourceHandle); }
+	[[nodiscard]] inline Texture* GetTexture(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetTexture(RenderResourceHandle); }
+	[[nodiscard]] inline Heap* GetHeap(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetHeap(RenderResourceHandle); }
+	[[nodiscard]] inline RootSignature* GetRootSignature(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetRootSignature(RenderResourceHandle); }
+	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetGraphicsPSO(RenderResourceHandle); }
+	[[nodiscard]] inline ComputePipelineState* GetComputePSO(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetComputePSO(RenderResourceHandle); }
+
+	template<RenderPassType Type, typename Data>
+	[[nodiscard]] inline RenderPass<Type, Data>* GetRenderPass() { return m_RefRenderGraph.GetRenderPass<Type, Data>(); }
+private:
+	RenderDevice& m_RefRenderDevice;
+	RenderGraph& m_RefRenderGraph;
 };
 
 class RenderGraph

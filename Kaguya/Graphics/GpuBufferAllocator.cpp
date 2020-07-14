@@ -20,7 +20,7 @@ GpuBufferAllocator::GpuBufferAllocator(std::size_t VertexBufferByteSize, std::si
 	m_UploadIndexBuffer = m_RefRenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload);
 
 	bufferProp.SizeInBytes = Math::AlignUp<UINT64>(ConstantBufferByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-	bufferProp.Stride = Math::AlignUp<UINT>(sizeof(ObjectConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+	bufferProp.Stride = Math::AlignUp<UINT>(sizeof(ObjectConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 	m_ConstantBuffer = m_RefRenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
 
 	m_pVertexBuffer = m_RefRenderDevice.GetBuffer(m_VertexBuffer);
@@ -187,9 +187,9 @@ void GpuBufferAllocator::Update(Scene& Scene)
 		auto& model = (*iter);
 		for (auto& mesh : model.Meshes)
 		{
-			ObjectConstantsCPU ObjectCPU;
+			ObjectConstants ObjectCPU;
 			DirectX::XMStoreFloat4x4(&ObjectCPU.World, DirectX::XMMatrixTranspose(mesh.Transform.Matrix()));
-			m_pConstantBuffer->Update<ObjectConstantsCPU>(mesh.ConstantBufferIndex, ObjectCPU);
+			m_pConstantBuffer->Update<ObjectConstants>(mesh.ConstantBufferIndex, ObjectCPU);
 		}
 	}
 }

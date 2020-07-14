@@ -4,17 +4,12 @@
 #include "../Core/Window.h"
 #include "../Core/Time.h"
 
-// MT
-#include <future>
-
-using namespace DirectX;
-
 Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	: m_RefWindow(RefWindow),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(m_RenderDevice),
 	m_GpuBufferAllocator(256_MiB, 256_MiB, 256_MiB, m_RenderDevice),
-	m_GpuTextureAllocator(m_RenderDevice)
+	m_GpuTextureAllocator(256_MiB, m_RenderDevice)
 {
 	m_EventReceiver.Register(m_RefWindow, [&](const Event& event)
 	{
@@ -58,18 +53,22 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	textureProp.InitialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::HDRBufferFormat, DirectX::Colors::LightBlue);
-	m_FrameBuffer = m_RenderDevice.CreateTexture(textureProp);
+	m_FrameBufferHandle = m_RenderDevice.CreateTexture(textureProp);
+	m_pFrameBuffer = m_RenderDevice.GetTexture(m_FrameBufferHandle);
 
 	textureProp.Format = RendererFormats::DepthStencilFormat;
 	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 	textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0);
-	m_FrameDepthStencilBuffer = m_RenderDevice.CreateTexture(textureProp);
+	m_FrameDepthStencilBufferHandle = m_RenderDevice.CreateTexture(textureProp);
+	m_pFrameDepthStencilBuffer = m_RenderDevice.GetTexture(m_FrameDepthStencilBufferHandle);
 
 	Buffer::Properties bufferProp{};
-	bufferProp.SizeInBytes = Math::AlignUp<UINT64>(sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-	bufferProp.Stride = Math::AlignUp<UINT64>(sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-	m_RenderPassCBs = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	// + 1 for forward pass render constants
+	bufferProp.SizeInBytes = (NUM_CASCADES + 1) * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+	bufferProp.Stride = Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+	m_RenderPassConstantBufferHandle = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	m_pRenderPassConstantBuffer = m_RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
 
 	struct SceneStagingData
 	{
@@ -83,31 +82,25 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
 		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
 
-		return [=](const SceneStagingData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const SceneStagingData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 			Data.pGpuBufferAllocator->Stage(Scene, pRenderCommandContext);
 			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			Data.pGpuBufferAllocator->Update(Scene);
 			Data.pGpuTextureAllocator->Stage(Scene, pRenderCommandContext);
 
-			m_RenderGraph.GetRenderPass<RenderPassType::Graphics, SceneStagingData>()->Enabled = false;
+			RenderGraphRegistry.GetRenderPass<RenderPassType::Graphics, SceneStagingData>()->Enabled = false;
 		};
 	});
 
 	struct ShadowPassData
 	{
-		GpuBufferAllocator* pGpuBufferAllocator;
-		GpuTextureAllocator* pGpuTextureAllocator;
+		const GpuBufferAllocator* pGpuBufferAllocator;
+		const GpuTextureAllocator* pGpuTextureAllocator;
 
-		enum { NumCascades = 4 };
+		Buffer* pRenderPassConstantBuffer;
 
-		UINT resolution;
-		float lambda;
-
-		RenderResourceHandle uploadBuffer;
 		RenderResourceHandle outputDepthTexture;
 		Descriptor depthStencilView;
-		Cascade cascades[NumCascades];
 	};
 
 	auto pShadowPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowPassData>(
@@ -116,169 +109,33 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
 		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
 
-		Data.resolution = 2048;
-		Data.lambda = 0.5f;
-
-		struct ShadowPassConstantsCPU
-		{
-			DirectX::XMFLOAT4X4 ViewProjection;
-		};
-		Buffer::Properties bufferProp{};
-		bufferProp.SizeInBytes = ShadowPassData::NumCascades * Math::AlignUp<UINT64>(sizeof(ShadowPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-		bufferProp.Stride = Math::AlignUp<UINT64>(sizeof(ShadowPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-		Data.uploadBuffer = RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload);
-		Buffer* pUploadBuffer = RenderDevice.GetBuffer(Data.uploadBuffer);
-		pUploadBuffer->Map();
+		Data.pRenderPassConstantBuffer = RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
 
 		Texture::Properties textureProp{};
 		textureProp.Type = Resource::Type::Texture2D;
 		textureProp.Format = DXGI_FORMAT_R32_TYPELESS;
-		textureProp.Width = textureProp.Height = Data.resolution;
-		textureProp.DepthOrArraySize = ShadowPassData::NumCascades;
+		textureProp.Width = textureProp.Height = Constants::SunShadowMapResolution;
+		textureProp.DepthOrArraySize = NUM_CASCADES;
 		textureProp.MipLevels = 1;
 		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 		textureProp.IsCubemap = false;
 		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
 		textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		Data.outputDepthTexture = RenderDevice.CreateTexture(textureProp);
-		Data.depthStencilView = RenderDevice.GetDevice().GetDescriptorAllocator<D3D12_DEPTH_STENCIL_VIEW_DESC>().Allocate(ShadowPassData::NumCascades);
-		for (UINT i = 0; i < ShadowPassData::NumCascades; ++i)
+		Data.depthStencilView = RenderDevice.GetDevice().GetDescriptorAllocator<D3D12_DEPTH_STENCIL_VIEW_DESC>().Allocate(NUM_CASCADES);
+		for (UINT i = 0; i < NUM_CASCADES; ++i)
 		{
 			RenderDevice.CreateDSV(Data.outputDepthTexture, Data.depthStencilView[i], i, {}, 1);
 		}
 
-		return [=](const ShadowPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const ShadowPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
-			using namespace DirectX;
-			Buffer* pUploadBuffer = RenderGraphRegistry.GetBuffer(Data.uploadBuffer);
-
-			// Calculate cascade
-			const float MaxDistance = 1.0f;
-			const float MinDistance = 0.0f;
-			OrthographicCamera CascadeCameras[ShadowPassData::NumCascades];
-
-			float cascadeSplits[ShadowPassData::NumCascades] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-			if (const PerspectiveCamera* pPerspectiveCamera = dynamic_cast<const PerspectiveCamera*>(&Scene.Camera))
+			std::vector<const Model*> visibleModelsIndices;
+			std::unordered_map<const Model*, std::vector<UINT>> visibleMeshesIndices;
+			visibleModelsIndices.resize(Scene.Models.size());
+			for (const auto& model : Scene.Models)
 			{
-				float nearClip = pPerspectiveCamera->NearZ();
-				float farClip = pPerspectiveCamera->FarZ();
-				float clipRange = farClip - nearClip;
-
-				float minZ = nearClip + MinDistance * clipRange;
-				float maxZ = nearClip + MaxDistance * clipRange;
-
-				float range = maxZ - minZ;
-				float ratio = maxZ / minZ;
-
-				for (UINT i = 0; i < ShadowPassData::NumCascades; ++i)
-				{
-					float p = (i + 1) / static_cast<float>(ShadowPassData::NumCascades);
-					float log = minZ * std::pow(ratio, p);
-					float uniform = minZ + range * p;
-					float d = Data.lambda * (log - uniform) + uniform;
-					cascadeSplits[i] = (d - nearClip) / clipRange;
-				}
-			}
-			else
-			{
-				for (UINT i = 0; i < ShadowPassData::NumCascades; ++i)
-				{
-					cascadeSplits[i] = Math::Lerp(MinDistance, MaxDistance, (i + 1.0f) / float(ShadowPassData::NumCascades));
-				}
-			}
-
-			// Calculate projection matrix for each cascade
-			for (UINT cascadeIndex = 0; cascadeIndex < ShadowPassData::NumCascades; ++cascadeIndex)
-			{
-				XMVECTOR frustumCornersWS[8] =
-				{
-					XMVectorSet(-1.0f, +1.0f, 0.0f, 1.0f),	// Near top left
-					XMVectorSet(+1.0f, +1.0f, 0.0f, 1.0f),	// Near top right
-					XMVectorSet(+1.0f, -1.0f, 0.0f, 1.0f),	// Near bottom right
-					XMVectorSet(-1.0f, -1.0f, 0.0f, 1.0f),	// Near bottom left
-					XMVectorSet(-1.0f, +1.0f, 1.0f, 1.0f),  // Far top left
-					XMVectorSet(+1.0f, +1.0f, 1.0f, 1.0f),	// Far top right
-					XMVectorSet(+1.0f, -1.0f, 1.0f, 1.0f),	// Far bottom right
-					XMVectorSet(-1.0f, -1.0f, 1.0f, 1.0f)	// Far bottom left
-				};
-
-				// Used for unprojecting
-				XMMATRIX invCameraViewProj = XMMatrixInverse(nullptr, Scene.Camera.ViewProjectionMatrix());
-				for (UINT i = 0; i < 8u; ++i)
-					frustumCornersWS[i] = XMVector3TransformCoord(frustumCornersWS[i], invCameraViewProj);
-
-				float prevCascadeSplit = cascadeIndex == 0 ? 0.0f : cascadeSplits[cascadeIndex - 1];
-				float cascadeSplit = cascadeSplits[cascadeIndex];
-
-				// Calculate frustum corners of current cascade
-				for (UINT i = 0; i < 4; ++i)
-				{
-					XMVECTOR cornerRay = frustumCornersWS[i + 4] - frustumCornersWS[i];
-					XMVECTOR nearCornerRay = cornerRay * prevCascadeSplit;
-					XMVECTOR farCornerRay = cornerRay * cascadeSplit;
-					frustumCornersWS[i + 4] = frustumCornersWS[i] + farCornerRay;
-					frustumCornersWS[i] = frustumCornersWS[i] + nearCornerRay;
-				}
-
-				XMVECTOR vCenter = XMVectorZero();
-				for (UINT i = 0; i < 8; ++i)
-					vCenter += frustumCornersWS[i];
-				vCenter *= (1.0f / 8.0f);
-
-				XMVECTOR vRadius = XMVectorZero();
-				for (UINT i = 0; i < 8; ++i)
-				{
-					XMVECTOR distance = XMVector3Length(frustumCornersWS[i] - vCenter);
-					vRadius = XMVectorMax(vRadius, distance);
-				}
-				float radius = std::ceilf(XMVectorGetX(vRadius) * 16.0f) / 16.0f;
-				float scaledRadius = radius * ((static_cast<float>(Data.resolution) + 7.0f) / static_cast<float>(Data.resolution));
-
-				// Negate direction
-				XMVECTOR lightPos = vCenter + (-XMLoadFloat3(&Scene.DirectionalLight.Direction) * radius);
-
-				CascadeCameras[cascadeIndex].SetLens(-scaledRadius, +scaledRadius, -scaledRadius, +scaledRadius, 0.0f, radius * 2.0f);
-				CascadeCameras[cascadeIndex].SetLookAt(lightPos, vCenter, Math::Up);
-
-				// Create the rounding matrix, by projecting the world-space origin and determining
-				// the fractional offset in texel space
-				DirectX::XMMATRIX shadowMatrix = CascadeCameras[cascadeIndex].ViewProjectionMatrix();
-				DirectX::XMVECTOR shadowOrigin = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-				shadowOrigin = DirectX::XMVector4Transform(shadowOrigin, shadowMatrix);
-				shadowOrigin = DirectX::XMVectorScale(shadowOrigin, static_cast<float>(Data.resolution) * 0.5f);
-
-				DirectX::XMVECTOR roundedOrigin = DirectX::XMVectorRound(shadowOrigin);
-				DirectX::XMVECTOR roundOffset = DirectX::XMVectorSubtract(roundedOrigin, shadowOrigin);
-				roundOffset = DirectX::XMVectorScale(roundOffset, 2.0f / static_cast<float>(Data.resolution));
-				roundOffset = DirectX::XMVectorSetZ(roundOffset, 0.0f);
-				roundOffset = DirectX::XMVectorSetW(roundOffset, 0.0f);
-
-				DirectX::XMMATRIX shadowProj = CascadeCameras[cascadeIndex].ProjectionMatrix();
-				shadowProj.r[3] = DirectX::XMVectorAdd(shadowProj.r[3], roundOffset);
-				CascadeCameras[cascadeIndex].SetProjection(shadowProj);
-
-				// Transform NDC space [-1,+1]^2 to texture space [0,1]^2
-				XMMATRIX T(0.5f, 0.0f, 0.0f, 0.0f,
-					0.0f, -0.5f, 0.0f, 0.0f,
-					0.0f, 0.0f, 1.0f, 0.0f,
-					0.5f, 0.5f, 0.0f, 1.0f);
-				XMMATRIX lightViewProj = CascadeCameras[cascadeIndex].ViewProjectionMatrix();
-				XMMATRIX shadowTransform = lightViewProj * T;
-				const float clipDist = Scene.Camera.FarZ() - Scene.Camera.NearZ();
-
-				auto& mutableData = const_cast<ShadowPassData&>(Data);
-				XMStoreFloat4x4(&mutableData.cascades[cascadeIndex].ShadowTransform, shadowTransform);
-				mutableData.cascades[cascadeIndex].Split = Scene.Camera.NearZ() + cascadeSplit * clipDist;
-			}
-
-			// Update cpu buffer
-			for (UINT cascadeIndex = 0; cascadeIndex < ShadowPassData::NumCascades; ++cascadeIndex)
-			{
-				ShadowPassConstantsCPU cascadeShadowPass;
-				XMStoreFloat4x4(&cascadeShadowPass.ViewProjection, XMMatrixTranspose(CascadeCameras[cascadeIndex].ViewProjectionMatrix()));
-
-				pUploadBuffer->Update<ShadowPassConstantsCPU>(cascadeIndex, cascadeShadowPass);
+				visibleMeshesIndices[&model].resize(model.Meshes.size());
 			}
 
 			// Begin rendering
@@ -295,36 +152,35 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
 			vp.MinDepth = 0.0f;
 			vp.MaxDepth = 1.0f;
-			vp.Width = vp.Height = Data.resolution;
+			vp.Width = vp.Height = Constants::SunShadowMapResolution;
 
 			D3D12_RECT sr;
 			sr.left = sr.top = 0;
-			sr.right = sr.bottom = Data.resolution;
+			sr.right = sr.bottom = Constants::SunShadowMapResolution;
 
 			pRenderCommandContext->SetViewports(1, &vp);
 			pRenderCommandContext->SetScissorRects(1, &sr);
 
-			for (UINT cascadeIndex = 0; cascadeIndex < ShadowPassData::NumCascades; ++cascadeIndex)
+			for (UINT cascadeIndex = 0; cascadeIndex < NUM_CASCADES; ++cascadeIndex)
 			{
 				wchar_t msg[32]; swprintf(msg, 32, L"Cascade Shadow Map %u", cascadeIndex);
 				PIXMarker(pRenderCommandContext->GetD3DCommandList(), msg);
 
-				const OrthographicCamera& CascadeCamera = CascadeCameras[cascadeIndex];
-				pRenderCommandContext->SetGraphicsRootCBV(1, pUploadBuffer->GetGpuVAAt(cascadeIndex));
+				const OrthographicCamera& CascadeCamera = Scene.CascadeCameras[cascadeIndex];
+				pRenderCommandContext->SetGraphicsRootCBV(1, Data.pRenderPassConstantBuffer->GetGpuVAAt(cascadeIndex));
 
 				pRenderCommandContext->SetRenderTargets(0, 0, Descriptor(), FALSE, cascadeIndex, Data.depthStencilView);
-				pRenderCommandContext->ClearDepthStencil(cascadeIndex, Data.depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-					1.0f, 0, 0, nullptr);
+				pRenderCommandContext->ClearDepthStencil(cascadeIndex, Data.depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-				const UINT numVisibleModels = CullModelsOrthographic(CascadeCamera, true, Scene.Models, m_VisibleModelsIndices);
+				const UINT numVisibleModels = CullModelsOrthographic(CascadeCamera, true, Scene.Models, visibleModelsIndices);
 				for (UINT i = 0; i < numVisibleModels; ++i)
 				{
-					auto& pModel = m_VisibleModelsIndices[i];
-					const UINT numVisibleMeshes = CullMeshesOrthographic(CascadeCamera, true, pModel->Meshes, m_VisibleMeshesIndices[pModel]);
+					auto& pModel = visibleModelsIndices[i];
+					const UINT numVisibleMeshes = CullMeshesOrthographic(CascadeCamera, true, pModel->Meshes, visibleMeshesIndices[pModel]);
 
 					for (UINT j = 0; j < numVisibleMeshes; ++j)
 					{
-						const UINT meshIndex = m_VisibleMeshesIndices[pModel][j];
+						const UINT meshIndex = visibleMeshesIndices[pModel][j];
 						auto& mesh = pModel->Meshes[meshIndex];
 
 						pRenderCommandContext->SetGraphicsRootCBV(0, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVAAt(mesh.ConstantBufferIndex));
@@ -336,18 +192,95 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		};
 	});
 
-	//struct ForwardPassData
-	//{
+	struct ForwardPassData
+	{
+		const GpuBufferAllocator* pGpuBufferAllocator;
+		const GpuTextureAllocator* pGpuTextureAllocator;
 
-	//};
+		Texture* pShadowDepthBuffer;
+		Texture* pFrameBuffer;
+		Texture* pFrameDepthStencilBuffer;
+		Buffer* pRenderPassConstantBuffer;
+		Descriptor RenderTargetView;
+		Descriptor DepthStencilView;
+	};
 
-	//auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>(
-	//	[&](ForwardPassData& Data, RenderDevice& RenderDevice)
-	//{
-	//	return [=](const ForwardPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
-	//	{
-	//	};
-	//});
+	auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>(
+		[&](ForwardPassData& Data, RenderDevice& RenderDevice)
+	{
+		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
+		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
+
+		Data.pFrameBuffer = RenderDevice.GetTexture(m_FrameBufferHandle);
+		Data.pFrameDepthStencilBuffer = RenderDevice.GetTexture(m_FrameDepthStencilBufferHandle);
+		Data.pRenderPassConstantBuffer = RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
+
+		Data.RenderTargetView = RenderDevice.GetDevice().GetDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>().Allocate(1);
+		Data.DepthStencilView = RenderDevice.GetDevice().GetDescriptorAllocator<D3D12_DEPTH_STENCIL_VIEW_DESC>().Allocate(1);
+
+		RenderDevice.CreateRTV(m_FrameBufferHandle, Data.RenderTargetView[0], {}, {}, {});
+		RenderDevice.CreateDSV(m_FrameDepthStencilBufferHandle, Data.DepthStencilView[0], {}, {}, {});
+
+		return [=](const ForwardPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		{
+			std::vector<const Model*> visibleModelsIndices;
+			std::unordered_map<const Model*, std::vector<UINT>> visibleMeshesIndices;
+			visibleModelsIndices.resize(Scene.Models.size());
+			for (const auto& model : Scene.Models)
+			{
+				visibleMeshesIndices[&model].resize(model.Meshes.size());
+			}
+
+			PIXMarker(pRenderCommandContext->GetD3DCommandList(), L"Scene Render");
+
+			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PBR));
+			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PBR));
+
+			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
+			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+			D3D12_VIEWPORT vp;
+			vp.TopLeftX = vp.TopLeftY = 0.0f;
+			vp.MinDepth = 0.0f;
+			vp.MaxDepth = 1.0f;
+			vp.Width = Data.pFrameBuffer->Width;
+			vp.Height = Data.pFrameBuffer->Height;
+
+			D3D12_RECT sr;
+			sr.left = sr.top = 0;
+			sr.right = Data.pFrameBuffer->Width;
+			sr.bottom = Data.pFrameBuffer->Height;
+
+			pRenderCommandContext->SetViewports(1, &vp);
+			pRenderCommandContext->SetScissorRects(1, &sr);
+
+			pRenderCommandContext->SetRenderTargets(0, 1, Data.RenderTargetView, TRUE, 0, Data.DepthStencilView);
+			pRenderCommandContext->ClearRenderTarget(0, Data.RenderTargetView, DirectX::Colors::LightBlue, 0, nullptr);
+			pRenderCommandContext->ClearDepthStencil(0, Data.DepthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+			/*pRenderCommandContext->SetSRV(RootParameters::PBR::PBRRootParameter_ShadowMapAndEnvironmentMapsSRV, 0, Data.pInputDepthBuffer->Type(), &Data.InputDepthBufferSRVDesc);
+			pRenderCommandContext->SetSRV(RootParameters::PBR::PBRRootParameter_ShadowMapAndEnvironmentMapsSRV, 1, m_Skybox.IrradianceTexture, &m_Skybox.IrradianceSRVDesc);
+			pRenderCommandContext->SetSRV(RootParameters::PBR::PBRRootParameter_ShadowMapAndEnvironmentMapsSRV, 2, m_Skybox.PrefilterdTexture, &m_Skybox.PrefilterdSRVDesc);
+			pRenderCommandContext->SetSRV(RootParameters::PBR::PBRRootParameter_ShadowMapAndEnvironmentMapsSRV, 3, m_Skybox.BRDFLUT, &m_Skybox.BRDFLUTSRVDesc);
+			pRenderCommandContext->SetGraphicsRootCBV(RootParameters::PBR::PBRRootParameter_RenderPassCBuffer, m_pRenderPassCBs->BufferLocationAt(0));*/
+
+			const UINT numVisibleModels = CullModels(&Scene.Camera, Scene.Models, visibleModelsIndices);
+			for (UINT i = 0; i < numVisibleModels; ++i)
+			{
+				auto& pModel = visibleModelsIndices[i];
+				const UINT numVisibleMeshes = CullMeshes(&Scene.Camera, pModel->Meshes, visibleMeshesIndices[pModel]);
+
+				for (UINT j = 0; j < numVisibleMeshes; ++j)
+				{
+					const UINT meshIndex = visibleMeshesIndices[pModel][j];
+					auto& mesh = pModel->Meshes[meshIndex];
+
+					pRenderCommandContext->SetGraphicsRootCBV(0, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVAAt(mesh.ConstantBufferIndex));
+					pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
+				}
+			}
+		};
+	});
 
 	m_RenderGraph.Setup();
 }
@@ -356,25 +289,14 @@ Renderer::~Renderer()
 {
 }
 
-void Renderer::SetScene(Scene* pScene)
-{
-	m_pScene = pScene;
-	m_pScene->Camera.SetAspectRatio(m_AspectRatio);
-	m_VisibleModelsIndices.resize(m_pScene->Models.size());
-	for (const auto& model : m_pScene->Models)
-	{
-		m_VisibleMeshesIndices[&model].resize(model.Meshes.size());
-	}
-}
-
-void Renderer::TEST()
+void Renderer::TEST(Scene& Scene)
 {
 	PIXCapture();
 	auto pRenderCommandContext = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	m_GpuBufferAllocator.Stage(*m_pScene, pRenderCommandContext);
+	m_GpuBufferAllocator.Stage(Scene, pRenderCommandContext);
 	m_GpuBufferAllocator.Bind(pRenderCommandContext);
-	m_GpuBufferAllocator.Update(*m_pScene);
-	m_GpuTextureAllocator.Stage(*m_pScene, pRenderCommandContext);
+	m_GpuBufferAllocator.Update(Scene);
+	m_GpuTextureAllocator.Stage(Scene, pRenderCommandContext);
 	m_RenderDevice.ExecuteRenderCommandContexts(1, &pRenderCommandContext);
 }
 
@@ -391,10 +313,33 @@ void Renderer::Update(const Time& Time)
 	}
 }
 
-void Renderer::Render()
+void Renderer::Render(Scene& Scene)
 {
 	PIXCapture();
-	m_RenderGraph.Execute(*m_pScene);
+	Scene.Camera.SetAspectRatio(m_AspectRatio);
+	m_GpuBufferAllocator.Update(Scene);
+	Scene.CascadeCameras = Scene.Sun.GenerateCascades(Scene.Camera, Constants::SunShadowMapResolution);
+
+	// Update shadow render pass cbuffer
+	for (UINT cascadeIndex = 0; cascadeIndex < NUM_CASCADES; ++cascadeIndex)
+	{
+		RenderPassConstants cascadeShadowPass;
+		DirectX::XMStoreFloat4x4(&cascadeShadowPass.ViewProjection, DirectX::XMMatrixTranspose(Scene.CascadeCameras[cascadeIndex].ViewProjectionMatrix()));
+
+		m_pRenderPassConstantBuffer->Update<RenderPassConstants>(cascadeIndex, cascadeShadowPass);
+	}
+
+	// Update render pass cbuffer
+	RenderPassConstants renderPassCPU;
+	XMStoreFloat4x4(&renderPassCPU.ViewProjection, XMMatrixTranspose(Scene.Camera.ViewProjectionMatrix()));
+	renderPassCPU.EyePosition = Scene.Camera.GetTransform().Position;
+
+	renderPassCPU.Sun = Scene.Sun;
+
+	const INT forwardRenderPassConstantsIndex = NUM_CASCADES; // 0 - NUM_CASCADES reserved for shadow map data
+	m_pRenderPassConstantBuffer->Update<RenderPassConstants>(forwardRenderPassConstantsIndex, renderPassCPU);
+
+	m_RenderGraph.Execute(Scene);
 	m_RenderGraph.ThreadBarrier();
 	m_RenderGraph.ExecuteCommandContexts();
 }
@@ -427,7 +372,6 @@ void Renderer::Resize()
 	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
 	{
 		m_AspectRatio = static_cast<float>(m_RefWindow.GetWindowWidth()) / static_cast<float>(m_RefWindow.GetWindowHeight());
-		m_pScene->Camera.SetAspectRatio(m_AspectRatio);
 
 		// Release resources before resize swap chain
 		for (UINT i = 0u; i < SwapChainBufferCount; ++i)
@@ -454,116 +398,4 @@ void Renderer::Resize()
 	}
 	// Wait until resize is complete.
 	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
-}
-
-UINT Renderer::CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vector<const Model*>& Indices)
-{
-	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
-	frustum.Transform(frustum, pCamera->WorldMatrix());
-
-	UINT numVisible = 0;
-	for (auto iter = Models.begin(); iter != Models.end(); ++iter)
-	{
-		auto& model = (*iter);
-		DirectX::BoundingBox aabb;
-		model.BoundingBox.Transform(aabb, model.Transform.Matrix());
-		if (frustum.Contains(aabb) != DirectX::ContainmentType::DISJOINT)
-		{
-			Indices[numVisible++] = &(*iter);
-		}
-	}
-
-	return numVisible;
-}
-
-UINT Renderer::CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelList& Models, std::vector<const Model*>& Indices)
-{
-	using namespace DirectX;
-
-	DirectX::XMVECTOR mins = DirectX::XMVectorSet(Camera.ViewLeft(), Camera.ViewBottom(), Camera.NearZ(), 1.0f);
-	DirectX::XMVECTOR maxes = DirectX::XMVectorSet(Camera.ViewRight(), Camera.ViewTop(), Camera.FarZ(), 1.0f);
-	if (IgnoreNearZ)
-	{
-		mins = XMVectorSet(XMVectorGetX(mins), XMVectorGetY(mins), XMVectorGetX(g_XMNegInfinity.v), 1.0f);
-	}
-
-	DirectX::XMVECTOR extents = (maxes - mins) * 0.5f;
-	DirectX::XMVECTOR center = mins + extents;
-	center = XMVector3TransformCoord(center, XMMatrixRotationQuaternion(XMLoadFloat4(&Camera.GetTransform().Orientation)));
-	center += XMLoadFloat3(&Camera.GetTransform().Position);
-
-	DirectX::BoundingOrientedBox obb;
-	XMStoreFloat3(&obb.Extents, extents);
-	XMStoreFloat3(&obb.Center, center);
-	obb.Orientation = Camera.GetTransform().Orientation;
-
-	UINT numVisible = 0;
-	for (auto iter = Models.begin(); iter != Models.end(); ++iter)
-	{
-		auto& model = (*iter);
-		DirectX::BoundingBox aabb;
-		model.BoundingBox.Transform(aabb, model.Transform.Matrix());
-		if (obb.Contains(aabb) != DirectX::ContainmentType::DISJOINT)
-		{
-			Indices[numVisible++] = &(*iter);
-		}
-	}
-
-	return numVisible;
-}
-
-UINT Renderer::CullMeshes(const Camera* pCamera, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices)
-{
-	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
-	frustum.Transform(frustum, pCamera->WorldMatrix());
-
-	UINT numVisible = 0;
-	for (size_t i = 0, numMeshes = Meshes.size(); i < numMeshes; ++i)
-	{
-		auto& mesh = Meshes[i];
-		DirectX::BoundingBox aabb;
-		mesh.BoundingBox.Transform(aabb, mesh.Transform.Matrix());
-		if (frustum.Contains(aabb) != DirectX::ContainmentType::DISJOINT)
-		{
-			Indices[numVisible++] = i;
-		}
-	}
-
-	return numVisible;
-}
-
-UINT Renderer::CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices)
-{
-	using namespace DirectX;
-
-	DirectX::XMVECTOR mins = DirectX::XMVectorSet(Camera.ViewLeft(), Camera.ViewBottom(), Camera.NearZ(), 1.0f);
-	DirectX::XMVECTOR maxes = DirectX::XMVectorSet(Camera.ViewRight(), Camera.ViewTop(), Camera.FarZ(), 1.0f);
-	if (IgnoreNearZ)
-	{
-		mins = XMVectorSet(XMVectorGetX(mins), XMVectorGetY(mins), XMVectorGetX(g_XMNegInfinity.v), 1.0f);
-	}
-
-	DirectX::XMVECTOR extents = (maxes - mins) / 2.0f;
-	DirectX::XMVECTOR center = mins + extents;
-	center = XMVector3TransformCoord(center, XMMatrixRotationQuaternion(XMLoadFloat4(&Camera.GetTransform().Orientation)));
-	center += XMLoadFloat3(&Camera.GetTransform().Position);
-
-	DirectX::BoundingOrientedBox obb;
-	XMStoreFloat3(&obb.Extents, extents);
-	XMStoreFloat3(&obb.Center, center);
-	obb.Orientation = Camera.GetTransform().Orientation;
-
-	UINT numVisible = 0;
-	for (size_t i = 0, numMeshes = Meshes.size(); i < numMeshes; ++i)
-	{
-		auto& mesh = Meshes[i];
-		DirectX::BoundingBox aabb;
-		mesh.BoundingBox.Transform(aabb, mesh.Transform.Matrix());
-		if (obb.Contains(aabb) != DirectX::ContainmentType::DISJOINT)
-		{
-			Indices[numVisible++] = i;
-		}
-	}
-
-	return numVisible;
 }

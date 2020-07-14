@@ -2,7 +2,7 @@
 #include "GpuTextureAllocator.h"
 #include "RendererRegistry.h"
 
-GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
+GpuTextureAllocator::GpuTextureAllocator(std::size_t MaterialTextureIndicesStructuredBufferSize, RenderDevice& RefRenderDevice)
 	: m_RefRenderDevice(RefRenderDevice),
 	m_TextureViewAllocator(&m_RefRenderDevice.GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 {
@@ -63,11 +63,11 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
 
 	Buffer::Properties bufferProp =
 	{
-		.SizeInBytes = 6 * Math::AlignUp<UINT64>(sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT),
-		.Stride = Math::AlignUp<UINT64>(sizeof(RenderPassConstantsCPU), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
+		.SizeInBytes = 6 * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT),
+		.Stride = Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
 	};
-	m_CubemapCamerasHandle = m_RefRenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
-	Buffer* pCubemapCameras = m_RefRenderDevice.GetBuffer(m_CubemapCamerasHandle);
+	m_CubemapCamerasUploadBufferHandle = m_RefRenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	Buffer* pCubemapCameras = m_RefRenderDevice.GetBuffer(m_CubemapCamerasUploadBufferHandle);
 	// Create 6 cameras for cube map
 	PerspectiveCamera cameras[6];
 
@@ -99,10 +99,10 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
 	{
 		cameras[i].SetLookAt(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), targets[i], ups[i]);
 		cameras[i].SetLens(DirectX::XM_PIDIV2, 1.0f, 0.1f, 1000.0f);
-		RenderPassConstantsCPU rpcCPU;
+		RenderPassConstants rpcCPU;
 		XMStoreFloat4x4(&rpcCPU.ViewProjection, XMMatrixTranspose(cameras[i].ViewProjectionMatrix()));
 		pCubemapCameras->Map();
-		pCubemapCameras->Update<RenderPassConstantsCPU>(i, rpcCPU);
+		pCubemapCameras->Update<RenderPassConstants>(i, rpcCPU);
 	}
 
 	DXGI_FORMAT optionalFormats[] =
@@ -162,12 +162,14 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice& RefRenderDevice)
 			m_UAVSupportedFormat.insert(optionalFormats[i]);
 		}
 	}
+
+	m_TextureIndex = 0;
 }
 
 void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext)
 {
 	// Cpu upload
-	m_SkyboxEquirectangularHandle = LoadFromFile(Scene.Skybox.Path, false, true);
+	m_SkyboxEquirectangularMapHandle = LoadFromFile(Scene.Skybox.Path, false, true);
 	for (auto iter = Scene.Models.begin(); iter != Scene.Models.end(); ++iter)
 	{
 		auto& model = (*iter);
@@ -210,11 +212,24 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 		pRenderCommandContext->TransitionBarrier(pTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		m_TextureHandles[stagingTexture.path] = handle;
+		m_TextureIndices[stagingTexture.path] = stagingTexture.index;
 		CORE_INFO("{} Loaded", stagingTexture.path);
 	}
 
+	for (auto iter = Scene.Models.begin(); iter != Scene.Models.end(); ++iter)
+	{
+		auto& model = (*iter);
+		for (auto& material : model.Materials)
+		{
+			for (unsigned int i = 0; i < NumTextureTypes; ++i)
+			{
+				material.TextureIndices[i] = m_TextureIndices[material.Textures[i].Path.generic_string()];
+			}
+		}
+	}
+
 	// Generate cubemap for equirectangular map
-	Texture* pEquirectangularMap = m_RefRenderDevice.GetTexture(m_SkyboxEquirectangularHandle);
+	Texture* pEquirectangularMap = m_RefRenderDevice.GetTexture(m_SkyboxEquirectangularMapHandle);
 	Texture::Properties radianceTextureProp =
 	{
 		.Type = pEquirectangularMap->Type,
@@ -232,7 +247,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 
 	m_SkyboxCubemapHandle = m_RefRenderDevice.CreateTexture(radianceTextureProp);
 
-	EquirectangularToCubemap(m_SkyboxEquirectangularHandle, m_SkyboxCubemapHandle, pRenderCommandContext);
+	EquirectangularToCubemap(m_SkyboxEquirectangularMapHandle, m_SkyboxCubemapHandle, pRenderCommandContext);
 	m_RefRenderDevice.CreateSRV(m_SkyboxCubemapHandle, m_SkyboxSRVs[0]);
 
 	// Generate cubemap convolutions
@@ -241,7 +256,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 		const DXGI_FORMAT format = i == CubemapConvolution::Irradiance ? RendererFormats::IrradianceFormat : RendererFormats::PrefilterFormat;
 		const UINT64 resolution = i == CubemapConvolution::Irradiance ? Resolutions::Irradiance : Resolutions::Prefilter;
 		const UINT16 numMips = static_cast<UINT16>(floor(log2(resolution))) + 1;
-		const UINT num32bitValues = i == Irradiance ? sizeof(IrradianceConvolutionSetting) / 4 : sizeof(PrefilterConvolutionSetting) / 4;
+		const UINT num32bitValues = i == Irradiance ? sizeof(ConvolutionIrradianceSetting) / 4 : sizeof(ConvolutionPrefilterSetting) / 4;
 
 		// Create cubemap texture
 		Texture::Properties textureProp =
@@ -264,10 +279,10 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 
 		// Generate cube map
 		pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		pRenderCommandContext->SetPipelineState(m_RefRenderDevice.GetGraphicsPSO(i == CubemapConvolution::Irradiance ? GraphicsPSOs::IrradiaceConvolution : GraphicsPSOs::PrefilterConvolution));
-		pRenderCommandContext->SetGraphicsRootSignature(m_RefRenderDevice.GetRootSignature(i == CubemapConvolution::Irradiance ? RootSignatures::IrradiaceConvolution : RootSignatures::PrefilterConvolution));
+		pRenderCommandContext->SetPipelineState(m_RefRenderDevice.GetGraphicsPSO(i == CubemapConvolution::Irradiance ? GraphicsPSOs::ConvolutionIrradiace : GraphicsPSOs::ConvolutionPrefilter));
+		pRenderCommandContext->SetGraphicsRootSignature(m_RefRenderDevice.GetRootSignature(i == CubemapConvolution::Irradiance ? RootSignatures::ConvolutionIrradiace : RootSignatures::ConvolutionPrefilter));
 
-		pRenderCommandContext->SetSRV(RootParameters::CubemapConvolution::CubemapConvolutionRootParameter_CubemapSRV, 0, 1, m_SkyboxSRVs);
+		pRenderCommandContext->SetSRV(RootParameters::CubemapConvolution::CubemapSRV, 0, 1, m_SkyboxSRVs);
 
 		for (UINT mip = 0; mip < numMips; ++mip)
 		{
@@ -289,21 +304,21 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 				m_RefRenderDevice.CreateRTV(cubemap, cubemapRTVs[renderTargetDescriptorOffset], face, mip, 1);
 				pRenderCommandContext->SetRenderTargets(renderTargetDescriptorOffset, 1, cubemapRTVs, TRUE, 0, Descriptor());
 
-				Buffer* pCubemapCameras = m_RefRenderDevice.GetBuffer(m_CubemapCamerasHandle);
-				pRenderCommandContext->SetGraphicsRootCBV(RootParameters::CubemapConvolution::CubemapConvolutionRootParameter_RenderPassCBuffer, pCubemapCameras->GetGpuVAAt(face));
+				Buffer* pCubemapCameras = m_RefRenderDevice.GetBuffer(m_CubemapCamerasUploadBufferHandle);
+				pRenderCommandContext->SetGraphicsRootCBV(RootParameters::CubemapConvolution::RenderPassCBuffer, pCubemapCameras->GetGpuVAAt(face));
 				switch (i)
 				{
 				case Irradiance:
 				{
-					IrradianceConvolutionSetting icSetting;
-					pRenderCommandContext->SetGraphicsRoot32BitConstants(RootParameters::CubemapConvolution::CubemapConvolutionRootParameter_Setting, num32bitValues, &icSetting, 0);
+					ConvolutionIrradianceSetting icSetting;
+					pRenderCommandContext->SetGraphicsRoot32BitConstants(RootParameters::CubemapConvolution::Setting, num32bitValues, &icSetting, 0);
 				}
 				break;
 				case Prefilter:
 				{
-					PrefilterConvolutionSetting pcSetting;
+					ConvolutionPrefilterSetting pcSetting;
 					pcSetting.Roughness = (float)mip / (float)(numMips - 1);
-					pRenderCommandContext->SetGraphicsRoot32BitConstants(RootParameters::CubemapConvolution::CubemapConvolutionRootParameter_Setting, num32bitValues, &pcSetting, 0);
+					pRenderCommandContext->SetGraphicsRoot32BitConstants(RootParameters::CubemapConvolution::Setting, num32bitValues, &pcSetting, 0);
 				}
 				break;
 				}
@@ -317,14 +332,14 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 		{
 		case Irradiance:
 		{
-			m_IrradianceHandle = cubemap;
-			m_RefRenderDevice.CreateSRV(m_IrradianceHandle, m_SkyboxSRVs[1]);
+			m_IrradianceMapHandle = cubemap;
+			m_RefRenderDevice.CreateSRV(m_IrradianceMapHandle, m_SkyboxSRVs[1]);
 		}
 		break;
 		case Prefilter:
 		{
-			m_PrefilteredHandle = cubemap;
-			m_RefRenderDevice.CreateSRV(m_PrefilteredHandle, m_SkyboxSRVs[2]);
+			m_PrefilteredMapHandle = cubemap;
+			m_RefRenderDevice.CreateSRV(m_PrefilteredMapHandle, m_SkyboxSRVs[2]);
 		}
 		break;
 		}
@@ -493,6 +508,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	stagingTexture.numSubresources = NumSubresources;
 	stagingTexture.placedSubresourceLayouts = std::move(PlacedSubresourceLayouts);
 	stagingTexture.mipLevels = mipLevels;
+	stagingTexture.index = m_TextureIndex++;
 	stagingTexture.generateMips = generateMips;
 
 	m_UnstagedTextures[handle] = std::move(stagingTexture);
@@ -591,10 +607,10 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 		generateMipsCB.TexelSize.x = 1.0f / (float)dstWidth;
 		generateMipsCB.TexelSize.y = 1.0f / (float)dstHeight;
 
-		pRenderCommandContext->SetComputeRoot32BitConstants(RootParameters::GenerateMips::GenerateMipsRootParameter_GenerateMipsCB, sizeof(GenerateMipsCPUData) / 4, &generateMipsCB, 0);
+		pRenderCommandContext->SetComputeRoot32BitConstants(RootParameters::GenerateMips::GenerateMipsCBuffer, sizeof(GenerateMipsCPUData) / 4, &generateMipsCB, 0);
 
 		pRenderCommandContext->TransitionBarrier(pTexture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, srcMip);
-		pRenderCommandContext->SetSRV(RootParameters::GenerateMips::GenerateMipsRootParameter_SrcMip, 0, descriptor.NumDescriptors(), descriptor);
+		pRenderCommandContext->SetSRV(RootParameters::GenerateMips::SrcMip, 0, descriptor.NumDescriptors(), descriptor);
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
@@ -603,13 +619,13 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 			m_TemporaryDescriptors.push_back(uavDescriptor);
 
 			pRenderCommandContext->TransitionBarrier(pTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, srcMip + mip + 1);
-			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mip, uavDescriptor.NumDescriptors(), uavDescriptor);
+			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::OutMip, mip, uavDescriptor.NumDescriptors(), uavDescriptor);
 		}
 
 		// Pad any unused mip levels with a default UAV. Doing this keeps the DX12 runtime happy.
 		if (mipCount < 4)
 		{
-			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::GenerateMipsRootParameter_OutMip, mipCount, 4 - mipCount, m_MipsNullUAVs);
+			pRenderCommandContext->SetUAV(RootParameters::GenerateMips::OutMip, mipCount, 4 - mipCount, m_MipsNullUAVs);
 		}
 
 		UINT threadGroupCountX = Math::DivideByMultiple(dstWidth, 8);
@@ -687,10 +703,10 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 		panoToCubemapCB.CubemapSize = std::max<uint32_t>(static_cast<uint32_t>(resourceDesc.Width), resourceDesc.Height) >> mipSlice;
 		panoToCubemapCB.NumMips = numMips;
 
-		pRenderCommandContext->SetComputeRoot32BitConstants(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_PanoToCubemapCB, 3, &panoToCubemapCB, 0);
+		pRenderCommandContext->SetComputeRoot32BitConstants(RootParameters::EquirectangularToCubemap::PanoToCubemapCBuffer, 3, &panoToCubemapCB, 0);
 
 		pRenderCommandContext->TransitionBarrier(pEquirectangularMap, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		pRenderCommandContext->SetSRV(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_SrcTexture, 0, descriptor.NumDescriptors(), descriptor);
+		pRenderCommandContext->SetSRV(RootParameters::EquirectangularToCubemap::SrcTexture, 0, descriptor.NumDescriptors(), descriptor);
 
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
@@ -699,13 +715,13 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 			m_TemporaryDescriptors.push_back(uavDescriptor);
 
 			pRenderCommandContext->TransitionBarrier(pCubemap, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			pRenderCommandContext->SetUAV(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_DstMips, mip, uavDescriptor.NumDescriptors(), uavDescriptor);
+			pRenderCommandContext->SetUAV(RootParameters::EquirectangularToCubemap::DstMips, mip, uavDescriptor.NumDescriptors(), uavDescriptor);
 		}
 
 		if (numMips < 5)
 		{
 			// Pad unused mips. This keeps DX12 runtime happy.
-			pRenderCommandContext->SetUAV(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapRootParameter_DstMips, panoToCubemapCB.NumMips, 5 - numMips, m_EquirectangularToCubeMapNullUAVs);
+			pRenderCommandContext->SetUAV(RootParameters::EquirectangularToCubemap::DstMips, panoToCubemapCB.NumMips, 5 - numMips, m_EquirectangularToCubeMapNullUAVs);
 		}
 
 		UINT threadGroupCount = Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16);

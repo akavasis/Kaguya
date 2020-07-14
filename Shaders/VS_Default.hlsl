@@ -1,8 +1,7 @@
 #include "HLSLCommon.hlsli"
 
-ConstantBuffer<Object> ObjectConstantsGPU : register(b0);
-ConstantBuffer<Material> MaterialConstantsGPU : register(b1);
-ConstantBuffer<RenderPass> RenderPassConstantsGPU : register(b2);
+ConstantBuffer<ObjectConstants> ObjectConstantsGPU : register(b0);
+ConstantBuffer<RenderPassConstants> RenderPassConstantsGPU : register(b1);
 
 struct InputVertex
 {

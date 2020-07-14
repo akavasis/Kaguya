@@ -42,7 +42,9 @@ Shader ShaderCompiler::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEnt
 	}
 
 	std::vector<std::wstring> cmdlineArgs;
-
+	// https://developer.nvidia.com/dx12-dos-and-donts
+	// Use the /all_resources_bound / D3DCOMPILE_ALL_RESOURCES_BOUND compile flag if possible This allows for the compiler to do a better job at optimizing texture accesses.We have seen frame rate improvements of > 1 % when toggling this flag on.
+	cmdlineArgs.push_back(L"/all_resources_bound"); 
 #if defined(_DEBUG)
 	cmdlineArgs.push_back(L"/Zi");
 	cmdlineArgs.push_back(L"/Od");

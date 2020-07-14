@@ -7,12 +7,13 @@
 #include <DirectXTex.h>
 
 #include "RenderDevice.h"
+#include "../Core/Allocator/VariableSizedAllocator.h"
 #include "Scene/Scene.h"
 
 class GpuTextureAllocator
 {
 public:
-	GpuTextureAllocator(RenderDevice& RefRenderDevice);
+	GpuTextureAllocator(std::size_t MaterialTextureIndicesStructuredBufferSize, RenderDevice& RefRenderDevice);
 
 	void Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext);
 	void Bind(RenderCommandContext* pRenderCommandContext) const;
@@ -20,7 +21,6 @@ private:
 	struct Status
 	{
 		bool BRDFGenerated = false;
-
 	} m_Status;
 
 	struct StagingTexture
@@ -30,6 +30,7 @@ private:
 		std::size_t numSubresources;												// number of subresources
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> placedSubresourceLayouts;	// footprint is synonymous to layout
 		std::size_t mipLevels;														// indicates what mip levels this texture should have
+		std::size_t index;															// material texture index
 		bool generateMips;															// indicates whether or not we should generate mips for the staged texture
 	};
 
@@ -60,11 +61,14 @@ private:
 	std::vector<RenderResourceHandle> m_TemporaryResources;
 	std::vector<Descriptor> m_TemporaryDescriptors;
 
-	RenderResourceHandle m_CubemapCamerasHandle;
+	RenderResourceHandle m_CubemapCamerasUploadBufferHandle;
+	RenderResourceHandle m_MaterialTextureIndicesStructuredBufferHandle;
 	RenderResourceHandle m_BRDFLUTHandle;
-	RenderResourceHandle m_SkyboxEquirectangularHandle;
+	RenderResourceHandle m_SkyboxEquirectangularMapHandle;
 	RenderResourceHandle m_SkyboxCubemapHandle;
-	RenderResourceHandle m_IrradianceHandle;
-	RenderResourceHandle m_PrefilteredHandle;
+	RenderResourceHandle m_IrradianceMapHandle;
+	RenderResourceHandle m_PrefilteredMapHandle;
 	std::unordered_map<std::string, RenderResourceHandle> m_TextureHandles;
+	std::unordered_map<std::string, std::size_t> m_TextureIndices;
+	std::size_t m_TextureIndex;
 };

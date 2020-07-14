@@ -13,7 +13,8 @@ struct Scene
 
 	Skybox Skybox;
 	PerspectiveCamera Camera;
-	DirectionalLight DirectionalLight;
+	std::array<OrthographicCamera, NUM_CASCADES> CascadeCameras;
+	DirectionalLight Sun;
 	PointLightList PointLights;
 	SpotLightList SpotLights;
 	ModelList Models;
@@ -24,3 +25,8 @@ struct Scene
 
 	void RenderImGuiWindow();
 };
+
+UINT CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vector<const Model*>& Indices);
+UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelList& Models, std::vector<const Model*>& Indices);
+UINT CullMeshes(const Camera* pCamera, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices);
+UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices);

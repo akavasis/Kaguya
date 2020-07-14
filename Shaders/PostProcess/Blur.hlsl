@@ -1,4 +1,3 @@
-// Reference to 3D Game Programming With DirectX 12 by Frank D. Luna
 static const int MaxBlurRadius = 5;
 
 cbuffer Kernel : register(b0)
@@ -27,7 +26,14 @@ RWTexture2D<float4> OutputRWTexture2D : register(u0);
 #define CacheSize (N + 2 * MaxBlurRadius)
 groupshared float4 LocalThreadStorage[CacheSize];
 
+#define HORIZONTAL 1
+#define VERTICAL 0
+
+#if HORIZONTAL
 [numthreads(N, 1, 1)]
+#elif VERTICAL
+[numthreads(1, N, 1)]
+#endif
 void main(int3 GTid : SV_GroupThreadID, int3 DTid : SV_DispatchThreadID)
 {
 	float weights[11] = { w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10 };
@@ -38,35 +44,54 @@ void main(int3 GTid : SV_GroupThreadID, int3 DTid : SV_DispatchThreadID)
 	// N pixels, we will need to load N + 2*BlurRadius pixels
 	// due to the blur radius.
 	
-	// This thread group runs N threads.  To get the extra 2*BlurRadius pixels, 
-	// have 2*BlurRadius threads sample an extra pixel.
+	int2 pixelPos = DTid.xy;
+#if HORIZONTAL
 	if (GTid.x < BlurRadius)
 	{
 		// Clamp out of bound samples that occur at image borders.
-		int x = max(DTid.x - BlurRadius, 0);
-		LocalThreadStorage[GTid.x] = InputTexture2D[int2(x, DTid.y)];
+		int x = max(pixelPos.x - BlurRadius, 0);
+		LocalThreadStorage[GTid.x] = InputTexture2D[int2(x, pixelPos.y)];
 	}
 	if (GTid.x >= N - BlurRadius)
 	{
 		// Clamp out of bound samples that occur at image borders.
-		int x = min(DTid.x + BlurRadius, inputDimension.x - 1);
-		LocalThreadStorage[GTid.x + 2 * BlurRadius] = InputTexture2D[int2(x, DTid.y)];
+		int x = min(pixelPos.x + BlurRadius, inputDimension.x - 1);
+		LocalThreadStorage[GTid.x + 2 * BlurRadius] = InputTexture2D[int2(x, pixelPos.y)];
 	}
 
-	// Clamp out of bound samples that occur at image borders.
-	LocalThreadStorage[GTid.x + BlurRadius] = InputTexture2D[min(DTid.xy, inputDimension - 1)];
-
-	// Wait for all threads to finish in the group
+	LocalThreadStorage[GTid.x + BlurRadius] = InputTexture2D[min(pixelPos, inputDimension - 1)];
 	GroupMemoryBarrierWithGroupSync();
 	
-	// Now blur each pixel.
-	float4 blurColor = float4(0, 0, 0, 0);
-	
+	float4 blurColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	for (int i = -BlurRadius; i <= BlurRadius; ++i)
 	{
 		int k = GTid.x + BlurRadius + i;
 		blurColor += weights[i + BlurRadius] * LocalThreadStorage[k];
 	}
+	OutputRWTexture2D[pixelPos] = blurColor;
+#elif VERTICAL
+	if (GTid.y < BlurRadius)
+	{
+		// Clamp out of bound samples that occur at image borders.
+		int y = max(pixelPos.y - BlurRadius, 0);
+		LocalThreadStorage[GTid.y] = InputTexture2D[int2(pixelPos.x, y)];
+	}
+	if (GTid.y >= N - BlurRadius)
+	{
+		// Clamp out of bound samples that occur at image borders.
+		int y = min(pixelPos.y + BlurRadius, inputDimension.y - 1);
+		LocalThreadStorage[GTid.y + 2 * BlurRadius] = InputTexture2D[int2(pixelPos.x, y)];
+	}
 	
-	OutputRWTexture2D[DTid.xy] = blurColor;
+	LocalThreadStorage[GTid.y + BlurRadius] = InputTexture2D[min(pixelPos, inputDimension - 1)];
+	GroupMemoryBarrierWithGroupSync();
+	
+	float4 blurColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
+	for (int i = -BlurRadius; i <= BlurRadius; ++i)
+	{
+		int k = GTid.y + BlurRadius + i;
+		blurColor += weights[i + BlurRadius] * LocalThreadStorage[k];
+	}
+	OutputRWTexture2D[pixelPos] = blurColor;
+#endif
 }
