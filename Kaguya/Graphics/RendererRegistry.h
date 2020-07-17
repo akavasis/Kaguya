@@ -12,9 +12,9 @@ enum CubemapConvolution
 
 struct Resolutions
 {
-	enum { BRDFLUT = 512u };
-	enum { Irradiance = 64u };
-	enum { Prefilter = 512u };
+	static constexpr UINT64 BRDFLUT = 512;
+	static constexpr UINT64 Irradiance = 64;
+	static constexpr UINT64 Prefilter = 512;
 };
 
 struct ConvolutionIrradianceSetting
@@ -57,6 +57,16 @@ struct RendererFormats
 
 struct RootParameters
 {
+	struct CubemapConvolution
+	{
+		enum
+		{
+			RenderPassCBuffer,
+			Setting,
+			CubemapSRV,
+			Count,
+		};
+	};
 	struct Shadow
 	{
 		enum
@@ -82,18 +92,9 @@ struct RootParameters
 		enum
 		{
 			RenderPassCBuffer,
+			MaterialTextureIndicesSBuffer,
 			StandardDescriptorTables,
 			Count
-		};
-	};
-	struct CubemapConvolution
-	{
-		enum
-		{
-			RenderPassCBuffer,
-			Setting,
-			CubemapSRV,
-			Count,
 		};
 	};
 	struct GenerateMips
@@ -102,7 +103,7 @@ struct RootParameters
 		{
 			GenerateMipsCBuffer,
 			SrcMip,
-			OutMip,
+			OutMips,
 			Count
 		};
 	};
@@ -111,8 +112,8 @@ struct RootParameters
 		enum
 		{
 			PanoToCubemapCBuffer,
-			SrcTexture,
-			DstMips,
+			SrcMip,
+			OutMips,
 			Count
 		};
 	};

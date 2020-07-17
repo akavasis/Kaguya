@@ -5,7 +5,8 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	: m_Device(pAdapter),
 	m_GraphicsQueue(&m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	m_ComputeQueue(&m_Device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
-	m_CopyQueue(&m_Device, D3D12_COMMAND_LIST_TYPE_COPY)
+	m_CopyQueue(&m_Device, D3D12_COMMAND_LIST_TYPE_COPY),
+	m_DescriptorAllocator(&m_Device)
 {
 }
 
@@ -159,7 +160,7 @@ void RenderDevice::Destroy(RenderResourceHandle& RenderResourceHandle)
 	RenderResourceHandle._Data = 0;
 }
 
-void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
+void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
 	assert(texture != nullptr && "Could not find texture given the handle");
@@ -218,10 +219,10 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, D3D12_CP
 		}
 	}
 
-	m_Device.GetD3DDevice()->CreateShaderResourceView(texture->GetD3DResource(), &desc, DestDescriptor);
+	m_Device.GetD3DDevice()->CreateShaderResourceView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 }
 
-void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
+void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
 	assert(texture != nullptr && "Could not find texture given the handle");
@@ -280,10 +281,10 @@ void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, D3D12_CP
 	break;
 	}
 
-	m_Device.GetD3DDevice()->CreateUnorderedAccessView(texture->GetD3DResource(), nullptr, &desc, DestDescriptor);
+	m_Device.GetD3DDevice()->CreateUnorderedAccessView(texture->GetD3DResource(), nullptr, &desc, DestDescriptor.CPUHandle);
 }
 
-void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
 	assert(texture != nullptr && "Could not find texture given the handle");
@@ -343,10 +344,10 @@ void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, D3D12_CP
 	break;
 	}
 
-	m_Device.GetD3DDevice()->CreateRenderTargetView(texture->GetD3DResource(), &desc, DestDescriptor);
+	m_Device.GetD3DDevice()->CreateRenderTargetView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 }
 
-void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
 	assert(texture != nullptr && "Could not find texture given the handle");
@@ -413,5 +414,5 @@ void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, D3D12_CP
 	break;
 	}
 
-	m_Device.GetD3DDevice()->CreateDepthStencilView(texture->GetD3DResource(), &desc, DestDescriptor);
+	m_Device.GetD3DDevice()->CreateDepthStencilView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 }

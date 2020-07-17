@@ -16,6 +16,7 @@
 #include <typeinfo>
 #include <functional>
 #include <algorithm>
+#include <numeric>
 #include <string>
 #include <filesystem>
 #include <iostream>

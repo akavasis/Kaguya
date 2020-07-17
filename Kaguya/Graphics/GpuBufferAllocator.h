@@ -6,17 +6,19 @@
 class GpuBufferAllocator
 {
 public:
-	GpuBufferAllocator(std::size_t VertexBufferByteSize, std::size_t IndexBufferByteSize, std::size_t ConstantBufferByteSize, RenderDevice& RefRenderDevice);
+	GpuBufferAllocator(std::size_t VertexBufferByteSize, std::size_t IndexBufferByteSize, std::size_t ConstantBufferByteSize, RenderDevice* pRenderDevice);
 
 	inline auto GetVertexBuffer() const { return m_pVertexBuffer; }
 	inline auto GetIndexBuffer() const { return m_pIndexBuffer; }
 	inline auto GetConstantBuffer() const { return m_pConstantBuffer; }
 
+	void Initialize(RenderCommandContext* pRenderCommandContext);
+	void StageSkybox(Scene& Scene, RenderCommandContext* pRenderCommandContext);
 	void Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext);
-	void Bind(RenderCommandContext* pRenderCommandContext) const;
 	void Update(Scene& Scene);
+	void Bind(RenderCommandContext* pRenderCommandContext) const;
 private:
-	RenderDevice& m_RefRenderDevice;
+	RenderDevice* m_pRenderDevice;
 
 	VariableSizedAllocator m_VertexBufferAllocator;
 	VariableSizedAllocator m_IndexBufferAllocator;

@@ -1,5 +1,7 @@
-#include "HLSLCommon.hlsli"
 #include "StaticSamplers.hlsli"
+#include "DescriptorTables.hlsli"
+
+#include "HLSLCommon.hlsli"
 
 ConstantBuffer<RenderPassConstants> RenderPassConstantsGPU : register(b0);
 

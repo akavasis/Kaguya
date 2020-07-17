@@ -13,27 +13,16 @@ SpotLight& Scene::AddSpotLight(SpotLight&& SpotLight)
 	return SpotLights.back();
 }
 
+Material& Scene::AddMaterial(Material&& Material)
+{
+	Materials.push_back(std::move(Material));
+	return Materials.back();
+}
+
 Model& Scene::AddModel(Model&& Model)
 {
 	Models.push_back(std::move(Model));
 	return Models.back();
-}
-
-void Scene::RenderImGuiWindow()
-{
-	if (ImGui::Begin("Scene"))
-	{
-		Sun.RenderImGuiWindow();
-		for (auto& PointLight : PointLights)
-		{
-			PointLight.RenderImGuiWindow();
-		}
-		for (auto& SpotLight : SpotLights)
-		{
-			SpotLight.RenderImGuiWindow();
-		}
-	}
-	ImGui::End();
 }
 
 UINT CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vector<const Model*>& Indices)

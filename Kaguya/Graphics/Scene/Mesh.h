@@ -12,5 +12,5 @@ struct Mesh
 	std::uint32_t VertexCount;
 	std::uint32_t BaseVertexLocation;
 	std::size_t MaterialIndex;
-	std::size_t ConstantBufferIndex;
+	std::size_t ObjectConstantsIndex;
 };

@@ -39,16 +39,16 @@ void Transform::SetScale(float ScaleX, float ScaleY, float ScaleZ)
 
 void Transform::Rotate(float AngleX, float AngleY, float AngleZ)
 {
-	DirectX::XMVECTOR CurrentRotation = DirectX::XMLoadFloat4(&Orientation);
-	DirectX::XMVECTOR Pitch = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Right(), AngleX));
-	DirectX::XMVECTOR Yaw = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Math::Up, AngleY));
-	DirectX::XMVECTOR Roll = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Forward(), AngleZ));
+	DirectX::XMVECTOR currentRotation = DirectX::XMLoadFloat4(&Orientation);
+	DirectX::XMVECTOR pitch = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Right(), AngleX));
+	DirectX::XMVECTOR yaw = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Math::Up, AngleY));
+	DirectX::XMVECTOR roll = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Forward(), AngleZ));
 
-	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(CurrentRotation, Pitch));
-	CurrentRotation = DirectX::XMLoadFloat4(&Orientation);
-	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(CurrentRotation, Yaw));
-	CurrentRotation = DirectX::XMLoadFloat4(&Orientation);
-	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(CurrentRotation, Roll));
+	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(currentRotation, pitch));
+	currentRotation = DirectX::XMLoadFloat4(&Orientation);
+	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(currentRotation, yaw));
+	currentRotation = DirectX::XMLoadFloat4(&Orientation);
+	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(currentRotation, roll));
 }
 
 DirectX::XMMATRIX Transform::Matrix() const

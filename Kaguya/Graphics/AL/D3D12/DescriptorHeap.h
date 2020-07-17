@@ -7,35 +7,102 @@
 class Device;
 class DescriptorHeap;
 
-class Descriptor
+struct Descriptor
 {
-public:
-	Descriptor();
-	Descriptor(D3D12_CPU_DESCRIPTOR_HANDLE CPUDescriptorHandle, UINT NumDescriptors, UINT DescriptorIncrementSize, DescriptorHeap* pDescriptorHeap);
-	~Descriptor();
+	D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle = { NULL };
+	D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle = { NULL };
+	UINT HeapIndex = 0;
+	UINT IncrementSize = 0;
 
-	D3D12_CPU_DESCRIPTOR_HANDLE operator[](INT Index) const;
-	operator bool() const;
-	UINT NumDescriptors() const;
+	inline bool IsValid() { return CPUHandle.ptr != NULL; }
+	inline bool IsReferencedByShader() { return GPUHandle.ptr != NULL; }
+};
+
+struct DescriptorAllocation
+{
+	Descriptor StartDescriptor = {};
+	UINT NumDescriptors = 0;
+
+	Descriptor operator[](INT Index) const;
 private:
+	friend class DescriptorHeap;
 	friend class DescriptorAllocator;
-
-	D3D12_CPU_DESCRIPTOR_HANDLE m_CPUDescriptorHandle;
-	UINT m_NumDescriptors;
-	UINT m_DescriptorIncrementSize;
-	DescriptorHeap* m_pDescriptorHeap;
+	DescriptorHeap* pOwningHeap = nullptr;
 };
 
 class DescriptorHeap
 {
 public:
-	DescriptorHeap(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type, UINT NumDescriptors);
+	DescriptorHeap() = default;
+	DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, D3D12_DESCRIPTOR_HEAP_TYPE Type);
+	virtual ~DescriptorHeap() = default;
 
-	// Returns std::null_opt if m_NumFreeHandles < NumDescriptors
-	std::optional<Descriptor> Allocate(UINT NumDescriptors, UINT DescriptorIncrementSize);
-	void Free(const Descriptor& Descriptor, UINT DescriptorIncrementSize);
-private:
+	DescriptorHeap(DescriptorHeap&&) noexcept = default;
+	DescriptorHeap& operator=(DescriptorHeap&&) noexcept = default;
+
+	DescriptorHeap(const DescriptorHeap&) = delete;
+	DescriptorHeap& operator=(const DescriptorHeap&) = delete;
+
+	inline auto GetD3DDescriptorHeap() const { return m_pDescriptorHeap.Get(); }
+
+	std::optional<DescriptorAllocation> Allocate(INT PartitionIndex, UINT NumDescriptors);
+	void Free(INT PartitionIndex, DescriptorAllocation& DescriptorAllocation);
+protected:
+	auto& GetDescriptorPartitionAt(INT Index) { return m_DescriptorPartitions[Index]; }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandleAt(INT PartitionIndex, INT Index);
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandleAt(INT PartitionIndex, INT Index);
+
+	// Used for partitioning descriptors in CBV_SRV_UAV
+	struct RangeBlockInfo
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE StartCPUDescriptorHandle = { NULL };
+		D3D12_GPU_DESCRIPTOR_HANDLE StartGPUDescriptorHandle = { NULL };
+		UINT64 Capacity = 0;
+	};
+	struct DescriptorPartition
+	{
+		RangeBlockInfo RangeBlockInfo;
+		VariableSizedAllocator Allocator;
+	};
+
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_BaseDescriptorHandle;
-	VariableSizedAllocator m_Allocator;
+	UINT m_DescriptorIncrementSize;
+	BOOL m_ShaderVisible;
+	std::vector<DescriptorPartition> m_DescriptorPartitions;
+};
+
+class CBSRUADescriptorHeap : public DescriptorHeap
+{
+public:
+	enum RangeType
+	{
+		ConstantBuffer,
+		ShaderResource,
+		UnorderedAccess,
+		NumRangeTypes
+	};
+
+	CBSRUADescriptorHeap(Device* pDevice, std::array<UINT, 3> Ranges);
+
+	std::optional<DescriptorAllocation> AllocateCBDescriptors(UINT NumDescriptors);
+	std::optional<DescriptorAllocation> AllocateSRDescriptors(UINT NumDescriptors);
+	std::optional<DescriptorAllocation> AllocateUADescriptors(UINT NumDescriptors);
+};
+
+class SamplerDescriptorHeap : public DescriptorHeap
+{
+public:
+	SamplerDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges);
+};
+
+class RenderTargetDescriptorHeap : public DescriptorHeap
+{
+public:
+	RenderTargetDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges);
+};
+
+class DepthStencilDescriptorHeap : public DescriptorHeap
+{
+public:
+	DepthStencilDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges);
 };

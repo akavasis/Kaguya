@@ -9,6 +9,7 @@ struct Scene
 {
 	using PointLightList = std::list<PointLight>;
 	using SpotLightList = std::list<SpotLight>;
+	using MaterialList = std::list<Material>;
 	using ModelList = std::list<Model>;
 
 	Skybox Skybox;
@@ -17,13 +18,13 @@ struct Scene
 	DirectionalLight Sun;
 	PointLightList PointLights;
 	SpotLightList SpotLights;
+	MaterialList Materials;
 	ModelList Models;
 
 	PointLight& AddPointLight(PointLight&& PointLight);
 	SpotLight& AddSpotLight(SpotLight&& SpotLight);
+	Material& AddMaterial(Material&& Material);
 	Model& AddModel(Model&& Model);
-
-	void RenderImGuiWindow();
 };
 
 UINT CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vector<const Model*>& Indices);

@@ -2,9 +2,12 @@
 #include "DescriptorAllocator.h"
 #include "Device.h"
 
-DescriptorAllocator::DescriptorAllocator(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type)
+DescriptorAllocator::DescriptorAllocator(Device* pDevice)
 	: m_pDevice(pDevice),
-	m_Type(Type)
+	m_CBSRUADescriptorHeap(pDevice, { NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange }),
+	m_SamplerDescriptorHeap(pDevice, { NumDescriptorsPerRange }),
+	m_RenderTargetDescriptorHeap(pDevice, { NumDescriptorsPerRange }),
+	m_DepthStencilDescriptorHeap(pDevice, { NumDescriptorsPerRange })
 {
 }
 
@@ -12,32 +15,86 @@ DescriptorAllocator::~DescriptorAllocator()
 {
 }
 
-Descriptor DescriptorAllocator::Allocate(UINT NumDescriptors)
+DescriptorAllocation DescriptorAllocator::AllocateCBDescriptors(UINT NumDescriptors)
 {
-	Descriptor descriptor;
-
-	for (auto iter = m_DescriptorHeaps.begin(); iter != m_DescriptorHeaps.end(); ++iter)
-	{
-		auto optDescriptor = iter->get()->Allocate(NumDescriptors, m_pDevice->GetDescriptorIncrementSize(m_Type));
-		if (optDescriptor.has_value())
-		{
-			descriptor = optDescriptor.value();
-			break;
-		}
-	}
-
-	if (!descriptor)
-	{
-		auto pDescriptorHeap = std::make_unique<DescriptorHeap>(m_pDevice, m_Type, NumDescriptorsPerHeap);
-		descriptor = pDescriptorHeap->Allocate(NumDescriptors, m_pDevice->GetDescriptorIncrementSize(m_Type)).value();
-		m_DescriptorHeaps.push_back(std::move(pDescriptorHeap));
-	}
-
-	return descriptor;
+	return m_CBSRUADescriptorHeap.AllocateCBDescriptors(NumDescriptors).value_or(DescriptorAllocation());
 }
 
-void DescriptorAllocator::Free(const Descriptor& Descriptor)
+DescriptorAllocation DescriptorAllocator::AllocateSRDescriptors(UINT NumDescriptors)
 {
-	if (!Descriptor) return;
-	Descriptor.m_pDescriptorHeap->Free(Descriptor, m_pDevice->GetDescriptorIncrementSize(m_Type));
+	return m_CBSRUADescriptorHeap.AllocateSRDescriptors(NumDescriptors).value_or(DescriptorAllocation());
+}
+
+DescriptorAllocation DescriptorAllocator::AllocateUADescriptors(UINT NumDescriptors)
+{
+	return m_CBSRUADescriptorHeap.AllocateUADescriptors(NumDescriptors).value_or(DescriptorAllocation());
+}
+
+DescriptorAllocation DescriptorAllocator::AllocateSamplerDescriptors(UINT NumDescriptors)
+{
+	return m_SamplerDescriptorHeap.Allocate(0, NumDescriptors).value_or(DescriptorAllocation());
+}
+
+DescriptorAllocation DescriptorAllocator::AllocateRenderTargetDescriptors(UINT NumDescriptors)
+{
+	return m_RenderTargetDescriptorHeap.Allocate(0, NumDescriptors).value_or(DescriptorAllocation());
+}
+
+DescriptorAllocation DescriptorAllocator::AllocateDepthStencilDescriptors(UINT NumDescriptors)
+{
+	return m_DepthStencilDescriptorHeap.Allocate(0, NumDescriptors).value_or(DescriptorAllocation());
+}
+
+void DescriptorAllocator::FreeCBDescriptors(DescriptorAllocation& DescriptorAllocation)
+{
+	if (DescriptorAllocation.pOwningHeap != &m_CBSRUADescriptorHeap);
+	{
+		CORE_WARN("This descriptor allocation did not come from this heap");
+	}
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, DescriptorAllocation);
+}
+
+void DescriptorAllocator::FreeSRDescriptors(DescriptorAllocation& DescriptorAllocation)
+{
+	if (DescriptorAllocation.pOwningHeap != &m_CBSRUADescriptorHeap);
+	{
+		CORE_WARN("This descriptor allocation did not come from this heap");
+	}
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ShaderResource, DescriptorAllocation);
+}
+
+void DescriptorAllocator::FreeUADescriptors(DescriptorAllocation& DescriptorAllocation)
+{
+	if (DescriptorAllocation.pOwningHeap != &m_CBSRUADescriptorHeap);
+	{
+		CORE_WARN("This descriptor allocation did not come from this heap");
+	}
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::UnorderedAccess, DescriptorAllocation);
+}
+
+void DescriptorAllocator::FreeSamplerDescriptors(DescriptorAllocation& DescriptorAllocation)
+{
+	if (DescriptorAllocation.pOwningHeap != &m_SamplerDescriptorHeap);
+	{
+		CORE_WARN("This descriptor allocation did not come from this heap");
+	}
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, DescriptorAllocation);
+}
+
+void DescriptorAllocator::FreeRenderTargetDescriptors(DescriptorAllocation& DescriptorAllocation)
+{
+	if (DescriptorAllocation.pOwningHeap != &m_RenderTargetDescriptorHeap);
+	{
+		CORE_WARN("This descriptor allocation did not come from this heap");
+	}
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, DescriptorAllocation);
+}
+
+void DescriptorAllocator::FreeDepthStencilDescriptors(DescriptorAllocation& DescriptorAllocation)
+{
+	if (DescriptorAllocation.pOwningHeap != &m_DepthStencilDescriptorHeap);
+	{
+		CORE_WARN("This descriptor allocation did not come from this heap");
+	}
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, DescriptorAllocation);
 }

@@ -18,6 +18,7 @@
 #include "Core/Time.h"
 #include "Graphics/Renderer.h"
 
+#include "Graphics/Scene/MaterialLoader.h"
 #include "Graphics/Scene/ModelLoader.h"
 #include "Graphics/Scene/Scene.h"
 
@@ -34,21 +35,29 @@ int main(int argc, char** argv)
 		Window window{ L"Kaguya Shinomiya" };
 		Renderer renderer{ application, window };
 
+		MaterialLoader materialLoader{ application.ExecutableFolderPath() };
 		ModelLoader modelLoader{ application.ExecutableFolderPath() };
 
 		Scene scene;
 		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
-		
+
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 		scene.Camera.SetPosition(0.0f, 5.0f, -10.0f);
 
+		auto& cerberusMat = scene.AddMaterial(materialLoader.LoadMaterial(
+			"Assets/Models/Cerberus/Textures/Cerberus_Albedo.dds",
+			"Assets/Models/Cerberus/Textures/Cerberus_Normal.dds",
+			"Assets/Models/Cerberus/Textures/Cerberus_Roughness.dds",
+			"Assets/Models/Cerberus/Textures/Cerberus_Metallic.dds",
+			nullptr
+		));
+
 		auto& cerberus = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx"));
+		cerberus.Meshes[0].MaterialIndex = 0;
 		cerberus.Translate(0.0f, 5.0f, -5.0f);
 		cerberus.Rotate(DirectX::XMConvertToRadians(90.0f), DirectX::XMConvertToRadians(90.0f), 0.0f);
-		
-		auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 
-		//renderer.TEST(scene);
+		auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 
 		Time time;
 		time.Restart();
@@ -107,7 +116,6 @@ int main(int argc, char** argv)
 			time.Signal();
 			renderer.Update(time);
 			renderer.Render(scene);
-			//renderer.Present();
 		});
 	}
 	catch (std::exception& e)

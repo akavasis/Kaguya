@@ -30,6 +30,5 @@ struct MaterialTextureIndices
 	unsigned int RoughnessMapIndex;
 	unsigned int MetallicMapIndex;
 	unsigned int EmissiveMapIndex;
-	float3 _padding;
 };
 #endif

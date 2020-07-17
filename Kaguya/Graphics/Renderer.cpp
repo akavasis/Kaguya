@@ -8,8 +8,8 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	: m_RefWindow(RefWindow),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(m_RenderDevice),
-	m_GpuBufferAllocator(256_MiB, 256_MiB, 256_MiB, m_RenderDevice),
-	m_GpuTextureAllocator(256_MiB, m_RenderDevice)
+	m_GpuBufferAllocator(50_MiB, 50_MiB, 64_KiB, &m_RenderDevice),
+	m_GpuTextureAllocator(100, &m_RenderDevice)
 {
 	m_EventReceiver.Register(m_RefWindow, [&](const Event& event)
 	{
@@ -43,6 +43,13 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(m_BackBufferTexture[i].GetD3DResource(), D3D12_RESOURCE_STATE_COMMON);
 	}
 
+	// Allocate upload context;
+	m_pUploadCommandContext = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+
+	m_GpuBufferAllocator.Initialize(m_pUploadCommandContext);
+	m_GpuTextureAllocator.Initialize(m_pUploadCommandContext);
+	m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
+
 	Texture::Properties textureProp{};
 	textureProp.Type = Resource::Type::Texture2D;
 	textureProp.Format = RendererFormats::HDRBufferFormat;
@@ -69,28 +76,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	bufferProp.Stride = Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 	m_RenderPassConstantBufferHandle = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
 	m_pRenderPassConstantBuffer = m_RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
-
-	struct SceneStagingData
-	{
-		GpuBufferAllocator* pGpuBufferAllocator;
-		GpuTextureAllocator* pGpuTextureAllocator;
-	};
-
-	auto pSceneStagingPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, SceneStagingData>(
-		[&](SceneStagingData& Data, RenderDevice& RenderDevice)
-	{
-		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
-		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
-
-		return [](const SceneStagingData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
-		{
-			Data.pGpuBufferAllocator->Stage(Scene, pRenderCommandContext);
-			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			Data.pGpuTextureAllocator->Stage(Scene, pRenderCommandContext);
-
-			RenderGraphRegistry.GetRenderPass<RenderPassType::Graphics, SceneStagingData>()->Enabled = false;
-		};
-	});
+	m_pRenderPassConstantBuffer->Map();
 
 	struct ShadowPassData
 	{
@@ -100,7 +86,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		Buffer* pRenderPassConstantBuffer;
 
 		RenderResourceHandle outputDepthTexture;
-		Descriptor depthStencilView;
+		DescriptorAllocation depthStencilView;
 	};
 
 	auto pShadowPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowPassData>(
@@ -122,10 +108,11 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
 		textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		Data.outputDepthTexture = RenderDevice.CreateTexture(textureProp);
-		Data.depthStencilView = RenderDevice.GetDevice().GetDescriptorAllocator<D3D12_DEPTH_STENCIL_VIEW_DESC>().Allocate(NUM_CASCADES);
+		Data.depthStencilView = RenderDevice.GetDescriptorAllocator().AllocateDepthStencilDescriptors(NUM_CASCADES);
 		for (UINT i = 0; i < NUM_CASCADES; ++i)
 		{
-			RenderDevice.CreateDSV(Data.outputDepthTexture, Data.depthStencilView[i], i, {}, 1);
+			Descriptor descriptor = Data.depthStencilView[i];
+			RenderDevice.CreateDSV(Data.outputDepthTexture, descriptor, i, {}, 1);
 		}
 
 		return [](const ShadowPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
@@ -141,11 +128,11 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 			// Begin rendering
 			PIXMarker(pRenderCommandContext->GetD3DCommandList(), L"Scene Cascade Shadow Map Render");
 
+			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Shadow));
 			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Shadow));
 
 			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			pRenderCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 			D3D12_VIEWPORT vp;
@@ -167,10 +154,11 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 				PIXMarker(pRenderCommandContext->GetD3DCommandList(), msg);
 
 				const OrthographicCamera& CascadeCamera = Scene.CascadeCameras[cascadeIndex];
-				pRenderCommandContext->SetGraphicsRootCBV(1, Data.pRenderPassConstantBuffer->GetGpuVAAt(cascadeIndex));
+				pRenderCommandContext->SetGraphicsRootCBV(RootParameters::Shadow::RenderPassCBuffer, Data.pRenderPassConstantBuffer->GetGpuVAAt(cascadeIndex));
 
-				pRenderCommandContext->SetRenderTargets(0, 0, Descriptor(), FALSE, cascadeIndex, Data.depthStencilView);
-				pRenderCommandContext->ClearDepthStencil(cascadeIndex, Data.depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+				Descriptor descriptor = Data.depthStencilView[cascadeIndex];
+				pRenderCommandContext->SetRenderTargets(0, Descriptor(), FALSE, descriptor);
+				pRenderCommandContext->ClearDepthStencil(descriptor, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 				const UINT numVisibleModels = CullModelsOrthographic(CascadeCamera, true, Scene.Models, visibleModelsIndices);
 				for (UINT i = 0; i < numVisibleModels; ++i)
@@ -183,7 +171,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 						const UINT meshIndex = visibleMeshesIndices[pModel][j];
 						auto& mesh = pModel->Meshes[meshIndex];
 
-						pRenderCommandContext->SetGraphicsRootCBV(0, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVAAt(mesh.ConstantBufferIndex));
+						pRenderCommandContext->SetGraphicsRootCBV(RootParameters::Shadow::ObjectCBuffer, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVAAt(mesh.ObjectConstantsIndex));
 						pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 					}
 				}
@@ -201,8 +189,8 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		Texture* pFrameBuffer;
 		Texture* pFrameDepthStencilBuffer;
 		Buffer* pRenderPassConstantBuffer;
-		Descriptor RenderTargetView;
-		Descriptor DepthStencilView;
+		DescriptorAllocation RenderTargetView;
+		DescriptorAllocation DepthStencilView;
 	};
 
 	auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>(
@@ -215,8 +203,8 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		Data.pFrameDepthStencilBuffer = RenderDevice.GetTexture(m_FrameDepthStencilBufferHandle);
 		Data.pRenderPassConstantBuffer = RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
 
-		Data.RenderTargetView = RenderDevice.GetDevice().GetDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>().Allocate(1);
-		Data.DepthStencilView = RenderDevice.GetDevice().GetDescriptorAllocator<D3D12_DEPTH_STENCIL_VIEW_DESC>().Allocate(1);
+		Data.RenderTargetView = RenderDevice.GetDescriptorAllocator().AllocateRenderTargetDescriptors(1);
+		Data.DepthStencilView = RenderDevice.GetDescriptorAllocator().AllocateDepthStencilDescriptors(1);
 
 		RenderDevice.CreateRTV(m_FrameBufferHandle, Data.RenderTargetView[0], {}, {}, {});
 		RenderDevice.CreateDSV(m_FrameDepthStencilBufferHandle, Data.DepthStencilView[0], {}, {}, {});
@@ -233,11 +221,12 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 			PIXMarker(pRenderCommandContext->GetD3DCommandList(), L"Scene Render");
 
+			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PBR));
 			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PBR));
 
 			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, RootParameters::PBR::StandardDescriptorTables, pRenderCommandContext);
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -254,15 +243,9 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 			pRenderCommandContext->SetViewports(1, &vp);
 			pRenderCommandContext->SetScissorRects(1, &sr);
 
-			pRenderCommandContext->SetRenderTargets(0, 1, Data.RenderTargetView, TRUE, 0, Data.DepthStencilView);
-			pRenderCommandContext->ClearRenderTarget(0, Data.RenderTargetView, DirectX::Colors::LightBlue, 0, nullptr);
-			pRenderCommandContext->ClearDepthStencil(0, Data.DepthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-			/*pRenderCommandContext->SetSRV(RootParameters::PBR::PBRRootParameter_ShadowMapAndEnvironmentMapsSRV, 0, Data.pInputDepthBuffer->Type(), &Data.InputDepthBufferSRVDesc);
-			pRenderCommandContext->SetSRV(RootParameters::PBR::PBRRootParameter_ShadowMapAndEnvironmentMapsSRV, 1, m_Skybox.IrradianceTexture, &m_Skybox.IrradianceSRVDesc);
-			pRenderCommandContext->SetSRV(RootParameters::PBR::PBRRootParameter_ShadowMapAndEnvironmentMapsSRV, 2, m_Skybox.PrefilterdTexture, &m_Skybox.PrefilterdSRVDesc);
-			pRenderCommandContext->SetSRV(RootParameters::PBR::PBRRootParameter_ShadowMapAndEnvironmentMapsSRV, 3, m_Skybox.BRDFLUT, &m_Skybox.BRDFLUTSRVDesc);
-			pRenderCommandContext->SetGraphicsRootCBV(RootParameters::PBR::PBRRootParameter_RenderPassCBuffer, m_pRenderPassCBs->BufferLocationAt(0));*/
+			pRenderCommandContext->SetRenderTargets(0, Data.RenderTargetView[0], TRUE, Data.DepthStencilView[0]);
+			pRenderCommandContext->ClearRenderTarget(Data.RenderTargetView[0], DirectX::Colors::LightBlue, 0, nullptr);
+			pRenderCommandContext->ClearDepthStencil(Data.DepthStencilView[0], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 			const UINT numVisibleModels = CullModels(&Scene.Camera, Scene.Models, visibleModelsIndices);
 			for (UINT i = 0; i < numVisibleModels; ++i)
@@ -275,7 +258,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 					const UINT meshIndex = visibleMeshesIndices[pModel][j];
 					auto& mesh = pModel->Meshes[meshIndex];
 
-					pRenderCommandContext->SetGraphicsRootCBV(0, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVAAt(mesh.ConstantBufferIndex));
+					pRenderCommandContext->SetGraphicsRootCBV(RootParameters::PBR::ObjectCBuffer, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVAAt(mesh.ObjectConstantsIndex));
 					pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 				}
 			}
@@ -287,17 +270,6 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 
 Renderer::~Renderer()
 {
-}
-
-void Renderer::TEST(Scene& Scene)
-{
-	PIXCapture();
-	auto pRenderCommandContext = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	m_GpuBufferAllocator.Stage(Scene, pRenderCommandContext);
-	m_GpuBufferAllocator.Bind(pRenderCommandContext);
-	m_GpuBufferAllocator.Update(Scene);
-	m_GpuTextureAllocator.Stage(Scene, pRenderCommandContext);
-	m_RenderDevice.ExecuteRenderCommandContexts(1, &pRenderCommandContext);
 }
 
 void Renderer::Update(const Time& Time)
@@ -316,8 +288,30 @@ void Renderer::Update(const Time& Time)
 void Renderer::Render(Scene& Scene)
 {
 	PIXCapture();
+	if (!m_Status.IsSceneSkyboxStaged)
+	{
+		m_Status.IsSceneSkyboxStaged = true;
+
+		m_GpuBufferAllocator.StageSkybox(Scene, m_pUploadCommandContext);
+		m_GpuBufferAllocator.Bind(m_pUploadCommandContext);
+		m_GpuTextureAllocator.StageSkybox(Scene, m_pUploadCommandContext);
+
+		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
+	}
+
+	if (!m_Status.IsSceneStaged)
+	{
+		m_Status.IsSceneStaged = true;
+
+		m_GpuBufferAllocator.Stage(Scene, m_pUploadCommandContext);
+		m_GpuBufferAllocator.Bind(m_pUploadCommandContext);
+		m_GpuTextureAllocator.Stage(Scene, m_pUploadCommandContext);
+
+		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
+	}
 	Scene.Camera.SetAspectRatio(m_AspectRatio);
 	m_GpuBufferAllocator.Update(Scene);
+	m_GpuTextureAllocator.Update(Scene);
 	Scene.CascadeCameras = Scene.Sun.GenerateCascades(Scene.Camera, Constants::SunShadowMapResolution);
 
 	// Update shadow render pass cbuffer
@@ -342,10 +336,7 @@ void Renderer::Render(Scene& Scene)
 	m_RenderGraph.Execute(Scene);
 	m_RenderGraph.ThreadBarrier();
 	m_RenderGraph.ExecuteCommandContexts();
-}
 
-void Renderer::Present()
-{
 	UINT syncInterval = m_Setting.VSync ? 1u : 0u;
 	UINT presentFlags = (m_DXGIManager.TearingSupport() && !m_Setting.VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
 	DXGI_PRESENT_PARAMETERS presentParameters = { 0u, NULL, NULL, NULL };
@@ -353,12 +344,12 @@ void Renderer::Present()
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
 		CORE_ERROR("DXGI_ERROR_DEVICE_REMOVED");
-		Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedData> pDRED;
-		ThrowCOMIfFailed(m_RenderDevice.GetDevice().GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&pDRED)));
-		D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT DREDAutoBreadcrumbsOutput;
-		D3D12_DRED_PAGE_FAULT_OUTPUT DREDPageFaultOutput;
-		ThrowCOMIfFailed(pDRED->GetAutoBreadcrumbsOutput(&DREDAutoBreadcrumbsOutput));
-		ThrowCOMIfFailed(pDRED->GetPageFaultAllocationOutput(&DREDPageFaultOutput));
+		Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedData> pDred;
+		ThrowCOMIfFailed(m_RenderDevice.GetDevice().GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&pDred)));
+		D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT DredAutoBreadcrumbsOutput;
+		D3D12_DRED_PAGE_FAULT_OUTPUT DredPageFaultOutput;
+		ThrowCOMIfFailed(pDred->GetAutoBreadcrumbsOutput(&DredAutoBreadcrumbsOutput));
+		ThrowCOMIfFailed(pDred->GetPageFaultAllocationOutput(&DredPageFaultOutput));
 	}
 }
 

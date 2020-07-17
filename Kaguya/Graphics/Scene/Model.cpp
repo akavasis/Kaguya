@@ -119,7 +119,7 @@ void Subdivide(MeshData& meshData)
 	}
 }
 
-Model CreateFromMeshData(MeshData& meshData, Material material)
+Model CreateFromMeshData(MeshData& meshData)
 {
 	Model model{};
 	DirectX::BoundingBox::CreateFromPoints(model.BoundingBox, meshData.Vertices.size(), &meshData.Vertices[0].Position, sizeof(Vertex));
@@ -136,11 +136,10 @@ Model CreateFromMeshData(MeshData& meshData, Material material)
 	mesh.BaseVertexLocation = 0;
 
 	model.Meshes.push_back(std::move(mesh));
-	model.Materials.push_back(std::move(material));
 	return model;
 }
 
-Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions, Material Material)
+Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions)
 {
 	MeshData meshData;
 
@@ -220,10 +219,10 @@ Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions, Ma
 	for (UINT i = 0; i < NumSubdivisions; ++i)
 		Subdivide(meshData);
 
-	return CreateFromMeshData(meshData, std::move(Material));
+	return CreateFromMeshData(meshData);
 }
 
-Model CreateGrid(float Width, float Depth, UINT M, UINT N, Material Material)
+Model CreateGrid(float Width, float Depth, UINT M, UINT N)
 {
 	MeshData meshData;
 
@@ -279,5 +278,5 @@ Model CreateGrid(float Width, float Depth, UINT M, UINT N, Material Material)
 		}
 	}
 
-	return CreateFromMeshData(meshData, std::move(Material));
+	return CreateFromMeshData(meshData);
 }

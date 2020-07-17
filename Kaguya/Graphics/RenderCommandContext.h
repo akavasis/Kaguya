@@ -2,8 +2,13 @@
 #include <d3d12.h>
 
 #include "AL/D3D12/ResourceStateTracker.h"
-#include "AL/D3D12/DynamicDescriptorHeap.h"
 #include "AL/D3D12/DescriptorHeap.h"
+
+#include "AL/D3D12/Buffer.h"
+#include "AL/D3D12/Texture.h"
+#include "AL/D3D12/Heap.h"
+#include "AL/D3D12/RootSignature.h"
+#include "AL/D3D12/PipelineState.h"
 
 class RenderDevice;
 
@@ -23,7 +28,7 @@ public:
 	inline auto GetD3DCommandList() const { return m_pCommandList.Get(); }
 
 	void SetPipelineState(const PipelineState* pPipelineState);
-	void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* pDescriptorHeap);
+	void SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorHeap, SamplerDescriptorHeap* pSamplerDescriptorHeap);
 
 	void TransitionBarrier(Resource* pResource, D3D12_RESOURCE_STATES TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 	void AliasingBarrier(Resource* pBeforeResource, Resource* pAfterResource);
@@ -34,11 +39,9 @@ public:
 	void CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION* pDst, UINT DstX, UINT DstY, UINT DstZ, const D3D12_TEXTURE_COPY_LOCATION* pSrc, const D3D12_BOX* pSrcBox);
 	void CopyResource(Resource* pDstResource, Resource* pSrcResource);
 
-	void SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor);
-	void SetUAV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor);
-
 	// Graphics operations
-	void SetGraphicsRootSignature(const RootSignature* pRootSignature);
+	inline void SetGraphicsRootSignature(const RootSignature* pRootSignature);
+	inline void SetGraphicsRootDescriptorTable(UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor);
 	inline void SetGraphicsRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues);
 	inline void SetGraphicsRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues);
 	inline void SetGraphicsRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
@@ -51,22 +54,16 @@ public:
 
 	inline void SetViewports(UINT NumViewports, const D3D12_VIEWPORT* pViewports);
 	inline void SetScissorRects(UINT NumRects, const D3D12_RECT* pRects);
-	inline void SetRenderTargets(UINT RenderTargetDescriptorOffset, UINT NumHandlesWithinRenderTargetDescriptor, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange,
-		UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor);
-	void ClearRenderTarget(UINT RenderTargetDescriptorOffset, Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects)
-	{
-		m_pCommandList->ClearRenderTargetView(RenderTargetDescriptor[RenderTargetDescriptorOffset], Color, NumRects, pRects);
-	}
-	void ClearDepthStencil(UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT* pRects)
-	{
-		m_pCommandList->ClearDepthStencilView(DepthStencilDescriptor[DepthStencilDescriptorOffset], ClearFlags, Depth, Stencil, NumRects, pRects);
-	}
+	inline void SetRenderTargets(UINT NumRenderTargetDescriptors, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange, Descriptor DepthStencilDescriptor);
+	inline void ClearRenderTarget(Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects);
+	inline void ClearDepthStencil(Descriptor DepthStencilDescriptor, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT* pRects);
 
 	void DrawInstanced(UINT VertexCount, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation);
 	void DrawIndexedInstanced(UINT IndexCount, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation);
 
 	// Compute operations
-	void SetComputeRootSignature(const RootSignature* pRootSignature);
+	inline void SetComputeRootSignature(const RootSignature* pRootSignature);
+	inline void SetComputeRootDescriptorTable(UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor);
 	inline void SetComputeRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues);
 	inline void SetComputeRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues);
 	inline void SetComputeRootCBV(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
@@ -89,15 +86,8 @@ protected:
 	ID3D12CommandAllocator* m_pCurrentPendingAllocator; // Given by the CommandQueue
 	D3D12_COMMAND_LIST_TYPE m_Type;
 
-	// Keep track of the currently bound descriptor heaps. Only change descriptor 
-	// heaps if they are different than the currently bound descriptor heaps.
-	ID3D12DescriptorHeap* m_pCurrentDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-
 	// Resource state tracker for this command list
 	ResourceStateTracker m_ResourceStateTracker;
-
-	DynamicDescriptorHeap m_DynamicViewDescriptorHeap;
-	DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap;
 };
 
 #include "RenderCommandContext.inl"

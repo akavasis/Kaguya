@@ -1,4 +1,13 @@
-#include "RenderCommandContext.h"
+inline void RenderCommandContext::SetGraphicsRootSignature(const RootSignature* pRootSignature)
+{
+	m_pCommandList->SetGraphicsRootSignature(pRootSignature->GetD3DRootSignature());
+}
+
+inline void RenderCommandContext::SetGraphicsRootDescriptorTable(UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
+{
+	m_pCommandList->SetGraphicsRootDescriptorTable(RootParameterIndex, BaseDescriptor);
+}
+
 inline void RenderCommandContext::SetGraphicsRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
 {
 	m_pCommandList->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
@@ -49,11 +58,31 @@ inline void RenderCommandContext::SetScissorRects(UINT NumRects, const D3D12_REC
 	m_pCommandList->RSSetScissorRects(NumRects, pRects);
 }
 
-inline void RenderCommandContext::SetRenderTargets(UINT RenderTargetDescriptorOffset, UINT NumHandlesWithinRenderTargetDescriptor, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange, UINT DepthStencilDescriptorOffset, Descriptor DepthStencilDescriptor)
+inline void RenderCommandContext::SetRenderTargets(UINT NumRenderTargetDescriptors, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange, Descriptor DepthStencilDescriptor)
 {
-	const D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescriptors = RenderTargetDescriptors ? &RenderTargetDescriptors[RenderTargetDescriptorOffset] : nullptr;
-	const D3D12_CPU_DESCRIPTOR_HANDLE* pDepthStencilDescriptor = DepthStencilDescriptor ? &DepthStencilDescriptor[DepthStencilDescriptorOffset] : nullptr;
-	m_pCommandList->OMSetRenderTargets(NumHandlesWithinRenderTargetDescriptor, pRenderTargetDescriptors, RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
+	const D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescriptors = NumRenderTargetDescriptors > 0 ? &RenderTargetDescriptors.CPUHandle : nullptr;
+	const D3D12_CPU_DESCRIPTOR_HANDLE* pDepthStencilDescriptor = DepthStencilDescriptor.IsValid() ? &DepthStencilDescriptor.CPUHandle : nullptr;
+	m_pCommandList->OMSetRenderTargets(NumRenderTargetDescriptors, pRenderTargetDescriptors, RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
+}
+
+inline void RenderCommandContext::ClearRenderTarget(Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects)
+{
+	m_pCommandList->ClearRenderTargetView(RenderTargetDescriptor.CPUHandle, Color, NumRects, pRects);
+}
+
+inline void RenderCommandContext::ClearDepthStencil(Descriptor DepthStencilDescriptor, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT* pRects)
+{
+	m_pCommandList->ClearDepthStencilView(DepthStencilDescriptor.CPUHandle, ClearFlags, Depth, Stencil, NumRects, pRects);
+}
+
+inline void RenderCommandContext::SetComputeRootSignature(const RootSignature* pRootSignature)
+{
+	m_pCommandList->SetComputeRootSignature(pRootSignature->GetD3DRootSignature());
+}
+
+inline void RenderCommandContext::SetComputeRootDescriptorTable(UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
+{
+	m_pCommandList->SetComputeRootDescriptorTable(RootParameterIndex, BaseDescriptor);
 }
 
 inline void RenderCommandContext::SetComputeRoot32BitConstant(UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)

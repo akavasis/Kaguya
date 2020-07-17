@@ -2,16 +2,8 @@
 #include "RenderCommandContext.h"
 #include "RenderDevice.h"
 
-#include "AL/D3D12/Resource.h"
-#include "AL/D3D12/Buffer.h"
-#include "AL/D3D12/Texture.h"
-#include "AL/D3D12/RootSignature.h"
-#include "AL/D3D12/PipelineState.h"
-
 RenderCommandContext::RenderCommandContext(RenderDevice* pRenderDevice, D3D12_COMMAND_LIST_TYPE Type)
-	: m_Type(Type),
-	m_DynamicViewDescriptorHeap(&pRenderDevice->GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
-	m_DynamicSamplerDescriptorHeap(&pRenderDevice->GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+	: m_Type(Type)
 {
 	switch (Type)
 	{
@@ -25,11 +17,6 @@ RenderCommandContext::RenderCommandContext(RenderDevice* pRenderDevice, D3D12_CO
 
 	ThrowCOMIfFailed(pRenderDevice->GetDevice().GetD3DDevice()->CreateCommandList(1, Type, m_pCurrentAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
 	ThrowCOMIfFailed(pRenderDevice->GetDevice().GetD3DDevice()->CreateCommandList(1, Type, m_pCurrentPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
-
-	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-	{
-		m_pCurrentDescriptorHeaps[i] = nullptr;
-	}
 }
 
 bool RenderCommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
@@ -48,12 +35,6 @@ void RenderCommandContext::Reset()
 {
 	m_pCommandList->Reset(m_pCurrentAllocator, nullptr);
 	m_pPendingCommandList->Reset(m_pCurrentPendingAllocator, nullptr);
-	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-		m_pCurrentDescriptorHeaps[i] = nullptr;
-
-	// TODO: Add method to save bounded gpu descriptors before command list is resetted
-	m_DynamicViewDescriptorHeap.Reset();
-	m_DynamicSamplerDescriptorHeap.Reset();
 
 	// Reset resource state tracking and resource barriers 
 	m_ResourceStateTracker.Reset();
@@ -72,25 +53,20 @@ void RenderCommandContext::SetPipelineState(const PipelineState* pPipelineState)
 	m_pCommandList->SetPipelineState(pPipelineState->GetD3DPipelineState());
 }
 
-void RenderCommandContext::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* pDescriptorHeap)
+void RenderCommandContext::SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorHeap, SamplerDescriptorHeap* pSamplerDescriptorHeap)
 {
-	if (!pDescriptorHeap) return;
-	if (m_pCurrentDescriptorHeaps[Type] == pDescriptorHeap) return;
-
-	m_pCurrentDescriptorHeaps[Type] = pDescriptorHeap;
-
-	UINT NumDescriptorHeaps = 0;
-	ID3D12DescriptorHeap* DescriptorHeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
-
-	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+	UINT numDescriptorHeaps = 0;
+	ID3D12DescriptorHeap* pDescriptorHeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
+	if (pCBSRUADescriptorHeap)
 	{
-		ID3D12DescriptorHeap* DescriptorHeapIter = m_pCurrentDescriptorHeaps[i];
-		if (DescriptorHeapIter)
-			DescriptorHeapsToBind[NumDescriptorHeaps++] = DescriptorHeapIter;
+		pDescriptorHeapsToBind[numDescriptorHeaps++] = pCBSRUADescriptorHeap->GetD3DDescriptorHeap();
 	}
-
-	if (NumDescriptorHeaps > 0)
-		m_pCommandList->SetDescriptorHeaps(NumDescriptorHeaps, DescriptorHeapsToBind);
+	if (pSamplerDescriptorHeap)
+	{
+		pDescriptorHeapsToBind[numDescriptorHeaps++] = pSamplerDescriptorHeap->GetD3DDescriptorHeap();
+	}
+	if (numDescriptorHeaps > 0)
+		m_pCommandList->SetDescriptorHeaps(numDescriptorHeaps, pDescriptorHeapsToBind);
 }
 
 void RenderCommandContext::TransitionBarrier(Resource* pResource, D3D12_RESOURCE_STATES TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
@@ -155,52 +131,20 @@ void RenderCommandContext::CopyResource(Resource* pDstResource, Resource* pSrcRe
 	m_pCommandList->CopyResource(pDstResource->GetD3DResource(), pSrcResource->GetD3DResource());
 }
 
-void RenderCommandContext::SetSRV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor)
-{
-	m_DynamicViewDescriptorHeap.StageDescriptors(RootParameterIndex, DescriptorOffset, NumHandlesWithinDescriptor, Descriptor[0]);
-}
-
-void RenderCommandContext::SetUAV(UINT RootParameterIndex, UINT DescriptorOffset, UINT NumHandlesWithinDescriptor, Descriptor Descriptor)
-{
-	m_DynamicViewDescriptorHeap.StageDescriptors(RootParameterIndex, DescriptorOffset, NumHandlesWithinDescriptor, Descriptor[0]);
-}
-
-void RenderCommandContext::SetGraphicsRootSignature(const RootSignature* pRootSignature)
-{
-	auto pD3DRootSignature = pRootSignature->GetD3DRootSignature();
-	m_DynamicViewDescriptorHeap.ParseRootSignature(pRootSignature);
-	m_DynamicSamplerDescriptorHeap.ParseRootSignature(pRootSignature);
-	m_pCommandList->SetGraphicsRootSignature(pD3DRootSignature);
-}
-
 void RenderCommandContext::DrawInstanced(UINT VertexCount, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation)
 {
 	FlushResourceBarriers();
-	m_DynamicViewDescriptorHeap.CommitStagedDescriptorsForDraw(m_pCommandList.Get());
-	m_DynamicSamplerDescriptorHeap.CommitStagedDescriptorsForDraw(m_pCommandList.Get());
 	m_pCommandList->DrawInstanced(VertexCount, InstanceCount, StartVertexLocation, StartInstanceLocation);
 }
 
 void RenderCommandContext::DrawIndexedInstanced(UINT IndexCount, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation)
 {
 	FlushResourceBarriers();
-	m_DynamicViewDescriptorHeap.CommitStagedDescriptorsForDraw(m_pCommandList.Get());
-	m_DynamicSamplerDescriptorHeap.CommitStagedDescriptorsForDraw(m_pCommandList.Get());
 	m_pCommandList->DrawIndexedInstanced(IndexCount, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
-}
-
-void RenderCommandContext::SetComputeRootSignature(const RootSignature* pRootSignature)
-{
-	auto pD3DRootSignature = pRootSignature->GetD3DRootSignature();
-	m_DynamicViewDescriptorHeap.ParseRootSignature(pRootSignature);
-	m_DynamicSamplerDescriptorHeap.ParseRootSignature(pRootSignature);
-	m_pCommandList->SetComputeRootSignature(pD3DRootSignature);
 }
 
 void RenderCommandContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ)
 {
 	FlushResourceBarriers();
-	m_DynamicViewDescriptorHeap.CommitStagedDescriptorsForDispatch(m_pCommandList.Get());
-	m_DynamicSamplerDescriptorHeap.CommitStagedDescriptorsForDispatch(m_pCommandList.Get());
 	m_pCommandList->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 }

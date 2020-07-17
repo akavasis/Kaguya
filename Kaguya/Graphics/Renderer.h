@@ -23,11 +23,9 @@ public:
 	~Renderer();
 
 	inline auto& GetRenderDevice() { return m_RenderDevice; }
-	void TEST(Scene& Scene);
 
 	void Update(const Time& Time);
 	void Render(Scene& Scene);
-	void Present();
 private:
 	Texture& CurrentBackBuffer();
 	void Resize();
@@ -40,6 +38,12 @@ private:
 	enum { SwapChainBufferCount = 3 };
 	enum { NodeMask = 0 };
 	enum { NumFramesToBuffer = 3 }; // Not used yet
+
+	struct Status
+	{
+		bool IsSceneSkyboxStaged = false;
+		bool IsSceneStaged = false;
+	} m_Status;
 
 	struct Constants
 	{
@@ -77,6 +81,7 @@ private:
 	DXGIManager m_DXGIManager;
 
 	RenderDevice m_RenderDevice;
+	RenderCommandContext* m_pUploadCommandContext;
 	RenderGraph m_RenderGraph;
 	GpuBufferAllocator m_GpuBufferAllocator;
 	GpuTextureAllocator m_GpuTextureAllocator;

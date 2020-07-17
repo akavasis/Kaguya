@@ -13,10 +13,19 @@
 class GpuTextureAllocator
 {
 public:
-	GpuTextureAllocator(std::size_t MaterialTextureIndicesStructuredBufferSize, RenderDevice& RefRenderDevice);
+	GpuTextureAllocator(std::size_t NumMaterials, RenderDevice* pRenderDevice);
 
+	inline auto GetBRDFLUTIndex() const { return 0; }
+	inline auto GetSkyboxEquirectangularMapIndex() const { return 1; }
+	inline auto GetSkyboxCubemapIndex() const { return 2; }
+	inline auto GetSkyboxIrradianceCubemapIndex() const { return 3; }
+	inline auto GetSkyboxPrefilteredCubemapIndex() const { return 4; }
+
+	void Initialize(RenderCommandContext* pRenderCommandContext);
+	void StageSkybox(Scene& Scene, RenderCommandContext* pRenderCommandContext);
 	void Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext);
-	void Bind(RenderCommandContext* pRenderCommandContext) const;
+	void Update(Scene& Scene);
+	void Bind(UINT MaterialTextureIndicesRootParameterIndex, UINT StandardDescriptorTablesRootParameterIndex, RenderCommandContext* pRenderCommandContext) const;
 private:
 	struct Status
 	{
@@ -36,6 +45,7 @@ private:
 
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
 	void LoadMaterial(Material& Material);
+	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderCommandContext* pRenderCommandContext);
 	void GenerateMips(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext);
 	void GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext);
 	void GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext);
@@ -47,28 +57,46 @@ private:
 	bool IsSRGB(DXGI_FORMAT Format);
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
 
-	RenderDevice& m_RefRenderDevice;
+	RenderDevice* m_pRenderDevice;
 
-	DescriptorAllocator m_TextureViewAllocator;
-	Descriptor m_MipsNullUAVs;
-	Descriptor m_EquirectangularToCubeMapNullUAVs;
-	Descriptor m_SkyboxSRVs;
+	enum : UINT { NumDescriptorsPerRange = 2048 };
+	CBSRUADescriptorHeap m_StagingDescriptorHeap;
+	DescriptorAllocation m_TextureSRVs;
+	DescriptorAllocation m_RTV;
 
 	std::unordered_set<DXGI_FORMAT> m_UAVSupportedFormat;
 
 	// TODO: Add method to free them after Stage call
 	std::unordered_map<RenderResourceHandle, StagingTexture> m_UnstagedTextures;
 	std::vector<RenderResourceHandle> m_TemporaryResources;
-	std::vector<Descriptor> m_TemporaryDescriptors;
+	std::vector<DescriptorAllocation> m_TemporaryDescriptorAllocations;
 
 	RenderResourceHandle m_CubemapCamerasUploadBufferHandle;
-	RenderResourceHandle m_MaterialTextureIndicesStructuredBufferHandle;
 	RenderResourceHandle m_BRDFLUTHandle;
 	RenderResourceHandle m_SkyboxEquirectangularMapHandle;
 	RenderResourceHandle m_SkyboxCubemapHandle;
-	RenderResourceHandle m_IrradianceMapHandle;
-	RenderResourceHandle m_PrefilteredMapHandle;
-	std::unordered_map<std::string, RenderResourceHandle> m_TextureHandles;
-	std::unordered_map<std::string, std::size_t> m_TextureIndices;
+	RenderResourceHandle m_SkyboxIrradianceCubemapHandle;
+	RenderResourceHandle m_SkyboxPrefilteredCubemapHandle;
+	struct TextureStorage
+	{
+		std::unordered_map<std::string, RenderResourceHandle> TextureHandles;
+		std::unordered_map<std::string, std::size_t> TextureIndices;
+
+		void AddTexture(std::string Path, RenderResourceHandle AssociatedHandle, std::size_t GpuTextureIndex)
+		{
+			TextureHandles[Path] = AssociatedHandle;
+			TextureIndices[Path] = GpuTextureIndex;
+		}
+
+		void RemoveTexture(std::string Path)
+		{
+			TextureHandles.erase(Path);
+			TextureIndices.erase(Path);
+		}
+	} m_TextureStorage;
+
 	std::size_t m_TextureIndex;
+
+	RenderResourceHandle m_MaterialTextureIndicesStructuredBufferHandle;
+	Buffer* m_pMaterialTextureIndicesStructuredBuffer;
 };

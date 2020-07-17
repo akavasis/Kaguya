@@ -1,15 +1,9 @@
 #include "pch.h"
 #include "VariableSizedAllocator.h"
 
-VariableSizedAllocator::VariableSizedAllocator(SizeType Size)
-	: m_Size(Size),
-	m_AvailableSize(Size)
+VariableSizedAllocator::VariableSizedAllocator(SizeType Capacity)
 {
-	AllocateFreeBlock(0, Size);
-}
-
-VariableSizedAllocator::~VariableSizedAllocator()
-{
+	Reset(Capacity);
 }
 
 std::optional<std::pair<VariableSizedAllocator::OffsetType, VariableSizedAllocator::SizeType>> VariableSizedAllocator::Allocate(SizeType Size)
@@ -106,9 +100,15 @@ void VariableSizedAllocator::Free(OffsetType Offset, SizeType Size)
 
 void VariableSizedAllocator::Reset()
 {
+	Reset(m_Capacity);
+}
+
+void VariableSizedAllocator::Reset(SizeType Capacity)
+{
+	m_Capacity = Capacity;
 	m_FreeBlocksByOffsetPool.clear();
 	m_FreeBlocksBySizePool.clear();
-	m_AvailableSize = m_Size;
+	m_AvailableSize = m_Capacity;
 	AllocateFreeBlock(0, m_AvailableSize);
 }
 

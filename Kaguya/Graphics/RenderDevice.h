@@ -10,7 +10,10 @@
 
 #include "AL/D3D12/Device.h"
 #include "AL/D3D12/ResourceStateTracker.h"
+#include "AL/D3D12/DescriptorHeap.h"
+#include "AL/D3D12/DescriptorAllocator.h"
 #include "AL/D3D12/CommandQueue.h"
+
 #include "AL/D3D12/Buffer.h"
 #include "AL/D3D12/Texture.h"
 #include "AL/D3D12/Heap.h"
@@ -35,10 +38,11 @@ public:
 	RenderDevice& operator=(const RenderDevice&) = delete;
 
 	[[nodiscard]] inline Device& GetDevice() { return m_Device; }
-	[[nodiscard]] inline ResourceStateTracker& GetGlobalResourceStateTracker() { return m_GlobalResourceStateTracker; }
 	[[nodiscard]] inline CommandQueue* GetGraphicsQueue() { return &m_GraphicsQueue; }
 	[[nodiscard]] inline CommandQueue* GetComputeQueue() { return &m_ComputeQueue; }
 	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
+	[[nodiscard]] inline ResourceStateTracker& GetGlobalResourceStateTracker() { return m_GlobalResourceStateTracker; }
+	[[nodiscard]] inline DescriptorAllocator& GetDescriptorAllocator() { return m_DescriptorAllocator; }
 	[[nodiscard]] RenderCommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE Type);
 
 	void ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* ppRenderCommandContexts[]);
@@ -58,10 +62,10 @@ public:
 	void Destroy(RenderResourceHandle& RenderResourceHandle);
 
 	// Resource view creation
-	void CreateSRV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
-	void CreateUAV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice);
-	void CreateRTV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
-	void CreateDSV(RenderResourceHandle RenderResourceHandle, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
+	void CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor);
+	void CreateUAV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice);
+	void CreateRTV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
+	void CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
 
 	// Returns nullptr if a resource is not found
 	[[nodiscard]] inline Shader* GetShader(RenderResourceHandle RenderResourceHandle) const { return m_Shaders.GetResource(RenderResourceHandle); }
@@ -78,6 +82,7 @@ private:
 	CommandQueue m_CopyQueue;
 	ResourceStateTracker m_GlobalResourceStateTracker;
 	ShaderCompiler m_ShaderCompiler;
+	DescriptorAllocator m_DescriptorAllocator;
 	std::vector<std::unique_ptr<RenderCommandContext>> m_RenderCommandContexts[4];
 
 	template <RenderResourceHandle::Types Type, typename T>
