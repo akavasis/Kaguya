@@ -11,6 +11,7 @@ public:
 	DescriptorAllocator(Device* pDevice);
 	~DescriptorAllocator();
 
+	inline auto* GetUniversalGpuDescriptorHeap() { return &m_CBSRUADescriptorHeap; }
 	inline auto* GetUniversalGpuDescriptorHeap() const { return &m_CBSRUADescriptorHeap; }
 
 	DescriptorAllocation AllocateCBDescriptors(UINT NumDescriptors);

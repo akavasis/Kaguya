@@ -4,7 +4,7 @@
 Device::Device(IDXGIAdapter4* pAdapter)
 {
 #if defined(_DEBUG)
-	constexpr BOOL gpuBasedValidation = TRUE; // Enabling this will cause texture copying to copy black pixels
+	constexpr BOOL gpuBasedValidation = FALSE; // Enabling this will cause texture copying to copy black pixels
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
 	Microsoft::WRL::ComPtr<ID3D12Debug1> pDebug1;
 	ThrowCOMIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(pDebug1.ReleaseAndGetAddressOf())));

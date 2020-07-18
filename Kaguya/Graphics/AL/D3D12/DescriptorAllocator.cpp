@@ -4,8 +4,8 @@
 
 DescriptorAllocator::DescriptorAllocator(Device* pDevice)
 	: m_pDevice(pDevice),
-	m_CBSRUADescriptorHeap(pDevice, { NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange }),
-	m_SamplerDescriptorHeap(pDevice, { NumDescriptorsPerRange }),
+	m_CBSRUADescriptorHeap(pDevice, NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true),
+	m_SamplerDescriptorHeap(pDevice, { NumDescriptorsPerRange }, true),
 	m_RenderTargetDescriptorHeap(pDevice, { NumDescriptorsPerRange }),
 	m_DepthStencilDescriptorHeap(pDevice, { NumDescriptorsPerRange })
 {

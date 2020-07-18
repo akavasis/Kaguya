@@ -21,8 +21,10 @@ void ResourceStateTracker::SetResourceState(ResourceType* pResource, UINT Subres
 
 void ResourceStateTracker::UpdateResourceStates(const ResourceStateTracker& RST)
 {
-	Reset();
-	m_ResourceStates = RST.m_ResourceStates;
+	for (const auto& resourceState : RST.m_ResourceStates)
+	{
+		m_ResourceStates[resourceState.first] = resourceState.second;
+	}
 }
 
 void ResourceStateTracker::Reset()

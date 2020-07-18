@@ -2,6 +2,46 @@
 #include "RootSignature.h"
 #include "Device.h"
 
+void RootSignature::Properties::AllowInputLayout()
+{
+	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+}
+
+void RootSignature::Properties::DenyVSAccess()
+{
+	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
+}
+
+void RootSignature::Properties::DenyHSAccess()
+{
+	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+}
+
+void RootSignature::Properties::DenyDSAccess()
+{
+	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+}
+
+void RootSignature::Properties::DenyGSAccess()
+{
+	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+}
+
+void RootSignature::Properties::DenyPSAccess()
+{
+	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+}
+
+void RootSignature::Properties::AllowStreamOutput()
+{
+	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
+}
+
+void RootSignature::Properties::SetAsLocalRootSignature()
+{
+	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+}
+
 RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
 {
 	for (UINT i = 0; i < MaxDescriptorTables; ++i)

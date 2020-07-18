@@ -81,19 +81,19 @@ static std::array<const D3D12_STATIC_SAMPLER_DESC, SamplerStates::NumSamplerStat
 	};
 }
 
-enum StandardDescriptorTables
+enum DescriptorTables
 {
-	Tex2DTable,
-	Tex2DArrayTable,
-	TexCubeTable,
+	Tex2DTableRange,
+	Tex2DArrayTableRange,
+	TexCubeTableRange,
 
-	NumStandardDescriptorTables
+	NumDescriptorTables
 };
 
-static std::array<const D3D12_DESCRIPTOR_RANGE1, std::size_t(StandardDescriptorTables::NumStandardDescriptorTables)> GetStandardDescriptorRanges()
+static std::array<const D3D12_DESCRIPTOR_RANGE1, std::size_t(DescriptorTables::NumDescriptorTables)> GetStandardDescriptorRanges()
 {
-	static D3D12_DESCRIPTOR_RANGE1 standardDescriptorTables[StandardDescriptorTables::NumStandardDescriptorTables] = {};
-	for (std::size_t i = 0; i < StandardDescriptorTables::NumStandardDescriptorTables; ++i)
+	static D3D12_DESCRIPTOR_RANGE1 standardDescriptorTables[DescriptorTables::NumDescriptorTables] = {};
+	for (std::size_t i = 0; i < DescriptorTables::NumDescriptorTables; ++i)
 	{
 		standardDescriptorTables[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		standardDescriptorTables[i].NumDescriptors = UINT_MAX;
@@ -105,9 +105,9 @@ static std::array<const D3D12_DESCRIPTOR_RANGE1, std::size_t(StandardDescriptorT
 
 	return
 	{
-		standardDescriptorTables[Tex2DTable],
-		standardDescriptorTables[Tex2DArrayTable],
-		standardDescriptorTables[TexCubeTable]
+		standardDescriptorTables[Tex2DTableRange],
+		standardDescriptorTables[Tex2DArrayTableRange],
+		standardDescriptorTables[TexCubeTableRange]
 	};
 }
 
@@ -136,19 +136,19 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 	CS::PostProcess_BlurVertical = pRenderDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/PostProcess/Blur.hlsl", L"main", { { L"VERTICAL", L"1" } });
 }
 
-void RootSignatures::Register(RenderDevice* pDevice)
+void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
 	auto staticSamplers = GetStaticSamplerStates();
 	auto standardDescriptorTables = GetStandardDescriptorRanges();
 
-	// BRDFIntegration RS
+	// BRDFIntegration RS, this is just a empty root signature
 	{
 		RootSignature::Properties prop = {};
 		prop.Desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-		RootSignatures::BRDFIntegration = pDevice->CreateRootSignature(prop);
+		RootSignatures::BRDFIntegration = pRenderDevice->CreateRootSignature(prop);
 	}
 
 	// Cubemap convolutions RS
@@ -176,18 +176,18 @@ void RootSignatures::Register(RenderDevice* pDevice)
 			prop.Desc.pParameters = rootParameters;
 			prop.Desc.NumStaticSamplers = 1;
 			prop.Desc.pStaticSamplers = &linearClamp;
-			prop.Desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-				D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-				D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-				D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+			prop.AllowInputLayout();
+			prop.DenyHSAccess();
+			prop.DenyDSAccess();
+			prop.DenyGSAccess();
 
 			switch (i)
 			{
 			case Irradiance:
-				RootSignatures::ConvolutionIrradiace = pDevice->CreateRootSignature(prop);
+				RootSignatures::ConvolutionIrradiace = pRenderDevice->CreateRootSignature(prop);
 				break;
 			case Prefilter:
-				RootSignatures::ConvolutionPrefilter = pDevice->CreateRootSignature(prop);
+				RootSignatures::ConvolutionPrefilter = pRenderDevice->CreateRootSignature(prop);
 				break;
 			}
 		}
@@ -203,9 +203,9 @@ void RootSignatures::Register(RenderDevice* pDevice)
 		RootSignature::Properties prop = {};
 		prop.Desc.NumParameters = ARRAYSIZE(rootParameters);
 		prop.Desc.pParameters = rootParameters;
-		prop.Desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+		prop.AllowInputLayout();
 
-		RootSignatures::Shadow = pDevice->CreateRootSignature(prop);
+		RootSignatures::Shadow = pRenderDevice->CreateRootSignature(prop);
 	}
 
 	// PBR RS
@@ -215,16 +215,16 @@ void RootSignatures::Register(RenderDevice* pDevice)
 		rootParameters[RootParameters::PBR::ObjectCBuffer].InitAsConstantBufferView(0, 0);
 		rootParameters[RootParameters::PBR::RenderPassCBuffer].InitAsConstantBufferView(1, 0);
 		rootParameters[RootParameters::PBR::MaterialTextureIndicesSBuffer].InitAsShaderResourceView(0, 100);
-		rootParameters[RootParameters::PBR::StandardDescriptorTables].InitAsDescriptorTable(standardDescriptorTables.size(), standardDescriptorTables.data());
+		rootParameters[RootParameters::PBR::DescriptorTables].InitAsDescriptorTable(standardDescriptorTables.size(), standardDescriptorTables.data());
 
 		RootSignature::Properties prop = {};
 		prop.Desc.NumParameters = ARRAYSIZE(rootParameters);
 		prop.Desc.pParameters = rootParameters;
 		prop.Desc.NumStaticSamplers = staticSamplers.size();
 		prop.Desc.pStaticSamplers = staticSamplers.data();
-		prop.Desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+		prop.AllowInputLayout();
 
-		RootSignatures::PBR = pDevice->CreateRootSignature(prop);
+		RootSignatures::PBR = pRenderDevice->CreateRootSignature(prop);
 	}
 
 	// Skybox RS
@@ -233,19 +233,19 @@ void RootSignatures::Register(RenderDevice* pDevice)
 
 		rootParameters[RootParameters::Skybox::RenderPassCBuffer].InitAsConstantBufferView(0, 0);
 		rootParameters[RootParameters::Skybox::MaterialTextureIndicesSBuffer].InitAsConstantBufferView(0, 100);
-		rootParameters[RootParameters::Skybox::StandardDescriptorTables].InitAsDescriptorTable(standardDescriptorTables.size(), standardDescriptorTables.data());
+		rootParameters[RootParameters::Skybox::DescriptorTables].InitAsDescriptorTable(standardDescriptorTables.size(), standardDescriptorTables.data());
 
 		RootSignature::Properties prop = {};
 		prop.Desc.NumParameters = ARRAYSIZE(rootParameters);
 		prop.Desc.pParameters = rootParameters;
 		prop.Desc.NumStaticSamplers = staticSamplers.size();
 		prop.Desc.pStaticSamplers = staticSamplers.data();
-		prop.Desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+		prop.AllowInputLayout();
+		prop.DenyHSAccess();
+		prop.DenyDSAccess();
+		prop.DenyGSAccess();
 
-		RootSignatures::Skybox = pDevice->CreateRootSignature(prop);
+		RootSignatures::Skybox = pRenderDevice->CreateRootSignature(prop);
 	}
 
 	// Generate mips RS
@@ -272,13 +272,12 @@ void RootSignatures::Register(RenderDevice* pDevice)
 		prop.Desc.pParameters = rootParameters;
 		prop.Desc.NumStaticSamplers = 1;
 		prop.Desc.pStaticSamplers = &linearClampSampler;
-		prop.Desc.Flags =
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+		prop.DenyVSAccess();
+		prop.DenyHSAccess();
+		prop.DenyDSAccess();
+		prop.DenyGSAccess();
 
-		RootSignatures::GenerateMips = pDevice->CreateRootSignature(prop);
+		RootSignatures::GenerateMips = pRenderDevice->CreateRootSignature(prop);
 	}
 
 	// Equirectangular to cubemap RS
@@ -305,13 +304,12 @@ void RootSignatures::Register(RenderDevice* pDevice)
 		prop.Desc.pParameters = rootParameters;
 		prop.Desc.NumStaticSamplers = 1;
 		prop.Desc.pStaticSamplers = &linearWrap;
-		prop.Desc.Flags =
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+		prop.DenyVSAccess();
+		prop.DenyHSAccess();
+		prop.DenyDSAccess();
+		prop.DenyGSAccess();
 
-		RootSignatures::EquirectangularToCubemap = pDevice->CreateRootSignature(prop);
+		RootSignatures::EquirectangularToCubemap = pRenderDevice->CreateRootSignature(prop);
 	}
 }
 

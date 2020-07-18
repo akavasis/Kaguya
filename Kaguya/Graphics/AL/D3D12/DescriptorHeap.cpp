@@ -10,11 +10,11 @@ Descriptor DescriptorAllocation::operator[](INT Index) const
 	return { cpuHandle.Offset(Index, StartDescriptor.IncrementSize), gpuHandle.Offset(Index, StartDescriptor.IncrementSize), StartDescriptor.HeapIndex + Index, StartDescriptor.IncrementSize };
 }
 
-DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, D3D12_DESCRIPTOR_HEAP_TYPE Type)
+DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type)
 {
 	// If you recorded a CPU descriptor handle into the command list (render target or depth stencil) then that descriptor can be reused immediately after the Set call, 
 	// if you recorded a GPU descriptor handle into the command list (everything else) then that descriptor cannot be reused until gpu is done referencing them
-	m_ShaderVisible = Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER ? TRUE : FALSE;
+	m_ShaderVisible = ShaderVisible;
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc;
 	desc.Type = Type;
@@ -77,22 +77,22 @@ void DescriptorHeap::Free(INT PartitionIndex, DescriptorAllocation& DescriptorAl
 	DescriptorAllocation = {};
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::GetCPUHandleAt(INT PartitionIndex, INT Index)
+D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::GetCPUHandleAt(INT PartitionIndex, INT Index) const
 {
 	auto& partition = GetDescriptorPartitionAt(PartitionIndex);
 	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(partition.RangeBlockInfo.StartCPUDescriptorHandle);
 	return cpuHandle.Offset(Index, m_DescriptorIncrementSize);
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GetGPUHandleAt(INT PartitionIndex, INT Index)
+D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GetGPUHandleAt(INT PartitionIndex, INT Index) const
 {
 	auto& partition = GetDescriptorPartitionAt(PartitionIndex);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(partition.RangeBlockInfo.StartGPUDescriptorHandle);
 	return gpuHandle.Offset(Index, m_DescriptorIncrementSize);
 }
 
-CBSRUADescriptorHeap::CBSRUADescriptorHeap(Device* pDevice, std::array<UINT, 3> Ranges)
-	: DescriptorHeap(pDevice, { Ranges[0], Ranges[1], Ranges[2] }, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+CBSRUADescriptorHeap::CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible)
+	: DescriptorHeap(pDevice, { NumCBDescriptors, NumSRDescriptors, NumUADescriptors }, ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 {
 }
 
@@ -111,17 +111,17 @@ std::optional<DescriptorAllocation> CBSRUADescriptorHeap::AllocateUADescriptors(
 	return Allocate(RangeType::UnorderedAccess, NumDescriptors);
 }
 
-SamplerDescriptorHeap::SamplerDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges)
-	: DescriptorHeap(pDevice, Ranges, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+SamplerDescriptorHeap::SamplerDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible)
+	: DescriptorHeap(pDevice, Ranges, ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 {
 }
 
 RenderTargetDescriptorHeap::RenderTargetDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges)
-	: DescriptorHeap(pDevice, Ranges, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
+	: DescriptorHeap(pDevice, Ranges, false, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 {
 }
 
 DepthStencilDescriptorHeap::DepthStencilDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges)
-	: DescriptorHeap(pDevice, Ranges, D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+	: DescriptorHeap(pDevice, Ranges, false, D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
 {
 }

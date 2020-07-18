@@ -20,6 +20,11 @@ RenderCommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type
 	return m_RenderCommandContexts[Type].back().get();
 }
 
+void RenderDevice::BindUniversalGpuDescriptorHeap(RenderCommandContext* pRenderCommandContext) const
+{
+	pRenderCommandContext->SetDescriptorHeaps(m_DescriptorAllocator.GetUniversalGpuDescriptorHeap(), nullptr);
+}
+
 void RenderDevice::ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* ppRenderCommandContexts[])
 {
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
@@ -165,8 +170,15 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 	Texture* texture = GetTexture(RenderResourceHandle);
 	assert(texture != nullptr && "Could not find texture given the handle");
 
+	auto getValidSRVFormat = [](DXGI_FORMAT Format)
+	{
+		if (Format == DXGI_FORMAT_R32_TYPELESS)
+			return DXGI_FORMAT_R32_FLOAT;
+		return Format;
+	};
+
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-	desc.Format = texture->Format;
+	desc.Format = getValidSRVFormat(texture->Format);
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
 	if (texture->IsCubemap)

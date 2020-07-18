@@ -31,8 +31,8 @@ public:
 	RenderDevice(IDXGIAdapter4* pAdapter);
 	~RenderDevice();
 
-	RenderDevice(RenderDevice&&) = default;
-	RenderDevice& operator=(RenderDevice&&) = default;
+	RenderDevice(RenderDevice&&) noexcept = default;
+	RenderDevice& operator=(RenderDevice&&) noexcept = default;
 
 	RenderDevice(const RenderDevice&) = delete;
 	RenderDevice& operator=(const RenderDevice&) = delete;
@@ -45,6 +45,11 @@ public:
 	[[nodiscard]] inline DescriptorAllocator& GetDescriptorAllocator() { return m_DescriptorAllocator; }
 	[[nodiscard]] RenderCommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE Type);
 
+	void BindUniversalGpuDescriptorHeap(RenderCommandContext* pRenderCommandContext) const;
+	auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const
+	{
+		return m_DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::ShaderResource);
+	}
 	void ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* ppRenderCommandContexts[]);
 
 	// Resource creation
@@ -100,6 +105,15 @@ private:
 		}
 
 		T* GetResource(const RenderResourceHandle& RenderResourceHandle)
+		{
+			std::scoped_lock lk(m_Mutex);
+			auto iter = m_ResourceTable.find(RenderResourceHandle);
+			if (iter != m_ResourceTable.end())
+				return &iter->second;
+			return nullptr;
+		}
+
+		const T* GetResource(const RenderResourceHandle& RenderResourceHandle) const
 		{
 			std::scoped_lock lk(m_Mutex);
 			auto iter = m_ResourceTable.find(RenderResourceHandle);

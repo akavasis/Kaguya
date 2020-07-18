@@ -41,7 +41,6 @@ private:
 
 	struct Status
 	{
-		bool IsSceneSkyboxStaged = false;
 		bool IsSceneStaged = false;
 	} m_Status;
 

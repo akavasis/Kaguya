@@ -61,7 +61,7 @@ private:
 class RenderGraphRegistry
 {
 public:
-	RenderGraphRegistry(RenderDevice& RefRenderDevice, RenderGraph& RefRenderGraph)
+	RenderGraphRegistry(const RenderDevice& RefRenderDevice, const RenderGraph& RefRenderGraph)
 		: m_RefRenderDevice(RefRenderDevice),
 		m_RefRenderGraph(RefRenderGraph)
 	{}
@@ -73,11 +73,13 @@ public:
 	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetGraphicsPSO(RenderResourceHandle); }
 	[[nodiscard]] inline ComputePipelineState* GetComputePSO(const RenderResourceHandle& RenderResourceHandle) const { return m_RefRenderDevice.GetComputePSO(RenderResourceHandle); }
 
+	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const { return m_RefRenderDevice.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart(); }
+
 	template<RenderPassType Type, typename Data>
 	[[nodiscard]] inline RenderPass<Type, Data>* GetRenderPass() { return m_RefRenderGraph.GetRenderPass<Type, Data>(); }
 private:
-	RenderDevice& m_RefRenderDevice;
-	RenderGraph& m_RefRenderGraph;
+	const RenderDevice& m_RefRenderDevice;
+	const RenderGraph& m_RefRenderGraph;
 };
 
 class RenderGraph

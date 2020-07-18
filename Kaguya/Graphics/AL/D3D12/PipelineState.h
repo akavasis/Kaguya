@@ -13,8 +13,8 @@ public:
 	PipelineState(Type Type);
 	virtual ~PipelineState();
 
-	PipelineState(PipelineState&&) = default;
-	PipelineState& operator=(PipelineState&&) = default;
+	PipelineState(PipelineState&&) noexcept = default;
+	PipelineState& operator=(PipelineState&&) noexcept = default;
 
 	PipelineState(const PipelineState&) = delete;
 	PipelineState& operator=(const PipelineState&) = delete;
@@ -38,8 +38,8 @@ public:
 	GraphicsPipelineState(Device* pDevice, const Properties& Properties);
 	~GraphicsPipelineState() override;
 
-	GraphicsPipelineState(GraphicsPipelineState&&) = default;
-	GraphicsPipelineState& operator=(GraphicsPipelineState&&) = default;
+	GraphicsPipelineState(GraphicsPipelineState&&) noexcept = default;
+	GraphicsPipelineState& operator=(GraphicsPipelineState&&) noexcept = default;
 
 	GraphicsPipelineState(const GraphicsPipelineState&) = delete;
 	GraphicsPipelineState& operator=(const GraphicsPipelineState&) = delete;
@@ -57,8 +57,8 @@ public:
 	ComputePipelineState(Device* pDevice, const Properties& Properties);
 	~ComputePipelineState() override;
 
-	ComputePipelineState(ComputePipelineState&&) = default;
-	ComputePipelineState& operator=(ComputePipelineState&&) = default;
+	ComputePipelineState(ComputePipelineState&&) noexcept = default;
+	ComputePipelineState& operator=(ComputePipelineState&&) noexcept = default;
 
 	ComputePipelineState(const ComputePipelineState&) = delete;
 	ComputePipelineState& operator=(const ComputePipelineState&) = delete;

@@ -13,19 +13,35 @@
 class GpuTextureAllocator
 {
 public:
-	GpuTextureAllocator(std::size_t NumMaterials, RenderDevice* pRenderDevice);
+	enum AssetTextures
+	{
+		BRDFLUT,
+		SkyboxEquirectangularMap,
+		SkyboxCubemap,
+		SkyboxIrradianceCubemap,
+		SkyboxPrefilteredCubemap,
+		NumAssetTextures
+	};
+	RenderResourceHandle AssetTextures[NumAssetTextures];
 
-	inline auto GetBRDFLUTIndex() const { return 0; }
-	inline auto GetSkyboxEquirectangularMapIndex() const { return 1; }
-	inline auto GetSkyboxCubemapIndex() const { return 2; }
-	inline auto GetSkyboxIrradianceCubemapIndex() const { return 3; }
-	inline auto GetSkyboxPrefilteredCubemapIndex() const { return 4; }
+	struct TextureStorage
+	{
+		std::unordered_map<std::string, RenderResourceHandle> TextureHandles;
+		std::unordered_map<std::string, size_t> TextureIndices;
 
-	void Initialize(RenderCommandContext* pRenderCommandContext);
-	void StageSkybox(Scene& Scene, RenderCommandContext* pRenderCommandContext);
+		std::size_t Size() const;
+		void AddTexture(const std::string& Path, RenderResourceHandle AssociatedHandle, std::size_t GpuTextureIndex);
+		void RemoveTexture(const std::string& Path);
+		std::pair<RenderResourceHandle, size_t> GetTexture(const std::string& Path) const;
+	} TextureStorage;
+
+	GpuTextureAllocator(size_t NumMaterials, RenderDevice* pRenderDevice);
+
+	inline auto GetNumTextures() const { return m_NumTextures; }
+
 	void Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext);
 	void Update(Scene& Scene);
-	void Bind(UINT MaterialTextureIndicesRootParameterIndex, UINT StandardDescriptorTablesRootParameterIndex, RenderCommandContext* pRenderCommandContext) const;
+	void Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, RenderCommandContext* pRenderCommandContext) const;
 private:
 	struct Status
 	{
@@ -60,8 +76,7 @@ private:
 	RenderDevice* m_pRenderDevice;
 
 	enum : UINT { NumDescriptorsPerRange = 2048 };
-	CBSRUADescriptorHeap m_StagingDescriptorHeap;
-	DescriptorAllocation m_TextureSRVs;
+	CBSRUADescriptorHeap m_CBSRUADescriptorHeap;
 	DescriptorAllocation m_RTV;
 
 	std::unordered_set<DXGI_FORMAT> m_UAVSupportedFormat;
@@ -72,30 +87,8 @@ private:
 	std::vector<DescriptorAllocation> m_TemporaryDescriptorAllocations;
 
 	RenderResourceHandle m_CubemapCamerasUploadBufferHandle;
-	RenderResourceHandle m_BRDFLUTHandle;
-	RenderResourceHandle m_SkyboxEquirectangularMapHandle;
-	RenderResourceHandle m_SkyboxCubemapHandle;
-	RenderResourceHandle m_SkyboxIrradianceCubemapHandle;
-	RenderResourceHandle m_SkyboxPrefilteredCubemapHandle;
-	struct TextureStorage
-	{
-		std::unordered_map<std::string, RenderResourceHandle> TextureHandles;
-		std::unordered_map<std::string, std::size_t> TextureIndices;
 
-		void AddTexture(std::string Path, RenderResourceHandle AssociatedHandle, std::size_t GpuTextureIndex)
-		{
-			TextureHandles[Path] = AssociatedHandle;
-			TextureIndices[Path] = GpuTextureIndex;
-		}
-
-		void RemoveTexture(std::string Path)
-		{
-			TextureHandles.erase(Path);
-			TextureIndices.erase(Path);
-		}
-	} m_TextureStorage;
-
-	std::size_t m_TextureIndex;
+	size_t m_NumTextures;
 
 	RenderResourceHandle m_MaterialTextureIndicesStructuredBufferHandle;
 	Buffer* m_pMaterialTextureIndicesStructuredBuffer;

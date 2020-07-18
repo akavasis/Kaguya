@@ -83,7 +83,7 @@ struct RootParameters
 			ObjectCBuffer,
 			RenderPassCBuffer,
 			MaterialTextureIndicesSBuffer,
-			StandardDescriptorTables,
+			DescriptorTables,
 			Count
 		};
 	};
@@ -93,7 +93,7 @@ struct RootParameters
 		{
 			RenderPassCBuffer,
 			MaterialTextureIndicesSBuffer,
-			StandardDescriptorTables,
+			DescriptorTables,
 			Count
 		};
 	};

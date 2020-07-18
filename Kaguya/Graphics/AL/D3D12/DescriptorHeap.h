@@ -34,7 +34,7 @@ class DescriptorHeap
 {
 public:
 	DescriptorHeap() = default;
-	DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, D3D12_DESCRIPTOR_HEAP_TYPE Type);
+	DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type);
 	virtual ~DescriptorHeap() = default;
 
 	DescriptorHeap(DescriptorHeap&&) noexcept = default;
@@ -49,10 +49,11 @@ public:
 	void Free(INT PartitionIndex, DescriptorAllocation& DescriptorAllocation);
 protected:
 	auto& GetDescriptorPartitionAt(INT Index) { return m_DescriptorPartitions[Index]; }
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandleAt(INT PartitionIndex, INT Index);
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandleAt(INT PartitionIndex, INT Index);
+	auto& GetDescriptorPartitionAt(INT Index) const { return m_DescriptorPartitions[Index]; }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandleAt(INT PartitionIndex, INT Index) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandleAt(INT PartitionIndex, INT Index) const;
 
-	// Used for partitioning descriptors in CBV_SRV_UAV
+	// Used for partitioning descriptors
 	struct RangeBlockInfo
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE StartCPUDescriptorHandle = { NULL };
@@ -67,7 +68,7 @@ protected:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
 	UINT m_DescriptorIncrementSize;
-	BOOL m_ShaderVisible;
+	bool m_ShaderVisible;
 	std::vector<DescriptorPartition> m_DescriptorPartitions;
 };
 
@@ -82,17 +83,23 @@ public:
 		NumRangeTypes
 	};
 
-	CBSRUADescriptorHeap(Device* pDevice, std::array<UINT, 3> Ranges);
+	CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible);
 
 	std::optional<DescriptorAllocation> AllocateCBDescriptors(UINT NumDescriptors);
 	std::optional<DescriptorAllocation> AllocateSRDescriptors(UINT NumDescriptors);
 	std::optional<DescriptorAllocation> AllocateUADescriptors(UINT NumDescriptors);
+
+	D3D12_GPU_DESCRIPTOR_HANDLE GetRangeHandleFromStart(RangeType Type) const
+	{
+		auto& descriptorPartition = GetDescriptorPartitionAt(INT(Type));
+		return descriptorPartition.RangeBlockInfo.StartGPUDescriptorHandle;
+	}
 };
 
 class SamplerDescriptorHeap : public DescriptorHeap
 {
 public:
-	SamplerDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges);
+	SamplerDescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible);
 };
 
 class RenderTargetDescriptorHeap : public DescriptorHeap

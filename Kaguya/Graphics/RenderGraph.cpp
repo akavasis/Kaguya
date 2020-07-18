@@ -41,6 +41,7 @@ void RenderGraph::Execute(Scene& Scene)
 		case ExecutionPolicy::Sequenced:
 		{
 			RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice, *this);
+			m_RefRenderDevice.BindUniversalGpuDescriptorHeap(m_RenderContexts[i]);
 			m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_RenderContexts[i]);
 		}
 		break;
@@ -50,6 +51,7 @@ void RenderGraph::Execute(Scene& Scene)
 			m_Futures[i] = m_ThreadPool->AddWork([this, i, &Scene = Scene]()
 			{
 				RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice, *this);
+				m_RefRenderDevice.BindUniversalGpuDescriptorHeap(m_RenderContexts[i]);
 				m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_RenderContexts[i]);
 			});
 		}

@@ -35,8 +35,8 @@ public:
 	Heap(const Device* pDevice, const Properties& Properties);
 	~Heap();
 
-	Heap(Heap&&) = default;
-	Heap& operator=(Heap&&) = default;
+	Heap(Heap&&) noexcept = default;
+	Heap& operator=(Heap&&) noexcept = default;
 
 	Heap(const Heap&) = delete;
 	Heap& operator=(const Heap&) = delete;

@@ -6,32 +6,45 @@
 class GpuBufferAllocator
 {
 public:
-	GpuBufferAllocator(std::size_t VertexBufferByteSize, std::size_t IndexBufferByteSize, std::size_t ConstantBufferByteSize, RenderDevice* pRenderDevice);
+	GpuBufferAllocator(size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize, RenderDevice* pRenderDevice);
 
-	inline auto GetVertexBuffer() const { return m_pVertexBuffer; }
-	inline auto GetIndexBuffer() const { return m_pIndexBuffer; }
-	inline auto GetConstantBuffer() const { return m_pConstantBuffer; }
+	inline auto GetVertexBuffer() const { return m_Buffers[VertexBuffer].pBuffer; }
+	inline auto GetIndexBuffer() const { return m_Buffers[IndexBuffer].pBuffer; }
+	inline auto GetConstantBuffer() const { return m_Buffers[ConstantBuffer].pUploadBuffer; }
 
-	void Initialize(RenderCommandContext* pRenderCommandContext);
-	void StageSkybox(Scene& Scene, RenderCommandContext* pRenderCommandContext);
 	void Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext);
 	void Update(Scene& Scene);
 	void Bind(RenderCommandContext* pRenderCommandContext) const;
 private:
+	size_t StageVertex(const void* pData, size_t ByteSize, RenderCommandContext* pRenderCommandContext);
+	size_t StageIndex(const void* pData, size_t ByteSize, RenderCommandContext* pRenderCommandContext);
+
 	RenderDevice* m_pRenderDevice;
 
-	VariableSizedAllocator m_VertexBufferAllocator;
-	VariableSizedAllocator m_IndexBufferAllocator;
-	VariableSizedAllocator m_ConstantBufferAllocator;
+	enum InternalBufferTypes
+	{
+		VertexBuffer,
+		IndexBuffer,
+		ConstantBuffer,
+		NumInternalBufferTypes
+	};
+	struct InternalBufferStructure
+	{
+		VariableSizedAllocator Allocator;
+		RenderResourceHandle BufferHandle;
+		Buffer* pBuffer;
+		RenderResourceHandle UploadBufferHandle;
+		Buffer* pUploadBuffer;
 
-	RenderResourceHandle m_VertexBuffer;
-	RenderResourceHandle m_IndexBuffer;
-	RenderResourceHandle m_ConstantBuffer;
-	RenderResourceHandle m_UploadVertexBuffer;
-	RenderResourceHandle m_UploadIndexBuffer;
-	Buffer* m_pVertexBuffer;
-	Buffer* m_pIndexBuffer;
-	Buffer* m_pConstantBuffer;
-	Buffer* m_pUploadVertexBuffer;
-	Buffer* m_pUploadIndexBuffer;
+		InternalBufferStructure(size_t BufferByteSize)
+			: Allocator(BufferByteSize)
+		{
+		}
+
+		auto Allocate(size_t ByteSize)
+		{
+			return Allocator.Allocate(ByteSize);
+		}
+	};
+	InternalBufferStructure m_Buffers[NumInternalBufferTypes];
 };

@@ -14,15 +14,14 @@ public:
 	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
 	virtual ~Resource() = 0;
 
-	Resource(Resource&&) = default;
-	Resource& operator=(Resource&&) = default;
+	Resource(Resource&&) noexcept = default;
+	Resource& operator=(Resource&&) noexcept = default;
 
 	Resource(const Resource&) = delete;
 	Resource& operator=(const Resource&) = delete;
 
 	inline auto GetD3DResource() const { return m_pResource.Get(); }
 	inline auto GetInitialState() const { return m_InitialState; }
-	inline auto GetGPUVirtualAddress() const { return m_pResource->GetGPUVirtualAddress(); }
 	inline auto GetNumSubresources() const { return m_NumSubresources; }
 
 	void Release();

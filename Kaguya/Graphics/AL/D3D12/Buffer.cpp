@@ -60,12 +60,12 @@ void Buffer::Unmap()
 	m_pMappedData = nullptr;
 }
 
-D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetGpuVA() const
+D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetGpuVirtualAddress() const
 {
 	return m_pResource->GetGPUVirtualAddress();
 }
 
-D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetGpuVAAt(INT Index) const
+D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetGpuVirtualAddressAt(INT Index) const
 {
 	assert(Index >= 0 && Index < (m_SizeInBytes / m_Stride) && "Index is out of range in Buffer");
 	return UINT64(INT64(m_pResource->GetGPUVirtualAddress()) + INT64(Index) * INT64(m_Stride));

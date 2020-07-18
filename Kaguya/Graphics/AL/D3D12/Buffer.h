@@ -35,8 +35,8 @@ public:
 	BYTE* Map();
 	void Unmap();
 
-	D3D12_GPU_VIRTUAL_ADDRESS GetGpuVA() const;
-	D3D12_GPU_VIRTUAL_ADDRESS GetGpuVAAt(INT Index) const;
+	D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress() const;
+	D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddressAt(INT Index) const;
 	template<typename T>
 	void Update(INT ElementIndex, const T& Data);
 private:

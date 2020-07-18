@@ -9,9 +9,19 @@ class Device;
 class RootSignature
 {
 public:
+	enum : UINT { UnboundDescriptorSize = UINT_MAX };
 	struct Properties
 	{
 		D3D12_ROOT_SIGNATURE_DESC1 Desc;
+
+		void AllowInputLayout();
+		void DenyVSAccess();
+		void DenyHSAccess();
+		void DenyDSAccess();
+		void DenyGSAccess();
+		void DenyPSAccess();
+		void AllowStreamOutput();
+		void SetAsLocalRootSignature();
 	};
 
 	RootSignature() = default;

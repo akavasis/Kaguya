@@ -17,8 +17,8 @@ struct RenderPassConstants
 	float _padding;
 
 	DirectionalLight Sun;
-	unsigned int BRDFLUTMapIndex;
 	unsigned int SunShadowMapIndex;
+	unsigned int BRDFLUTMapIndex;
 	unsigned int IrradianceCubemapIndex;
 	unsigned int PrefilteredRadianceCubemapIndex;
 };
