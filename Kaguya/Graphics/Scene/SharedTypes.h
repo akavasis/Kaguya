@@ -23,12 +23,21 @@ struct RenderPassConstants
 	unsigned int PrefilteredRadianceCubemapIndex;
 };
 
+struct MaterialTextureProperties
+{
+	float3 Albedo;
+	float Roughness;
+	float Metallic;
+	float3 Emissive;
+};
+
 struct MaterialTextureIndices
 {
-	unsigned int AlbedoMapIndex;
-	unsigned int NormalMapIndex;
-	unsigned int RoughnessMapIndex;
-	unsigned int MetallicMapIndex;
-	unsigned int EmissiveMapIndex;
+	int AlbedoMapIndex;
+	int NormalMapIndex;
+	int RoughnessMapIndex;
+	int MetallicMapIndex;
+	int EmissiveMapIndex;
+	bool IsMasked;
 };
 #endif

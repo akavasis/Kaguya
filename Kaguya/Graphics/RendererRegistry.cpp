@@ -215,6 +215,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		rootParameters[RootParameters::PBR::ObjectCBuffer].InitAsConstantBufferView(0, 0);
 		rootParameters[RootParameters::PBR::RenderPassCBuffer].InitAsConstantBufferView(1, 0);
 		rootParameters[RootParameters::PBR::MaterialTextureIndicesSBuffer].InitAsShaderResourceView(0, 100);
+		rootParameters[RootParameters::PBR::MaterialTexturePropertiesSBuffer].InitAsShaderResourceView(0, 101);
 		rootParameters[RootParameters::PBR::DescriptorTables].InitAsDescriptorTable(standardDescriptorTables.size(), standardDescriptorTables.data());
 
 		RootSignature::Properties prop = {};
@@ -232,7 +233,8 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		CD3DX12_ROOT_PARAMETER1 rootParameters[RootParameters::Skybox::Count] = {};
 
 		rootParameters[RootParameters::Skybox::RenderPassCBuffer].InitAsConstantBufferView(0, 0);
-		rootParameters[RootParameters::Skybox::MaterialTextureIndicesSBuffer].InitAsConstantBufferView(0, 100);
+		rootParameters[RootParameters::Skybox::MaterialTextureIndicesSBuffer].InitAsShaderResourceView(0, 100);
+		rootParameters[RootParameters::Skybox::MaterialTexturePropertiesSBuffer].InitAsShaderResourceView(0, 101);
 		rootParameters[RootParameters::Skybox::DescriptorTables].InitAsDescriptorTable(standardDescriptorTables.size(), standardDescriptorTables.data());
 
 		RootSignature::Properties prop = {};

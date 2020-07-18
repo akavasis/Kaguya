@@ -9,7 +9,7 @@ struct ShadowPassData
 	const GpuBufferAllocator* pGpuBufferAllocator;
 	const GpuTextureAllocator* pGpuTextureAllocator;
 
-	Buffer* pRenderPassConstantBuffer;
+	const Buffer* pRenderPassConstantBuffer;
 
 	RenderResourceHandle outputDepthTexture;
 	DescriptorAllocation depthStencilView;
@@ -20,7 +20,20 @@ struct ForwardPassData
 	const GpuBufferAllocator* pGpuBufferAllocator;
 	const GpuTextureAllocator* pGpuTextureAllocator;
 
-	Texture* pShadowDepthBuffer;
+	const Texture* pShadowDepthBuffer;
+
+	Texture* pFrameBuffer;
+	Texture* pFrameDepthStencilBuffer;
+	Buffer* pRenderPassConstantBuffer;
+	DescriptorAllocation RenderTargetView;
+	DescriptorAllocation DepthStencilView;
+};
+
+struct SkyboxPassData
+{
+	const GpuBufferAllocator* pGpuBufferAllocator;
+	const GpuTextureAllocator* pGpuTextureAllocator;
+
 	Texture* pFrameBuffer;
 	Texture* pFrameDepthStencilBuffer;
 	Buffer* pRenderPassConstantBuffer;
@@ -207,7 +220,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		RenderDevice.CreateRTV(m_FrameBufferHandle, Data.RenderTargetView[0], {}, {}, {});
 		RenderDevice.CreateDSV(m_FrameDepthStencilBufferHandle, Data.DepthStencilView[0], {}, {}, {});
 
-		return [=](const ForwardPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const ForwardPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 			std::vector<const Model*> visibleModelsIndices;
 			std::unordered_map<const Model*, std::vector<UINT>> visibleMeshesIndices;
@@ -227,8 +240,8 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PBR));
 
 			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::PBR::RenderPassCBuffer, m_pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
-			Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, pRenderCommandContext);
+			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::PBR::RenderPassCBuffer, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, RootParameters::PBR::MaterialTexturePropertiesSBuffer, pRenderCommandContext);
 			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::PBR::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
@@ -265,6 +278,59 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 					pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 				}
 			}
+
+			pRenderCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			pRenderCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+		};
+	});
+
+	auto pSkyboxPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, SkyboxPassData>(
+		[&](SkyboxPassData& Data, RenderDevice& RenderDevice)
+	{
+		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
+		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
+
+		Data.pFrameBuffer = pForwardPass->GetData().pFrameBuffer;
+		Data.pFrameDepthStencilBuffer = pForwardPass->GetData().pFrameDepthStencilBuffer;
+		Data.pRenderPassConstantBuffer = pForwardPass->GetData().pRenderPassConstantBuffer;
+
+		Data.RenderTargetView = pForwardPass->GetData().RenderTargetView;
+		Data.DepthStencilView = pForwardPass->GetData().DepthStencilView;
+
+		return [](const SkyboxPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		{
+			PIXMarker(pRenderCommandContext->GetD3DCommandList(), L"Skybox Render");
+
+			pRenderCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			pRenderCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Skybox));
+			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Skybox));
+
+			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
+			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::Skybox::RenderPassCBuffer, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			Data.pGpuTextureAllocator->Bind(RootParameters::Skybox::MaterialTextureIndicesSBuffer, RootParameters::Skybox::MaterialTexturePropertiesSBuffer, pRenderCommandContext);
+			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::Skybox::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+
+			D3D12_VIEWPORT vp;
+			vp.TopLeftX = vp.TopLeftY = 0.0f;
+			vp.MinDepth = 0.0f;
+			vp.MaxDepth = 1.0f;
+			vp.Width = Data.pFrameBuffer->Width;
+			vp.Height = Data.pFrameBuffer->Height;
+
+			D3D12_RECT sr;
+			sr.left = sr.top = 0;
+			sr.right = Data.pFrameBuffer->Width;
+			sr.bottom = Data.pFrameBuffer->Height;
+
+			pRenderCommandContext->SetViewports(1, &vp);
+			pRenderCommandContext->SetScissorRects(1, &sr);
+
+			pRenderCommandContext->SetRenderTargets(1, Data.RenderTargetView[0], TRUE, Data.DepthStencilView[0]);
+
+			pRenderCommandContext->DrawIndexedInstanced(Scene.Skybox.Mesh.IndexCount, 1, Scene.Skybox.Mesh.StartIndexLocation, Scene.Skybox.Mesh.BaseVertexLocation, 0);
 
 			pRenderCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			pRenderCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);

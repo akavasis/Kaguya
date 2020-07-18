@@ -31,14 +31,6 @@ float3 SphericalToCartesian(float radius, float theta, float phi)
 	return float3(x, y, z);
 }
 
-struct MaterialSurface
-{
-	float3 Albedo;
-	float Metallic;
-	float3 Emissive;
-	float Roughness;
-};
-
 float CalcShadowRatio(in float3 WorldPosition, in int CascadeIndex, in Cascade Cascades[4], in SamplerComparisonState Sampler, in Texture2DArray ShadowMap)
 {
 	float4 shadowPosition = mul(float4(WorldPosition, 1.0f), Cascades[CascadeIndex].ShadowTransform);

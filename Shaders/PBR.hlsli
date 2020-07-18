@@ -46,7 +46,7 @@ float3 Fresnel_SchlickRoughness(in float cosTheta, in float3 F0, in float roughn
 	return F0 + (max(1.0f - roughness, F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float3 PBR(in MaterialSurface surface, in float3 N, in float3 V, in float3 L, in float3 radiance)
+float3 PBR(in MaterialTextureProperties surface, in float3 N, in float3 V, in float3 L, in float3 radiance)
 {
 	float3 F0 = lerp(Fdielectric, surface.Albedo, surface.Metallic);
 	
@@ -73,7 +73,7 @@ float3 PBR(in MaterialSurface surface, in float3 N, in float3 V, in float3 L, in
 	return (diffuse + specular) * radiance * cosLi;
 }
 
-float3 IBL(in MaterialSurface surface, in float cosLo, in float3 irradiance, in float3 prefiltered, in float2 BRDFIntegration)
+float3 IBL(in MaterialTextureProperties surface, in float cosLo, in float3 irradiance, in float3 prefiltered, in float2 BRDFIntegration)
 {
 	float3 F0 = lerp(Fdielectric, surface.Albedo, surface.Metallic);
 	

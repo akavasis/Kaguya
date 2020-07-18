@@ -116,6 +116,12 @@ GpuTextureAllocator::GpuTextureAllocator(size_t NumMaterials, RenderDevice* pRen
 	m_pMaterialTextureIndicesStructuredBuffer = m_pRenderDevice->GetBuffer(m_MaterialTextureIndicesStructuredBufferHandle);
 	m_pMaterialTextureIndicesStructuredBuffer->Map();
 
+	bufferProp.SizeInBytes = NumMaterials * sizeof(MaterialTextureProperties);
+	bufferProp.Stride = sizeof(MaterialTextureProperties);
+	m_MaterialTexturePropertiesStructuredBufferHandle = m_pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	m_pMaterialTexturePropertiesStructuredBuffer = m_pRenderDevice->GetBuffer(m_MaterialTexturePropertiesStructuredBufferHandle);
+	m_pMaterialTexturePropertiesStructuredBuffer->Map();
+
 	DXGI_FORMAT optionalFormats[] =
 	{
 		DXGI_FORMAT_R16G16B16A16_UNORM,
@@ -347,12 +353,15 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 	{
 		for (unsigned int i = 0; i < NumTextureTypes; ++i)
 		{
-			auto iter = TextureStorage.TextureIndices.find(material.Textures[i].Path.generic_string());
-			if (iter != TextureStorage.TextureIndices.end())
+			auto textureIndexIter = TextureStorage.TextureIndices.find(material.Textures[i].Path.generic_string());
+			if (textureIndexIter != TextureStorage.TextureIndices.end())
 			{
-				material.TextureIndices[i] = iter->second;
+				material.TextureIndices[i] = textureIndexIter->second;
 			}
+
 		}
+		auto textureHandleIter = TextureStorage.TextureHandles.find(material.Textures[Albedo].Path.generic_string());
+		material.IsMasked = m_UnstagedTextures[textureHandleIter->second].isMasked;
 	}
 }
 
@@ -360,6 +369,7 @@ void GpuTextureAllocator::Update(Scene& Scene)
 {
 	std::size_t i = 0;
 	MaterialTextureIndices materialTextureIndices;
+	MaterialTextureProperties materialTextureProperties;
 	for (auto& material : Scene.Materials)
 	{
 		materialTextureIndices.AlbedoMapIndex = material.TextureIndices[TextureTypes::Albedo];
@@ -367,11 +377,19 @@ void GpuTextureAllocator::Update(Scene& Scene)
 		materialTextureIndices.RoughnessMapIndex = material.TextureIndices[TextureTypes::Roughness];
 		materialTextureIndices.MetallicMapIndex = material.TextureIndices[TextureTypes::Metallic];
 		materialTextureIndices.EmissiveMapIndex = material.TextureIndices[TextureTypes::Emissive];
-		m_pMaterialTextureIndicesStructuredBuffer->Update<MaterialTextureIndices>(i++, materialTextureIndices);
+		materialTextureIndices.IsMasked = material.IsMasked;
+		m_pMaterialTextureIndicesStructuredBuffer->Update<MaterialTextureIndices>(i, materialTextureIndices);
+
+		materialTextureProperties.Albedo = material.Properties.Albedo;
+		materialTextureProperties.Roughness = material.Properties.Roughness;
+		materialTextureProperties.Metallic = material.Properties.Metallic;
+		materialTextureProperties.Emissive = material.Properties.Emissive;
+		m_pMaterialTexturePropertiesStructuredBuffer->Update<MaterialTextureProperties>(i, materialTextureProperties);
+		i++;
 	}
 }
 
-void GpuTextureAllocator::Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, RenderCommandContext* pRenderCommandContext) const
+void GpuTextureAllocator::Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, std::optional<UINT> MaterialTexturePropertiesRootParameterIndex, RenderCommandContext* pRenderCommandContext) const
 {
 	if (MaterialTextureIndicesRootParameterIndex.has_value())
 	{
@@ -379,6 +397,14 @@ void GpuTextureAllocator::Bind(std::optional<UINT> MaterialTextureIndicesRootPar
 			pRenderCommandContext->SetGraphicsRootShaderResourceView(MaterialTextureIndicesRootParameterIndex.value(), m_pMaterialTextureIndicesStructuredBuffer->GetGpuVirtualAddress());
 		else if (pRenderCommandContext->GetD3DType() == D3D12_COMMAND_LIST_TYPE_COMPUTE)
 			pRenderCommandContext->SetComputeRootShaderResourceView(MaterialTextureIndicesRootParameterIndex.value(), m_pMaterialTextureIndicesStructuredBuffer->GetGpuVirtualAddress());
+	}
+
+	if (MaterialTexturePropertiesRootParameterIndex.has_value())
+	{
+		if (pRenderCommandContext->GetD3DType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
+			pRenderCommandContext->SetGraphicsRootShaderResourceView(MaterialTexturePropertiesRootParameterIndex.value(), m_pMaterialTexturePropertiesStructuredBuffer->GetGpuVirtualAddress());
+		else if (pRenderCommandContext->GetD3DType() == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+			pRenderCommandContext->SetComputeRootShaderResourceView(MaterialTexturePropertiesRootParameterIndex.value(), m_pMaterialTexturePropertiesStructuredBuffer->GetGpuVirtualAddress());
 	}
 }
 
@@ -517,6 +543,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	stagingTexture.mipLevels = mipLevels;
 	stagingTexture.index = m_NumTextures++;
 	stagingTexture.generateMips = generateMips;
+	stagingTexture.isMasked = metadata.GetAlphaMode() != DirectX::TEX_ALPHA_MODE_OPAQUE;
 
 	m_UnstagedTextures[handle] = std::move(stagingTexture);
 	return handle;

@@ -41,7 +41,7 @@ public:
 
 	void Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext);
 	void Update(Scene& Scene);
-	void Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, RenderCommandContext* pRenderCommandContext) const;
+	void Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, std::optional<UINT> MaterialTexturePropertiesRootParameterIndex, RenderCommandContext* pRenderCommandContext) const;
 private:
 	struct Status
 	{
@@ -57,6 +57,7 @@ private:
 		std::size_t mipLevels;														// indicates what mip levels this texture should have
 		std::size_t index;															// material texture index
 		bool generateMips;															// indicates whether or not we should generate mips for the staged texture
+		bool isMasked;																// indicates whether or not alpha is masked
 	};
 
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
@@ -92,4 +93,6 @@ private:
 
 	RenderResourceHandle m_MaterialTextureIndicesStructuredBufferHandle;
 	Buffer* m_pMaterialTextureIndicesStructuredBuffer;
+	RenderResourceHandle m_MaterialTexturePropertiesStructuredBufferHandle;
+	Buffer* m_pMaterialTexturePropertiesStructuredBuffer;
 };

@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 			nullptr
 		));
 
-		auto& cerberus = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx"));
+		auto& cerberus = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx", 0.05f));
 		cerberus.Meshes[0].MaterialIndex = 0;
 		cerberus.Translate(0.0f, 5.0f, -5.0f);
 		cerberus.Rotate(DirectX::XMConvertToRadians(90.0f), DirectX::XMConvertToRadians(90.0f), 0.0f);

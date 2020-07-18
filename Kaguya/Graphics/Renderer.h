@@ -22,8 +22,6 @@ public:
 	Renderer(Application& RefApplication, Window& RefWindow);
 	~Renderer();
 
-	inline auto& GetRenderDevice() { return m_RenderDevice; }
-
 	void Update(const Time& Time);
 	void Render(Scene& Scene);
 private:
