@@ -190,7 +190,7 @@ Renderer::Renderer(Window& Window)
 				PIXMarker(pRenderCommandContext->GetD3DCommandList(), msg);
 
 				const OrthographicCamera& CascadeCamera = Scene.CascadeCameras[cascadeIndex];
-				pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(cascadeIndex));
+				pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(cascadeIndex));
 
 				Descriptor descriptor = Data.depthStencilView[cascadeIndex];
 				pRenderCommandContext->SetRenderTargets(0, Descriptor(), FALSE, descriptor);
@@ -207,7 +207,7 @@ Renderer::Renderer(Window& Window)
 						const UINT meshIndex = visibleMeshesIndices[pModel][j];
 						auto& mesh = pModel->Meshes[meshIndex];
 
-						pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::ConstantDataCB, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
+						pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::ConstantDataCB, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
 						pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 					}
 				}
@@ -254,8 +254,8 @@ Renderer::Renderer(Window& Window)
 
 			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
 			Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, RootParameters::PBR::MaterialTexturePropertiesSBuffer, pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameters::PBR::NumRootParameters, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
-			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::DescriptorTables + RootParameters::PBR::NumRootParameters, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB + RootParameters::PBR::NumRootParameters, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables + RootParameters::PBR::NumRootParameters, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -287,7 +287,7 @@ Renderer::Renderer(Window& Window)
 					const UINT meshIndex = visibleMeshesIndices[pModel][j];
 					auto& mesh = pModel->Meshes[meshIndex];
 
-					pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::ConstantDataCB + RootParameters::PBR::NumRootParameters, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
+					pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::ConstantDataCB + RootParameters::PBR::NumRootParameters, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
 					pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 				}
 			}
@@ -322,8 +322,8 @@ Renderer::Renderer(Window& Window)
 			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Skybox));
 
 			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
-			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -365,8 +365,8 @@ Renderer::Renderer(Window& Window)
 			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
 			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
 
-			pRenderCommandContext->SetGraphicsRoot32BitConstants(RootParameters::ShaderLayout::ConstantDataCB, sizeof(Data.TonemapData) / 4, &Data.TonemapData, 0);
-			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+			pRenderCommandContext->SetGraphicsRoot32BitConstants(RootParameters::StandardShaderLayout::ConstantDataCB, sizeof(Data.TonemapData) / 4, &Data.TonemapData, 0);
+			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -417,8 +417,6 @@ void Renderer::Update(const Time& Time)
 void Renderer::Render(Scene& Scene)
 {
 	PIXCapture();
-	unsigned int shadowMapIndex = 0;
-
 	auto shadowPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ShadowPassData>();
 	auto tonemapPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, TonemapPassData>();
 
@@ -432,25 +430,33 @@ void Renderer::Render(Scene& Scene)
 		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
 
 		const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures() + 2; // 1+ Shadow map, 1+ FrameBuffer
-		DescriptorAllocation textureSRVs = m_RenderDevice.GetDescriptorAllocator().GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate).value();
+		m_GpuDescriptorIndices.TextureShaderResourceViews = m_RenderDevice.GetDescriptorAllocator().GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate).value();
 
 		for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
 		{
 			auto handle = m_GpuTextureAllocator.AssetTextures[i];
-			m_RenderDevice.CreateSRV(handle, textureSRVs[i]);
+			m_RenderDevice.CreateSRV(handle, m_GpuDescriptorIndices.TextureShaderResourceViews[i]);
 		}
 
 		for (auto iter = m_GpuTextureAllocator.TextureStorage.TextureIndices.begin(); iter != m_GpuTextureAllocator.TextureStorage.TextureIndices.end(); ++iter)
 		{
-			m_RenderDevice.CreateSRV(m_GpuTextureAllocator.TextureStorage.TextureHandles[iter->first], textureSRVs[iter->second]);
+			m_RenderDevice.CreateSRV(m_GpuTextureAllocator.TextureStorage.TextureHandles[iter->first], m_GpuDescriptorIndices.TextureShaderResourceViews[iter->second]);
 		}
 
-		shadowMapIndex = numSRVsToAllocate - 2;
-		m_RenderDevice.CreateSRV(shadowPass->GetData().outputDepthTexture, textureSRVs[shadowMapIndex]);
+		int shadowMapIndex = numSRVsToAllocate - 2;
+		m_RenderDevice.CreateSRV(shadowPass->GetData().outputDepthTexture, m_GpuDescriptorIndices.TextureShaderResourceViews[shadowMapIndex]);
 
 		tonemapPass->GetData().TonemapData.InputMapIndex = shadowMapIndex + 1;
-		m_RenderDevice.CreateSRV(m_FrameBufferHandle, textureSRVs[shadowMapIndex + 1]);
+		m_RenderDevice.CreateSRV(m_FrameBufferHandle, m_GpuDescriptorIndices.TextureShaderResourceViews[shadowMapIndex + 1]);
+
+		m_GpuDescriptorIndices.ShadowMapIndex = shadowMapIndex;
+		m_GpuDescriptorIndices.FrameBufferIndex = shadowMapIndex + 1;
 	}
+
+	m_CurrentBackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
+
+	tonemapPass->GetData().SwapChainRTV = m_SwapChainRTVs[m_CurrentBackBufferIndex];
+	tonemapPass->GetData().pSwapChainTexture = m_pSwapChainTextures[m_CurrentBackBufferIndex];
 
 	m_GpuBufferAllocator.Update(Scene);
 	m_GpuTextureAllocator.Update(Scene);
@@ -472,7 +478,7 @@ void Renderer::Render(Scene& Scene)
 	renderPassCPU.EyePosition = Scene.Camera.GetTransform().Position;
 
 	renderPassCPU.Sun = Scene.Sun;
-	renderPassCPU.SunShadowMapIndex = shadowMapIndex;
+	renderPassCPU.SunShadowMapIndex = m_GpuDescriptorIndices.ShadowMapIndex;
 	renderPassCPU.BRDFLUTMapIndex = GpuTextureAllocator::BRDFLUT;
 	renderPassCPU.IrradianceCubemapIndex = GpuTextureAllocator::SkyboxIrradianceCubemap;
 	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::SkyboxPrefilteredCubemap;
@@ -488,11 +494,6 @@ void Renderer::Render(Scene& Scene)
 	UINT presentFlags = (m_DXGIManager.TearingSupport() && !m_Setting.VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
 	DXGI_PRESENT_PARAMETERS presentParameters = { 0u, NULL, NULL, NULL };
 	HRESULT hr = m_pSwapChain->Present1(syncInterval, presentFlags, &presentParameters);
-	m_CurrentBackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
-
-	tonemapPass->GetData().SwapChainRTV = m_SwapChainRTVs[m_CurrentBackBufferIndex];
-	tonemapPass->GetData().pSwapChainTexture = m_pSwapChainTextures[m_CurrentBackBufferIndex];
-
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
 		CORE_ERROR("DXGI_ERROR_DEVICE_REMOVED");
@@ -535,7 +536,33 @@ void Renderer::Resize(UINT Width, UINT Height)
 			m_RenderDevice.CreateRTVForSwapChainTexture(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i]);
 		}
 		// Reset back buffer index
-		m_CurrentBackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
+		m_CurrentBackBufferIndex = 0;
+
+		// Recreate frame buffer
+		Texture::Properties textureProp{};
+		textureProp.Type = Resource::Type::Texture2D;
+		textureProp.Format = RendererFormats::HDRBufferFormat;
+		textureProp.Width = Width;
+		textureProp.Height = Height;
+		textureProp.DepthOrArraySize = 1;
+		textureProp.MipLevels = 1;
+		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		textureProp.InitialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::HDRBufferFormat, DirectX::Colors::LightBlue);
+		m_RenderDevice.ReplaceTexture(textureProp, m_FrameBufferHandle);
+
+		textureProp.Format = RendererFormats::DepthStencilFormat;
+		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0);
+		m_RenderDevice.ReplaceTexture(textureProp, m_FrameDepthStencilBufferHandle);
+
+		// Create descriptor
+		auto pForwardPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ForwardPassData>();
+		m_RenderDevice.CreateRTV(m_FrameBufferHandle, pForwardPass->GetData().RenderTargetView[0], {}, {}, {});
+		m_RenderDevice.CreateDSV(m_FrameDepthStencilBufferHandle, pForwardPass->GetData().DepthStencilView[0], {}, {}, {});
+
+		m_RenderDevice.CreateSRV(m_FrameBufferHandle, m_GpuDescriptorIndices.TextureShaderResourceViews[m_GpuDescriptorIndices.FrameBufferIndex]);
 	}
 	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
 }

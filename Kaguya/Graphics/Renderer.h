@@ -96,4 +96,11 @@ private:
 	Texture* m_pFrameBuffer;
 	Texture* m_pFrameDepthStencilBuffer;
 	Buffer* m_pRenderPassConstantBuffer;
+
+	struct GpuDescriptorIndices
+	{
+		UINT ShadowMapIndex;
+		UINT FrameBufferIndex;
+		DescriptorAllocation TextureShaderResourceViews;
+	} m_GpuDescriptorIndices;
 };

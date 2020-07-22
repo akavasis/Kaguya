@@ -154,6 +154,131 @@ RenderResourceHandle RenderDevice::CreateComputePipelineState(const ComputePipel
 	return handle;
 }
 
+void RenderDevice::ReplaceShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	auto [shader, success] = m_Shaders.ReplaceResource(ExistingRenderResourceHandle, m_ShaderCompiler.LoadShader(Type, pPath, pEntryPoint, ShaderDefines));
+	if (success)
+	{
+		CORE_INFO("Shader replaced");
+	}
+}
+
+void RenderDevice::ReplaceBuffer(const Buffer::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	auto [buffer, success] = m_Buffers.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
+	if (success)
+	{
+		m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), Properties.InitialState);
+		CORE_INFO("Buffer replaced");
+	}
+}
+
+void RenderDevice::ReplaceBuffer(const Buffer::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	auto [buffer, success] = m_Buffers.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties, CPUAccessibleHeapType, pData);
+	if (success)
+	{
+		switch (CPUAccessibleHeapType)
+		{
+		case CPUAccessibleHeapType::Upload:
+			m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_GENERIC_READ);
+			break;
+		case CPUAccessibleHeapType::Readback:
+			m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_COPY_DEST);
+			break;
+		}
+		CORE_INFO("Buffer replaced");
+	}
+}
+
+void RenderDevice::ReplaceBuffer(const Buffer::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	const auto pHeap = this->GetHeap(HeapHandle);
+	auto [buffer, success] = m_Buffers.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties, pHeap, HeapOffset);
+	if (success)
+	{
+		if (pHeap->GetCPUAccessibleHeapType())
+		{
+			switch (pHeap->GetCPUAccessibleHeapType().value())
+			{
+			case CPUAccessibleHeapType::Upload:
+				m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_GENERIC_READ);
+				break;
+			case CPUAccessibleHeapType::Readback:
+				m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_COPY_DEST);
+				break;
+			}
+		}
+		else
+		{
+			m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), Properties.InitialState);
+		}
+		CORE_INFO("Buffer replaced");
+	}
+}
+
+void RenderDevice::ReplaceTexture(const Texture::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	auto [texture, success] = m_Textures.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
+	if (success)
+	{
+		m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), Properties.InitialState);
+		CORE_INFO("Texture replaced");
+	}
+}
+
+void RenderDevice::ReplaceTexture(const Texture::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	const auto pHeap = this->GetHeap(HeapHandle);
+	auto [texture, success] = m_Textures.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties, pHeap, HeapOffset);
+	if (success)
+	{
+		m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), Properties.InitialState);
+		CORE_INFO("Texture replaced");
+	}
+}
+
+void RenderDevice::ReplaceHeap(const Heap::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	auto [heap, success] = m_Heaps.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
+	if (success)
+	{
+		CORE_INFO("Heap replaced");
+	}
+}
+
+void RenderDevice::ReplaceRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	RootSignatureProxy Proxy;
+	Configurator(Proxy);
+	if (pOptions)
+		AddStandardShaderLayoutRootParameter(pOptions, Proxy);
+
+	auto [rootSignature, success] = m_RootSignatures.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Proxy);
+	if (success)
+	{
+		CORE_INFO("Root Signature replaced");
+	}
+}
+
+void RenderDevice::ReplaceGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	auto [graphicsPSO, success] = m_GraphicsPipelineStates.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
+	if (success)
+	{
+		CORE_INFO("Graphics PSO replaced");
+	}
+}
+
+void RenderDevice::ReplaceComputePipelineState(const ComputePipelineState::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
+{
+	auto [computePSO, success] = m_ComputePipelineStates.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
+	if (success)
+	{
+		CORE_INFO("Compute PSO replaced");
+	}
+}
+
 void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 {
 	if (!pRenderResourceHandle)
@@ -203,19 +328,20 @@ void RenderDevice::DestroySwapChainTexture(RenderResourceHandle* pRenderResource
 
 void RenderDevice::ReplaceSwapChainTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, D3D12_RESOURCE_STATES InitialState, RenderResourceHandle ExistingRenderResourceHandle)
 {
-	if (m_SwapChainTextures.ReplaceResource(ExistingRenderResourceHandle, ExistingResource))
+	auto [swapChainTexture, success] = m_SwapChainTextures.ReplaceResource(ExistingRenderResourceHandle, ExistingResource);
+	if (success)
 	{
-		CORE_INFO("SwapChain Resource Replaced");
+		m_GlobalResourceStateTracker.AddResourceState(swapChainTexture->GetD3DResource(), InitialState);
+		CORE_INFO("SwapChain resource replaced");
 	}
-	m_GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), InitialState);
 }
 
 void RenderDevice::CreateRTVForSwapChainTexture(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)
 {
-	Texture* texture = m_SwapChainTextures.GetResource(RenderResourceHandle);
-	assert(texture != nullptr && "Could not find swapchain texture given the handle");
+	Texture* swapChainTexture = m_SwapChainTextures.GetResource(RenderResourceHandle);
+	assert(swapChainTexture != nullptr && "Could not find swapchain texture given the handle");
 
-	m_Device.GetD3DDevice()->CreateRenderTargetView(texture->GetD3DResource(), nullptr, DestDescriptor.CPUHandle);
+	m_Device.GetD3DDevice()->CreateRenderTargetView(swapChainTexture->GetD3DResource(), nullptr, DestDescriptor.CPUHandle);
 }
 
 void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)

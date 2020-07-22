@@ -63,7 +63,7 @@ private:
 class RenderGraphRegistry
 {
 public:
-	RenderGraphRegistry(const RenderDevice& RefRenderDevice, const RenderGraph& RefRenderGraph)
+	RenderGraphRegistry(RenderDevice& RefRenderDevice, RenderGraph& RefRenderGraph)
 		: m_RefRenderDevice(RefRenderDevice),
 		m_RefRenderGraph(RefRenderGraph)
 	{}
@@ -80,8 +80,8 @@ public:
 	template<RenderPassType Type, typename Data>
 	[[nodiscard]] inline RenderPass<Type, Data>* GetRenderPass() { return m_RefRenderGraph.GetRenderPass<Type, Data>(); }
 private:
-	const RenderDevice& m_RefRenderDevice;
-	const RenderGraph& m_RefRenderGraph;
+	RenderDevice& m_RefRenderDevice;
+	RenderGraph& m_RefRenderGraph;
 };
 
 class RenderGraph

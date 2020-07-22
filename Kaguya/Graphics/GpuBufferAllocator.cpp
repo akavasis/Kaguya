@@ -26,7 +26,7 @@ GpuBufferAllocator::GpuBufferAllocator(size_t VertexBufferByteSize, size_t Index
 			m_Buffers[i].pBuffer = m_pRenderDevice->GetBuffer(bufferHandle);
 		}
 
-		uploadBufferHandle = m_pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload);
+		uploadBufferHandle = m_pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
 		m_Buffers[i].UploadBufferHandle = uploadBufferHandle;
 		m_Buffers[i].pUploadBuffer = m_pRenderDevice->GetBuffer(uploadBufferHandle);
 		m_Buffers[i].pUploadBuffer->Map();

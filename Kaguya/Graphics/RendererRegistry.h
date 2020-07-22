@@ -64,7 +64,7 @@ struct RendererFormats
 
 struct RootParameters
 {
-	struct ShaderLayout
+	struct StandardShaderLayout
 	{
 		enum
 		{

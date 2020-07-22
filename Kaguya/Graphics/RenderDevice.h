@@ -58,7 +58,7 @@ public:
 	// Resource creation
 	[[nodiscard]] RenderResourceHandle LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties);
-	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData = nullptr);
+	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData);
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
 	[[nodiscard]] RenderResourceHandle CreateTexture(const Texture::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateTexture(const Texture::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
@@ -66,6 +66,17 @@ public:
 	[[nodiscard]] RenderResourceHandle CreateRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(const ComputePipelineState::Properties& Properties);
+
+	void ReplaceShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceBuffer(const Buffer::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceBuffer(const Buffer::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceBuffer(const Buffer::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceTexture(const Texture::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceTexture(const Texture::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceHeap(const Heap::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle);
+	void ReplaceComputePipelineState(const ComputePipelineState::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle);
 
 	void Destroy(RenderResourceHandle* pRenderResourceHandle);
 
@@ -83,13 +94,13 @@ public:
 	void CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
 
 	// Returns nullptr if a resource is not found
-	[[nodiscard]] inline auto GetShader(RenderResourceHandle RenderResourceHandle) const { return m_Shaders.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) const { return m_Buffers.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle) const { return m_Textures.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle) const { return m_Heaps.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle) const { return m_RootSignatures.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) const { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetShader(RenderResourceHandle RenderResourceHandle) { return m_Shaders.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) { return m_Buffers.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle) { return m_Textures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle) { return m_Heaps.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle) { return m_RootSignatures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
 private:
 	void AddStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
 
@@ -128,14 +139,14 @@ private:
 
 		// Returns false if ExistingRenderResourceHandle does not exist in the table
 		template<typename... Args>
-		bool ReplaceResource(const RenderResourceHandle& ExistingRenderResourceHandle, Args&&... args)
+		std::pair<T*, bool> ReplaceResource(const RenderResourceHandle& ExistingRenderResourceHandle, Args&&... args)
 		{
 			std::scoped_lock lk(m_Mutex);
 			if (m_ResourceTable.find(ExistingRenderResourceHandle) == m_ResourceTable.end())
-				return false;
+				return { nullptr, false };
 			T resource = T(std::forward<Args>(args)...);
 			m_ResourceTable[ExistingRenderResourceHandle] = std::move(resource);
-			return true;
+			return { &m_ResourceTable[ExistingRenderResourceHandle], true };
 		}
 
 		T* GetResource(const RenderResourceHandle& RenderResourceHandle)
@@ -200,15 +211,15 @@ private:
 		std::mutex m_Mutex;
 	};
 
-	mutable RenderResourceContainer<RenderResourceHandle::Types::Shader, Shader> m_Shaders;
+	RenderResourceContainer<RenderResourceHandle::Types::Shader, Shader> m_Shaders;
 
-	mutable RenderResourceContainer<RenderResourceHandle::Types::Buffer, Buffer> m_Buffers;
-	mutable RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_Textures;
+	RenderResourceContainer<RenderResourceHandle::Types::Buffer, Buffer> m_Buffers;
+	RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_Textures;
 
-	mutable RenderResourceContainer<RenderResourceHandle::Types::Heap, Heap> m_Heaps;
-	mutable RenderResourceContainer<RenderResourceHandle::Types::RootSignature, RootSignature> m_RootSignatures;
-	mutable RenderResourceContainer<RenderResourceHandle::Types::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
-	mutable RenderResourceContainer<RenderResourceHandle::Types::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
+	RenderResourceContainer<RenderResourceHandle::Types::Heap, Heap> m_Heaps;
+	RenderResourceContainer<RenderResourceHandle::Types::RootSignature, RootSignature> m_RootSignatures;
+	RenderResourceContainer<RenderResourceHandle::Types::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
+	RenderResourceContainer<RenderResourceHandle::Types::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
 
-	mutable RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_SwapChainTextures;
+	RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_SwapChainTextures;
 };
