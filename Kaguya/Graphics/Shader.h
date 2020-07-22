@@ -19,10 +19,10 @@ public:
 
 	Shader() = default;
 	Shader(Type Type, Microsoft::WRL::ComPtr<IDxcBlob> DxcBlob);
-	~Shader();
+	~Shader() = default;
 
-	Shader(Shader&&) = default;
-	Shader& operator=(Shader&&) = default;
+	Shader(Shader&&) noexcept = default;
+	Shader& operator=(Shader&&) noexcept = default;
 
 	Shader(const Shader&) = delete;
 	Shader& operator=(const Shader&) = delete;

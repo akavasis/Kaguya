@@ -127,6 +127,8 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	m_WindowHeight = Math::Max<unsigned int>(1u, clientRect.bottom - clientRect.top);
 	Window::Event windowEvent;
 	windowEvent.type = Event::Type::Invalid;
+	windowEvent.data.Width = m_WindowWidth;
+	windowEvent.data.Height = m_WindowHeight;
 
 	switch (uMsg)
 	{

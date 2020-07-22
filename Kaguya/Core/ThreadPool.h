@@ -43,7 +43,6 @@ namespace Kaguya
 	}
 }
 
-// TODO: Now test
 class ThreadPool
 {
 public:

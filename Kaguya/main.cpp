@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
 		Application application;
 		Window window{ L"Kaguya Shinomiya" };
-		Renderer renderer{ application, window };
+		Renderer renderer{ window };
 
 		MaterialLoader materialLoader{ application.ExecutableFolderPath() };
 		ModelLoader modelLoader{ application.ExecutableFolderPath() };

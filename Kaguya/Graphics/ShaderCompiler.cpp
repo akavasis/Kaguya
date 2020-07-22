@@ -24,13 +24,8 @@ std::wstring ProfileString(Shader::Type Type, Shader::Model Model)
 
 ShaderCompiler::ShaderCompiler()
 {
-	DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(m_DxcCompiler.ReleaseAndGetAddressOf()));
-	DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(m_DxcLibrary.ReleaseAndGetAddressOf()));
-}
-
-ShaderCompiler::~ShaderCompiler()
-{
-
+	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(m_DxcCompiler.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(m_DxcLibrary.ReleaseAndGetAddressOf())));
 }
 
 Shader ShaderCompiler::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
@@ -41,17 +36,20 @@ Shader ShaderCompiler::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEnt
 		throw std::exception("File Not Found");
 	}
 
-	std::vector<std::wstring> cmdlineArgs;
 	// https://developer.nvidia.com/dx12-dos-and-donts
 	// Use the /all_resources_bound / D3DCOMPILE_ALL_RESOURCES_BOUND compile flag if possible This allows for the compiler to do a better job at optimizing texture accesses.We have seen frame rate improvements of > 1 % when toggling this flag on.
-	cmdlineArgs.push_back(L"/all_resources_bound"); 
-#if defined(_DEBUG)
-	cmdlineArgs.push_back(L"/Zi");
-	cmdlineArgs.push_back(L"/Od");
+	LPCWSTR cmdlineArgs[] =
+	{
+		L"-all_resources_bound",
+		L"-WX",				// Warnings as errors
+#ifdef _DEBUG
+		L"-Zi",				// Debug info
+		L"-Qembed_debug",	// Embed debug info into the shader
+		L"-Od",				// Disable optimization
+#else
+		L"-O3",				// Optimization level 3
 #endif
-	std::vector<LPCWSTR> cmdlineArgsPtr;
-	for (auto& argument : cmdlineArgs)
-		cmdlineArgsPtr.push_back(argument.c_str());
+	};
 
 	Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSource;
 	Microsoft::WRL::ComPtr<IDxcIncludeHandler> pDxcIncludeHandler;
@@ -67,7 +65,7 @@ Shader ShaderCompiler::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEnt
 		filePath.c_str(),
 		pEntryPoint,
 		ProfileString(Type, Shader::Model::Model_6_3).data(),
-		cmdlineArgsPtr.data(), cmdlineArgsPtr.size(),
+		cmdlineArgs, ARRAYSIZE(cmdlineArgs),
 		nullptr, 0,
 		pDxcIncludeHandler.Get(),
 		pDxcOperationResult.ReleaseAndGetAddressOf()));
@@ -87,7 +85,8 @@ Shader ShaderCompiler::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEnt
 
 		pDxcOperationResult->GetErrorBuffer(pError.ReleaseAndGetAddressOf());
 		m_DxcLibrary->GetBlobAsUtf16(pError.Get(), pError16.ReleaseAndGetAddressOf());
-		CORE_ERROR("{} Failed: {}", __FUNCTION__, pError16->GetBufferPointer());
+		OutputDebugString((LPCWSTR)pError16->GetBufferPointer());
+		assert(false);
 		return Shader(Shader::Type::Unknown, nullptr);
 	}
 }

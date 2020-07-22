@@ -1,7 +1,11 @@
 #include "HLSLCommon.hlsli"
 
-ConstantBuffer<ObjectConstants> ObjectConstantsGPU : register(b0);
-ConstantBuffer<RenderPassConstants> RenderPassConstantsGPU : register(b1);
+#define ConstantDataType ObjectConstants
+#define RenderPassDataType RenderPassConstants
+
+#include "ShaderLayout.hlsli"
+
+#define RENDER_SHADOWS 0
 
 struct InputVertex
 {
@@ -23,20 +27,23 @@ OutputVertex main(InputVertex inputVertex)
 {
 	OutputVertex output;
 	
-	// Build orthonormal basis.
-	float3 N = normalize(mul(inputVertex.normalL, (float3x3) ObjectConstantsGPU.World));
-	float3 T = normalize(mul(inputVertex.tangentL, (float3x3) ObjectConstantsGPU.World));
-	float3 B = normalize(cross(N, T));
-	
 	// Transform to world space
-	output.positionW = mul(float4(inputVertex.positionL, 1.0f), ObjectConstantsGPU.World).xyz;
+	output.positionW = mul(float4(inputVertex.positionL, 1.0f), ConstantDataCB.World).xyz;
 	// Transform to homogeneous/clip space
-	output.positionH = mul(float4(output.positionW, 1.0f), RenderPassConstantsGPU.ViewProjection);
+	output.positionH = mul(float4(output.positionW, 1.0f), RenderPassDataCB.ViewProjection);
+	
+#if !RENDER_SHADOWS
 	output.textureCoord = inputVertex.textureCoord;
 	// Transform normal and tangent to world space
+	// Build orthonormal basis.
+	float3 N = normalize(mul(inputVertex.normalL, (float3x3) ConstantDataCB.World));
+	float3 T = normalize(mul(inputVertex.tangentL, (float3x3) ConstantDataCB.World));
+	float3 B = normalize(cross(N, T));
+	
 	output.normalW = N;
 	output.tbnMatrix = float3x3(T, B, N);
 	output.depth = output.positionH.w;
+#endif
 	
 	return output;
 }

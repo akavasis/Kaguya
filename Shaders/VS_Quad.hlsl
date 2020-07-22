@@ -5,7 +5,7 @@ struct VSInput
 };
 
 /*
-	In reality, this shader just produces a big-ass triangle that fits the entire NDC screen
+	In reality, this shader just produces a big triangle that fits the entire NDC screen
 */
 VSInput main(uint VertexID : SV_VertexID)
 {

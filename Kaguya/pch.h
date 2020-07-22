@@ -21,6 +21,7 @@
 #include <filesystem>
 #include <iostream>
 #include <exception>
+#include <optional>
 
 // C++ STL
 #include <array>
@@ -31,7 +32,10 @@
 #include <unordered_map>
 #include <queue>
 
-// Third parties
+// operator <=>
+#include <compare>
+
+// third parties
 #include <DirectXTex.h>
 #include "../External/imgui/imgui.h"
 #include "../External/imgui/imgui_impl_win32.h"

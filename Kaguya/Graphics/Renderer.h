@@ -19,33 +19,31 @@ class Time;
 class Renderer
 {
 public:
-	Renderer(Application& RefApplication, Window& RefWindow);
+	Renderer(Window& Window);
 	~Renderer();
 
 	void Update(const Time& Time);
 	void Render(Scene& Scene);
 private:
-	Texture& CurrentBackBuffer();
-	void Resize();
+	void Resize(UINT Width, UINT Height);
 
-	Window& m_RefWindow;
 	EventReceiver m_EventReceiver;
 
 	// In FLIP swap chains the compositor owns one of your buffers at any given point
 	// Thus to run unconstrained (>vsync) frame rates, you need at least 3 buffers
-	enum { SwapChainBufferCount = 3 };
+	enum { NumSwapChainBuffers = 3 };
 	enum { NodeMask = 0 };
 	enum { NumFramesToBuffer = 3 }; // Not used yet
-
-	struct Status
-	{
-		bool IsSceneStaged = false;
-	} m_Status;
 
 	struct Constants
 	{
 		static constexpr UINT64 SunShadowMapResolution = 2048;
 	};
+
+	struct Status
+	{
+		bool IsSceneStaged = false;
+	} m_Status;
 
 	struct Statistics
 	{
@@ -75,6 +73,14 @@ private:
 		int DebugViewInput = 0;
 	} m_Debug;
 
+	// Swapchain resources
+	UINT m_CurrentBackBufferIndex;
+	float m_AspectRatio;
+	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
+	RenderResourceHandle m_SwapChainTextureHandles[NumSwapChainBuffers];
+	Texture* m_pSwapChainTextures[NumSwapChainBuffers];
+	DescriptorAllocation m_SwapChainRTVs;
+
 	DXGIManager m_DXGIManager;
 
 	RenderDevice m_RenderDevice;
@@ -82,12 +88,6 @@ private:
 	RenderGraph m_RenderGraph;
 	GpuBufferAllocator m_GpuBufferAllocator;
 	GpuTextureAllocator m_GpuTextureAllocator;
-
-	// Swapchain resources
-	UINT m_FrameIndex;
-	float m_AspectRatio;
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
-	Texture m_BackBufferTexture[SwapChainBufferCount];
 
 	RenderResourceHandle m_FrameBufferHandle;
 	RenderResourceHandle m_FrameDepthStencilBufferHandle;

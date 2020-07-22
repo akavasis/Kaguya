@@ -23,6 +23,7 @@ public:
 
 		struct Data
 		{
+			UINT Width, Height;
 		} data;
 	};
 

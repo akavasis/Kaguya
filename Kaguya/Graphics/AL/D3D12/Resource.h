@@ -25,6 +25,11 @@ public:
 	inline auto GetNumSubresources() const { return m_NumSubresources; }
 
 	void Release();
+
+	void SetDebugName(LPCWSTR Name)
+	{
+		m_pResource->SetName(Name);
+	}
 protected:
 	class Properties
 	{

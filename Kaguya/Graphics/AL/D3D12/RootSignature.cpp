@@ -1,59 +1,18 @@
 #include "pch.h"
 #include "RootSignature.h"
 #include "Device.h"
+#include "RootSignatureProxy.h"
 
-void RootSignature::Properties::AllowInputLayout()
+RootSignature::RootSignature(Device* pDevice, RootSignatureProxy& Proxy)
 {
-	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-}
+	Proxy.Link();
 
-void RootSignature::Properties::DenyVSAccess()
-{
-	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
-}
-
-void RootSignature::Properties::DenyHSAccess()
-{
-	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
-}
-
-void RootSignature::Properties::DenyDSAccess()
-{
-	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-}
-
-void RootSignature::Properties::DenyGSAccess()
-{
-	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-}
-
-void RootSignature::Properties::DenyPSAccess()
-{
-	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-}
-
-void RootSignature::Properties::AllowStreamOutput()
-{
-	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
-}
-
-void RootSignature::Properties::SetAsLocalRootSignature()
-{
-	Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
-}
-
-RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
-{
-	for (UINT i = 0; i < MaxDescriptorTables; ++i)
-		m_NumDescriptorsPerTable[i] = 0;
-
-	auto& rootSignatureDesc = Properties.Desc;
-	UINT numParameters = rootSignatureDesc.NumParameters;
+	UINT numParameters = Proxy.m_Parameters.size();
 	D3D12_ROOT_PARAMETER1* pParameters = numParameters > 0 ? new D3D12_ROOT_PARAMETER1[numParameters] : nullptr;
 
 	for (UINT i = 0; i < numParameters; ++i)
 	{
-		const D3D12_ROOT_PARAMETER1& rootParameter = rootSignatureDesc.pParameters[i];
+		const D3D12_ROOT_PARAMETER1& rootParameter = Proxy.m_Parameters[i];
 		pParameters[i] = rootParameter;
 
 		if (rootParameter.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
@@ -65,49 +24,24 @@ RootSignature::RootSignature(Device* pDevice, const Properties& Properties)
 
 			pParameters[i].DescriptorTable.NumDescriptorRanges = numDescriptorRanges;
 			pParameters[i].DescriptorTable.pDescriptorRanges = pDescriptorRanges;
-
-			// Set the bit mask depending on the type of descriptor table.
-			if (numDescriptorRanges > 0)
-			{
-				switch (pDescriptorRanges[0].RangeType)
-				{
-				case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
-				case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
-				case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
-					m_DescriptorTableBitMask.set(i, true);
-					break;
-				case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
-					m_SamplerTableBitMask.set(i, true);
-					break;
-				}
-			}
-
-			// Count the number of descriptors in the descriptor table.
-			for (UINT j = 0; j < numDescriptorRanges; ++j)
-			{
-				if (pDescriptorRanges[j].NumDescriptors == UINT_MAX)
-					m_NumDescriptorsPerTable[i] = pDescriptorRanges[j].NumDescriptors;
-				else
-					m_NumDescriptorsPerTable[i] += pDescriptorRanges[j].NumDescriptors;
-			}
 		}
 	}
 
 	m_RootSignatureDesc.NumParameters = numParameters;
 	m_RootSignatureDesc.pParameters = pParameters;
 
-	UINT numStaticSamplers = rootSignatureDesc.NumStaticSamplers;
+	UINT numStaticSamplers = Proxy.m_StaticSamplers.size();
 	D3D12_STATIC_SAMPLER_DESC* pStaticSamplers = numStaticSamplers > 0 ? new D3D12_STATIC_SAMPLER_DESC[numStaticSamplers] : nullptr;
 
 	if (pStaticSamplers)
 	{
-		memcpy(pStaticSamplers, rootSignatureDesc.pStaticSamplers, sizeof(D3D12_STATIC_SAMPLER_DESC) * numStaticSamplers);
+		memcpy(pStaticSamplers, Proxy.m_StaticSamplers.data(), sizeof(D3D12_STATIC_SAMPLER_DESC) * numStaticSamplers);
 	}
 
 	m_RootSignatureDesc.NumStaticSamplers = numStaticSamplers;
 	m_RootSignatureDesc.pStaticSamplers = pStaticSamplers;
 
-	m_RootSignatureDesc.Flags = rootSignatureDesc.Flags;
+	m_RootSignatureDesc.Flags = Proxy.m_Flags;
 
 	// Serialize the root signature.
 	Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSignatureBlob;
@@ -153,17 +87,6 @@ RootSignature& RootSignature::operator=(RootSignature&& rvalue) noexcept
 {
 	m_RootSignature = std::move(rvalue.m_RootSignature);
 	m_RootSignatureDesc = std::move(rvalue.m_RootSignatureDesc);
-	for (UINT i = 0; i < MaxDescriptorTables; ++i)
-		m_NumDescriptorsPerTable[i] = std::move(rvalue.m_NumDescriptorsPerTable[i]);
-	m_DescriptorTableBitMask = std::move(rvalue.m_DescriptorTableBitMask);
-	m_SamplerTableBitMask = std::move(rvalue.m_SamplerTableBitMask);
-
 	ZeroMemory(&rvalue, sizeof(rvalue));
 	return *this;
-}
-
-UINT RootSignature::GetNumDescriptorsAt(UINT RootParameterIndex) const
-{
-	assert(RootParameterIndex < MaxDescriptorTables);
-	return m_NumDescriptorsPerTable[RootParameterIndex];
 }

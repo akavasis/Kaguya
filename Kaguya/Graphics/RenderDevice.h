@@ -4,6 +4,8 @@
 #include <atomic>
 #include <unordered_map>
 
+#include "../Core/Delegate.h"
+
 #include "RenderResourceHandle.h"
 #include "ShaderCompiler.h"
 #include "RenderCommandContext.h"
@@ -18,7 +20,14 @@
 #include "AL/D3D12/Texture.h"
 #include "AL/D3D12/Heap.h"
 #include "AL/D3D12/RootSignature.h"
+#include "AL/D3D12/RootSignatureProxy.h"
 #include "AL/D3D12/PipelineState.h"
+
+struct StandardShaderLayoutOptions
+{
+	BOOL InitConstantDataTypeAsRootConstants;
+	UINT Num32BitValues;
+};
 
 /*
 	Abstraction of underlying GPU Device, its able to create gpu resources
@@ -30,12 +39,6 @@ class RenderDevice
 public:
 	RenderDevice(IDXGIAdapter4* pAdapter);
 	~RenderDevice();
-
-	RenderDevice(RenderDevice&&) noexcept = default;
-	RenderDevice& operator=(RenderDevice&&) noexcept = default;
-
-	RenderDevice(const RenderDevice&) = delete;
-	RenderDevice& operator=(const RenderDevice&) = delete;
 
 	[[nodiscard]] inline Device& GetDevice() { return m_Device; }
 	[[nodiscard]] inline CommandQueue* GetGraphicsQueue() { return &m_GraphicsQueue; }
@@ -60,11 +63,18 @@ public:
 	[[nodiscard]] RenderResourceHandle CreateTexture(const Texture::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateTexture(const Texture::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
 	[[nodiscard]] RenderResourceHandle CreateHeap(const Heap::Properties& Properties);
-	[[nodiscard]] RenderResourceHandle CreateRootSignature(const RootSignature::Properties& Properties);
+	[[nodiscard]] RenderResourceHandle CreateRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(const ComputePipelineState::Properties& Properties);
 
-	void Destroy(RenderResourceHandle& RenderResourceHandle);
+	void Destroy(RenderResourceHandle* pRenderResourceHandle);
+
+	// Special creation methods
+	[[nodiscard]] RenderResourceHandle CreateSwapChainTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, D3D12_RESOURCE_STATES InitialState);
+	[[nodiscard]] inline auto GetSwapChainTexture(RenderResourceHandle RenderResourceHandle) { return m_SwapChainTextures.GetResource(RenderResourceHandle); }
+	void DestroySwapChainTexture(RenderResourceHandle* pRenderResourceHandle);
+	void ReplaceSwapChainTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, D3D12_RESOURCE_STATES InitialState, RenderResourceHandle ExistingRenderResourceHandle);
+	void CreateRTVForSwapChainTexture(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor);
 
 	// Resource view creation
 	void CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor);
@@ -73,14 +83,16 @@ public:
 	void CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize);
 
 	// Returns nullptr if a resource is not found
-	[[nodiscard]] inline Shader* GetShader(RenderResourceHandle RenderResourceHandle) const { return m_Shaders.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline Buffer* GetBuffer(RenderResourceHandle RenderResourceHandle) const { return m_Buffers.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline Texture* GetTexture(RenderResourceHandle RenderResourceHandle) const { return m_Textures.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline Heap* GetHeap(RenderResourceHandle RenderResourceHandle) const { return m_Heaps.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline RootSignature* GetRootSignature(RenderResourceHandle RenderResourceHandle) const { return m_RootSignatures.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline ComputePipelineState* GetComputePSO(RenderResourceHandle RenderResourceHandle) const { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetShader(RenderResourceHandle RenderResourceHandle) const { return m_Shaders.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) const { return m_Buffers.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle) const { return m_Textures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle) const { return m_Heaps.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle) const { return m_RootSignatures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) const { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
 private:
+	void AddStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
+
 	Device m_Device;
 	CommandQueue m_GraphicsQueue;
 	CommandQueue m_ComputeQueue;
@@ -90,18 +102,40 @@ private:
 	DescriptorAllocator m_DescriptorAllocator;
 	std::vector<std::unique_ptr<RenderCommandContext>> m_RenderCommandContexts[4];
 
+	enum DescriptorRanges
+	{
+		Tex2DTableRange,
+		Tex2DArrayTableRange,
+		TexCubeTableRange,
+
+		NumDescriptorRanges
+	};
+	std::array<D3D12_DESCRIPTOR_RANGE1, std::size_t(DescriptorRanges::NumDescriptorRanges)> m_StandardShaderLayoutDescriptorRanges;
+
 	template <RenderResourceHandle::Types Type, typename T>
 	class RenderResourceContainer
 	{
 	public:
 		template<typename... Args>
-		RenderResourceHandle CreateResource(Args&&... args)
+		std::pair<RenderResourceHandle, T*> CreateResource(Args&&... args)
 		{
 			T resource = T(std::forward<Args>(args)...);
 			std::scoped_lock lk(m_Mutex);
 			RenderResourceHandle handle = m_HandleFactory.GetNewHandle();
 			m_ResourceTable[handle] = std::move(resource);
-			return handle;
+			return { handle, &m_ResourceTable[handle] };
+		}
+
+		// Returns false if ExistingRenderResourceHandle does not exist in the table
+		template<typename... Args>
+		bool ReplaceResource(const RenderResourceHandle& ExistingRenderResourceHandle, Args&&... args)
+		{
+			std::scoped_lock lk(m_Mutex);
+			if (m_ResourceTable.find(ExistingRenderResourceHandle) == m_ResourceTable.end())
+				return false;
+			T resource = T(std::forward<Args>(args)...);
+			m_ResourceTable[ExistingRenderResourceHandle] = std::move(resource);
+			return true;
 		}
 
 		T* GetResource(const RenderResourceHandle& RenderResourceHandle)
@@ -122,12 +156,21 @@ private:
 			return nullptr;
 		}
 
-		void Destroy(const RenderResourceHandle& RenderResourceHandle)
+		void Destroy(const RenderResourceHandle& RenderResourceHandle, bool RemoveRenderResourceHandle)
 		{
 			std::scoped_lock lk(m_Mutex);
 			auto iter = m_ResourceTable.find(RenderResourceHandle);
 			if (iter != m_ResourceTable.end())
-				m_ResourceTable.erase(iter);
+			{
+				if (RemoveRenderResourceHandle)
+				{
+					m_ResourceTable.erase(iter);
+				}
+				else
+				{
+					m_ResourceTable[RenderResourceHandle] = T();
+				}
+			}
 		}
 	private:
 		template<RenderResourceHandle::Types Type>
@@ -137,20 +180,19 @@ private:
 			RenderResourceHandleFactory()
 			{
 				m_AtomicData = 0;
-				m_Handle._Type = Type;
-				m_Handle._Flag = RenderResourceHandle::Flags::Active;
-				m_Handle._Data = 0;
+				m_Handle.Type = Type;
+				m_Handle.Flag = RenderResourceHandle::Flags::Active;
+				m_Handle.Data = 0;
 			}
 
 			RenderResourceHandle GetNewHandle()
 			{
-				m_Handle._Data = m_AtomicData.fetch_add(1);
+				m_Handle.Data = m_AtomicData.fetch_add(1);
 				return m_Handle;
 			}
 		private:
-			// TODO: Add thread safe handle query using atomic
 			RenderResourceHandle m_Handle;
-			std::atomic<std::size_t> m_AtomicData;
+			std::atomic<size_t> m_AtomicData;
 		};
 
 		std::unordered_map<RenderResourceHandle, T> m_ResourceTable;
@@ -167,4 +209,6 @@ private:
 	mutable RenderResourceContainer<RenderResourceHandle::Types::RootSignature, RootSignature> m_RootSignatures;
 	mutable RenderResourceContainer<RenderResourceHandle::Types::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
 	mutable RenderResourceContainer<RenderResourceHandle::Types::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
+
+	mutable RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_SwapChainTextures;
 };

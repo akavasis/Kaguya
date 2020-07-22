@@ -1,14 +1,13 @@
-#include "StaticSamplers.hlsli"
-#include "DescriptorTables.hlsli"
-
 #include "HLSLCommon.hlsli"
 #include "PBR.hlsli"
 
-ConstantBuffer<ObjectConstants> ObjectConstantsGPU : register(b0);
-ConstantBuffer<RenderPassConstants> RenderPassConstantsGPU : register(b1);
+StructuredBuffer<MaterialTextureIndices> MaterialIndices : register(t0, space0);
+StructuredBuffer<MaterialTextureProperties> MaterialProperties : register(t0, space1);
 
-StructuredBuffer<MaterialTextureIndices> MaterialIndices : register(t0, space100);
-StructuredBuffer<MaterialTextureProperties> MaterialProperties : register(t0, space101);
+// Shader layout define and include
+#define ConstantDataType ObjectConstants
+#define RenderPassDataType RenderPassConstants
+#include "ShaderLayout.hlsli"
 
 struct OutputVertex
 {
@@ -23,15 +22,15 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 {
 	inputPixel.normalW = normalize(inputPixel.normalW);
 	
-	MaterialTextureIndices materialIndices = MaterialIndices[ObjectConstantsGPU.MaterialIndex];
-	MaterialTextureProperties materialProperties = MaterialProperties[ObjectConstantsGPU.MaterialIndex];
+	MaterialTextureIndices materialIndices = MaterialIndices[ConstantDataCB.MaterialIndex];
+	MaterialTextureProperties materialProperties = MaterialProperties[ConstantDataCB.MaterialIndex];
 	
 	// Fetch albedo/diffuse data
 	float alpha = 1.0f;
 	if (materialIndices.AlbedoMapIndex != -1)
 	{
 		Texture2D albedoMap = Tex2DTable[materialIndices.AlbedoMapIndex];
-		float4 albedoMapSample = albedoMap.Sample(s_SamplerAnisotropicWrap, inputPixel.textureCoord);
+		float4 albedoMapSample = albedoMap.Sample(SamplerAnisotropicWrap, inputPixel.textureCoord);
 		materialProperties.Albedo = albedoMapSample.rgb;
 		alpha = albedoMapSample.a;
 		if (materialIndices.IsMasked)
@@ -44,7 +43,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 	if (materialIndices.NormalMapIndex != -1)
 	{
 		Texture2D normalMap = Tex2DTable[materialIndices.NormalMapIndex];
-		float4 normalMapSample = normalMap.Sample(s_SamplerAnisotropicWrap, inputPixel.textureCoord);
+		float4 normalMapSample = normalMap.Sample(SamplerAnisotropicWrap, inputPixel.textureCoord);
 		float3 normalT = normalize(2.0f * normalMapSample.rgb - 1.0f); // Uncompress each component from [0,1] to [-1,1].
 		inputPixel.normalW = normalize(mul(normalT, inputPixel.tbnMatrix)); // Transform from tangent space to world space.
 	}
@@ -53,7 +52,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 	if (materialIndices.RoughnessMapIndex != -1)
 	{
 		Texture2D roughnessMap = Tex2DTable[materialIndices.RoughnessMapIndex];
-		float4 roughnessMapSample = roughnessMap.Sample(s_SamplerAnisotropicWrap, inputPixel.textureCoord);
+		float4 roughnessMapSample = roughnessMap.Sample(SamplerAnisotropicWrap, inputPixel.textureCoord);
 		materialProperties.Roughness = roughnessMapSample.r;
 	}
 	
@@ -61,7 +60,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 	if (materialIndices.MetallicMapIndex != -1)
 	{
 		Texture2D metallicMap = Tex2DTable[materialIndices.MetallicMapIndex];
-		float4 metallicMapSample = metallicMap.Sample(s_SamplerAnisotropicWrap, inputPixel.textureCoord);
+		float4 metallicMapSample = metallicMap.Sample(SamplerAnisotropicWrap, inputPixel.textureCoord);
 		materialProperties.Metallic = metallicMapSample.r;
 	}
 	
@@ -69,48 +68,48 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 	if (materialIndices.EmissiveMapIndex != -1)
 	{
 		Texture2D emissiveMap = Tex2DTable[materialIndices.EmissiveMapIndex];
-		float4 emissiveMapSample = emissiveMap.Sample(s_SamplerAnisotropicWrap, inputPixel.textureCoord);
+		float4 emissiveMapSample = emissiveMap.Sample(SamplerAnisotropicWrap, inputPixel.textureCoord);
 		materialProperties.Emissive = emissiveMapSample.rgb;
 	}
 
     // Vector from point being lit to eye. 
-	float3 viewDirection = normalize(RenderPassConstantsGPU.EyePosition - inputPixel.positionW);
+	float3 viewDirection = normalize(RenderPassDataCB.EyePosition - inputPixel.positionW);
 	
 	float3 color = materialProperties.Emissive;
 	
 	// Shadow
-	Texture2DArray sunShadowMap = Tex2DArrayTable[RenderPassConstantsGPU.SunShadowMapIndex];
+	Texture2DArray sunShadowMap = Tex2DArrayTable[RenderPassDataCB.SunShadowMapIndex];
 	int cascadeIndex = 0;
 	for (int i = NUM_CASCADES - 1; i >= 0; --i)
 	{
-		if (inputPixel.depth <= RenderPassConstantsGPU.Sun.Cascades[i].Split)
+		if (inputPixel.depth <= RenderPassDataCB.Sun.Cascades[i].Split)
 		{
 			cascadeIndex = i;
 		}
 	}
-	float shadowFactor = CalcShadowRatio(inputPixel.positionW, cascadeIndex, RenderPassConstantsGPU.Sun.Cascades, s_SamplerShadow, sunShadowMap);
-	float3 radiance = RenderPassConstantsGPU.Sun.Strength * RenderPassConstantsGPU.Sun.Intensity * shadowFactor;
-	color += PBR(materialProperties, inputPixel.normalW, viewDirection, -RenderPassConstantsGPU.Sun.Direction, radiance);
+	float shadowFactor = CalcShadowRatio(inputPixel.positionW, cascadeIndex, RenderPassDataCB.Sun.Cascades, SamplerShadow, sunShadowMap);
+	float3 radiance = RenderPassDataCB.Sun.Strength * RenderPassDataCB.Sun.Intensity * shadowFactor;
+	color += PBR(materialProperties, inputPixel.normalW, viewDirection, -RenderPassDataCB.Sun.Direction, radiance);
 	
 	// Ambient lighting (IBL)
 	{
-		Texture2D brdfLUTMap = Tex2DTable[RenderPassConstantsGPU.BRDFLUTMapIndex];
-		TextureCube irradianceCubemap = TexCubeTable[RenderPassConstantsGPU.IrradianceCubemapIndex];
-		TextureCube prefilteredCubemap = TexCubeTable[RenderPassConstantsGPU.PrefilteredRadianceCubemapIndex];
+		Texture2D brdfLUTMap = Tex2DTable[RenderPassDataCB.BRDFLUTMapIndex];
+		TextureCube irradianceCubemap = TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex];
+		TextureCube prefilteredCubemap = TexCubeTable[RenderPassDataCB.PrefilteredRadianceCubemapIndex];
 		
 		float cosLo = max(0.0f, dot(inputPixel.normalW, viewDirection));
 		
 		// Specular reflection vector
-		float3 irradiance = irradianceCubemap.Sample(s_SamplerAnisotropicWrap, inputPixel.normalW).rgb;
+		float3 irradiance = irradianceCubemap.Sample(SamplerAnisotropicWrap, inputPixel.normalW).rgb;
 		
 		// Sample pre-filtered specular reflection environment at correct mipmap level
 		float3 Lr = reflect(-viewDirection, inputPixel.normalW);
 		uint width, height, mipLevel;
 		prefilteredCubemap.GetDimensions(0, width, height, mipLevel);
-		float3 prefiltered = prefilteredCubemap.SampleLevel(s_SamplerAnisotropicWrap, Lr, materialProperties.Roughness * mipLevel).rgb;
+		float3 prefiltered = prefilteredCubemap.SampleLevel(SamplerAnisotropicWrap, Lr, materialProperties.Roughness * mipLevel).rgb;
 		
 		// Split-sum approximation factors for Cook-Torrance specular BRDF
-		float2 brdfIntegration = brdfLUTMap.Sample(s_SamplerLinearClamp, float2(cosLo, materialProperties.Roughness)).rg;
+		float2 brdfIntegration = brdfLUTMap.Sample(SamplerLinearClamp, float2(cosLo, materialProperties.Roughness)).rg;
 		
 		color += IBL(materialProperties, cosLo, irradiance, prefiltered, brdfIntegration);
 	}

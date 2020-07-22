@@ -41,14 +41,24 @@ struct SkyboxPassData
 	DescriptorAllocation DepthStencilView;
 };
 
-Renderer::Renderer(Application& RefApplication, Window& RefWindow)
-	: m_RefWindow(RefWindow),
-	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
+struct TonemapPassData
+{
+	TonemapData TonemapData;
+
+	RenderResourceHandle FrameBufferHandle;
+	Texture* pFrameBuffer;
+	Descriptor FrameBufferSRV;
+	Descriptor SwapChainRTV;
+	Texture* pSwapChainTexture;
+};
+
+Renderer::Renderer(Window& Window)
+	: m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(m_RenderDevice),
 	m_GpuBufferAllocator(50_MiB, 50_MiB, 64_KiB, &m_RenderDevice),
 	m_GpuTextureAllocator(100, &m_RenderDevice)
 {
-	m_EventReceiver.Register(m_RefWindow, [&](const Event& event)
+	m_EventReceiver.Register(Window, [&](const Event& event)
 	{
 		Window::Event windowEvent;
 		event.Read(windowEvent.type, windowEvent.data);
@@ -56,12 +66,12 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		{
 		case Window::Event::Type::Maximize:
 		case Window::Event::Type::Resize:
-			Resize();
+			Resize(windowEvent.data.Width, windowEvent.data.Height);
 			break;
 		}
 	});
 
-	m_AspectRatio = static_cast<float>(m_RefWindow.GetWindowWidth()) / static_cast<float>(m_RefWindow.GetWindowHeight());
+	m_AspectRatio = static_cast<float>(Window.GetWindowWidth()) / static_cast<float>(Window.GetWindowHeight());
 
 	Shaders::Register(&m_RenderDevice);
 	RootSignatures::Register(&m_RenderDevice);
@@ -69,25 +79,28 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 	ComputePSOs::Register(&m_RenderDevice);
 
 	// Create swap chain after command objects have been created
-	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue(), m_RefWindow, RendererFormats::SwapChainBufferFormat, SwapChainBufferCount);
+	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue(), Window, RendererFormats::SwapChainBufferFormat, NumSwapChainBuffers);
+	m_CurrentBackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 
 	// Initialize Non-transient resources
-	for (UINT i = 0; i < SwapChainBufferCount; ++i)
+	m_SwapChainRTVs = m_RenderDevice.GetDescriptorAllocator().AllocateRenderTargetDescriptors(NumSwapChainBuffers);
+	for (UINT i = 0; i < NumSwapChainBuffers; ++i)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-		m_BackBufferTexture[i] = Texture(pBackBuffer);
-		m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(m_BackBufferTexture[i].GetD3DResource(), D3D12_RESOURCE_STATE_COMMON);
+		m_SwapChainTextureHandles[i] = m_RenderDevice.CreateSwapChainTexture(pBackBuffer, D3D12_RESOURCE_STATE_COMMON);
+		m_pSwapChainTextures[i] = m_RenderDevice.GetSwapChainTexture(m_SwapChainTextureHandles[i]);
+		m_RenderDevice.CreateRTVForSwapChainTexture(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i]);
 	}
 
-	// Allocate upload context;
+	// Allocate upload context
 	m_pUploadCommandContext = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
 
 	Texture::Properties textureProp{};
 	textureProp.Type = Resource::Type::Texture2D;
 	textureProp.Format = RendererFormats::HDRBufferFormat;
-	textureProp.Width = m_RefWindow.GetWindowWidth();
-	textureProp.Height = m_RefWindow.GetWindowHeight();
+	textureProp.Width = Window.GetWindowWidth();
+	textureProp.Height = Window.GetWindowHeight();
 	textureProp.DepthOrArraySize = 1;
 	textureProp.MipLevels = 1;
 	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
@@ -137,7 +150,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 			RenderDevice.CreateDSV(Data.outputDepthTexture, descriptor, i, {}, 1);
 		}
 
-		return [](const ShadowPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const ShadowPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 			std::vector<const Model*> visibleModelsIndices;
 			std::unordered_map<const Model*, std::vector<UINT>> visibleMeshesIndices;
@@ -177,7 +190,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 				PIXMarker(pRenderCommandContext->GetD3DCommandList(), msg);
 
 				const OrthographicCamera& CascadeCamera = Scene.CascadeCameras[cascadeIndex];
-				pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::Shadow::RenderPassCBuffer, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(cascadeIndex));
+				pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(cascadeIndex));
 
 				Descriptor descriptor = Data.depthStencilView[cascadeIndex];
 				pRenderCommandContext->SetRenderTargets(0, Descriptor(), FALSE, descriptor);
@@ -194,7 +207,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 						const UINT meshIndex = visibleMeshesIndices[pModel][j];
 						auto& mesh = pModel->Meshes[meshIndex];
 
-						pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::Shadow::ObjectCBuffer, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
+						pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::ConstantDataCB, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
 						pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 					}
 				}
@@ -220,7 +233,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		RenderDevice.CreateRTV(m_FrameBufferHandle, Data.RenderTargetView[0], {}, {}, {});
 		RenderDevice.CreateDSV(m_FrameDepthStencilBufferHandle, Data.DepthStencilView[0], {}, {}, {});
 
-		return [](const ForwardPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const ForwardPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 			std::vector<const Model*> visibleModelsIndices;
 			std::unordered_map<const Model*, std::vector<UINT>> visibleMeshesIndices;
@@ -240,9 +253,9 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PBR));
 
 			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::PBR::RenderPassCBuffer, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
 			Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, RootParameters::PBR::MaterialTexturePropertiesSBuffer, pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::PBR::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameters::PBR::NumRootParameters, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::DescriptorTables + RootParameters::PBR::NumRootParameters, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -274,7 +287,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 					const UINT meshIndex = visibleMeshesIndices[pModel][j];
 					auto& mesh = pModel->Meshes[meshIndex];
 
-					pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::PBR::ObjectCBuffer, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
+					pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::ConstantDataCB + RootParameters::PBR::NumRootParameters, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
 					pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 				}
 			}
@@ -297,7 +310,7 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		Data.RenderTargetView = pForwardPass->GetData().RenderTargetView;
 		Data.DepthStencilView = pForwardPass->GetData().DepthStencilView;
 
-		return [](const SkyboxPassData& Data, Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const SkyboxPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
 		{
 			PIXMarker(pRenderCommandContext->GetD3DCommandList(), L"Skybox Render");
 
@@ -309,9 +322,8 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Skybox));
 
 			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::Skybox::RenderPassCBuffer, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
-			Data.pGpuTextureAllocator->Bind(RootParameters::Skybox::MaterialTextureIndicesSBuffer, RootParameters::Skybox::MaterialTexturePropertiesSBuffer, pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::Skybox::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -337,6 +349,48 @@ Renderer::Renderer(Application& RefApplication, Window& RefWindow)
 		};
 	});
 
+	auto pTonemapPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, TonemapPassData>(
+		[&](TonemapPassData& Data, RenderDevice& RenderDevice)
+	{
+		Data.FrameBufferHandle = m_FrameBufferHandle;
+		Data.pFrameBuffer = pSkyboxPass->GetData().pFrameBuffer;
+		Data.SwapChainRTV = m_SwapChainRTVs[m_CurrentBackBufferIndex];
+		Data.pSwapChainTexture = m_pSwapChainTextures[m_CurrentBackBufferIndex];
+
+		return [](const TonemapPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		{
+			pRenderCommandContext->TransitionBarrier(Data.pSwapChainTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
+			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
+
+			pRenderCommandContext->SetGraphicsRoot32BitConstants(RootParameters::ShaderLayout::ConstantDataCB, sizeof(Data.TonemapData) / 4, &Data.TonemapData, 0);
+			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+
+			D3D12_VIEWPORT vp;
+			vp.TopLeftX = vp.TopLeftY = 0.0f;
+			vp.MinDepth = 0.0f;
+			vp.MaxDepth = 1.0f;
+			vp.Width = Data.pFrameBuffer->Width;
+			vp.Height = Data.pFrameBuffer->Height;
+
+			D3D12_RECT sr;
+			sr.left = sr.top = 0;
+			sr.right = Data.pFrameBuffer->Width;
+			sr.bottom = Data.pFrameBuffer->Height;
+
+			pRenderCommandContext->SetViewports(1, &vp);
+			pRenderCommandContext->SetScissorRects(1, &sr);
+
+			pRenderCommandContext->SetRenderTargets(1, Data.SwapChainRTV, TRUE, Descriptor());
+			pRenderCommandContext->DrawInstanced(3, 1, 0, 0);
+
+			pRenderCommandContext->TransitionBarrier(Data.pSwapChainTexture, D3D12_RESOURCE_STATE_PRESENT);
+		};
+	});
+
+	m_RenderGraph.SetExecutionPolicy(RenderGraph::ExecutionPolicy::Parallel);
 	m_RenderGraph.Setup();
 }
 
@@ -364,6 +418,10 @@ void Renderer::Render(Scene& Scene)
 {
 	PIXCapture();
 	unsigned int shadowMapIndex = 0;
+
+	auto shadowPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ShadowPassData>();
+	auto tonemapPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, TonemapPassData>();
+
 	if (!m_Status.IsSceneStaged)
 	{
 		m_Status.IsSceneStaged = true;
@@ -373,7 +431,7 @@ void Renderer::Render(Scene& Scene)
 		m_GpuTextureAllocator.Stage(Scene, m_pUploadCommandContext);
 		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
 
-		const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures() + 1; // Shadow map
+		const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures() + 2; // 1+ Shadow map, 1+ FrameBuffer
 		DescriptorAllocation textureSRVs = m_RenderDevice.GetDescriptorAllocator().GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate).value();
 
 		for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
@@ -387,9 +445,11 @@ void Renderer::Render(Scene& Scene)
 			m_RenderDevice.CreateSRV(m_GpuTextureAllocator.TextureStorage.TextureHandles[iter->first], textureSRVs[iter->second]);
 		}
 
-		auto shadowMap = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ShadowPassData>()->GetData().outputDepthTexture;
-		shadowMapIndex = numSRVsToAllocate - 1;
-		m_RenderDevice.CreateSRV(shadowMap, textureSRVs[shadowMapIndex]);
+		shadowMapIndex = numSRVsToAllocate - 2;
+		m_RenderDevice.CreateSRV(shadowPass->GetData().outputDepthTexture, textureSRVs[shadowMapIndex]);
+
+		tonemapPass->GetData().TonemapData.InputMapIndex = shadowMapIndex + 1;
+		m_RenderDevice.CreateSRV(m_FrameBufferHandle, textureSRVs[shadowMapIndex + 1]);
 	}
 
 	m_GpuBufferAllocator.Update(Scene);
@@ -428,6 +488,11 @@ void Renderer::Render(Scene& Scene)
 	UINT presentFlags = (m_DXGIManager.TearingSupport() && !m_Setting.VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
 	DXGI_PRESENT_PARAMETERS presentParameters = { 0u, NULL, NULL, NULL };
 	HRESULT hr = m_pSwapChain->Present1(syncInterval, presentFlags, &presentParameters);
+	m_CurrentBackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
+
+	tonemapPass->GetData().SwapChainRTV = m_SwapChainRTVs[m_CurrentBackBufferIndex];
+	tonemapPass->GetData().pSwapChainTexture = m_pSwapChainTextures[m_CurrentBackBufferIndex];
+
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
 		CORE_ERROR("DXGI_ERROR_DEVICE_REMOVED");
@@ -440,39 +505,37 @@ void Renderer::Render(Scene& Scene)
 	}
 }
 
-Texture& Renderer::CurrentBackBuffer()
-{
-	return m_BackBufferTexture[m_pSwapChain->GetCurrentBackBufferIndex()];
-}
-
-void Renderer::Resize()
+void Renderer::Resize(UINT Width, UINT Height)
 {
 	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
 	{
-		m_AspectRatio = static_cast<float>(m_RefWindow.GetWindowWidth()) / static_cast<float>(m_RefWindow.GetWindowHeight());
+		m_AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
 
 		// Release resources before resize swap chain
-		for (UINT i = 0u; i < SwapChainBufferCount; ++i)
-			m_BackBufferTexture[i].Release();
+		for (UINT i = 0u; i < NumSwapChainBuffers; ++i)
+			m_RenderDevice.DestroySwapChainTexture(&m_SwapChainTextureHandles[i]);
 
 		// Resize backbuffer
-		UINT Nodes[SwapChainBufferCount];
-		IUnknown* Queues[SwapChainBufferCount];
-		for (UINT i = 0; i < SwapChainBufferCount; ++i)
+		UINT nodes[NumSwapChainBuffers];
+		IUnknown* commandQueues[NumSwapChainBuffers];
+		for (UINT i = 0; i < NumSwapChainBuffers; ++i)
 		{
-			Nodes[i] = NodeMask;
-			Queues[i] = m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue();
+			nodes[i] = NodeMask;
+			commandQueues[i] = m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue();
 		}
-		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(SwapChainBufferCount, m_RefWindow.GetWindowWidth(), m_RefWindow.GetWindowHeight(), RendererFormats::SwapChainBufferFormat,
-			m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH, Nodes, Queues));
+		UINT swapChainFlags = m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(NumSwapChainBuffers, Width, Height, RendererFormats::SwapChainBufferFormat, swapChainFlags, nodes, commandQueues));
+
 		// Recreate descriptors
-		for (UINT i = 0; i < SwapChainBufferCount; ++i)
+		for (UINT i = 0; i < NumSwapChainBuffers; ++i)
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-			m_BackBufferTexture[i] = Texture(pBackBuffer);
-			m_RenderDevice.GetGlobalResourceStateTracker().AddResourceState(m_BackBufferTexture[i].GetD3DResource(), D3D12_RESOURCE_STATE_COMMON);
+			m_RenderDevice.ReplaceSwapChainTexture(pBackBuffer, D3D12_RESOURCE_STATE_COMMON, m_SwapChainTextureHandles[i]);
+			m_RenderDevice.CreateRTVForSwapChainTexture(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i]);
 		}
+		// Reset back buffer index
+		m_CurrentBackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 	}
 	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
 }

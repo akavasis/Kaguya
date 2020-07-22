@@ -2,17 +2,13 @@
 #include <dxcapi.h>
 #include <wrl/client.h>
 
-#include <vector>
-#include <string>
-#include <filesystem>
-
 #include "Shader.h"
 
 class ShaderCompiler
 {
 public:
 	ShaderCompiler();
-	~ShaderCompiler();
+	~ShaderCompiler() = default;
 
 	Shader LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
 private:

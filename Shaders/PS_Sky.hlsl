@@ -1,9 +1,9 @@
-#include "StaticSamplers.hlsli"
-#include "DescriptorTables.hlsli"
-
 #include "HLSLCommon.hlsli"
 
-ConstantBuffer<RenderPassConstants> RenderPassConstantsGPU : register(b0);
+// Shader layout define and include
+#define ConstantDataType ObjectConstants
+#define RenderPassDataType RenderPassConstants
+#include "ShaderLayout.hlsli"
 
 struct OutputVertex
 {
@@ -12,8 +12,8 @@ struct OutputVertex
 };
 float4 main(OutputVertex inputPixel) : SV_TARGET
 {
-	TextureCube cubemap = TexCubeTable[RenderPassConstantsGPU.IrradianceCubemapIndex];
-	float3 color = cubemap.Sample(s_SamplerLinearWrap, inputPixel.textureCoord).xyz;
-	color *= RenderPassConstantsGPU.Sun.Intensity * 0.5f;
+	TextureCube cubemap = TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex];
+	float3 color = cubemap.Sample(SamplerLinearWrap, inputPixel.textureCoord).xyz;
+	color *= RenderPassDataCB.Sun.Intensity * 0.5f;
 	return float4(color, 1.0f);
 }

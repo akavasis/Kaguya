@@ -25,7 +25,7 @@ DXGIManager::DXGIManager()
 	UINT i = 0;
 	while (m_pDXGIFactory->EnumAdapterByGpuPreference(i++, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(pAdapter4.ReleaseAndGetAddressOf())) != DXGI_ERROR_NOT_FOUND)
 	{
-		m_pAdapters.push_back(pAdapter4);
+		m_pAdapters.push_back(std::move(pAdapter4));
 	}
 
 	// Check tearing support
@@ -55,21 +55,21 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> DXGIManager::CreateSwapChain(IUnknown* p
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> returnVal;
 	// For DX11 pUnknown should be ID3D11Device
 	// For DX12 pUnknown should be ID3D12CommandQueue
-	DXGI_SWAP_CHAIN_DESC1 SwapChainDesc1;
-	SwapChainDesc1.Width = Window.GetWindowWidth();
-	SwapChainDesc1.Height = Window.GetWindowHeight();
-	SwapChainDesc1.Format = Format;
-	SwapChainDesc1.Stereo = FALSE;
-	SwapChainDesc1.SampleDesc.Count = 1u;
-	SwapChainDesc1.SampleDesc.Quality = 0u;
-	SwapChainDesc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	SwapChainDesc1.BufferCount = BufferCount;
-	SwapChainDesc1.Scaling = DXGI_SCALING_NONE;
-	SwapChainDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	SwapChainDesc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	SwapChainDesc1.Flags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc1;
+	swapChainDesc1.Width = Window.GetWindowWidth();
+	swapChainDesc1.Height = Window.GetWindowHeight();
+	swapChainDesc1.Format = Format;
+	swapChainDesc1.Stereo = FALSE;
+	swapChainDesc1.SampleDesc.Count = 1u;
+	swapChainDesc1.SampleDesc.Quality = 0u;
+	swapChainDesc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc1.BufferCount = BufferCount;
+	swapChainDesc1.Scaling = DXGI_SCALING_NONE;
+	swapChainDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	swapChainDesc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+	swapChainDesc1.Flags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> pSwapChain1;
-	ThrowCOMIfFailed(m_pDXGIFactory->CreateSwapChainForHwnd(pUnknown, Window.GetWindowHandle(), &SwapChainDesc1, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
+	ThrowCOMIfFailed(m_pDXGIFactory->CreateSwapChainForHwnd(pUnknown, Window.GetWindowHandle(), &swapChainDesc1, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
 	ThrowCOMIfFailed(m_pDXGIFactory->MakeWindowAssociation(Window.GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
 	ThrowCOMIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(returnVal.ReleaseAndGetAddressOf())));
 	return returnVal;

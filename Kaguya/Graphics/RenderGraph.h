@@ -39,7 +39,7 @@ template<RenderPassType Type, typename Data>
 class RenderPass : public RenderPassBase
 {
 public:
-	using ExecuteCallback = Delegate<void(const Data&, Scene&, RenderGraphRegistry&, RenderCommandContext*)>;
+	using ExecuteCallback = Delegate<void(const Data&, const Scene&, RenderGraphRegistry&, RenderCommandContext*)>;
 	using PassCallback = Delegate<ExecuteCallback(Data&, RenderDevice&)>;
 
 	RenderPass(PassCallback&& RenderPassPassCallback);
@@ -58,6 +58,8 @@ private:
 	ExecuteCallback m_ExecuteCallback;
 };
 
+// TODO: Add a RenderGraphScheduler to indicate reads/writes to a particular resource so we can
+// apply resource barriers ahead of time, removing the need to place them in code
 class RenderGraphRegistry
 {
 public:

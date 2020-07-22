@@ -632,7 +632,7 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 	pRenderCommandContext->SetPipelineState(m_pRenderDevice->GetComputePSO(ComputePSOs::GenerateMips));
 	pRenderCommandContext->SetComputeRootSignature(m_pRenderDevice->GetRootSignature(RootSignatures::GenerateMips));
 
-	GenerateMipsCPUData generateMipsCB;
+	GenerateMipsData generateMipsCB;
 	generateMipsCB.IsSRGB = DirectX::IsSRGB(pTexture->Format);
 
 	for (uint32_t srcMip = 0; srcMip < pTexture->MipLevels - 1u; )
@@ -673,7 +673,7 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 		generateMipsCB.TexelSize.x = 1.0f / (float)dstWidth;
 		generateMipsCB.TexelSize.y = 1.0f / (float)dstHeight;
 
-		pRenderCommandContext->SetComputeRoot32BitConstants(RootParameters::GenerateMips::GenerateMipsCBuffer, sizeof(GenerateMipsCPUData) / 4, &generateMipsCB, 0);
+		pRenderCommandContext->SetComputeRoot32BitConstants(RootParameters::GenerateMips::GenerateMipsCBuffer, sizeof(GenerateMipsData) / 4, &generateMipsCB, 0);
 
 		pRenderCommandContext->TransitionBarrier(pTexture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, srcMip);
 		pRenderCommandContext->FlushResourceBarriers();
@@ -771,7 +771,7 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 	pRenderCommandContext->SetPipelineState(m_pRenderDevice->GetComputePSO(ComputePSOs::EquirectangularToCubemap));
 	pRenderCommandContext->SetComputeRootSignature(m_pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap));
 
-	EquirectangularToCubemapCPUData panoToCubemapCB;
+	EquirectangularToCubemapData panoToCubemapCB;
 
 	for (uint32_t mipSlice = 0; mipSlice < resourceDesc.MipLevels; )
 	{

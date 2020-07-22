@@ -29,7 +29,7 @@ struct ConvolutionPrefilterSetting
 	UINT NumSamples = 32u;
 };
 
-struct GenerateMipsCPUData
+struct GenerateMipsData
 {
 	UINT SrcMipLevel;				// Texture level of source mip
 	UINT NumMipLevels;				// Number of OutMips to write: [1-4]
@@ -38,11 +38,18 @@ struct GenerateMipsCPUData
 	DirectX::XMFLOAT2 TexelSize;    // 1.0 / OutMip1.Dimensions
 };
 
-struct EquirectangularToCubemapCPUData
+struct EquirectangularToCubemapData
 {
 	UINT CubemapSize;				// Size of the cubemap face in pixels at the current mipmap level.
 	UINT FirstMip;					// The first mip level to generate.
 	UINT NumMips;					// The number of mips to generate.
+};
+
+struct TonemapData
+{
+	float Exposure = 4.5f;
+	float Gamma = 2.2f;
+	unsigned int InputMapIndex;
 };
 
 struct RendererFormats
@@ -57,46 +64,23 @@ struct RendererFormats
 
 struct RootParameters
 {
+	struct ShaderLayout
+	{
+		enum
+		{
+			ConstantDataCB,
+			RenderPassDataCB,
+			DescriptorTables,
+			NumRootParameters
+		};
+	};
 	struct CubemapConvolution
 	{
 		enum
 		{
-			RenderPassCBuffer,
 			Setting,
-			CubemapSRV,
-			Count,
-		};
-	};
-	struct Shadow
-	{
-		enum
-		{
-			ObjectCBuffer,
 			RenderPassCBuffer,
-			Count
-		};
-	};
-	struct PBR
-	{
-		enum
-		{
-			ObjectCBuffer,
-			RenderPassCBuffer,
-			MaterialTextureIndicesSBuffer,
-			MaterialTexturePropertiesSBuffer,
-			DescriptorTables,
-			Count
-		};
-	};
-	struct Skybox
-	{
-		enum
-		{
-			RenderPassCBuffer,
-			MaterialTextureIndicesSBuffer,
-			MaterialTexturePropertiesSBuffer,
-			DescriptorTables,
-			Count
+			CubemapSRV
 		};
 	};
 	struct GenerateMips
@@ -105,8 +89,7 @@ struct RootParameters
 		{
 			GenerateMipsCBuffer,
 			SrcMip,
-			OutMips,
-			Count
+			OutMips
 		};
 	};
 	struct EquirectangularToCubemap
@@ -115,8 +98,16 @@ struct RootParameters
 		{
 			PanoToCubemapCBuffer,
 			SrcMip,
-			OutMips,
-			Count
+			OutMips
+		};
+	};
+	struct PBR
+	{
+		enum
+		{
+			MaterialTextureIndicesSBuffer,
+			MaterialTexturePropertiesSBuffer,
+			NumRootParameters
 		};
 	};
 };
@@ -138,20 +129,14 @@ struct Shaders
 		inline static RenderResourceHandle ConvolutionPrefilter;
 		inline static RenderResourceHandle PBR;
 		inline static RenderResourceHandle Sky;
-		inline static RenderResourceHandle PostProcess_BloomComposite;
-		inline static RenderResourceHandle PostProcess_BloomMask;
-		inline static RenderResourceHandle PostProcess_Sepia;
-		inline static RenderResourceHandle PostProcess_SobelComposite;
-		inline static RenderResourceHandle PostProcess_ToneMapping;
+
+		inline static RenderResourceHandle PostProcess_Tonemapping;
 	};
 
 	struct CS
 	{
 		inline static RenderResourceHandle EquirectangularToCubemap;
 		inline static RenderResourceHandle GenerateMips;
-		inline static RenderResourceHandle PostProcess_BlurHorizontal;
-		inline static RenderResourceHandle PostProcess_BlurVertical;
-		inline static RenderResourceHandle PostProcess_Sobel;
 	};
 
 	static void Register(RenderDevice* pRenderDevice);
@@ -162,13 +147,14 @@ struct RootSignatures
 	inline static RenderResourceHandle BRDFIntegration;
 	inline static RenderResourceHandle ConvolutionIrradiace;
 	inline static RenderResourceHandle ConvolutionPrefilter;
+	inline static RenderResourceHandle GenerateMips;
+	inline static RenderResourceHandle EquirectangularToCubemap;
 
 	inline static RenderResourceHandle PBR;
 	inline static RenderResourceHandle Shadow;
 	inline static RenderResourceHandle Skybox;
 
-	inline static RenderResourceHandle GenerateMips;
-	inline static RenderResourceHandle EquirectangularToCubemap;
+	inline static RenderResourceHandle PostProcess_Tonemapping;
 
 	static void Register(RenderDevice* pRenderDevice);
 };
@@ -182,6 +168,8 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle PBR;
 	inline static RenderResourceHandle Shadow;
 	inline static RenderResourceHandle Skybox;
+
+	inline static RenderResourceHandle PostProcess_Tonemapping;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

@@ -99,7 +99,6 @@ ThreadPool::ThreadPool(unsigned int NumThreads)
 					// A spurious wake up can happen so check to see if work is actually valid
 					if (work)
 					{
-						CORE_INFO("Thread Pool Worker: {} got work to do", QueueIndex);
 						work();
 					}
 				}

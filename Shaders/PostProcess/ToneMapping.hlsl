@@ -1,13 +1,13 @@
-#include "../HLSLCommon.hlsli"
-#include "../StaticSamplers.hlsli"
-
-cbuffer cbSettings : register(b0)
+struct TonemapData
 {
 	float Exposure;
 	float Gamma;
-}
+	unsigned int InputMapIndex;
+};
 
-Texture2D InputMap : register(t0);
+// Shader layout define and include
+#define ConstantDataType TonemapData
+#include "../ShaderLayout.hlsli"
 
 // From http://filmicworlds.com/blog/filmic-tonemapping-operators/
 float3 Uncharted2Tonemap(float3 color)
@@ -24,9 +24,9 @@ float3 Uncharted2Tonemap(float3 color)
 
 float4 tonemap(float4 color)
 {
-	float3 outcol = Uncharted2Tonemap(color.rgb * Exposure);
+	float3 outcol = Uncharted2Tonemap(color.rgb * ConstantDataCB.Exposure);
 	outcol = outcol * (1.0f / Uncharted2Tonemap(float3(11.2f, 11.2f, 11.2f)));
-	float invGamma = 1.0f / Gamma;
+	float invGamma = 1.0f / ConstantDataCB.Gamma;
 	return float4(pow(outcol, float3(invGamma, invGamma, invGamma)), color.a);
 }
 
@@ -41,7 +41,7 @@ float4 SRGBtoLINEAR(float4 srgbIn)
 	float3 bLess = step(float3(0.04045f, 0.04045f, 0.04045f), srgbIn.xyz);
 	float3 linOut = lerp(srgbIn.xyz / float3(12.92f, 12.92f, 12.92f), pow((srgbIn.xyz + float3(0.055f, 0.055f, 0.055f)) / float3(1.055f, 1.055f, 1.055f), float3(2.4f, 2.4f, 2.4f)), bLess);
 #endif //SRGB_FAST_APPROXIMATION
-	return float4(linOut, srgbIn.w);;
+	return float4(linOut, srgbIn.w);
 #else //MANUAL_SRGB
 	return srgbIn;
 #endif //MANUAL_SRGB
@@ -54,7 +54,7 @@ struct VSInput
 };
 float4 main(VSInput pixel) : SV_TARGET
 {
-	float4 sampledInputMapPixel = InputMap.SampleLevel(s_SamplerLinearClamp, pixel.Texture, 0.0f);
+	float4 sampledInputMapPixel = Tex2DTable[ConstantDataCB.InputMapIndex].SampleLevel(SamplerLinearClamp, pixel.Texture, 0.0f);
 	
 	return SRGBtoLINEAR(tonemap(sampledInputMapPixel));
 }

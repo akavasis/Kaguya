@@ -9,7 +9,6 @@ cbuffer Settings : register(b0)
 TextureCube Cubemap : register(t0);
 SamplerState s_SamplerLinearClamp : register(s0);
 
-float random(float2 co);
 float RadicalInverse_VDC(uint Bits);
 float2 Hammersley(uint i, uint N);
 float3 ImportanceSampleGGX(float2 Xi, float3 N, float Roughness);
