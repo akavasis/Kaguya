@@ -96,7 +96,6 @@ ThreadPool::ThreadPool(unsigned int NumThreads)
 							return false;
 						});
 					}
-					// A spurious wake up can happen so check to see if work is actually valid
 					if (work)
 					{
 						work();
@@ -128,7 +127,7 @@ bool ThreadPool::STEEEEEEEEAAAAAL(Delegate<void()>& Work)
 	for (size_t i = 0, size = m_WorkQueuePool.size(); i < size; ++i)
 	{
 		size_t index = (QueueIndex + i + 1) % size;
-		if (m_WorkQueuePool[i]->TrySteal(Work))
+		if (m_WorkQueuePool[i] && m_WorkQueuePool[i]->TrySteal(Work))
 		{
 			return true;
 		}

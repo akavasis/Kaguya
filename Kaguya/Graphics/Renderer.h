@@ -74,6 +74,7 @@ private:
 	} m_Debug;
 
 	// Swapchain resources
+	static constexpr DXGI_FORMAT SwapChainBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	UINT m_CurrentBackBufferIndex;
 	float m_AspectRatio;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
