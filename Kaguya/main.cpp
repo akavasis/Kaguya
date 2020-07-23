@@ -44,6 +44,17 @@ int main(int argc, char** argv)
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 		scene.Camera.SetPosition(0.0f, 5.0f, -10.0f);
 
+		auto& nullMaterial = scene.AddMaterial(materialLoader.LoadMaterial(
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr
+		));
+		nullMaterial.Properties.Albedo = { 1.0f, 1.0f, 1.0f };
+		nullMaterial.Properties.Roughness = 0.0f;
+		nullMaterial.Properties.Metallic = 1.0f;
+
 		auto& cerberusMat = scene.AddMaterial(materialLoader.LoadMaterial(
 			"Assets/Models/Cerberus/Textures/Cerberus_Albedo.dds",
 			"Assets/Models/Cerberus/Textures/Cerberus_Normal.dds",
@@ -53,11 +64,14 @@ int main(int argc, char** argv)
 		));
 
 		auto& cerberus = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx", 0.05f));
-		cerberus.Meshes[0].MaterialIndex = 0;
+		cerberus.Meshes[0].MaterialIndex = 1;
 		cerberus.Translate(0.0f, 5.0f, -5.0f);
 		cerberus.Rotate(DirectX::XMConvertToRadians(90.0f), DirectX::XMConvertToRadians(90.0f), 0.0f);
 
 		auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+
+		auto& grid = scene.AddModel(CreateGrid(100.0f, 100.0f, 10, 10));
+		grid.Translate(0.0f, -10.0f, 0.0f);
 
 		Time time;
 		time.Restart();

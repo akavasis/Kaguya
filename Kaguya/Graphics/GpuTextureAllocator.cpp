@@ -358,10 +358,12 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComma
 			{
 				material.TextureIndices[i] = textureIndexIter->second;
 			}
-
 		}
-		auto textureHandleIter = TextureStorage.TextureHandles.find(material.Textures[Albedo].Path.generic_string());
-		material.IsMasked = m_UnstagedTextures[textureHandleIter->second].isMasked;
+		if (!material.Textures[Albedo].Path.empty())
+		{
+			auto textureHandleIter = TextureStorage.TextureHandles.find(material.Textures[Albedo].Path.generic_string());
+			material.IsMasked = m_UnstagedTextures[textureHandleIter->second].isMasked;
+		}
 	}
 }
 

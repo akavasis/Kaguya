@@ -23,9 +23,6 @@ public:
 	inline auto GetD3DRootSignature() const { return m_RootSignature.Get(); }
 	inline const auto& GetD3DRootSignatureDesc() const { return m_RootSignatureDesc; }
 private:
-	enum : UINT { MaxDescriptorTables = 32 };
-
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
-
 	D3D12_ROOT_SIGNATURE_DESC1 m_RootSignatureDesc;
 };
