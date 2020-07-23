@@ -21,7 +21,6 @@ Template/*.inl
 file(GLOB_RECURSE SourceList
 Core/*.cpp
 Graphics/*.cpp
-Input/*.cpp
 Math/*.cpp
 )
 
