@@ -1,6 +1,6 @@
 #pragma once
 #include "Resource.h"
-#include "../../../Math/MathLibrary.h"
+#include "Math/MathLibrary.h"
 
 class Buffer : public Resource
 {

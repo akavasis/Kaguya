@@ -8,13 +8,13 @@
 
 #include "RenderResourceHandle.h"
 #include "ShaderCompiler.h"
-#include "RenderCommandContext.h"
 
 #include "AL/D3D12/Device.h"
 #include "AL/D3D12/ResourceStateTracker.h"
 #include "AL/D3D12/DescriptorHeap.h"
 #include "AL/D3D12/DescriptorAllocator.h"
 #include "AL/D3D12/CommandQueue.h"
+#include "AL/D3D12/CommandContext.h"
 
 #include "AL/D3D12/Buffer.h"
 #include "AL/D3D12/Texture.h"
@@ -46,14 +46,14 @@ public:
 	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
 	[[nodiscard]] inline ResourceStateTracker& GetGlobalResourceStateTracker() { return m_GlobalResourceStateTracker; }
 	[[nodiscard]] inline DescriptorAllocator& GetDescriptorAllocator() { return m_DescriptorAllocator; }
-	[[nodiscard]] RenderCommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE Type);
+	[[nodiscard]] CommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE Type);
 
-	void BindUniversalGpuDescriptorHeap(RenderCommandContext* pRenderCommandContext) const;
+	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const;
 	auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const
 	{
 		return m_DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::ShaderResource);
 	}
-	void ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* ppRenderCommandContexts[]);
+	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
 	// Resource creation
 	[[nodiscard]] RenderResourceHandle LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
@@ -111,7 +111,7 @@ private:
 	ResourceStateTracker m_GlobalResourceStateTracker;
 	ShaderCompiler m_ShaderCompiler;
 	DescriptorAllocator m_DescriptorAllocator;
-	std::vector<std::unique_ptr<RenderCommandContext>> m_RenderCommandContexts[4];
+	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[4];
 
 	enum DescriptorRanges
 	{

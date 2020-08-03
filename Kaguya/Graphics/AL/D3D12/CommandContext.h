@@ -1,16 +1,18 @@
 #pragma once
 #include <d3d12.h>
 
-#include "AL/D3D12/ResourceStateTracker.h"
-#include "AL/D3D12/DescriptorHeap.h"
+#include "ResourceStateTracker.h"
+#include "DescriptorHeap.h"
 
-#include "AL/D3D12/Buffer.h"
-#include "AL/D3D12/Texture.h"
-#include "AL/D3D12/Heap.h"
-#include "AL/D3D12/RootSignature.h"
-#include "AL/D3D12/PipelineState.h"
+#include "CommandQueue.h"
 
-class RenderDevice;
+#include "Buffer.h"
+#include "Texture.h"
+#include "Heap.h"
+#include "RootSignature.h"
+#include "PipelineState.h"
+
+class CommandQueue;
 
 class Resource;
 class Buffer;
@@ -20,10 +22,10 @@ class PipelineState;
 class GraphicsPipelineState;
 class ComputePipelineState;
 
-class RenderCommandContext
+class CommandContext
 {
 public:
-	RenderCommandContext(RenderDevice* pRenderDevice, D3D12_COMMAND_LIST_TYPE Type);
+	CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, D3D12_COMMAND_LIST_TYPE Type);
 
 	inline auto GetD3DCommandList() const { return m_pCommandList.Get(); }
 	inline auto GetD3DType() const { return m_Type; }
@@ -72,7 +74,11 @@ public:
 	inline void SetComputeRootUnorderedAccessView(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
 
 	void Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ);
-protected:
+
+	void BuildRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC* pDesc,
+		UINT NumPostbuildInfoDescs,
+		const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC* pPostbuildInfoDescs);
+private:
 	friend class RenderDevice;
 
 	bool Close(ResourceStateTracker& GlobalResourceStateTracker);
@@ -80,9 +86,9 @@ protected:
 	// Marks current allocator as active with the FenceValue and request a new one
 	void RequestNewAllocator(UINT64 FenceValue);
 
-	class CommandQueue* pOwningCommandQueue;
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pCommandList;
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pPendingCommandList;
+	CommandQueue* pOwningCommandQueue;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> m_pCommandList;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> m_pPendingCommandList;
 	ID3D12CommandAllocator* m_pCurrentAllocator; // Given by the CommandQueue
 	ID3D12CommandAllocator* m_pCurrentPendingAllocator; // Given by the CommandQueue
 	D3D12_COMMAND_LIST_TYPE m_Type;
@@ -91,4 +97,4 @@ protected:
 	ResourceStateTracker m_ResourceStateTracker;
 };
 
-#include "RenderCommandContext.inl"
+#include "CommandContext.inl"

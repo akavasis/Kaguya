@@ -150,7 +150,7 @@ Renderer::Renderer(Window& Window)
 			RenderDevice.CreateDSV(Data.outputDepthTexture, descriptor, i, {}, 1);
 		}
 
-		return [](const ShadowPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const ShadowPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
 			std::vector<const Model*> visibleModelsIndices;
 			std::unordered_map<const Model*, std::vector<UINT>> visibleMeshesIndices;
@@ -161,15 +161,15 @@ Renderer::Renderer(Window& Window)
 			}
 
 			// Begin rendering
-			PIXMarker(pRenderCommandContext->GetD3DCommandList(), L"Scene Cascade Shadow Map Render");
+			PIXMarker(pCommandContext->GetD3DCommandList(), L"Scene Cascade Shadow Map Render");
 
-			pRenderCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			pCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Shadow));
-			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Shadow));
+			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Shadow));
+			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Shadow));
 
-			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
+			Data.pGpuBufferAllocator->Bind(pCommandContext);
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -181,20 +181,20 @@ Renderer::Renderer(Window& Window)
 			sr.left = sr.top = 0;
 			sr.right = sr.bottom = Constants::SunShadowMapResolution;
 
-			pRenderCommandContext->SetViewports(1, &vp);
-			pRenderCommandContext->SetScissorRects(1, &sr);
+			pCommandContext->SetViewports(1, &vp);
+			pCommandContext->SetScissorRects(1, &sr);
 
 			for (UINT cascadeIndex = 0; cascadeIndex < NUM_CASCADES; ++cascadeIndex)
 			{
 				wchar_t msg[32]; swprintf(msg, 32, L"Cascade Shadow Map %u", cascadeIndex);
-				PIXMarker(pRenderCommandContext->GetD3DCommandList(), msg);
+				PIXMarker(pCommandContext->GetD3DCommandList(), msg);
 
 				const OrthographicCamera& CascadeCamera = Scene.CascadeCameras[cascadeIndex];
-				pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(cascadeIndex));
+				pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(cascadeIndex));
 
 				Descriptor descriptor = Data.depthStencilView[cascadeIndex];
-				pRenderCommandContext->SetRenderTargets(0, Descriptor(), FALSE, descriptor);
-				pRenderCommandContext->ClearDepthStencil(descriptor, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+				pCommandContext->SetRenderTargets(0, Descriptor(), FALSE, descriptor);
+				pCommandContext->ClearDepthStencil(descriptor, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 				const UINT numVisibleModels = CullModelsOrthographic(CascadeCamera, true, Scene.Models, visibleModelsIndices);
 				for (UINT i = 0; i < numVisibleModels; ++i)
@@ -207,13 +207,13 @@ Renderer::Renderer(Window& Window)
 						const UINT meshIndex = visibleMeshesIndices[pModel][j];
 						auto& mesh = pModel->Meshes[meshIndex];
 
-						pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::ConstantDataCB, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
-						pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
+						pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::ConstantDataCB, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
+						pCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 					}
 				}
 			}
 
-			pRenderCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), D3D12_RESOURCE_STATE_DEPTH_READ);
+			pCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), D3D12_RESOURCE_STATE_DEPTH_READ);
 		};
 	});
 
@@ -233,7 +233,7 @@ Renderer::Renderer(Window& Window)
 		RenderDevice.CreateRTV(m_FrameBufferHandle, Data.RenderTargetView[0], {}, {}, {});
 		RenderDevice.CreateDSV(m_FrameDepthStencilBufferHandle, Data.DepthStencilView[0], {}, {}, {});
 
-		return [](const ForwardPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const ForwardPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
 			std::vector<const Model*> visibleModelsIndices;
 			std::unordered_map<const Model*, std::vector<UINT>> visibleMeshesIndices;
@@ -243,19 +243,19 @@ Renderer::Renderer(Window& Window)
 				visibleMeshesIndices[&model].resize(model.Meshes.size());
 			}
 
-			PIXMarker(pRenderCommandContext->GetD3DCommandList(), L"Scene Render");
+			PIXMarker(pCommandContext->GetD3DCommandList(), L"Scene Render");
 
-			pRenderCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			pRenderCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			pCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PBR));
-			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PBR));
+			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PBR));
+			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PBR));
 
-			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, RootParameters::PBR::MaterialTexturePropertiesSBuffer, pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB + RootParameters::PBR::NumRootParameters, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
-			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables + RootParameters::PBR::NumRootParameters, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+			Data.pGpuBufferAllocator->Bind(pCommandContext);
+			Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, RootParameters::PBR::MaterialTexturePropertiesSBuffer, pCommandContext);
+			pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB + RootParameters::PBR::NumRootParameters, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables + RootParameters::PBR::NumRootParameters, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -269,12 +269,12 @@ Renderer::Renderer(Window& Window)
 			sr.right = Data.pFrameBuffer->Width;
 			sr.bottom = Data.pFrameBuffer->Height;
 
-			pRenderCommandContext->SetViewports(1, &vp);
-			pRenderCommandContext->SetScissorRects(1, &sr);
+			pCommandContext->SetViewports(1, &vp);
+			pCommandContext->SetScissorRects(1, &sr);
 
-			pRenderCommandContext->SetRenderTargets(1, Data.RenderTargetView[0], TRUE, Data.DepthStencilView[0]);
-			pRenderCommandContext->ClearRenderTarget(Data.RenderTargetView[0], DirectX::Colors::LightBlue, 0, nullptr);
-			pRenderCommandContext->ClearDepthStencil(Data.DepthStencilView[0], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+			pCommandContext->SetRenderTargets(1, Data.RenderTargetView[0], TRUE, Data.DepthStencilView[0]);
+			pCommandContext->ClearRenderTarget(Data.RenderTargetView[0], DirectX::Colors::LightBlue, 0, nullptr);
+			pCommandContext->ClearDepthStencil(Data.DepthStencilView[0], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 			const UINT numVisibleModels = CullModels(&Scene.Camera, Scene.Models, visibleModelsIndices);
 			for (UINT i = 0; i < numVisibleModels; ++i)
@@ -287,13 +287,13 @@ Renderer::Renderer(Window& Window)
 					const UINT meshIndex = visibleMeshesIndices[pModel][j];
 					auto& mesh = pModel->Meshes[meshIndex];
 
-					pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::ConstantDataCB + RootParameters::PBR::NumRootParameters, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
-					pRenderCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
+					pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::ConstantDataCB + RootParameters::PBR::NumRootParameters, Data.pGpuBufferAllocator->GetConstantBuffer()->GetGpuVirtualAddressAt(mesh.ObjectConstantsIndex));
+					pCommandContext->DrawIndexedInstanced(mesh.IndexCount, 1, mesh.StartIndexLocation, mesh.BaseVertexLocation, 0);
 				}
 			}
 
-			pRenderCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			pRenderCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+			pCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
 		};
 	});
 
@@ -310,20 +310,20 @@ Renderer::Renderer(Window& Window)
 		Data.RenderTargetView = pForwardPass->GetData().RenderTargetView;
 		Data.DepthStencilView = pForwardPass->GetData().DepthStencilView;
 
-		return [](const SkyboxPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const SkyboxPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
-			PIXMarker(pRenderCommandContext->GetD3DCommandList(), L"Skybox Render");
+			PIXMarker(pCommandContext->GetD3DCommandList(), L"Skybox Render");
 
-			pRenderCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			pRenderCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			pCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Skybox));
-			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Skybox));
+			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Skybox));
+			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Skybox));
 
-			Data.pGpuBufferAllocator->Bind(pRenderCommandContext);
-			pRenderCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
-			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+			Data.pGpuBufferAllocator->Bind(pCommandContext);
+			pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB, Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -337,15 +337,15 @@ Renderer::Renderer(Window& Window)
 			sr.right = Data.pFrameBuffer->Width;
 			sr.bottom = Data.pFrameBuffer->Height;
 
-			pRenderCommandContext->SetViewports(1, &vp);
-			pRenderCommandContext->SetScissorRects(1, &sr);
+			pCommandContext->SetViewports(1, &vp);
+			pCommandContext->SetScissorRects(1, &sr);
 
-			pRenderCommandContext->SetRenderTargets(1, Data.RenderTargetView[0], TRUE, Data.DepthStencilView[0]);
+			pCommandContext->SetRenderTargets(1, Data.RenderTargetView[0], TRUE, Data.DepthStencilView[0]);
 
-			pRenderCommandContext->DrawIndexedInstanced(Scene.Skybox.Mesh.IndexCount, 1, Scene.Skybox.Mesh.StartIndexLocation, Scene.Skybox.Mesh.BaseVertexLocation, 0);
+			pCommandContext->DrawIndexedInstanced(Scene.Skybox.Mesh.IndexCount, 1, Scene.Skybox.Mesh.StartIndexLocation, Scene.Skybox.Mesh.BaseVertexLocation, 0);
 
-			pRenderCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			pRenderCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+			pCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
 		};
 	});
 
@@ -357,16 +357,16 @@ Renderer::Renderer(Window& Window)
 		Data.SwapChainRTV = m_SwapChainRTVs[m_CurrentBackBufferIndex];
 		Data.pSwapChainTexture = m_pSwapChainTextures[m_CurrentBackBufferIndex];
 
-		return [](const TonemapPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+		return [](const TonemapPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
-			pRenderCommandContext->TransitionBarrier(Data.pSwapChainTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			pCommandContext->TransitionBarrier(Data.pSwapChainTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			pRenderCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			pRenderCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
-			pRenderCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
+			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
+			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
 
-			pRenderCommandContext->SetGraphicsRoot32BitConstants(RootParameters::StandardShaderLayout::ConstantDataCB, sizeof(Data.TonemapData) / 4, &Data.TonemapData, 0);
-			pRenderCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+			pCommandContext->SetGraphicsRoot32BitConstants(RootParameters::StandardShaderLayout::ConstantDataCB, sizeof(Data.TonemapData) / 4, &Data.TonemapData, 0);
+			pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
@@ -380,13 +380,13 @@ Renderer::Renderer(Window& Window)
 			sr.right = Data.pFrameBuffer->Width;
 			sr.bottom = Data.pFrameBuffer->Height;
 
-			pRenderCommandContext->SetViewports(1, &vp);
-			pRenderCommandContext->SetScissorRects(1, &sr);
+			pCommandContext->SetViewports(1, &vp);
+			pCommandContext->SetScissorRects(1, &sr);
 
-			pRenderCommandContext->SetRenderTargets(1, Data.SwapChainRTV, TRUE, Descriptor());
-			pRenderCommandContext->DrawInstanced(3, 1, 0, 0);
+			pCommandContext->SetRenderTargets(1, Data.SwapChainRTV, TRUE, Descriptor());
+			pCommandContext->DrawInstanced(3, 1, 0, 0);
 
-			pRenderCommandContext->TransitionBarrier(Data.pSwapChainTexture, D3D12_RESOURCE_STATE_PRESENT);
+			pCommandContext->TransitionBarrier(Data.pSwapChainTexture, D3D12_RESOURCE_STATE_PRESENT);
 		};
 	});
 
@@ -401,20 +401,7 @@ Renderer::~Renderer()
 	m_RenderDevice.GetComputeQueue()->WaitForIdle();
 }
 
-void Renderer::Update(const Time& Time)
-{
-	++m_Statistics.TotalFrameCount;
-	++m_Statistics.FrameCount;
-	if (Time.TotalTime() - m_Statistics.TimeElapsed >= 1.0)
-	{
-		m_Statistics.FPS = static_cast<DOUBLE>(m_Statistics.FrameCount);
-		m_Statistics.FPMS = 1000.0 / m_Statistics.FPS;
-		m_Statistics.FrameCount = 0;
-		m_Statistics.TimeElapsed += 1.0;
-	}
-}
-
-void Renderer::Render(Scene& Scene)
+void Renderer::UploadScene(Scene& Scene)
 {
 	PIXCapture();
 	auto shadowPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ShadowPassData>();
@@ -452,6 +439,26 @@ void Renderer::Render(Scene& Scene)
 		m_GpuDescriptorIndices.ShadowMapIndex = shadowMapIndex;
 		m_GpuDescriptorIndices.FrameBufferIndex = shadowMapIndex + 1;
 	}
+}
+
+void Renderer::Update(const Time& Time)
+{
+	++m_Statistics.TotalFrameCount;
+	++m_Statistics.FrameCount;
+	if (Time.TotalTime() - m_Statistics.TimeElapsed >= 1.0)
+	{
+		m_Statistics.FPS = static_cast<DOUBLE>(m_Statistics.FrameCount);
+		m_Statistics.FPMS = 1000.0 / m_Statistics.FPS;
+		m_Statistics.FrameCount = 0;
+		m_Statistics.TimeElapsed += 1.0;
+	}
+}
+
+void Renderer::Render(Scene& Scene)
+{
+	PIXCapture();
+	auto shadowPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ShadowPassData>();
+	auto tonemapPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, TonemapPassData>();
 
 	m_CurrentBackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 

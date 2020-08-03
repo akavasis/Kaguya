@@ -23,38 +23,45 @@ RenderDevice::~RenderDevice()
 {
 }
 
-RenderCommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type)
+CommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type)
 {
-	m_RenderCommandContexts[Type].push_back(std::make_unique<RenderCommandContext>(this, Type));
+	CommandQueue* pCommandQueue = nullptr;
+	switch (Type)
+	{
+	case D3D12_COMMAND_LIST_TYPE_DIRECT: pCommandQueue = &m_GraphicsQueue; break;
+	case D3D12_COMMAND_LIST_TYPE_COMPUTE: pCommandQueue = &m_ComputeQueue; break;
+	case D3D12_COMMAND_LIST_TYPE_COPY: pCommandQueue = &m_CopyQueue; break;
+	}
+	m_RenderCommandContexts[Type].push_back(std::make_unique<CommandContext>(&m_Device, pCommandQueue, Type));
 	return m_RenderCommandContexts[Type].back().get();
 }
 
-void RenderDevice::BindUniversalGpuDescriptorHeap(RenderCommandContext* pRenderCommandContext) const
+void RenderDevice::BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const
 {
-	pRenderCommandContext->SetDescriptorHeaps(m_DescriptorAllocator.GetUniversalGpuDescriptorHeap(), nullptr);
+	pCommandContext->SetDescriptorHeaps(m_DescriptorAllocator.GetUniversalGpuDescriptorHeap(), nullptr);
 }
 
-void RenderDevice::ExecuteRenderCommandContexts(UINT NumRenderCommandContexts, RenderCommandContext* ppRenderCommandContexts[])
+void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[])
 {
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
-	commandlistsToBeExecuted.reserve(NumRenderCommandContexts);
-	for (UINT i = 0; i < NumRenderCommandContexts; ++i)
+	commandlistsToBeExecuted.reserve(NumCommandContexts);
+	for (UINT i = 0; i < NumCommandContexts; ++i)
 	{
-		RenderCommandContext* pRenderCommandContext = ppRenderCommandContexts[i];
-		if (pRenderCommandContext->Close(m_GlobalResourceStateTracker))
+		CommandContext* pCommandContext = ppCommandContexts[i];
+		if (pCommandContext->Close(m_GlobalResourceStateTracker))
 		{
-			commandlistsToBeExecuted.push_back(pRenderCommandContext->m_pPendingCommandList.Get());
+			commandlistsToBeExecuted.push_back(pCommandContext->m_pPendingCommandList.Get());
 		}
-		commandlistsToBeExecuted.push_back(pRenderCommandContext->m_pCommandList.Get());
+		commandlistsToBeExecuted.push_back(pCommandContext->m_pCommandList.Get());
 	}
 
 	m_GraphicsQueue.GetD3DCommandQueue()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
 	UINT64 fenceValue = m_GraphicsQueue.Signal();
-	for (UINT i = 0; i < NumRenderCommandContexts; ++i)
+	for (UINT i = 0; i < NumCommandContexts; ++i)
 	{
-		RenderCommandContext* pRenderCommandContext = ppRenderCommandContexts[i];
-		pRenderCommandContext->RequestNewAllocator(fenceValue);
-		pRenderCommandContext->Reset();
+		CommandContext* pCommandContext = ppCommandContexts[i];
+		pCommandContext->RequestNewAllocator(fenceValue);
+		pCommandContext->Reset();
 	}
 	m_GraphicsQueue.Flush();
 }

@@ -27,7 +27,7 @@ public:
 	virtual ~RenderPassBase() = default;
 
 	virtual void Setup(RenderDevice&) = 0;
-	virtual void Execute(Scene&, RenderGraphRegistry&, RenderCommandContext*) = 0;
+	virtual void Execute(Scene&, RenderGraphRegistry&, CommandContext*) = 0;
 
 	bool Enabled;
 	const RenderPassType eRenderPassType;
@@ -39,7 +39,7 @@ template<RenderPassType Type, typename Data>
 class RenderPass : public RenderPassBase
 {
 public:
-	using ExecuteCallback = Delegate<void(const Data&, const Scene&, RenderGraphRegistry&, RenderCommandContext*)>;
+	using ExecuteCallback = Delegate<void(const Data&, const Scene&, RenderGraphRegistry&, CommandContext*)>;
 	using PassCallback = Delegate<ExecuteCallback(Data&, RenderDevice&)>;
 
 	RenderPass(PassCallback&& RenderPassPassCallback);
@@ -49,7 +49,7 @@ public:
 	inline const auto& GetData() const { return m_Data; }
 
 	void Setup(RenderDevice& RefRenderDevice) override;
-	void Execute(Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* RenderCommandContext) override;
+	void Execute(Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* CommandContext) override;
 private:
 	friend class RenderGraph;
 
@@ -119,7 +119,7 @@ private:
 
 	unsigned int m_NumRenderPasses;
 	std::vector<std::unique_ptr<RenderPassBase>> m_RenderPasses;
-	std::vector<RenderCommandContext*> m_RenderContexts;
+	std::vector<CommandContext*> m_CommandContexts;
 
 	std::vector<std::reference_wrapper<const std::type_info>> m_RenderPassDataIDs;
 };

@@ -31,9 +31,10 @@ GpuBufferAllocator::GpuBufferAllocator(size_t VertexBufferByteSize, size_t Index
 		m_Buffers[i].pUploadBuffer = m_pRenderDevice->GetBuffer(uploadBufferHandle);
 		m_Buffers[i].pUploadBuffer->Map();
 	}
+	m_NumVertices = m_NumIndices = 0;
 }
 
-void GpuBufferAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext)
+void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 {
 	// Stage skybox mesh
 	{
@@ -50,8 +51,11 @@ void GpuBufferAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComman
 		UINT64 totalVertexBytes = vertices.size() * sizeof(Vertex);
 		UINT64 totalIndexBytes = indices.size() * sizeof(UINT);
 
-		StageVertex(vertices.data(), totalVertexBytes, pRenderCommandContext);
-		StageIndex(indices.data(), totalIndexBytes, pRenderCommandContext);
+		StageVertex(vertices.data(), totalVertexBytes, pCommandContext);
+		StageIndex(indices.data(), totalIndexBytes, pCommandContext);
+
+		m_NumVertices += vertices.size();
+		m_NumIndices += indices.size();
 	}
 
 	for (auto& model : Scene.Models)
@@ -59,8 +63,8 @@ void GpuBufferAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComman
 		UINT64 totalVertexBytes = model.Vertices.size() * sizeof(Vertex);
 		UINT64 totalIndexBytes = model.Indices.size() * sizeof(UINT);
 
-		auto vertexByteOffset = StageVertex(model.Vertices.data(), totalVertexBytes, pRenderCommandContext);
-		auto indexByteOffset = StageIndex(model.Indices.data(), totalIndexBytes, pRenderCommandContext);
+		auto vertexByteOffset = StageVertex(model.Vertices.data(), totalVertexBytes, pCommandContext);
+		auto indexByteOffset = StageIndex(model.Indices.data(), totalIndexBytes, pCommandContext);
 
 		for (auto& mesh : model.Meshes)
 		{
@@ -69,6 +73,9 @@ void GpuBufferAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComman
 			mesh.BaseVertexLocation += (vertexByteOffset / sizeof(Vertex));
 			mesh.StartIndexLocation += (indexByteOffset / sizeof(UINT));
 		}
+
+		m_NumVertices += model.Vertices.size();
+		m_NumIndices += model.Indices.size();
 
 		CORE_INFO("{} Loaded", model.Path);
 	}
@@ -93,9 +100,11 @@ void GpuBufferAllocator::Stage(Scene& Scene, RenderCommandContext* pRenderComman
 		}
 	}
 
-	pRenderCommandContext->TransitionBarrier(m_Buffers[VertexBuffer].pBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-	pRenderCommandContext->TransitionBarrier(m_Buffers[IndexBuffer].pBuffer, D3D12_RESOURCE_STATE_INDEX_BUFFER);
-	pRenderCommandContext->FlushResourceBarriers();
+	pCommandContext->TransitionBarrier(m_Buffers[VertexBuffer].pBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+	pCommandContext->TransitionBarrier(m_Buffers[IndexBuffer].pBuffer, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+	pCommandContext->FlushResourceBarriers();
+
+	CreateBottomLevelAS();
 }
 
 void GpuBufferAllocator::Update(Scene& Scene)
@@ -112,22 +121,22 @@ void GpuBufferAllocator::Update(Scene& Scene)
 	}
 }
 
-void GpuBufferAllocator::Bind(RenderCommandContext* pRenderCommandContext) const
+void GpuBufferAllocator::Bind(CommandContext* pCommandContext) const
 {
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 	vertexBufferView.BufferLocation = m_Buffers[VertexBuffer].pBuffer->GetGpuVirtualAddress();
 	vertexBufferView.SizeInBytes = m_Buffers[VertexBuffer].Allocator.GetCurrentSize();
 	vertexBufferView.StrideInBytes = sizeof(Vertex);
-	pRenderCommandContext->SetVertexBuffers(0, 1, &vertexBufferView);
+	pCommandContext->SetVertexBuffers(0, 1, &vertexBufferView);
 
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;
 	indexBufferView.BufferLocation = m_Buffers[IndexBuffer].pBuffer->GetGpuVirtualAddress();
 	indexBufferView.SizeInBytes = m_Buffers[IndexBuffer].Allocator.GetCurrentSize();
 	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	pRenderCommandContext->SetIndexBuffer(&indexBufferView);
+	pCommandContext->SetIndexBuffer(&indexBufferView);
 }
 
-size_t GpuBufferAllocator::StageVertex(const void* pData, size_t ByteSize, RenderCommandContext* pRenderCommandContext)
+size_t GpuBufferAllocator::StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext)
 {
 	auto pair = m_Buffers[VertexBuffer].Allocate(ByteSize);
 	if (!pair.has_value())
@@ -141,11 +150,11 @@ size_t GpuBufferAllocator::StageVertex(const void* pData, size_t ByteSize, Rende
 	auto pGPU = m_Buffers[VertexBuffer].pUploadBuffer->Map();
 	auto pCPU = pData;
 	memcpy(&pGPU[vertexOffset], pCPU, vertexSize);
-	pRenderCommandContext->CopyBufferRegion(m_Buffers[VertexBuffer].pBuffer, vertexOffset, m_Buffers[VertexBuffer].pUploadBuffer, vertexOffset, vertexSize);
+	pCommandContext->CopyBufferRegion(m_Buffers[VertexBuffer].pBuffer, vertexOffset, m_Buffers[VertexBuffer].pUploadBuffer, vertexOffset, vertexSize);
 	return vertexOffset;
 }
 
-size_t GpuBufferAllocator::StageIndex(const void* pData, size_t ByteSize, RenderCommandContext* pRenderCommandContext)
+size_t GpuBufferAllocator::StageIndex(const void* pData, size_t ByteSize, CommandContext* pCommandContext)
 {
 	auto pair = m_Buffers[IndexBuffer].Allocate(ByteSize);
 	if (!pair.has_value())
@@ -159,6 +168,28 @@ size_t GpuBufferAllocator::StageIndex(const void* pData, size_t ByteSize, Render
 	auto pGPU = m_Buffers[IndexBuffer].pUploadBuffer->Map();
 	auto pCPU = pData;
 	memcpy(&pGPU[indexOffset], pCPU, indexSize);
-	pRenderCommandContext->CopyBufferRegion(m_Buffers[IndexBuffer].pBuffer, indexOffset, m_Buffers[IndexBuffer].pUploadBuffer, indexOffset, indexSize);
+	pCommandContext->CopyBufferRegion(m_Buffers[IndexBuffer].pBuffer, indexOffset, m_Buffers[IndexBuffer].pUploadBuffer, indexOffset, indexSize);
 	return indexOffset;
+}
+
+RaytracingAccelerationStructure GpuBufferAllocator::CreateBottomLevelAS()
+{
+	m_BLASGenerator.AddBuffer(m_Buffers[VertexBuffer].pBuffer, m_NumVertices, sizeof(Vertex),
+		m_Buffers[IndexBuffer].pBuffer, m_NumIndices, true);
+
+	// The AS build requires some scratch space to store temporary information.
+	// The amount of scratch memory is dependent on the scene complexity.
+	UINT64 scratchSizeInBytes = 0;
+	// The final AS also needs to be stored in addition to the existing vertex
+	// buffers. It size is also dependent on the scene complexity.
+	UINT64 resultSizeInBytes = 0;
+
+	m_BLASGenerator.ComputeASBufferMemoryRequirements(&m_pRenderDevice->GetDevice(), false, &scratchSizeInBytes, &resultSizeInBytes);
+
+	RaytracingAccelerationStructure blas;
+	Buffer::Properties bufferProp = {};
+
+	m_pRenderDevice->CreateBuffer()
+
+	return blas;
 }

@@ -73,6 +73,8 @@ int main(int argc, char** argv)
 		auto& grid = scene.AddModel(CreateGrid(100.0f, 100.0f, 10, 10));
 		grid.Translate(0.0f, -10.0f, 0.0f);
 
+		renderer.UploadScene(scene);
+
 		Time time;
 		time.Restart();
 		return application.Run([&]()

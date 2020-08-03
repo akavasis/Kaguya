@@ -39,9 +39,9 @@ public:
 
 	inline auto GetNumTextures() const { return m_NumTextures; }
 
-	void Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext);
+	void Stage(Scene& Scene, CommandContext* pCommandContext);
 	void Update(Scene& Scene);
-	void Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, std::optional<UINT> MaterialTexturePropertiesRootParameterIndex, RenderCommandContext* pRenderCommandContext) const;
+	void Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, std::optional<UINT> MaterialTexturePropertiesRootParameterIndex, CommandContext* pCommandContext) const;
 private:
 	struct Status
 	{
@@ -62,13 +62,13 @@ private:
 
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
 	void LoadMaterial(Material& Material);
-	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderCommandContext* pRenderCommandContext);
-	void GenerateMips(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext);
-	void GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext);
-	void GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderCommandContext* pRenderCommandContext);
-	void EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderCommandContext* pRenderCommandContext);
-	void EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderCommandContext* pRenderCommandContext);
-	void EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderCommandContext* pRenderCommandContext);
+	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, CommandContext* pCommandContext);
+	void GenerateMips(RenderResourceHandle TextureHandle, CommandContext* pCommandContext);
+	void GenerateMipsUAV(RenderResourceHandle TextureHandle, CommandContext* pCommandContext);
+	void GenerateMipsSRGB(RenderResourceHandle TextureHandle, CommandContext* pCommandContext);
+	void EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext);
+	void EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext);
+	void EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext);
 
 	bool IsUAVCompatable(DXGI_FORMAT Format);
 	bool IsSRGB(DXGI_FORMAT Format);

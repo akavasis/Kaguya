@@ -22,6 +22,8 @@ public:
 	Renderer(Window& Window);
 	~Renderer();
 
+	void UploadScene(Scene& Scene);
+
 	void Update(const Time& Time);
 	void Render(Scene& Scene);
 private:
@@ -85,7 +87,7 @@ private:
 	DXGIManager m_DXGIManager;
 
 	RenderDevice m_RenderDevice;
-	RenderCommandContext* m_pUploadCommandContext;
+	CommandContext* m_pUploadCommandContext;
 	RenderGraph m_RenderGraph;
 	GpuBufferAllocator m_GpuBufferAllocator;
 	GpuTextureAllocator m_GpuTextureAllocator;

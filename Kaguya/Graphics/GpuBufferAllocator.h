@@ -3,6 +3,8 @@
 #include "../Core/Allocator/VariableSizedAllocator.h"
 #include "Scene/Scene.h"
 
+#include "AL/D3D12/ASGenerator.h"
+
 class GpuBufferAllocator
 {
 public:
@@ -12,12 +14,13 @@ public:
 	inline auto GetIndexBuffer() const { return m_Buffers[IndexBuffer].pBuffer; }
 	inline auto GetConstantBuffer() const { return m_Buffers[ConstantBuffer].pUploadBuffer; }
 
-	void Stage(Scene& Scene, RenderCommandContext* pRenderCommandContext);
+	void Stage(Scene& Scene, CommandContext* pCommandContext);
 	void Update(Scene& Scene);
-	void Bind(RenderCommandContext* pRenderCommandContext) const;
+	void Bind(CommandContext* pCommandContext) const;
 private:
-	size_t StageVertex(const void* pData, size_t ByteSize, RenderCommandContext* pRenderCommandContext);
-	size_t StageIndex(const void* pData, size_t ByteSize, RenderCommandContext* pRenderCommandContext);
+	size_t StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
+	size_t StageIndex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
+	RaytracingAccelerationStructure CreateBottomLevelAS();
 
 	RenderDevice* m_pRenderDevice;
 
@@ -47,4 +50,9 @@ private:
 		}
 	};
 	InternalBufferStructure m_Buffers[NumInternalBufferTypes];
+	UINT m_NumVertices;
+	UINT m_NumIndices;
+
+	BLASGenerator m_BLASGenerator;
+	RaytracingAccelerationStructure m_BLAS;
 };

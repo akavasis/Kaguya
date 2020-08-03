@@ -41,8 +41,8 @@ void RenderGraph::Execute(Scene& Scene)
 		case ExecutionPolicy::Sequenced:
 		{
 			RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice, *this);
-			m_RefRenderDevice.BindUniversalGpuDescriptorHeap(m_RenderContexts[i]);
-			m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_RenderContexts[i]);
+			m_RefRenderDevice.BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
+			m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
 		}
 		break;
 
@@ -51,8 +51,8 @@ void RenderGraph::Execute(Scene& Scene)
 			m_Futures[i] = m_ThreadPool->AddWork([this, i, &Scene = Scene]()
 			{
 				RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice, *this);
-				m_RefRenderDevice.BindUniversalGpuDescriptorHeap(m_RenderContexts[i]);
-				m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_RenderContexts[i]);
+				m_RefRenderDevice.BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
+				m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
 			});
 		}
 		break;
@@ -62,7 +62,7 @@ void RenderGraph::Execute(Scene& Scene)
 
 void RenderGraph::ExecuteCommandContexts()
 {
-	m_RefRenderDevice.ExecuteRenderCommandContexts(m_RenderContexts.size(), m_RenderContexts.data());
+	m_RefRenderDevice.ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
 }
 
 void RenderGraph::ThreadBarrier()

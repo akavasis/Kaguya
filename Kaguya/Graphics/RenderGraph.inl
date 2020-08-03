@@ -14,9 +14,9 @@ inline void RenderPass<Type, Data>::Setup(RenderDevice& RefRenderDevice)
 }
 
 template<RenderPassType Type, typename Data>
-inline void RenderPass<Type, Data>::Execute(Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, RenderCommandContext* pRenderCommandContext)
+inline void RenderPass<Type, Data>::Execute(Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
-	m_ExecuteCallback(m_Data, Scene, RenderGraphRegistry, std::forward<RenderCommandContext*>(pRenderCommandContext));
+	m_ExecuteCallback(m_Data, Scene, RenderGraphRegistry, std::forward<CommandContext*>(pCommandContext));
 }
 #pragma endregion RenderPass
 
@@ -38,15 +38,15 @@ inline RenderPass<Type, Data>* RenderGraph::AddRenderPass(typename PassCallback&
 	m_RenderPasses.emplace_back(std::make_unique<RenderPass<Type, Data>>(std::forward<PassCallback>(RenderPassPassCallback)));
 	if constexpr (Type == RenderPassType::Graphics)
 	{
-		m_RenderContexts.emplace_back(m_RefRenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT));
+		m_CommandContexts.emplace_back(m_RefRenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT));
 	}
 	else if constexpr (Type == RenderPassType::Compute)
 	{
-		m_RenderContexts.emplace_back(m_RefRenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_COMPUTE));
+		m_CommandContexts.emplace_back(m_RefRenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_COMPUTE));
 	}
 	else if constexpr (Type == RenderPassType::Copy)
 	{
-		m_RenderContexts.emplace_back(m_RefRenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_COPY));
+		m_CommandContexts.emplace_back(m_RefRenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_COPY));
 	}
 	m_RenderPassDataIDs.emplace_back(typeid(Data));
 	m_NumRenderPasses++;
