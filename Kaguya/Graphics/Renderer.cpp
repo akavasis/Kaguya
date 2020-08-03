@@ -55,8 +55,8 @@ struct TonemapPassData
 Renderer::Renderer(Window& Window)
 	: m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(m_RenderDevice),
-	m_GpuBufferAllocator(50_MiB, 50_MiB, 64_KiB, &m_RenderDevice),
-	m_GpuTextureAllocator(100, &m_RenderDevice)
+	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB),
+	m_GpuTextureAllocator(&m_RenderDevice, 100)
 {
 	m_EventReceiver.Register(Window, [&](const Event& event)
 	{

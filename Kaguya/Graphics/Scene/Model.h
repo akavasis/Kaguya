@@ -24,6 +24,7 @@ struct Model
 	std::vector<std::uint32_t> Indices;
 
 	std::vector<Mesh> Meshes;
+	size_t BottomLevelAccelerationStructureIndex;
 
 	void SetTransform(DirectX::FXMMATRIX M);
 	void Translate(float DeltaX, float DeltaY, float DeltaZ);

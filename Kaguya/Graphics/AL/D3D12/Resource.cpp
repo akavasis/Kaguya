@@ -2,6 +2,33 @@
 #include "Resource.h"
 #include "Device.h"
 
+const D3D12_HEAP_PROPERTIES kDefaultHeapProps =
+{
+	.Type					= D3D12_HEAP_TYPE_DEFAULT,
+	.CPUPageProperty		= D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+	.MemoryPoolPreference	= D3D12_MEMORY_POOL_UNKNOWN,
+	.CreationNodeMask		= 0,
+	.VisibleNodeMask		= 0
+};
+
+const D3D12_HEAP_PROPERTIES kUploadHeapProps =
+{
+	.Type					= D3D12_HEAP_TYPE_UPLOAD,
+	.CPUPageProperty		= D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+	.MemoryPoolPreference	= D3D12_MEMORY_POOL_UNKNOWN,
+	.CreationNodeMask		= 0,
+	.VisibleNodeMask		= 0,
+};
+
+const D3D12_HEAP_PROPERTIES kReadbackHeapProps =
+{
+	.Type					= D3D12_HEAP_TYPE_READBACK,
+	.CPUPageProperty		= D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+	.MemoryPoolPreference	= D3D12_MEMORY_POOL_UNKNOWN,
+	.CreationNodeMask		= 0,
+	.VisibleNodeMask		= 0
+};
+
 Resource::Properties Resource::Properties::Buffer(UINT64 SizeInBytes, D3D12_RESOURCE_FLAGS Flags)
 {
 	Resource::Properties properties;
@@ -39,7 +66,7 @@ Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource
 
 Resource::Resource(const Device* pDevice, const Resource::Properties& Properties, D3D12_RESOURCE_STATES InitialState)
 {
-	const D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	const D3D12_HEAP_PROPERTIES heapProperties = kDefaultHeapProps;
 	const D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
 	const D3D12_RESOURCE_DESC resourceDesc = Properties.GetD3DResourceDesc();
 
@@ -67,11 +94,11 @@ Resource::Resource(const Device* pDevice, const Resource::Properties& Properties
 	{
 	case CPUAccessibleHeapType::Upload:
 		initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
-		heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		heapProperties = kUploadHeapProps;
 		break;
 	case CPUAccessibleHeapType::Readback:
 		initialState = D3D12_RESOURCE_STATE_COPY_DEST;
-		heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+		heapProperties = kReadbackHeapProps;
 		break;
 	}
 

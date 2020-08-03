@@ -42,11 +42,11 @@ std::pair<RenderResourceHandle, size_t> GpuTextureAllocator::TextureStorage::Get
 	return { renderResourceHandle, textureIndex };
 }
 
-GpuTextureAllocator::GpuTextureAllocator(size_t NumMaterials, RenderDevice* pRenderDevice)
-	: m_pRenderDevice(pRenderDevice),
-	m_CBSRUADescriptorHeap(&m_pRenderDevice->GetDevice(), NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true)
+GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t NumMaterials)
+	: pRenderDevice(pRenderDevice),
+	m_CBSRUADescriptorHeap(&pRenderDevice->GetDevice(), NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true)
 {
-	m_RTV = m_pRenderDevice->GetDescriptorAllocator().AllocateRenderTargetDescriptors(1);
+	m_RTV = pRenderDevice->GetDescriptorAllocator().AllocateRenderTargetDescriptors(1);
 
 	// Create BRDF LUT
 	Texture::Properties textureProp =
@@ -63,15 +63,15 @@ GpuTextureAllocator::GpuTextureAllocator(size_t NumMaterials, RenderDevice* pRen
 		.pOptimizedClearValue = nullptr,
 		.InitialState = D3D12_RESOURCE_STATE_RENDER_TARGET
 	};
-	AssetTextures[BRDFLUT] = m_pRenderDevice->CreateTexture(textureProp);
+	AssetTextures[BRDFLUT] = pRenderDevice->CreateTexture(textureProp);
 
 	Buffer::Properties bufferProp =
 	{
 		.SizeInBytes = 6 * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT),
 		.Stride = Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
 	};
-	m_CubemapCamerasUploadBufferHandle = m_pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
-	Buffer* pCubemapCameras = m_pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
+	m_CubemapCamerasUploadBufferHandle = pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	Buffer* pCubemapCameras = pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
 	pCubemapCameras->Map();
 
 	// Create 6 cameras for cube map
@@ -112,14 +112,14 @@ GpuTextureAllocator::GpuTextureAllocator(size_t NumMaterials, RenderDevice* pRen
 
 	bufferProp.SizeInBytes = NumMaterials * sizeof(MaterialTextureIndices);
 	bufferProp.Stride = sizeof(MaterialTextureIndices);
-	m_MaterialTextureIndicesStructuredBufferHandle = m_pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
-	m_pMaterialTextureIndicesStructuredBuffer = m_pRenderDevice->GetBuffer(m_MaterialTextureIndicesStructuredBufferHandle);
+	m_MaterialTextureIndicesStructuredBufferHandle = pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	m_pMaterialTextureIndicesStructuredBuffer = pRenderDevice->GetBuffer(m_MaterialTextureIndicesStructuredBufferHandle);
 	m_pMaterialTextureIndicesStructuredBuffer->Map();
 
 	bufferProp.SizeInBytes = NumMaterials * sizeof(MaterialTextureProperties);
 	bufferProp.Stride = sizeof(MaterialTextureProperties);
-	m_MaterialTexturePropertiesStructuredBufferHandle = m_pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
-	m_pMaterialTexturePropertiesStructuredBuffer = m_pRenderDevice->GetBuffer(m_MaterialTexturePropertiesStructuredBufferHandle);
+	m_MaterialTexturePropertiesStructuredBufferHandle = pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	m_pMaterialTexturePropertiesStructuredBuffer = pRenderDevice->GetBuffer(m_MaterialTexturePropertiesStructuredBufferHandle);
 	m_pMaterialTexturePropertiesStructuredBuffer->Map();
 
 	DXGI_FORMAT optionalFormats[] =
@@ -156,7 +156,7 @@ GpuTextureAllocator::GpuTextureAllocator(size_t NumMaterials, RenderDevice* pRen
 		D3D12_FEATURE_DATA_FORMAT_SUPPORT featureDataFormatSupport;
 		featureDataFormatSupport.Format = optionalFormats[i];
 
-		ThrowCOMIfFailed(m_pRenderDevice->GetDevice().GetD3DDevice()->CheckFeatureSupport(
+		ThrowCOMIfFailed(pRenderDevice->GetDevice().GetD3DDevice()->CheckFeatureSupport(
 			D3D12_FEATURE_FORMAT_SUPPORT,
 			&featureDataFormatSupport,
 			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
@@ -200,19 +200,19 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		sr.left = sr.top = 0;
 		sr.right = sr.bottom = Resolutions::BRDFLUT;
 
-		pCommandContext->TransitionBarrier(m_pRenderDevice->GetTexture(AssetTextures[BRDFLUT]), D3D12_RESOURCE_STATE_RENDER_TARGET);
+		pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(AssetTextures[BRDFLUT]), D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		pCommandContext->SetPipelineState(m_pRenderDevice->GetGraphicsPSO(GraphicsPSOs::BRDFIntegration));
-		pCommandContext->SetGraphicsRootSignature(m_pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration));
+		pCommandContext->SetPipelineState(pRenderDevice->GetGraphicsPSO(GraphicsPSOs::BRDFIntegration));
+		pCommandContext->SetGraphicsRootSignature(pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration));
 
-		m_pRenderDevice->CreateRTV(AssetTextures[BRDFLUT], m_RTV[0], {}, {}, {});
+		pRenderDevice->CreateRTV(AssetTextures[BRDFLUT], m_RTV[0], {}, {}, {});
 
 		pCommandContext->SetRenderTargets(1, m_RTV[0], TRUE, Descriptor());
 		pCommandContext->SetViewports(1, &vp);
 		pCommandContext->SetScissorRects(1, &sr);
 		pCommandContext->DrawInstanced(3, 1, 0, 0);
-		pCommandContext->TransitionBarrier(m_pRenderDevice->GetTexture(AssetTextures[BRDFLUT]), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(AssetTextures[BRDFLUT]), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	}
 
 	pCommandContext->SetDescriptorHeaps(&m_CBSRUADescriptorHeap, nullptr);
@@ -223,7 +223,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 	StageTexture(AssetTextures[SkyboxEquirectangularMap], stagingTexture, pCommandContext);
 
 	// Generate cubemap for equirectangular map
-	Texture* pEquirectangularMap = m_pRenderDevice->GetTexture(AssetTextures[SkyboxEquirectangularMap]);
+	Texture* pEquirectangularMap = pRenderDevice->GetTexture(AssetTextures[SkyboxEquirectangularMap]);
 	Texture::Properties radianceTextureProp =
 	{
 		.Type = pEquirectangularMap->Type,
@@ -239,15 +239,15 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		.InitialState = D3D12_RESOURCE_STATE_COMMON
 	};
 
-	AssetTextures[SkyboxCubemap] = m_pRenderDevice->CreateTexture(radianceTextureProp);
+	AssetTextures[SkyboxCubemap] = pRenderDevice->CreateTexture(radianceTextureProp);
 
 	EquirectangularToCubemap(AssetTextures[SkyboxEquirectangularMap], AssetTextures[SkyboxCubemap], pCommandContext);
 
 	// Create temporary srv for the cubemap and generate convolutions
 	DescriptorAllocation tempSkyboxSRV = m_CBSRUADescriptorHeap.AllocateSRDescriptors(1).value();
-	m_pRenderDevice->CreateSRV(AssetTextures[SkyboxCubemap], tempSkyboxSRV[0]);
+	pRenderDevice->CreateSRV(AssetTextures[SkyboxCubemap], tempSkyboxSRV[0]);
 	m_TemporaryDescriptorAllocations.push_back(tempSkyboxSRV);
-	pCommandContext->TransitionBarrier(m_pRenderDevice->GetTexture(AssetTextures[SkyboxCubemap]), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(AssetTextures[SkyboxCubemap]), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
 	// Generate cubemap convolutions
 	for (int i = 0; i < CubemapConvolution::CubemapConvolution_Count; ++i)
@@ -271,15 +271,15 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 			.pOptimizedClearValue = nullptr,
 			.InitialState = D3D12_RESOURCE_STATE_RENDER_TARGET
 		};
-		RenderResourceHandle cubemap = m_pRenderDevice->CreateTexture(textureProp);
+		RenderResourceHandle cubemap = pRenderDevice->CreateTexture(textureProp);
 		UINT numDescriptorsToAllocate = numMips * 6;
-		DescriptorAllocation tempCubemapRTVs = m_pRenderDevice->GetDescriptorAllocator().AllocateRenderTargetDescriptors(numDescriptorsToAllocate);
+		DescriptorAllocation tempCubemapRTVs = pRenderDevice->GetDescriptorAllocator().AllocateRenderTargetDescriptors(numDescriptorsToAllocate);
 		m_TemporaryDescriptorAllocations.push_back(tempCubemapRTVs);
 
 		// Generate cube map
 		pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		pCommandContext->SetPipelineState(m_pRenderDevice->GetGraphicsPSO(i == CubemapConvolution::Irradiance ? GraphicsPSOs::ConvolutionIrradiace : GraphicsPSOs::ConvolutionPrefilter));
-		pCommandContext->SetGraphicsRootSignature(m_pRenderDevice->GetRootSignature(i == CubemapConvolution::Irradiance ? RootSignatures::ConvolutionIrradiace : RootSignatures::ConvolutionPrefilter));
+		pCommandContext->SetPipelineState(pRenderDevice->GetGraphicsPSO(i == CubemapConvolution::Irradiance ? GraphicsPSOs::ConvolutionIrradiace : GraphicsPSOs::ConvolutionPrefilter));
+		pCommandContext->SetGraphicsRootSignature(pRenderDevice->GetRootSignature(i == CubemapConvolution::Irradiance ? RootSignatures::ConvolutionIrradiace : RootSignatures::ConvolutionPrefilter));
 
 		pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::CubemapConvolution::CubemapSRV, tempSkyboxSRV[0].GPUHandle);
 
@@ -300,10 +300,10 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 			for (UINT face = 0; face < 6; ++face)
 			{
 				UINT renderTargetDescriptorOffset = UINT(INT64(mip) * INT64(6) + INT64(face));
-				m_pRenderDevice->CreateRTV(cubemap, tempCubemapRTVs[renderTargetDescriptorOffset], face, mip, 1);
+				pRenderDevice->CreateRTV(cubemap, tempCubemapRTVs[renderTargetDescriptorOffset], face, mip, 1);
 				pCommandContext->SetRenderTargets(1, tempCubemapRTVs[renderTargetDescriptorOffset], TRUE, Descriptor());
 
-				Buffer* pCubemapCameras = m_pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
+				Buffer* pCubemapCameras = pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
 				pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::CubemapConvolution::RenderPassCBuffer, pCubemapCameras->GetGpuVirtualAddressAt(face));
 				switch (i)
 				{
@@ -478,8 +478,8 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 		break;
 	}
 
-	RenderResourceHandle handle = m_pRenderDevice->CreateTexture(textureProp);
-	Texture* pTexture = m_pRenderDevice->GetTexture(handle);
+	RenderResourceHandle handle = pRenderDevice->CreateTexture(textureProp);
+	Texture* pTexture = pRenderDevice->GetTexture(handle);
 #ifdef _DEBUG
 	pTexture->GetD3DResource()->SetName(Path.generic_wstring().data());
 #endif
@@ -501,7 +501,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	std::vector<UINT64> rowSizeInBytes(NumSubresources);
 	UINT64 totalBytes = 0;
 
-	auto pD3DDevice = m_pRenderDevice->GetDevice().GetD3DDevice();
+	auto pD3DDevice = pRenderDevice->GetDevice().GetD3DDevice();
 	pD3DDevice->GetCopyableFootprints(&pTexture->GetD3DResource()->GetDesc(), 0, NumSubresources, 0,
 		placedSubresourceLayouts.data(), numRows.data(), rowSizeInBytes.data(), &totalBytes);
 
@@ -579,7 +579,7 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 
 void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, CommandContext* pCommandContext)
 {
-	Texture* pTexture = m_pRenderDevice->GetTexture(TextureHandle);
+	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 	Texture* pStagingResourceTexture = &StagingTexture.texture;
 
 	// Stage texture
@@ -611,7 +611,7 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 
 void GpuTextureAllocator::GenerateMips(RenderResourceHandle TextureHandle, CommandContext* pCommandContext)
 {
-	Texture* pTexture = m_pRenderDevice->GetTexture(TextureHandle);
+	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 	if (IsUAVCompatable(pTexture->Format))
 	{
 		GenerateMipsUAV(TextureHandle, pCommandContext);
@@ -626,13 +626,13 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 {
 	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
 	DescriptorAllocation tempSRV = m_CBSRUADescriptorHeap.AllocateSRDescriptors(1).value();
-	m_pRenderDevice->CreateSRV(TextureHandle, tempSRV[0]);
+	pRenderDevice->CreateSRV(TextureHandle, tempSRV[0]);
 	m_TemporaryDescriptorAllocations.push_back(tempSRV);
 
-	Texture* pTexture = m_pRenderDevice->GetTexture(TextureHandle);
+	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
-	pCommandContext->SetPipelineState(m_pRenderDevice->GetComputePSO(ComputePSOs::GenerateMips));
-	pCommandContext->SetComputeRootSignature(m_pRenderDevice->GetRootSignature(RootSignatures::GenerateMips));
+	pCommandContext->SetPipelineState(pRenderDevice->GetComputePSO(ComputePSOs::GenerateMips));
+	pCommandContext->SetComputeRootSignature(pRenderDevice->GetRootSignature(RootSignatures::GenerateMips));
 
 	GenerateMipsData generateMipsCB;
 	generateMipsCB.IsSRGB = DirectX::IsSRGB(pTexture->Format);
@@ -695,13 +695,13 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 				}
 			};
 
-			m_pRenderDevice->GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
+			pRenderDevice->GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
 		}
 		m_TemporaryDescriptorAllocations.push_back(tempUAVs);
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			m_pRenderDevice->CreateUAV(TextureHandle, tempUAVs[mip], {}, srcMip + mip + 1);
+			pRenderDevice->CreateUAV(TextureHandle, tempUAVs[mip], {}, srcMip + mip + 1);
 
 			pCommandContext->TransitionBarrier(pTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, srcMip + mip + 1);
 		}
@@ -721,7 +721,7 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 
 void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, CommandContext* pCommandContext)
 {
-	Texture* pTexture = m_pRenderDevice->GetTexture(TextureHandle);
+	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
 	Texture::Properties textureProp{};
 	textureProp.Type = pTexture->Type;
@@ -734,9 +734,9 @@ void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, C
 	textureProp.IsCubemap = pTexture->IsCubemap;
 	textureProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
 
-	RenderResourceHandle textureCopyHandle = m_pRenderDevice->CreateTexture(textureProp);
+	RenderResourceHandle textureCopyHandle = pRenderDevice->CreateTexture(textureProp);
 
-	Texture* pDstTexture = m_pRenderDevice->GetTexture(textureCopyHandle);
+	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
 
 	pCommandContext->CopyResource(pDstTexture, pTexture);
 
@@ -749,7 +749,7 @@ void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, C
 
 void GpuTextureAllocator::EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext)
 {
-	Texture* pCubemap = m_pRenderDevice->GetTexture(Cubemap);
+	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 	if (IsUAVCompatable(pCubemap->Format))
 	{
 		EquirectangularToCubemapUAV(EquirectangularMap, Cubemap, pCommandContext);
@@ -763,15 +763,15 @@ void GpuTextureAllocator::EquirectangularToCubemap(RenderResourceHandle Equirect
 void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext)
 {
 	DescriptorAllocation tempSRV = m_CBSRUADescriptorHeap.AllocateSRDescriptors(1).value();
-	m_pRenderDevice->CreateSRV(EquirectangularMap, tempSRV[0]);
+	pRenderDevice->CreateSRV(EquirectangularMap, tempSRV[0]);
 	m_TemporaryDescriptorAllocations.push_back(tempSRV);
 
-	Texture* pEquirectangularMap = m_pRenderDevice->GetTexture(EquirectangularMap);
-	Texture* pCubemap = m_pRenderDevice->GetTexture(Cubemap);
+	Texture* pEquirectangularMap = pRenderDevice->GetTexture(EquirectangularMap);
+	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 	auto resourceDesc = pCubemap->GetD3DResource()->GetDesc();
 
-	pCommandContext->SetPipelineState(m_pRenderDevice->GetComputePSO(ComputePSOs::EquirectangularToCubemap));
-	pCommandContext->SetComputeRootSignature(m_pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap));
+	pCommandContext->SetPipelineState(pRenderDevice->GetComputePSO(ComputePSOs::EquirectangularToCubemap));
+	pCommandContext->SetComputeRootSignature(pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap));
 
 	EquirectangularToCubemapData panoToCubemapCB;
 
@@ -804,13 +804,13 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 					.PlaneSlice = 0,
 				}
 			};
-			m_pRenderDevice->GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
+			pRenderDevice->GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
 		}
 		m_TemporaryDescriptorAllocations.push_back(tempUAVs);
 
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
-			m_pRenderDevice->CreateUAV(Cubemap, tempUAVs[mip], {}, mipSlice + mip);
+			pRenderDevice->CreateUAV(Cubemap, tempUAVs[mip], {}, mipSlice + mip);
 
 			pCommandContext->TransitionBarrier(pCubemap, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		}
@@ -827,7 +827,7 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 
 void GpuTextureAllocator::EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext)
 {
-	Texture* pCubemap = m_pRenderDevice->GetTexture(Cubemap);
+	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 
 	Texture::Properties textureProp =
 	{
@@ -843,9 +843,9 @@ void GpuTextureAllocator::EquirectangularToCubemapSRGB(RenderResourceHandle Equi
 		.InitialState = D3D12_RESOURCE_STATE_COPY_DEST
 	};
 
-	RenderResourceHandle textureCopyHandle = m_pRenderDevice->CreateTexture(textureProp);
+	RenderResourceHandle textureCopyHandle = pRenderDevice->CreateTexture(textureProp);
 
-	Texture* pDstTexture = m_pRenderDevice->GetTexture(textureCopyHandle);
+	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
 
 	pCommandContext->CopyResource(pDstTexture, pCubemap);
 

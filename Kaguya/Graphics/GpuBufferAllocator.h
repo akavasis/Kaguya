@@ -1,14 +1,20 @@
 #pragma once
 #include "RenderDevice.h"
-#include "../Core/Allocator/VariableSizedAllocator.h"
+#include "Core/Allocator/VariableSizedAllocator.h"
 #include "Scene/Scene.h"
+#include "AL/D3D12/AccelerationStructure.h"
 
-#include "AL/D3D12/ASGenerator.h"
+struct RaytracingAccelerationStructureHandles
+{
+	RenderResourceHandle Result;
+	RenderResourceHandle Scratch;
+	RenderResourceHandle Source;
+};
 
 class GpuBufferAllocator
 {
 public:
-	GpuBufferAllocator(size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize, RenderDevice* pRenderDevice);
+	GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize);
 
 	inline auto GetVertexBuffer() const { return m_Buffers[VertexBuffer].pBuffer; }
 	inline auto GetIndexBuffer() const { return m_Buffers[IndexBuffer].pBuffer; }
@@ -20,9 +26,10 @@ public:
 private:
 	size_t StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
 	size_t StageIndex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
-	RaytracingAccelerationStructure CreateBottomLevelAS();
+	void CreateBottomLevelAS(Scene& Scene, CommandContext* pCommandContext);
+	void CreateTopLevelAS(Scene& Scene, CommandContext* pCommandContext);
 
-	RenderDevice* m_pRenderDevice;
+	RenderDevice* pRenderDevice;
 
 	enum InternalBufferTypes
 	{
@@ -53,6 +60,27 @@ private:
 	UINT m_NumVertices;
 	UINT m_NumIndices;
 
-	BLASGenerator m_BLASGenerator;
-	RaytracingAccelerationStructure m_BLAS;
+	struct RTBLAS
+	{
+		RaytracingAccelerationStructureHandles Handles;
+		BottomLevelAccelerationStructure BLAS;
+
+		RTBLAS(const Device* pDevice)
+			: BLAS(pDevice)
+		{
+		}
+	};
+	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
+	struct RTTLAS
+	{
+		RaytracingAccelerationStructureHandles Handles;
+		RenderResourceHandle InstanceHandle;
+		TopLevelAccelerationStructure TLAS;
+
+		RTTLAS(const Device* pDevice)
+			: TLAS(pDevice)
+		{
+		}
+	};
+	RTTLAS m_RaytracingTopLevelAccelerationStructure;
 };

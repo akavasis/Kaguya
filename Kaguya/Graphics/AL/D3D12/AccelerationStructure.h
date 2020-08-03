@@ -1,0 +1,99 @@
+#pragma once
+#include "Math/Transform.h"
+#include "Device.h"
+#include "CommandContext.h"
+#include "Buffer.h"
+
+struct RaytracingGeometryDesc
+{
+	Buffer* pVertexBuffer;
+	UINT NumVertices;
+	UINT VertexStride;
+	UINT64 VertexOffset;
+
+	Buffer* pIndexBuffer;
+	UINT NumIndices;
+	UINT IndexStride;
+	UINT64 IndexOffset;
+
+	Buffer* pTransformBuffer;
+	bool IsOpaque;
+};
+
+class RaytracingAccelerationStructure
+{
+public:
+	RaytracingAccelerationStructure(const Device* pDevice)
+		: pDevice(pDevice)
+	{
+		pResult = pScratch = pSource = nullptr;
+		m_ASDesc = {};
+		m_ASDesc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+	}
+
+	void SetAccelerationStructure(Buffer* pResult, Buffer* pScratch, Buffer* pSource)
+	{
+		assert(pResult);
+		assert(pScratch);
+
+		this->pResult = pResult;
+		this->pScratch = pScratch;
+		this->pSource = pSource;
+
+		m_ASDesc.DestAccelerationStructureData = this->pResult->GetGpuVirtualAddress();
+		m_ASDesc.ScratchAccelerationStructureData = this->pScratch->GetGpuVirtualAddress();
+		m_ASDesc.SourceAccelerationStructureData = this->pSource ? this->pSource->GetGpuVirtualAddress() : NULL;
+	}
+protected:
+	const Device* pDevice;
+
+	Buffer* pResult;
+	Buffer* pScratch;
+	Buffer* pSource;
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC m_ASDesc;
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS m_ASBuildFlags;
+};
+
+class BottomLevelAccelerationStructure : public RaytracingAccelerationStructure
+{
+public:
+	struct MemoryRequirements
+	{
+		UINT64 ResultDataMaxSizeInBytes;
+		UINT64 ScratchDataSizeInBytes;
+		UINT64 UpdateScratchDataSizeInBytes;
+	};
+
+	BottomLevelAccelerationStructure(const Device* pDevice);
+
+	void AddGeometry(const RaytracingGeometryDesc& Desc);
+	MemoryRequirements GetAccelerationStructureMemoryRequirements(bool AllowUpdate);
+	void Generate(bool UpdateOnly, CommandContext* pCommandContext);
+private:
+	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> m_RTGeometryDescs;
+	MemoryRequirements m_MemoryRequirements;
+};
+
+class TopLevelAccelerationStructure : public RaytracingAccelerationStructure
+{
+public:
+	struct MemoryRequirements
+	{
+		UINT64 ResultDataMaxSizeInBytes;
+		UINT64 ScratchDataSizeInBytes;
+		UINT64 UpdateScratchDataSizeInBytes;
+		UINT64 InstanceDataSizeInBytes;
+	};
+
+	TopLevelAccelerationStructure(const Device* pDevice);
+
+	void SetInstanceBuffer(Buffer* pInstance);
+
+	void AddInstance(Buffer* pBLAS, Transform Transform, UINT InstanceID, UINT HitGroupIndex);
+	MemoryRequirements GetAccelerationStructureMemoryRequirements(bool AllowUpdate);
+	void Generate(bool UpdateOnly, CommandContext* pCommandContext);
+private:
+	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_RTInstanceDescs;
+	MemoryRequirements m_MemoryRequirements;
+	Buffer* m_pInstance;
+};

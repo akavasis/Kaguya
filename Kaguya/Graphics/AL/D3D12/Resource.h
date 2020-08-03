@@ -1,14 +1,24 @@
 #pragma once
 #include <optional>
-
 #include "Heap.h"
+
+extern const D3D12_HEAP_PROPERTIES kDefaultHeapProps;
+extern const D3D12_HEAP_PROPERTIES kUploadHeapProps;
+extern const D3D12_HEAP_PROPERTIES kReadbackHeapProps;
 
 class Device;
 
 class Resource
 {
 public:
-	enum class Type { Unknown, Buffer, Texture1D, Texture2D, Texture3D };
+	enum class Type
+	{
+		Unknown,
+		Buffer,
+		Texture1D,
+		Texture2D,
+		Texture3D
+	};
 
 	Resource() = default;
 	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);

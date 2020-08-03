@@ -35,7 +35,7 @@ public:
 		std::pair<RenderResourceHandle, size_t> GetTexture(const std::string& Path) const;
 	} TextureStorage;
 
-	GpuTextureAllocator(size_t NumMaterials, RenderDevice* pRenderDevice);
+	GpuTextureAllocator(RenderDevice* pRenderDevice, size_t NumMaterials);
 
 	inline auto GetNumTextures() const { return m_NumTextures; }
 
@@ -46,7 +46,7 @@ private:
 	struct Status
 	{
 		bool BRDFGenerated = false;
-	} m_Status;
+	};
 
 	struct StagingTexture
 	{
@@ -74,7 +74,9 @@ private:
 	bool IsSRGB(DXGI_FORMAT Format);
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
 
-	RenderDevice* m_pRenderDevice;
+	RenderDevice* pRenderDevice;
+
+	Status m_Status;
 
 	enum : UINT { NumDescriptorsPerRange = 2048 };
 	CBSRUADescriptorHeap m_CBSRUADescriptorHeap;
