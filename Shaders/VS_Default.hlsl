@@ -5,8 +5,6 @@
 
 #include "ShaderLayout.hlsli"
 
-#define RENDER_SHADOWS 0
-
 struct InputVertex
 {
 	float3 positionL : POSITION;

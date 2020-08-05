@@ -18,12 +18,14 @@ struct RenderResourceHandle
 	{
 		Unknown,
 		Shader,
+		Library,
 		Buffer,
 		Texture,
 		Heap,
 		RootSignature,
 		GraphicsPSO,
-		ComputePSO
+		ComputePSO,
+		RaytracingPSO
 	};
 
 	enum class Flags : size_t

@@ -7,7 +7,12 @@ class Device;
 class PipelineState
 {
 public:
-	enum class Type { Unknown, Graphics, Compute };
+	enum class Type
+	{
+		Unknown,
+		Graphics,
+		Compute
+	};
 
 	PipelineState() = default;
 	PipelineState(Type Type);

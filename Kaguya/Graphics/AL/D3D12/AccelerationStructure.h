@@ -23,27 +23,9 @@ struct RaytracingGeometryDesc
 class RaytracingAccelerationStructure
 {
 public:
-	RaytracingAccelerationStructure(const Device* pDevice)
-		: pDevice(pDevice)
-	{
-		pResult = pScratch = pSource = nullptr;
-		m_ASDesc = {};
-		m_ASDesc.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-	}
+	RaytracingAccelerationStructure(const Device* pDevice);
 
-	void SetAccelerationStructure(Buffer* pResult, Buffer* pScratch, Buffer* pSource)
-	{
-		assert(pResult);
-		assert(pScratch);
-
-		this->pResult = pResult;
-		this->pScratch = pScratch;
-		this->pSource = pSource;
-
-		m_ASDesc.DestAccelerationStructureData = this->pResult->GetGpuVirtualAddress();
-		m_ASDesc.ScratchAccelerationStructureData = this->pScratch->GetGpuVirtualAddress();
-		m_ASDesc.SourceAccelerationStructureData = this->pSource ? this->pSource->GetGpuVirtualAddress() : NULL;
-	}
+	void SetAccelerationStructure(Buffer* pResult, Buffer* pScratch, Buffer* pSource);
 protected:
 	const Device* pDevice;
 

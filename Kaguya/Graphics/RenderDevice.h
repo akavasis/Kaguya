@@ -7,9 +7,9 @@
 #include "../Core/Delegate.h"
 
 #include "RenderResourceHandle.h"
-#include "ShaderCompiler.h"
 
 #include "AL/D3D12/Device.h"
+#include "AL/D3D12/ShaderCompiler.h"
 #include "AL/D3D12/ResourceStateTracker.h"
 #include "AL/D3D12/DescriptorHeap.h"
 #include "AL/D3D12/DescriptorAllocator.h"
@@ -22,6 +22,8 @@
 #include "AL/D3D12/RootSignature.h"
 #include "AL/D3D12/RootSignatureProxy.h"
 #include "AL/D3D12/PipelineState.h"
+#include "AL/D3D12/RaytracingPipelineState.h"
+#include "AL/D3D12/RaytracingPipelineStateProxy.h"
 
 struct StandardShaderLayoutOptions
 {
@@ -56,7 +58,8 @@ public:
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
 	// Resource creation
-	[[nodiscard]] RenderResourceHandle LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
+	[[nodiscard]] RenderResourceHandle CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
+	[[nodiscard]] RenderResourceHandle CompileLibrary(LPCWSTR pPath);
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData);
 	[[nodiscard]] RenderResourceHandle CreateBuffer(const Buffer::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset);
@@ -66,6 +69,7 @@ public:
 	[[nodiscard]] RenderResourceHandle CreateRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties);
 	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(const ComputePipelineState::Properties& Properties);
+	[[nodiscard]] RenderResourceHandle CreateRaytracingPipelineState(Delegate<void(RaytracingPipelineStateProxy&)> Configurator);
 
 	void ReplaceShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines, RenderResourceHandle ExistingRenderResourceHandle);
 	void ReplaceBuffer(const Buffer::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle);
@@ -95,21 +99,23 @@ public:
 
 	// Returns nullptr if a resource is not found
 	[[nodiscard]] inline auto GetShader(RenderResourceHandle RenderResourceHandle) { return m_Shaders.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetLibrary(RenderResourceHandle RenderResourceHandle) { return m_Libraries.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) { return m_Buffers.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle) { return m_Textures.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle) { return m_Heaps.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle) { return m_RootSignatures.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle) { return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
 private:
 	void AddStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
 
 	Device m_Device;
+	ShaderCompiler m_ShaderCompiler;
 	CommandQueue m_GraphicsQueue;
 	CommandQueue m_ComputeQueue;
 	CommandQueue m_CopyQueue;
 	ResourceStateTracker m_GlobalResourceStateTracker;
-	ShaderCompiler m_ShaderCompiler;
 	DescriptorAllocator m_DescriptorAllocator;
 	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[4];
 
@@ -212,6 +218,7 @@ private:
 	};
 
 	RenderResourceContainer<RenderResourceHandle::Types::Shader, Shader> m_Shaders;
+	RenderResourceContainer<RenderResourceHandle::Types::Library, Library> m_Libraries;
 
 	RenderResourceContainer<RenderResourceHandle::Types::Buffer, Buffer> m_Buffers;
 	RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_Textures;
@@ -220,6 +227,7 @@ private:
 	RenderResourceContainer<RenderResourceHandle::Types::RootSignature, RootSignature> m_RootSignatures;
 	RenderResourceContainer<RenderResourceHandle::Types::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
 	RenderResourceContainer<RenderResourceHandle::Types::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
+	RenderResourceContainer<RenderResourceHandle::Types::RaytracingPSO, RaytracingPipelineState> m_RaytracingPipelineStates;
 
 	RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_SwapChainTextures;
 };

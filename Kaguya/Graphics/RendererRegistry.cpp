@@ -4,21 +4,28 @@
 void Shaders::Register(RenderDevice* pRenderDevice)
 {
 	// Load VS
-	VS::Default = pRenderDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"0" } });
-	VS::Quad = pRenderDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/VS_Quad.hlsl", L"main", {});
-	VS::Shadow = pRenderDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"1" } });
-	VS::Sky = pRenderDevice->LoadShader(Shader::Type::Vertex, L"../../Shaders/VS_Sky.hlsl", L"main", {});
+	VS::Default = pRenderDevice->CompileShader(Shader::Type::Vertex, L"../../Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"0" } });
+	VS::Quad = pRenderDevice->CompileShader(Shader::Type::Vertex, L"../../Shaders/VS_Quad.hlsl", L"main", {});
+	VS::Shadow = pRenderDevice->CompileShader(Shader::Type::Vertex, L"../../Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"1" } });
+	VS::Sky = pRenderDevice->CompileShader(Shader::Type::Vertex, L"../../Shaders/VS_Sky.hlsl", L"main", {});
 	// Load PS
-	PS::BRDFIntegration = pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PS_BRDFIntegration.hlsl", L"main", {});
-	PS::ConvolutionIrradiance = pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
-	PS::ConvolutionPrefilter = pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
-	PS::PBR = pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PS_PBR.hlsl", L"main", {});
-	PS::Sky = pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PS_Sky.hlsl", L"main", {});
+	PS::BRDFIntegration = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_BRDFIntegration.hlsl", L"main", {});
+	PS::ConvolutionIrradiance = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
+	PS::ConvolutionPrefilter = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
+	PS::PBR = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_PBR.hlsl", L"main", {});
+	PS::Sky = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_Sky.hlsl", L"main", {});
 
-	PS::PostProcess_Tonemapping = pRenderDevice->LoadShader(Shader::Type::Pixel, L"../../Shaders/PostProcess/Tonemapping.hlsl", L"main", {});
+	PS::PostProcess_Tonemapping = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PostProcess/Tonemapping.hlsl", L"main", {});
 	// Load CS
-	CS::EquirectangularToCubemap = pRenderDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/CS_EquirectangularToCubemap.hlsl", L"main", {});
-	CS::GenerateMips = pRenderDevice->LoadShader(Shader::Type::Compute, L"../../Shaders/CS_GenerateMips.hlsl", L"main", {});
+	CS::EquirectangularToCubemap = pRenderDevice->CompileShader(Shader::Type::Compute, L"../../Shaders/CS_EquirectangularToCubemap.hlsl", L"main", {});
+	CS::GenerateMips = pRenderDevice->CompileShader(Shader::Type::Compute, L"../../Shaders/CS_GenerateMips.hlsl", L"main", {});
+}
+
+void Libraries::Register(RenderDevice* pRenderDevice)
+{
+	RayGeneration = pRenderDevice->CompileLibrary(L"../../Shaders/Raytracing/RayGeneration.hlsl");
+	ClosestHit = pRenderDevice->CompileLibrary(L"../../Shaders/Raytracing/Hit.hlsl");
+	Miss = pRenderDevice->CompileLibrary(L"../../Shaders/Raytracing/Miss.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
@@ -133,6 +140,34 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
+
+	// Raytracing RSs
+	{
+		// Ray Generation RS
+		RootSignatures::Raytracing::RayGeneration = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+		{
+			proxy.AddRootSRVParameter(0, 0); // RaytracingAccelerationStructure
+			proxy.AddRootCBVParameter(0, 0); // Camera
+
+			D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
+			CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
+			proxy.AddRootDescriptorTableParameter({ uavRange });
+
+			proxy.SetAsLocalRootSignature();
+		});
+
+		// Closest Hit RS
+		RootSignatures::Raytracing::Hit = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+		{
+			proxy.SetAsLocalRootSignature();
+		});
+
+		// Miss RS
+		RootSignatures::Raytracing::Miss = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+		{
+			proxy.SetAsLocalRootSignature();
+		});
+	}
 }
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
@@ -300,4 +335,36 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 
 		ComputePSOs::EquirectangularToCubemap = pRenderDevice->CreateComputePipelineState(prop);
 	}
+}
+
+void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
+{
+	Raytracing = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
+	{
+		Library* pRayGenerationLibrary = pRenderDevice->GetLibrary(Libraries::RayGeneration);
+		Library* pClosestHitLibrary = pRenderDevice->GetLibrary(Libraries::ClosestHit);
+		Library* pMissLibrary = pRenderDevice->GetLibrary(Libraries::Miss);
+
+		proxy.AddLibrary(pRayGenerationLibrary, { L"RayGen" });
+		proxy.AddLibrary(pClosestHitLibrary, { L"ClosestHit" });
+		proxy.AddLibrary(pMissLibrary, { L"Miss" });
+
+		proxy.AddHitGroup(L"HitGroup", nullptr, L"ClosestHit", nullptr);
+
+		RootSignature* pRayGenerationRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::RayGeneration);
+		RootSignature* pHitRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Hit);
+		RootSignature* pMissRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Miss);
+
+		// The following section associates the root signature to each shader. Note
+		// that we can explicitly show that some shaders share the same root signature
+		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
+		// to as hit groups, meaning that the underlying intersection, any-hit and
+		// closest-hit shaders share the same root signature.
+		proxy.AddRootSignatureAssociation(pRayGenerationRootSignature, { L"RayGen" });
+		proxy.AddRootSignatureAssociation(pHitRootSignature, { L"HitGroup" });
+		proxy.AddRootSignatureAssociation(pMissRootSignature, { L"Miss" });
+
+		proxy.SetRaytracingShaderConfig(4 * sizeof(float), 2 * sizeof(float));
+		proxy.SetRaytracingPipelineConfig(1);
+	});
 }

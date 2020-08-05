@@ -74,9 +74,11 @@ Renderer::Renderer(Window& Window)
 	m_AspectRatio = static_cast<float>(Window.GetWindowWidth()) / static_cast<float>(Window.GetWindowHeight());
 
 	Shaders::Register(&m_RenderDevice);
+	Libraries::Register(&m_RenderDevice);
 	RootSignatures::Register(&m_RenderDevice);
 	GraphicsPSOs::Register(&m_RenderDevice);
 	ComputePSOs::Register(&m_RenderDevice);
+	RaytracingPSOs::Register(&m_RenderDevice);
 
 	// Create swap chain after command objects have been created
 	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue(), Window, RendererFormats::SwapChainBufferFormat, NumSwapChainBuffers);

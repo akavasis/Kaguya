@@ -1,7 +1,7 @@
 #pragma once
 #include <d3d12.h>
-#include <dxcapi.h>
 #include <wrl/client.h>
+#include <dxcapi.h>
 
 class Shader
 {
@@ -9,12 +9,6 @@ public:
 	enum class Type
 	{
 		Unknown, Vertex, Hull, Domain, Geometry, Pixel, Compute
-	};
-
-	enum class Model
-	{
-		Model_6_3,
-		Model_6_4
 	};
 
 	Shader() = default;

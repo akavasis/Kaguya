@@ -142,6 +142,15 @@ struct Shaders
 	static void Register(RenderDevice* pRenderDevice);
 };
 
+struct Libraries
+{
+	inline static RenderResourceHandle RayGeneration;
+	inline static RenderResourceHandle ClosestHit;
+	inline static RenderResourceHandle Miss;
+
+	static void Register(RenderDevice* pRenderDevice);
+};
+
 struct RootSignatures
 {
 	inline static RenderResourceHandle BRDFIntegration;
@@ -155,6 +164,13 @@ struct RootSignatures
 	inline static RenderResourceHandle Skybox;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
+
+	struct Raytracing
+	{
+		inline static RenderResourceHandle RayGeneration;
+		inline static RenderResourceHandle Hit;
+		inline static RenderResourceHandle Miss;
+	};
 
 	static void Register(RenderDevice* pRenderDevice);
 };
@@ -178,6 +194,13 @@ struct ComputePSOs
 {
 	inline static RenderResourceHandle GenerateMips;
 	inline static RenderResourceHandle EquirectangularToCubemap;
+
+	static void Register(RenderDevice* pRenderDevice);
+};
+
+struct RaytracingPSOs
+{
+	inline static RenderResourceHandle Raytracing;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

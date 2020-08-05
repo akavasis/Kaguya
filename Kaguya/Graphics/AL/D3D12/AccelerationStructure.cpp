@@ -1,6 +1,27 @@
 #include "pch.h"
 #include "AccelerationStructure.h"
 
+RaytracingAccelerationStructure::RaytracingAccelerationStructure(const Device* pDevice)
+	: pDevice(pDevice)
+{
+	pResult = pScratch = pSource = nullptr;
+	m_ASDesc = {};
+	m_ASBuildFlags = {};
+}
+void RaytracingAccelerationStructure::SetAccelerationStructure(Buffer* pResult, Buffer* pScratch, Buffer* pSource)
+{
+	assert(pResult);
+	assert(pScratch);
+
+	this->pResult = pResult;
+	this->pScratch = pScratch;
+	this->pSource = pSource;
+
+	m_ASDesc.DestAccelerationStructureData = this->pResult->GetGpuVirtualAddress();
+	m_ASDesc.ScratchAccelerationStructureData = this->pScratch->GetGpuVirtualAddress();
+	m_ASDesc.SourceAccelerationStructureData = this->pSource ? this->pSource->GetGpuVirtualAddress() : NULL;
+}
+
 BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(const Device* pDevice)
 	: RaytracingAccelerationStructure(pDevice)
 {

@@ -32,14 +32,6 @@ file(GLOB_RECURSE External_SourceList
 ../External/*.cpp
 )
 
-file(GLOB_RECURSE Shaders_HeaderList
-../Shaders/*.hlsli
-)
-
-file(GLOB_RECURSE Shaders_SourceList
-../Shaders/*.hlsl
-)
-
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${Main})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${PCH_Header})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${PCH_Source})
@@ -47,36 +39,10 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${HeaderList})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SourceList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_HeaderList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_SourceList})
-source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${Shaders_HeaderList})
-source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${Shaders_SourceList})
 
 foreach(Source IN LISTS SourceList)
     set_source_files_properties("${Source}" PROPERTIES COMPILE_FLAGS "/Yupch.h")
 endforeach()
-
-# Shader properties
-set(ShaderModel 6.1)
-set_source_files_properties("../Shaders/CS_EquirectangularToCubemap.hlsl" PROPERTIES VS_SHADER_TYPE Compute VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/CS_GenerateMips.hlsl" PROPERTIES VS_SHADER_TYPE Compute VS_SHADER_MODEL ${ShaderModel})
-
-set_source_files_properties("../Shaders/PS_BRDFIntegration.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PS_ConvolutionIrradiance.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PS_ConvolutionPrefilter.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PS_PBR.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PS_Sky.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-
-set_source_files_properties("../Shaders/VS_Default.hlsl" PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/VS_Quad.hlsl" PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/VS_Shadow.hlsl" PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/VS_Sky.hlsl" PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL ${ShaderModel})
-
-set_source_files_properties("../Shaders/PostProcess/BloomComposite.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PostProcess/BloomMask.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PostProcess/Blur.hlsl" PROPERTIES VS_SHADER_TYPE Compute VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PostProcess/Sepia.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PostProcess/Sobel.hlsl" PROPERTIES VS_SHADER_TYPE Compute VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PostProcess/SobelComposite.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
-set_source_files_properties("../Shaders/PostProcess/ToneMapping.hlsl" PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL ${ShaderModel})
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE")
 include_directories(".")

@@ -66,9 +66,15 @@ void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, Command
 	m_GraphicsQueue.Flush();
 }
 
-RenderResourceHandle RenderDevice::LoadShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
+RenderResourceHandle RenderDevice::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
-	auto [handle, shader] = m_Shaders.CreateResource(m_ShaderCompiler.LoadShader(Type, pPath, pEntryPoint, ShaderDefines));
+	auto [handle, shader] = m_Shaders.CreateResource(m_ShaderCompiler.CompileShader(Type, pPath, pEntryPoint, ShaderDefines));
+	return handle;
+}
+
+RenderResourceHandle RenderDevice::CompileLibrary(LPCWSTR pPath)
+{
+	auto [handle, library] = m_Libraries.CreateResource(m_ShaderCompiler.CompileLibrary(pPath));
 	return handle;
 }
 
@@ -140,12 +146,12 @@ RenderResourceHandle RenderDevice::CreateHeap(const Heap::Properties& Properties
 
 RenderResourceHandle RenderDevice::CreateRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator)
 {
-	RootSignatureProxy Proxy;
-	Configurator(Proxy);
+	RootSignatureProxy proxy;
+	Configurator(proxy);
 	if (pOptions)
-		AddStandardShaderLayoutRootParameter(pOptions, Proxy);
+		AddStandardShaderLayoutRootParameter(pOptions, proxy);
 
-	auto [handle, rootSignature] = m_RootSignatures.CreateResource(&m_Device, Proxy);
+	auto [handle, rootSignature] = m_RootSignatures.CreateResource(&m_Device, proxy);
 	return handle;
 }
 
@@ -161,9 +167,18 @@ RenderResourceHandle RenderDevice::CreateComputePipelineState(const ComputePipel
 	return handle;
 }
 
+RenderResourceHandle RenderDevice::CreateRaytracingPipelineState(Delegate<void(RaytracingPipelineStateProxy&)> Configurator)
+{
+	RaytracingPipelineStateProxy proxy;
+	Configurator(proxy);
+
+	auto [handle, raytracingPSO] = m_RaytracingPipelineStates.CreateResource(&m_Device, proxy);
+	return handle;
+}
+
 void RenderDevice::ReplaceShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines, RenderResourceHandle ExistingRenderResourceHandle)
 {
-	auto [shader, success] = m_Shaders.ReplaceResource(ExistingRenderResourceHandle, m_ShaderCompiler.LoadShader(Type, pPath, pEntryPoint, ShaderDefines));
+	auto [shader, success] = m_Shaders.ReplaceResource(ExistingRenderResourceHandle, m_ShaderCompiler.CompileShader(Type, pPath, pEntryPoint, ShaderDefines));
 	if (success)
 	{
 		CORE_INFO("Shader replaced");

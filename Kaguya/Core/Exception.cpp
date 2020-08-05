@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Exception.h"
 #include <sstream>
-#include <locale>
 #include <codecvt>
 
 Exception::Exception(std::string File, int Line) noexcept
