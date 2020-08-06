@@ -1,15 +1,15 @@
 #pragma once
 #include <d3d12.h>
-#include <dxcapi.h>
+#include "Proxy.h"
 
 class Library;
 class RootSignature;
 
-class RaytracingPipelineStateProxy
+class RaytracingPipelineStateProxy : public Proxy
 {
+	friend class RaytracingPipelineState;
 public:
 	RaytracingPipelineStateProxy();
-	~RaytracingPipelineStateProxy() = default;
 
 	void AddLibrary(Library* pLibrary, const std::vector<std::wstring>& Symbols);
 	void AddHitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol);
@@ -17,9 +17,9 @@ public:
 
 	void SetRaytracingShaderConfig(UINT MaxPayloadSizeInBytes, UINT MaxAttributeSizeInBytes);
 	void SetRaytracingPipelineConfig(UINT MaxTraceRecursionDepth);
+protected:
+	void Link() override;
 private:
-	friend class RaytracingPipelineState;
-	void Link();
 	std::vector<std::wstring> BuildShaderExportList();
 
 	struct DXILLibrary

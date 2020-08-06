@@ -1,14 +1,14 @@
 #include "pch.h"
 #include "RenderGraph.h"
 
-RenderPassBase::RenderPassBase(RenderPassType RenderPassType)
+RenderPassBase::RenderPassBase(RenderPassType Type)
 	: Enabled(true),
-	eRenderPassType(RenderPassType)
+	Type(Type)
 {
 }
 
-RenderGraph::RenderGraph(RenderDevice& RefRenderDevice)
-	: m_RefRenderDevice(RefRenderDevice),
+RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
+	: pRenderDevice(pRenderDevice),
 	m_ExecutionPolicy(Sequenced),
 	m_NumRenderPasses(0)
 {
@@ -23,7 +23,7 @@ void RenderGraph::Setup()
 {
 	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
 	{
-		m_RenderPasses[i]->Setup(m_RefRenderDevice);
+		m_RenderPasses[i]->Setup(pRenderDevice);
 	}
 	m_ThreadPool = std::make_unique<ThreadPool>(m_NumRenderPasses);
 	m_Futures.resize(m_NumRenderPasses);
@@ -40,8 +40,8 @@ void RenderGraph::Execute(Scene& Scene)
 		{
 		case ExecutionPolicy::Sequenced:
 		{
-			RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice, *this);
-			m_RefRenderDevice.BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
+			RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
+			pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
 			m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
 		}
 		break;
@@ -50,8 +50,8 @@ void RenderGraph::Execute(Scene& Scene)
 		{
 			m_Futures[i] = m_ThreadPool->AddWork([this, i, &Scene = Scene]()
 			{
-				RenderGraphRegistry renderGraphRegistry(m_RefRenderDevice, *this);
-				m_RefRenderDevice.BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
+				RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
+				pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
 				m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
 			});
 		}
@@ -62,7 +62,7 @@ void RenderGraph::Execute(Scene& Scene)
 
 void RenderGraph::ExecuteCommandContexts()
 {
-	m_RefRenderDevice.ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
+	pRenderDevice->ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
 }
 
 void RenderGraph::ThreadBarrier()
@@ -71,5 +71,13 @@ void RenderGraph::ThreadBarrier()
 	{
 		if (future.valid())
 			future.wait();
+	}
+}
+
+void RenderGraph::Resize()
+{
+	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
+	{
+		m_RenderPasses[i]->Resize(pRenderDevice);
 	}
 }

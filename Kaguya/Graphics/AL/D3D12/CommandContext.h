@@ -33,7 +33,7 @@ public:
 	void SetPipelineState(const PipelineState* pPipelineState);
 	void SetDescriptorHeaps(const CBSRUADescriptorHeap* pCBSRUADescriptorHeap, const SamplerDescriptorHeap* pSamplerDescriptorHeap);
 
-	void TransitionBarrier(Resource* pResource, D3D12_RESOURCE_STATES TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	void TransitionBarrier(Resource* pResource, Resource::State TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 	void AliasingBarrier(Resource* pBeforeResource, Resource* pAfterResource);
 	void UAVBarrier(Resource* pResource);
 	void FlushResourceBarriers();

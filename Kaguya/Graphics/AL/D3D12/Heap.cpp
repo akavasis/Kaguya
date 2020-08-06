@@ -1,42 +1,58 @@
 #include "pch.h"
 #include "Heap.h"
 #include "Device.h"
+#include "Proxy/HeapProxy.h"
 
-Heap::Heap(const Device* pDevice, const Properties& Properties)
-	: m_SizeInBytesAligned(Math::AlignUp<UINT64>(Properties.SizeInBytes, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)),
-	m_HeapAliasingResourceCategories(Properties.HeapAliasingResourceCategories),
-	m_CPUAccessibleHeapType(Properties.CPUAccessibleHeapType)
+const D3D12_HEAP_PROPERTIES kDefaultHeapProps =
 {
-	D3D12_HEAP_DESC desc = {};
-	desc.SizeInBytes = m_SizeInBytesAligned;
-	if (m_CPUAccessibleHeapType.has_value())
-	{
-		switch (m_CPUAccessibleHeapType.value())
-		{
-		case CPUAccessibleHeapType::Upload: { desc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD; } break;
-		case CPUAccessibleHeapType::Readback: { desc.Properties.Type = D3D12_HEAP_TYPE_READBACK; } break;
-		}
-	}
-	else
-	{
-		desc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
-	}
-	desc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	desc.Properties.CreationNodeMask = desc.Properties.VisibleNodeMask = 0;
-	desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-	desc.Flags = D3D12_HEAP_FLAG_NONE;
-	switch (m_HeapAliasingResourceCategories)
-	{
-	case HeapAliasingResourceCategory::Buffers: { desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS; } break;
-	case HeapAliasingResourceCategory::NonRTDSTextures: { desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES; } break;
-	case HeapAliasingResourceCategory::RTDSTextures: { desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES; } break;
-	case HeapAliasingResourceCategory::AllResources: { desc.Flags = D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES; } break;
-	}
+	.Type = D3D12_HEAP_TYPE_DEFAULT,
+	.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+	.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+	.CreationNodeMask = 0,
+	.VisibleNodeMask = 0
+};
 
+const D3D12_HEAP_PROPERTIES kUploadHeapProps =
+{
+	.Type = D3D12_HEAP_TYPE_UPLOAD,
+	.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+	.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+	.CreationNodeMask = 0,
+	.VisibleNodeMask = 0,
+};
+
+const D3D12_HEAP_PROPERTIES kReadbackHeapProps =
+{
+	.Type = D3D12_HEAP_TYPE_READBACK,
+	.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+	.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+	.CreationNodeMask = 0,
+	.VisibleNodeMask = 0
+};
+
+Heap::Heap(const Device* pDevice, HeapProxy& Proxy)
+	: m_SizeInBytes(Math::AlignUp<UINT64>(Proxy.m_SizeInBytes, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)),
+	m_Type(Proxy.m_Type),
+	m_Flags(Proxy.m_Flags)
+{
+	Proxy.Link();
+
+	D3D12_HEAP_DESC desc = Proxy.GetD3DHeapDesc();
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateHeap(&desc, IID_PPV_ARGS(&m_pHeap)));
 }
 
 Heap::~Heap()
 {
+}
+
+D3D12_HEAP_FLAGS GetD3DHeapFlags(Heap::Flags Flags)
+{
+	D3D12_HEAP_FLAGS ret = D3D12_HEAP_FLAG_NONE;
+
+	if (EnumMaskBitSet(Flags, Heap::Flags::Buffers)) ret |= D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+	if (EnumMaskBitSet(Flags, Heap::Flags::NonRTDSTextures)) ret |= D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
+	if (EnumMaskBitSet(Flags, Heap::Flags::RTDSTextures)) ret |= D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+	if (EnumMaskBitSet(Flags, Heap::Flags::AllResources)) ret |= D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
+
+	return ret;
 }

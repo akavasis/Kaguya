@@ -5,7 +5,6 @@
 #include "../../../Core/Allocator/VariableSizedAllocator.h"
 
 class Device;
-class DescriptorHeap;
 
 struct Descriptor
 {
@@ -14,8 +13,8 @@ struct Descriptor
 	UINT HeapIndex = 0;
 	UINT IncrementSize = 0;
 
-	inline bool IsValid() { return CPUHandle.ptr != NULL; }
-	inline bool IsReferencedByShader() { return GPUHandle.ptr != NULL; }
+	inline bool IsValid() const { return CPUHandle.ptr != NULL; }
+	inline bool IsReferencedByShader() const { return GPUHandle.ptr != NULL; }
 };
 
 struct DescriptorAllocation
@@ -24,6 +23,10 @@ struct DescriptorAllocation
 	UINT NumDescriptors = 0;
 
 	Descriptor operator[](INT Index) const;
+	inline operator bool() const
+	{
+		return StartDescriptor.IsValid();
+	}
 private:
 	friend class DescriptorHeap;
 	friend class DescriptorAllocator;
@@ -54,15 +57,9 @@ protected:
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandleAt(INT PartitionIndex, INT Index) const;
 
 	// Used for partitioning descriptors
-	struct RangeBlockInfo
-	{
-		D3D12_CPU_DESCRIPTOR_HANDLE StartCPUDescriptorHandle = { NULL };
-		D3D12_GPU_DESCRIPTOR_HANDLE StartGPUDescriptorHandle = { NULL };
-		UINT64 Capacity = 0;
-	};
 	struct DescriptorPartition
 	{
-		RangeBlockInfo RangeBlockInfo;
+		DescriptorAllocation Allocation;
 		VariableSizedAllocator Allocator;
 	};
 
@@ -92,7 +89,7 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE GetRangeHandleFromStart(RangeType Type) const
 	{
 		auto& descriptorPartition = GetDescriptorPartitionAt(INT(Type));
-		return descriptorPartition.RangeBlockInfo.StartGPUDescriptorHandle;
+		return descriptorPartition.Allocation.StartDescriptor.GPUHandle;
 	}
 };
 

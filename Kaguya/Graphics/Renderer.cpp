@@ -45,7 +45,6 @@ struct TonemapPassData
 {
 	TonemapData TonemapData;
 
-	RenderResourceHandle FrameBufferHandle;
 	Texture* pFrameBuffer;
 	Descriptor FrameBufferSRV;
 	Descriptor SwapChainRTV;
@@ -54,7 +53,7 @@ struct TonemapPassData
 
 Renderer::Renderer(Window& Window)
 	: m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
-	m_RenderGraph(m_RenderDevice),
+	m_RenderGraph(&m_RenderDevice),
 	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB),
 	m_GpuTextureAllocator(&m_RenderDevice, 100)
 {
@@ -90,7 +89,7 @@ Renderer::Renderer(Window& Window)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-		m_SwapChainTextureHandles[i] = m_RenderDevice.CreateSwapChainTexture(pBackBuffer, D3D12_RESOURCE_STATE_COMMON);
+		m_SwapChainTextureHandles[i] = m_RenderDevice.CreateSwapChainTexture(pBackBuffer, Resource::State::Common);
 		m_pSwapChainTextures[i] = m_RenderDevice.GetSwapChainTexture(m_SwapChainTextureHandles[i]);
 		m_RenderDevice.CreateRTVForSwapChainTexture(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i]);
 	}
@@ -98,58 +97,62 @@ Renderer::Renderer(Window& Window)
 	// Allocate upload context
 	m_pUploadCommandContext = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-	Texture::Properties textureProp{};
-	textureProp.Type = Resource::Type::Texture2D;
-	textureProp.Format = RendererFormats::HDRBufferFormat;
-	textureProp.Width = Window.GetWindowWidth();
-	textureProp.Height = Window.GetWindowHeight();
-	textureProp.DepthOrArraySize = 1;
-	textureProp.MipLevels = 1;
-	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	textureProp.InitialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::HDRBufferFormat, DirectX::Colors::LightBlue);
-	m_FrameBufferHandle = m_RenderDevice.CreateTexture(textureProp);
-	m_pFrameBuffer = m_RenderDevice.GetTexture(m_FrameBufferHandle);
+	m_RaytracingOutputBufferHandle = m_RenderDevice.CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	{
+		proxy.SetFormat(RendererFormats::HDRBufferFormat);
+		proxy.SetWidth(Window.GetWindowWidth());
+		proxy.SetHeight(Window.GetWindowHeight());
+		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(RendererFormats::HDRBufferFormat, DirectX::Colors::LightBlue));
+		proxy.BindFlags = Resource::BindFlags::RenderTarget;
+		proxy.InitialState = Resource::State::RenderTarget;
+	});
+	m_pRaytracingOutputBuffer = m_RenderDevice.GetTexture(m_RaytracingOutputBufferHandle);
 
-	textureProp.Format = RendererFormats::DepthStencilFormat;
-	textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-	textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0);
-	m_FrameDepthStencilBufferHandle = m_RenderDevice.CreateTexture(textureProp);
-	m_pFrameDepthStencilBuffer = m_RenderDevice.GetTexture(m_FrameDepthStencilBufferHandle);
+	m_DepthStencilBufferHandle = m_RenderDevice.CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	{
+		proxy.SetFormat(RendererFormats::DepthStencilFormat);
+		proxy.SetWidth(Window.GetWindowWidth());
+		proxy.SetHeight(Window.GetWindowHeight());
+		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0));
+		proxy.BindFlags = Resource::BindFlags::DepthStencil;
+		proxy.InitialState = Resource::State::DepthWrite;
+	});
+	m_pDepthStencilBuffer = m_RenderDevice.GetTexture(m_DepthStencilBufferHandle);
 
-	Buffer::Properties bufferProp{};
-	// + 1 for forward pass render constants
-	bufferProp.SizeInBytes = (NUM_CASCADES + 1) * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-	bufferProp.Stride = Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-	m_RenderPassConstantBufferHandle = m_RenderDevice.CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	m_RenderPassConstantBufferHandle = m_RenderDevice.CreateBuffer([](BufferProxy& proxy)
+	{
+		// + 1 for forward pass render constants
+		proxy.SetSizeInBytes((NUM_CASCADES + 1) * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+		proxy.SetStride(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+	});
 	m_pRenderPassConstantBuffer = m_RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
 	m_pRenderPassConstantBuffer->Map();
 
-	auto pShadowPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ShadowPassData>(
-		[&](ShadowPassData& Data, RenderDevice& RenderDevice)
+	auto pShadowPass = m_RenderGraph.AddRenderPass<ShadowPassData>(
+		RenderPassType::Graphics,
+		[&](ShadowPassData& Data, RenderDevice* pRenderDevice)
 	{
 		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
 		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
 
-		Data.pRenderPassConstantBuffer = RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
+		Data.pRenderPassConstantBuffer = pRenderDevice->GetBuffer(m_RenderPassConstantBufferHandle);
 
-		Texture::Properties textureProp{};
-		textureProp.Type = Resource::Type::Texture2D;
-		textureProp.Format = DXGI_FORMAT_R32_TYPELESS;
-		textureProp.Width = textureProp.Height = Constants::SunShadowMapResolution;
-		textureProp.DepthOrArraySize = NUM_CASCADES;
-		textureProp.MipLevels = 1;
-		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		textureProp.IsCubemap = false;
-		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0);
-		textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-		Data.outputDepthTexture = RenderDevice.CreateTexture(textureProp);
-		Data.depthStencilView = RenderDevice.GetDescriptorAllocator().AllocateDepthStencilDescriptors(NUM_CASCADES);
+		Data.outputDepthTexture = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [](TextureProxy& proxy)
+		{
+			proxy.SetFormat(DXGI_FORMAT_R32_TYPELESS);
+			proxy.SetWidth(Constants::SunShadowMapResolution);
+			proxy.SetHeight(Constants::SunShadowMapResolution);
+			proxy.SetDepthOrArraySize(NUM_CASCADES);
+			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0));
+			proxy.BindFlags = Resource::BindFlags::DepthStencil;
+			proxy.InitialState = Resource::State::DepthWrite;
+		});
+		Data.depthStencilView = pRenderDevice->GetDescriptorAllocator().AllocateDepthStencilDescriptors(NUM_CASCADES);
 		for (UINT i = 0; i < NUM_CASCADES; ++i)
 		{
 			Descriptor descriptor = Data.depthStencilView[i];
-			RenderDevice.CreateDSV(Data.outputDepthTexture, descriptor, i, {}, 1);
+			pRenderDevice->CreateDSV(Data.outputDepthTexture, descriptor, i, {}, 1);
 		}
 
 		return [](const ShadowPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
@@ -165,7 +168,7 @@ Renderer::Renderer(Window& Window)
 			// Begin rendering
 			PIXMarker(pCommandContext->GetD3DCommandList(), L"Scene Cascade Shadow Map Render");
 
-			pCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			pCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), Resource::State::DepthWrite);
 
 			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Shadow));
@@ -215,25 +218,29 @@ Renderer::Renderer(Window& Window)
 				}
 			}
 
-			pCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), D3D12_RESOURCE_STATE_DEPTH_READ);
+			pCommandContext->TransitionBarrier(RenderGraphRegistry.GetTexture(Data.outputDepthTexture), Resource::State::DepthRead);
 		};
+	},
+		[=](ShadowPassData& Data, RenderDevice* pRenderDevice)
+	{
 	});
 
-	auto pForwardPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, ForwardPassData>(
-		[&](ForwardPassData& Data, RenderDevice& RenderDevice)
+	auto pForwardPass = m_RenderGraph.AddRenderPass<ForwardPassData>(
+		RenderPassType::Graphics,
+		[&](ForwardPassData& Data, RenderDevice* pRenderDevice)
 	{
 		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
 		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
 
-		Data.pFrameBuffer = RenderDevice.GetTexture(m_FrameBufferHandle);
-		Data.pFrameDepthStencilBuffer = RenderDevice.GetTexture(m_FrameDepthStencilBufferHandle);
-		Data.pRenderPassConstantBuffer = RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
+		Data.pFrameBuffer = pRenderDevice->GetTexture(m_RaytracingOutputBufferHandle);
+		Data.pFrameDepthStencilBuffer = pRenderDevice->GetTexture(m_DepthStencilBufferHandle);
+		Data.pRenderPassConstantBuffer = pRenderDevice->GetBuffer(m_RenderPassConstantBufferHandle);
 
-		Data.RenderTargetView = RenderDevice.GetDescriptorAllocator().AllocateRenderTargetDescriptors(1);
-		Data.DepthStencilView = RenderDevice.GetDescriptorAllocator().AllocateDepthStencilDescriptors(1);
+		Data.RenderTargetView = pRenderDevice->GetDescriptorAllocator().AllocateRenderTargetDescriptors(1);
+		Data.DepthStencilView = pRenderDevice->GetDescriptorAllocator().AllocateDepthStencilDescriptors(1);
 
-		RenderDevice.CreateRTV(m_FrameBufferHandle, Data.RenderTargetView[0], {}, {}, {});
-		RenderDevice.CreateDSV(m_FrameDepthStencilBufferHandle, Data.DepthStencilView[0], {}, {}, {});
+		pRenderDevice->CreateRTV(m_RaytracingOutputBufferHandle, Data.RenderTargetView[0], {}, {}, {});
+		pRenderDevice->CreateDSV(m_DepthStencilBufferHandle, Data.DepthStencilView[0], {}, {}, {});
 
 		return [](const ForwardPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
@@ -247,8 +254,8 @@ Renderer::Renderer(Window& Window)
 
 			PIXMarker(pCommandContext->GetD3DCommandList(), L"Scene Render");
 
-			pCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			pCommandContext->TransitionBarrier(Data.pFrameBuffer, Resource::State::RenderTarget);
+			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, Resource::State::DepthWrite);
 
 			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PBR));
@@ -263,13 +270,13 @@ Renderer::Renderer(Window& Window)
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
 			vp.MinDepth = 0.0f;
 			vp.MaxDepth = 1.0f;
-			vp.Width = Data.pFrameBuffer->Width;
-			vp.Height = Data.pFrameBuffer->Height;
+			vp.Width = Data.pFrameBuffer->GetWidth();
+			vp.Height = Data.pFrameBuffer->GetHeight();
 
 			D3D12_RECT sr;
 			sr.left = sr.top = 0;
-			sr.right = Data.pFrameBuffer->Width;
-			sr.bottom = Data.pFrameBuffer->Height;
+			sr.right = Data.pFrameBuffer->GetWidth();
+			sr.bottom = Data.pFrameBuffer->GetHeight();
 
 			pCommandContext->SetViewports(1, &vp);
 			pCommandContext->SetScissorRects(1, &sr);
@@ -294,13 +301,23 @@ Renderer::Renderer(Window& Window)
 				}
 			}
 
-			pCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+			pCommandContext->TransitionBarrier(Data.pFrameBuffer, Resource::State::PixelShaderResource);
+			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, Resource::State::DepthRead);
 		};
+	},
+		[=](ForwardPassData& Data, RenderDevice* pRenderDevice)
+	{
+		Data.pFrameBuffer = pRenderDevice->GetTexture(m_RaytracingOutputBufferHandle);
+		Data.pFrameDepthStencilBuffer = pRenderDevice->GetTexture(m_DepthStencilBufferHandle);
+		Data.pRenderPassConstantBuffer = pRenderDevice->GetBuffer(m_RenderPassConstantBufferHandle);
+
+		pRenderDevice->CreateRTV(m_RaytracingOutputBufferHandle, Data.RenderTargetView[0], {}, {}, {});
+		pRenderDevice->CreateDSV(m_DepthStencilBufferHandle, Data.DepthStencilView[0], {}, {}, {});
 	});
 
-	auto pSkyboxPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, SkyboxPassData>(
-		[&](SkyboxPassData& Data, RenderDevice& RenderDevice)
+	auto pSkyboxPass = m_RenderGraph.AddRenderPass<SkyboxPassData>(
+		RenderPassType::Graphics,
+		[&](SkyboxPassData& Data, RenderDevice* pRenderDevice)
 	{
 		Data.pGpuBufferAllocator = &m_GpuBufferAllocator;
 		Data.pGpuTextureAllocator = &m_GpuTextureAllocator;
@@ -316,8 +333,8 @@ Renderer::Renderer(Window& Window)
 		{
 			PIXMarker(pCommandContext->GetD3DCommandList(), L"Skybox Render");
 
-			pCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			pCommandContext->TransitionBarrier(Data.pFrameBuffer, Resource::State::RenderTarget);
+			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, Resource::State::DepthWrite);
 
 			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Skybox));
@@ -331,13 +348,13 @@ Renderer::Renderer(Window& Window)
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
 			vp.MinDepth = 0.0f;
 			vp.MaxDepth = 1.0f;
-			vp.Width = Data.pFrameBuffer->Width;
-			vp.Height = Data.pFrameBuffer->Height;
+			vp.Width = Data.pFrameBuffer->GetWidth();
+			vp.Height = Data.pFrameBuffer->GetHeight();
 
 			D3D12_RECT sr;
 			sr.left = sr.top = 0;
-			sr.right = Data.pFrameBuffer->Width;
-			sr.bottom = Data.pFrameBuffer->Height;
+			sr.right = Data.pFrameBuffer->GetWidth();
+			sr.bottom = Data.pFrameBuffer->GetHeight();
 
 			pCommandContext->SetViewports(1, &vp);
 			pCommandContext->SetScissorRects(1, &sr);
@@ -346,22 +363,31 @@ Renderer::Renderer(Window& Window)
 
 			pCommandContext->DrawIndexedInstanced(Scene.Skybox.Mesh.IndexCount, 1, Scene.Skybox.Mesh.StartIndexLocation, Scene.Skybox.Mesh.BaseVertexLocation, 0);
 
-			pCommandContext->TransitionBarrier(Data.pFrameBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+			pCommandContext->TransitionBarrier(Data.pFrameBuffer, Resource::State::PixelShaderResource);
+			pCommandContext->TransitionBarrier(Data.pFrameDepthStencilBuffer, Resource::State::DepthRead);
 		};
+	},
+		[=](SkyboxPassData& Data, RenderDevice* pRenderDevice)
+	{
+		Data.pFrameBuffer = pForwardPass->GetData().pFrameBuffer;
+		Data.pFrameDepthStencilBuffer = pForwardPass->GetData().pFrameDepthStencilBuffer;
+		Data.pRenderPassConstantBuffer = pForwardPass->GetData().pRenderPassConstantBuffer;
+
+		Data.RenderTargetView = pForwardPass->GetData().RenderTargetView;
+		Data.DepthStencilView = pForwardPass->GetData().DepthStencilView;
 	});
 
-	auto pTonemapPass = m_RenderGraph.AddRenderPass<RenderPassType::Graphics, TonemapPassData>(
-		[&](TonemapPassData& Data, RenderDevice& RenderDevice)
+	auto pTonemapPass = m_RenderGraph.AddRenderPass<TonemapPassData>(
+		RenderPassType::Graphics,
+		[&](TonemapPassData& Data, RenderDevice* pRenderDevice)
 	{
-		Data.FrameBufferHandle = m_FrameBufferHandle;
 		Data.pFrameBuffer = pSkyboxPass->GetData().pFrameBuffer;
 		Data.SwapChainRTV = m_SwapChainRTVs[m_CurrentBackBufferIndex];
 		Data.pSwapChainTexture = m_pSwapChainTextures[m_CurrentBackBufferIndex];
 
 		return [](const TonemapPassData& Data, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
-			pCommandContext->TransitionBarrier(Data.pSwapChainTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			pCommandContext->TransitionBarrier(Data.pSwapChainTexture, Resource::State::RenderTarget);
 
 			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
@@ -374,13 +400,13 @@ Renderer::Renderer(Window& Window)
 			vp.TopLeftX = vp.TopLeftY = 0.0f;
 			vp.MinDepth = 0.0f;
 			vp.MaxDepth = 1.0f;
-			vp.Width = Data.pFrameBuffer->Width;
-			vp.Height = Data.pFrameBuffer->Height;
+			vp.Width = Data.pFrameBuffer->GetWidth();
+			vp.Height = Data.pFrameBuffer->GetHeight();
 
 			D3D12_RECT sr;
 			sr.left = sr.top = 0;
-			sr.right = Data.pFrameBuffer->Width;
-			sr.bottom = Data.pFrameBuffer->Height;
+			sr.right = Data.pFrameBuffer->GetWidth();
+			sr.bottom = Data.pFrameBuffer->GetHeight();
 
 			pCommandContext->SetViewports(1, &vp);
 			pCommandContext->SetScissorRects(1, &sr);
@@ -388,8 +414,14 @@ Renderer::Renderer(Window& Window)
 			pCommandContext->SetRenderTargets(1, Data.SwapChainRTV, TRUE, Descriptor());
 			pCommandContext->DrawInstanced(3, 1, 0, 0);
 
-			pCommandContext->TransitionBarrier(Data.pSwapChainTexture, D3D12_RESOURCE_STATE_PRESENT);
+			pCommandContext->TransitionBarrier(Data.pSwapChainTexture, Resource::State::Present);
 		};
+	},
+		[=](TonemapPassData& Data, RenderDevice* pRenderDevice)
+	{
+		Data.pFrameBuffer = pSkyboxPass->GetData().pFrameBuffer;
+		Data.SwapChainRTV = m_SwapChainRTVs[m_CurrentBackBufferIndex];
+		Data.pSwapChainTexture = m_pSwapChainTextures[m_CurrentBackBufferIndex];
 	});
 
 	m_RenderGraph.SetExecutionPolicy(RenderGraph::ExecutionPolicy::Parallel);
@@ -406,41 +438,36 @@ Renderer::~Renderer()
 void Renderer::UploadScene(Scene& Scene)
 {
 	PIXCapture();
-	auto shadowPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ShadowPassData>();
-	auto tonemapPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, TonemapPassData>();
+	auto shadowPass = m_RenderGraph.GetRenderPass<ShadowPassData>();
+	auto tonemapPass = m_RenderGraph.GetRenderPass<TonemapPassData>();
 
-	if (!m_Status.IsSceneStaged)
+	m_GpuBufferAllocator.Stage(Scene, m_pUploadCommandContext);
+	m_GpuBufferAllocator.Bind(m_pUploadCommandContext);
+	m_GpuTextureAllocator.Stage(Scene, m_pUploadCommandContext);
+	m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
+
+	const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures() + 2; // 1+ Shadow map, 1+ FrameBuffer
+	m_GpuDescriptorIndices.TextureShaderResourceViews = m_RenderDevice.GetDescriptorAllocator().GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate).value();
+
+	for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
 	{
-		m_Status.IsSceneStaged = true;
-
-		m_GpuBufferAllocator.Stage(Scene, m_pUploadCommandContext);
-		m_GpuBufferAllocator.Bind(m_pUploadCommandContext);
-		m_GpuTextureAllocator.Stage(Scene, m_pUploadCommandContext);
-		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
-
-		const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures() + 2; // 1+ Shadow map, 1+ FrameBuffer
-		m_GpuDescriptorIndices.TextureShaderResourceViews = m_RenderDevice.GetDescriptorAllocator().GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate).value();
-
-		for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
-		{
-			auto handle = m_GpuTextureAllocator.AssetTextures[i];
-			m_RenderDevice.CreateSRV(handle, m_GpuDescriptorIndices.TextureShaderResourceViews[i]);
-		}
-
-		for (auto iter = m_GpuTextureAllocator.TextureStorage.TextureIndices.begin(); iter != m_GpuTextureAllocator.TextureStorage.TextureIndices.end(); ++iter)
-		{
-			m_RenderDevice.CreateSRV(m_GpuTextureAllocator.TextureStorage.TextureHandles[iter->first], m_GpuDescriptorIndices.TextureShaderResourceViews[iter->second]);
-		}
-
-		int shadowMapIndex = numSRVsToAllocate - 2;
-		m_RenderDevice.CreateSRV(shadowPass->GetData().outputDepthTexture, m_GpuDescriptorIndices.TextureShaderResourceViews[shadowMapIndex]);
-
-		tonemapPass->GetData().TonemapData.InputMapIndex = shadowMapIndex + 1;
-		m_RenderDevice.CreateSRV(m_FrameBufferHandle, m_GpuDescriptorIndices.TextureShaderResourceViews[shadowMapIndex + 1]);
-
-		m_GpuDescriptorIndices.ShadowMapIndex = shadowMapIndex;
-		m_GpuDescriptorIndices.FrameBufferIndex = shadowMapIndex + 1;
+		auto handle = m_GpuTextureAllocator.AssetTextures[i];
+		m_RenderDevice.CreateSRV(handle, m_GpuDescriptorIndices.TextureShaderResourceViews[i]);
 	}
+
+	for (auto iter = m_GpuTextureAllocator.TextureStorage.TextureIndices.begin(); iter != m_GpuTextureAllocator.TextureStorage.TextureIndices.end(); ++iter)
+	{
+		m_RenderDevice.CreateSRV(m_GpuTextureAllocator.TextureStorage.TextureHandles[iter->first], m_GpuDescriptorIndices.TextureShaderResourceViews[iter->second]);
+	}
+
+	int shadowMapIndex = numSRVsToAllocate - 2;
+	m_RenderDevice.CreateSRV(shadowPass->GetData().outputDepthTexture, m_GpuDescriptorIndices.TextureShaderResourceViews[shadowMapIndex]);
+
+	tonemapPass->GetData().TonemapData.InputMapIndex = shadowMapIndex + 1;
+	m_RenderDevice.CreateSRV(m_RaytracingOutputBufferHandle, m_GpuDescriptorIndices.TextureShaderResourceViews[shadowMapIndex + 1]);
+
+	m_GpuDescriptorIndices.ShadowMapIndex = shadowMapIndex;
+	m_GpuDescriptorIndices.FrameBufferIndex = shadowMapIndex + 1;
 }
 
 void Renderer::Update(const Time& Time)
@@ -459,8 +486,8 @@ void Renderer::Update(const Time& Time)
 void Renderer::Render(Scene& Scene)
 {
 	PIXCapture();
-	auto shadowPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ShadowPassData>();
-	auto tonemapPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, TonemapPassData>();
+	auto shadowPass = m_RenderGraph.GetRenderPass<ShadowPassData>();
+	auto tonemapPass = m_RenderGraph.GetRenderPass<TonemapPassData>();
 
 	m_CurrentBackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 
@@ -541,37 +568,44 @@ void Renderer::Resize(UINT Width, UINT Height)
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-			m_RenderDevice.ReplaceSwapChainTexture(pBackBuffer, D3D12_RESOURCE_STATE_COMMON, m_SwapChainTextureHandles[i]);
+			m_SwapChainTextureHandles[i] = m_RenderDevice.CreateSwapChainTexture(pBackBuffer, Resource::State::Common);
+			m_pSwapChainTextures[i] = m_RenderDevice.GetSwapChainTexture(m_SwapChainTextureHandles[i]);
 			m_RenderDevice.CreateRTVForSwapChainTexture(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i]);
 		}
+
 		// Reset back buffer index
 		m_CurrentBackBufferIndex = 0;
 
-		// Recreate frame buffer
-		Texture::Properties textureProp{};
-		textureProp.Type = Resource::Type::Texture2D;
-		textureProp.Format = RendererFormats::HDRBufferFormat;
-		textureProp.Width = Width;
-		textureProp.Height = Height;
-		textureProp.DepthOrArraySize = 1;
-		textureProp.MipLevels = 1;
-		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		textureProp.InitialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::HDRBufferFormat, DirectX::Colors::LightBlue);
-		m_RenderDevice.ReplaceTexture(textureProp, m_FrameBufferHandle);
+		// Destroy render target and depth stencil
+		m_RenderDevice.Destroy(&m_RaytracingOutputBufferHandle);
+		m_RenderDevice.Destroy(&m_DepthStencilBufferHandle);
 
-		textureProp.Format = RendererFormats::DepthStencilFormat;
-		textureProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		textureProp.InitialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-		textureProp.pOptimizedClearValue = &CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0);
-		m_RenderDevice.ReplaceTexture(textureProp, m_FrameDepthStencilBufferHandle);
+		// Recreate render target and depth stencil
+		m_RaytracingOutputBufferHandle = m_RenderDevice.CreateTexture(Resource::Type::Texture2D, [Width, Height](TextureProxy& proxy)
+		{
+			proxy.SetFormat(RendererFormats::HDRBufferFormat);
+			proxy.SetWidth(Width);
+			proxy.SetHeight(Height);
+			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(RendererFormats::HDRBufferFormat, DirectX::Colors::LightBlue));
+			proxy.BindFlags = Resource::BindFlags::RenderTarget;
+			proxy.InitialState = Resource::State::RenderTarget;
+		});
+		m_pRaytracingOutputBuffer = m_RenderDevice.GetTexture(m_RaytracingOutputBufferHandle);
 
-		// Create descriptor
-		auto pForwardPass = m_RenderGraph.GetRenderPass<RenderPassType::Graphics, ForwardPassData>();
-		m_RenderDevice.CreateRTV(m_FrameBufferHandle, pForwardPass->GetData().RenderTargetView[0], {}, {}, {});
-		m_RenderDevice.CreateDSV(m_FrameDepthStencilBufferHandle, pForwardPass->GetData().DepthStencilView[0], {}, {}, {});
+		m_DepthStencilBufferHandle = m_RenderDevice.CreateTexture(Resource::Type::Texture2D, [Width, Height](TextureProxy& proxy)
+		{
+			proxy.SetFormat(RendererFormats::DepthStencilFormat);
+			proxy.SetWidth(Width);
+			proxy.SetHeight(Height);
+			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0));
+			proxy.BindFlags = Resource::BindFlags::DepthStencil;
+			proxy.InitialState = Resource::State::DepthWrite;
+		});
+		m_pDepthStencilBuffer = m_RenderDevice.GetTexture(m_DepthStencilBufferHandle);
 
-		m_RenderDevice.CreateSRV(m_FrameBufferHandle, m_GpuDescriptorIndices.TextureShaderResourceViews[m_GpuDescriptorIndices.FrameBufferIndex]);
+		m_RenderGraph.Resize();
+
+		m_RenderDevice.CreateSRV(m_RaytracingOutputBufferHandle, m_GpuDescriptorIndices.TextureShaderResourceViews[m_GpuDescriptorIndices.FrameBufferIndex]);
 	}
 	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
 }

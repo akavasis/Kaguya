@@ -31,6 +31,7 @@ CommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type)
 	case D3D12_COMMAND_LIST_TYPE_DIRECT: pCommandQueue = &m_GraphicsQueue; break;
 	case D3D12_COMMAND_LIST_TYPE_COMPUTE: pCommandQueue = &m_ComputeQueue; break;
 	case D3D12_COMMAND_LIST_TYPE_COPY: pCommandQueue = &m_CopyQueue; break;
+	default: throw std::logic_error("Unsupported command list type"); break;
 	}
 	m_RenderCommandContexts[Type].push_back(std::make_unique<CommandContext>(&m_Device, pCommandQueue, Type));
 	return m_RenderCommandContexts[Type].back().get();
@@ -78,69 +79,57 @@ RenderResourceHandle RenderDevice::CompileLibrary(LPCWSTR pPath)
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateBuffer(const Buffer::Properties& Properties)
+RenderResourceHandle RenderDevice::CreateBuffer(Delegate<void(BufferProxy&)> Configurator)
 {
-	auto [handle, buffer] = m_Buffers.CreateResource(&m_Device, Properties);
-	m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), Properties.InitialState);
+	BufferProxy proxy;
+	Configurator(proxy);
+
+	auto [handle, buffer] = m_Buffers.CreateResource(&m_Device, proxy);
+	m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateBuffer(const Buffer::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData)
+RenderResourceHandle RenderDevice::CreateBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(BufferProxy&)> Configurator)
 {
-	auto [handle, buffer] = m_Buffers.CreateResource(&m_Device, Properties, CPUAccessibleHeapType, pData);
-	switch (CPUAccessibleHeapType)
-	{
-	case CPUAccessibleHeapType::Upload:
-		m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_GENERIC_READ);
-		break;
-	case CPUAccessibleHeapType::Readback:
-		m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_COPY_DEST);
-		break;
-	}
-	return handle;
-}
+	BufferProxy proxy;
+	Configurator(proxy);
 
-RenderResourceHandle RenderDevice::CreateBuffer(const Buffer::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset)
-{
 	const auto pHeap = this->GetHeap(HeapHandle);
-	auto [handle, buffer] = m_Buffers.CreateResource(&m_Device, Properties, pHeap, HeapOffset);
-	if (pHeap->GetCPUAccessibleHeapType())
-	{
-		switch (pHeap->GetCPUAccessibleHeapType().value())
-		{
-		case CPUAccessibleHeapType::Upload:
-			m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_GENERIC_READ);
-			break;
-		case CPUAccessibleHeapType::Readback:
-			m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_COPY_DEST);
-			break;
-		}
-	}
-	else
-	{
-		m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), Properties.InitialState);
-	}
+	auto [handle, buffer] = m_Buffers.CreateResource(&m_Device, pHeap, HeapOffset, proxy);
+	m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateTexture(const Texture::Properties& Properties)
+RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, Delegate<void(TextureProxy&)> Configurator)
 {
-	auto [handle, texture] = m_Textures.CreateResource(&m_Device, Properties);
-	m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), Properties.InitialState);
+	TextureProxy proxy(Type);
+	Configurator(proxy);
+
+	auto [handle, texture] = m_Textures.CreateResource(&m_Device, proxy);
+	m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateTexture(const Texture::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset)
+RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(TextureProxy&)> Configurator)
 {
+	TextureProxy proxy(Type);
+	Configurator(proxy);
+
 	const auto pHeap = this->GetHeap(HeapHandle);
-	auto [handle, texture] = m_Textures.CreateResource(&m_Device, Properties, pHeap, HeapOffset);
-	m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), Properties.InitialState);
+	assert(pHeap->GetType() != Heap::Type::Upload && "Heap cannot be type upload");
+	assert(pHeap->GetType() != Heap::Type::Readback && "Heap cannot be type readback");
+
+	auto [handle, texture] = m_Textures.CreateResource(&m_Device, pHeap, HeapOffset, proxy);
+	m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateHeap(const Heap::Properties& Properties)
+RenderResourceHandle RenderDevice::CreateHeap(Delegate<void(HeapProxy&)> Configurator)
 {
-	auto [handle, heap] = m_Heaps.CreateResource(&m_Device, Properties);
+	HeapProxy proxy;
+	Configurator(proxy);
+
+	auto [handle, heap] = m_Heaps.CreateResource(&m_Device, proxy);
 	return handle;
 }
 
@@ -176,131 +165,6 @@ RenderResourceHandle RenderDevice::CreateRaytracingPipelineState(Delegate<void(R
 	return handle;
 }
 
-void RenderDevice::ReplaceShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	auto [shader, success] = m_Shaders.ReplaceResource(ExistingRenderResourceHandle, m_ShaderCompiler.CompileShader(Type, pPath, pEntryPoint, ShaderDefines));
-	if (success)
-	{
-		CORE_INFO("Shader replaced");
-	}
-}
-
-void RenderDevice::ReplaceBuffer(const Buffer::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	auto [buffer, success] = m_Buffers.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
-	if (success)
-	{
-		m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), Properties.InitialState);
-		CORE_INFO("Buffer replaced");
-	}
-}
-
-void RenderDevice::ReplaceBuffer(const Buffer::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	auto [buffer, success] = m_Buffers.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties, CPUAccessibleHeapType, pData);
-	if (success)
-	{
-		switch (CPUAccessibleHeapType)
-		{
-		case CPUAccessibleHeapType::Upload:
-			m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_GENERIC_READ);
-			break;
-		case CPUAccessibleHeapType::Readback:
-			m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_COPY_DEST);
-			break;
-		}
-		CORE_INFO("Buffer replaced");
-	}
-}
-
-void RenderDevice::ReplaceBuffer(const Buffer::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	const auto pHeap = this->GetHeap(HeapHandle);
-	auto [buffer, success] = m_Buffers.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties, pHeap, HeapOffset);
-	if (success)
-	{
-		if (pHeap->GetCPUAccessibleHeapType())
-		{
-			switch (pHeap->GetCPUAccessibleHeapType().value())
-			{
-			case CPUAccessibleHeapType::Upload:
-				m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_GENERIC_READ);
-				break;
-			case CPUAccessibleHeapType::Readback:
-				m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), D3D12_RESOURCE_STATE_COPY_DEST);
-				break;
-			}
-		}
-		else
-		{
-			m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), Properties.InitialState);
-		}
-		CORE_INFO("Buffer replaced");
-	}
-}
-
-void RenderDevice::ReplaceTexture(const Texture::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	auto [texture, success] = m_Textures.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
-	if (success)
-	{
-		m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), Properties.InitialState);
-		CORE_INFO("Texture replaced");
-	}
-}
-
-void RenderDevice::ReplaceTexture(const Texture::Properties& Properties, RenderResourceHandle HeapHandle, UINT64 HeapOffset, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	const auto pHeap = this->GetHeap(HeapHandle);
-	auto [texture, success] = m_Textures.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties, pHeap, HeapOffset);
-	if (success)
-	{
-		m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), Properties.InitialState);
-		CORE_INFO("Texture replaced");
-	}
-}
-
-void RenderDevice::ReplaceHeap(const Heap::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	auto [heap, success] = m_Heaps.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
-	if (success)
-	{
-		CORE_INFO("Heap replaced");
-	}
-}
-
-void RenderDevice::ReplaceRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	RootSignatureProxy Proxy;
-	Configurator(Proxy);
-	if (pOptions)
-		AddStandardShaderLayoutRootParameter(pOptions, Proxy);
-
-	auto [rootSignature, success] = m_RootSignatures.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Proxy);
-	if (success)
-	{
-		CORE_INFO("Root Signature replaced");
-	}
-}
-
-void RenderDevice::ReplaceGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	auto [graphicsPSO, success] = m_GraphicsPipelineStates.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
-	if (success)
-	{
-		CORE_INFO("Graphics PSO replaced");
-	}
-}
-
-void RenderDevice::ReplaceComputePipelineState(const ComputePipelineState::Properties& Properties, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	auto [computePSO, success] = m_ComputePipelineStates.ReplaceResource(ExistingRenderResourceHandle, &m_Device, Properties);
-	if (success)
-	{
-		CORE_INFO("Compute PSO replaced");
-	}
-}
-
 void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 {
 	if (!pRenderResourceHandle)
@@ -321,23 +185,41 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 
 	switch (pRenderResourceHandle->Type)
 	{
-	case RenderResourceHandle::Types::Shader: m_Shaders.Destroy(*pRenderResourceHandle, true); break;
-	case RenderResourceHandle::Types::Buffer: m_Buffers.Destroy(*pRenderResourceHandle, true); break;
-	case RenderResourceHandle::Types::Texture: m_Textures.Destroy(*pRenderResourceHandle, true); break;
-	case RenderResourceHandle::Types::Heap: m_Heaps.Destroy(*pRenderResourceHandle, true); break;
-	case RenderResourceHandle::Types::RootSignature: m_RootSignatures.Destroy(*pRenderResourceHandle, true); break;
-	case RenderResourceHandle::Types::GraphicsPSO: m_GraphicsPipelineStates.Destroy(*pRenderResourceHandle, true); break;
-	case RenderResourceHandle::Types::ComputePSO: m_ComputePipelineStates.Destroy(*pRenderResourceHandle, true); break;
+	case RenderResourceHandle::Types::Shader: m_Shaders.Destroy(*pRenderResourceHandle); break;
+	case RenderResourceHandle::Types::Buffer:
+	{
+		auto buffer = m_Buffers.GetResource(*pRenderResourceHandle);
+		if (buffer)
+		{
+			m_GlobalResourceStateTracker.RemoveResourceState(buffer->GetD3DResource());
+		}
+		m_Buffers.Destroy(*pRenderResourceHandle);
+	}
+	break;
+	case RenderResourceHandle::Types::Texture:
+	{
+		auto texture = m_Textures.GetResource(*pRenderResourceHandle);
+		if (texture)
+		{
+			m_GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
+		}
+		m_Textures.Destroy(*pRenderResourceHandle);
+	}
+	break;
+	case RenderResourceHandle::Types::Heap: m_Heaps.Destroy(*pRenderResourceHandle); break;
+	case RenderResourceHandle::Types::RootSignature: m_RootSignatures.Destroy(*pRenderResourceHandle); break;
+	case RenderResourceHandle::Types::GraphicsPSO: m_GraphicsPipelineStates.Destroy(*pRenderResourceHandle); break;
+	case RenderResourceHandle::Types::ComputePSO: m_ComputePipelineStates.Destroy(*pRenderResourceHandle); break;
 	}
 	pRenderResourceHandle->Type = RenderResourceHandle::Types::Unknown;
 	pRenderResourceHandle->Flag = RenderResourceHandle::Flags::Destroyed;
 	pRenderResourceHandle->Data = 0;
 }
 
-RenderResourceHandle RenderDevice::CreateSwapChainTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, D3D12_RESOURCE_STATES InitialState)
+RenderResourceHandle RenderDevice::CreateSwapChainTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState)
 {
 	auto [handle, texture] = m_SwapChainTextures.CreateResource(ExistingResource);
-	m_GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), InitialState);
+	m_GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3DResourceStates(InitialState));
 	return handle;
 }
 
@@ -345,17 +227,12 @@ void RenderDevice::DestroySwapChainTexture(RenderResourceHandle* pRenderResource
 {
 	if (!pRenderResourceHandle)
 		return;
-	m_SwapChainTextures.Destroy(*pRenderResourceHandle, false);
-}
-
-void RenderDevice::ReplaceSwapChainTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, D3D12_RESOURCE_STATES InitialState, RenderResourceHandle ExistingRenderResourceHandle)
-{
-	auto [swapChainTexture, success] = m_SwapChainTextures.ReplaceResource(ExistingRenderResourceHandle, ExistingResource);
-	if (success)
+	auto texture = m_SwapChainTextures.GetResource(*pRenderResourceHandle);
+	if (texture)
 	{
-		m_GlobalResourceStateTracker.AddResourceState(swapChainTexture->GetD3DResource(), InitialState);
-		CORE_INFO("SwapChain resource replaced");
+		m_GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
 	}
+	m_SwapChainTextures.Destroy(*pRenderResourceHandle);
 }
 
 void RenderDevice::CreateRTVForSwapChainTexture(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)
@@ -379,57 +256,56 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 	};
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-	desc.Format = getValidSRVFormat(texture->Format);
+	desc.Format = getValidSRVFormat(texture->GetFormat());
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-	if (texture->IsCubemap)
+	switch (texture->GetType())
+	{
+	case Resource::Type::Texture1D:
+	{
+		if (texture->GetDepthOrArraySize() > 1)
+		{
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+			desc.Texture1DArray.MipLevels = texture->GetMipLevels();
+			desc.Texture1DArray.ArraySize = texture->GetDepthOrArraySize();
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+			desc.Texture1D.MipLevels = texture->GetMipLevels();
+		}
+	}
+	break;
+
+	case Resource::Type::Texture2D:
+	{
+		if (texture->GetDepthOrArraySize() > 1)
+		{
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+			desc.Texture2DArray.MipLevels = texture->GetMipLevels();
+			desc.Texture2DArray.ArraySize = texture->GetDepthOrArraySize();
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipLevels = texture->GetMipLevels();
+		}
+	}
+	break;
+
+	case Resource::Type::Texture3D:
+	{
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+		desc.Texture3D.MipLevels = texture->GetMipLevels();
+	}
+	break;
+
+	case Resource::Type::TextureCube:
 	{
 		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-		desc.TextureCube.MipLevels = texture->MipLevels;
+		desc.TextureCube.MipLevels = texture->GetMipLevels();
 	}
-	else
-	{
-		switch (texture->Type)
-		{
-		case Resource::Type::Texture1D:
-		{
-			if (texture->DepthOrArraySize > 1)
-			{
-				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-				desc.Texture1DArray.MipLevels = texture->MipLevels;
-				desc.Texture1DArray.ArraySize = texture->DepthOrArraySize;
-			}
-			else
-			{
-				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-				desc.Texture1D.MipLevels = texture->MipLevels;
-			}
-		}
-		break;
-
-		case Resource::Type::Texture2D:
-		{
-			if (texture->DepthOrArraySize > 1)
-			{
-				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-				desc.Texture2DArray.MipLevels = texture->MipLevels;
-				desc.Texture2DArray.ArraySize = texture->DepthOrArraySize;
-			}
-			else
-			{
-				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-				desc.Texture2D.MipLevels = texture->MipLevels;
-			}
-		}
-		break;
-
-		case Resource::Type::Texture3D:
-		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-			desc.Texture3D.MipLevels = texture->MipLevels;
-		}
-		break;
-		}
+	break;
 	}
 
 	m_Device.GetD3DDevice()->CreateShaderResourceView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
@@ -443,19 +319,19 @@ void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, Descript
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
-	desc.Format = texture->Format;
+	desc.Format = texture->GetFormat();
 
 	// TODO: Add buffer support
-	switch (texture->Type)
+	switch (texture->GetType())
 	{
 	case Resource::Type::Texture1D:
 	{
-		if (texture->DepthOrArraySize > 1)
+		if (texture->GetDepthOrArraySize() > 1)
 		{
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
 			desc.Texture1DArray.MipSlice = mipSlice;
 			desc.Texture1DArray.FirstArraySlice = arraySlice;
-			desc.Texture1DArray.ArraySize = texture->DepthOrArraySize;
+			desc.Texture1DArray.ArraySize = texture->GetDepthOrArraySize();
 		}
 		else
 		{
@@ -465,14 +341,15 @@ void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, Descript
 	}
 	break;
 
-	case Resource::Type::Texture2D:
+	case Resource::Type::Texture2D: [[fallthrough]];
+	case Resource::Type::TextureCube:
 	{
-		if (texture->DepthOrArraySize > 1)
+		if (texture->GetDepthOrArraySize() > 1)
 		{
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
 			desc.Texture2DArray.MipSlice = mipSlice;
 			desc.Texture2DArray.FirstArraySlice = arraySlice;
-			desc.Texture2DArray.ArraySize = texture->DepthOrArraySize;
+			desc.Texture2DArray.ArraySize = texture->GetDepthOrArraySize();
 			desc.Texture2DArray.PlaneSlice = 0;
 		}
 		else
@@ -504,16 +381,16 @@ void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, Descript
 
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
-	UINT arraySize = ArraySize.value_or(texture->DepthOrArraySize);
+	UINT arraySize = ArraySize.value_or(texture->GetDepthOrArraySize());
 	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
-	desc.Format = texture->Format;
+	desc.Format = texture->GetFormat();
 
 	// TODO: Add buffer support and MS support
-	switch (texture->Type)
+	switch (texture->GetType())
 	{
 	case Resource::Type::Texture1D:
 	{
-		if (texture->DepthOrArraySize > 1)
+		if (texture->GetDepthOrArraySize() > 1)
 		{
 			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
 			desc.Texture1DArray.MipSlice = mipSlice;
@@ -528,9 +405,10 @@ void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, Descript
 	}
 	break;
 
-	case Resource::Type::Texture2D:
+	case Resource::Type::Texture2D: [[fallthrough]];
+	case Resource::Type::TextureCube:
 	{
-		if (texture->DepthOrArraySize > 1)
+		if (texture->GetDepthOrArraySize() > 1)
 		{
 			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 			desc.Texture2DArray.MipSlice = mipSlice;
@@ -578,17 +456,17 @@ void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descript
 
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
-	UINT arraySize = ArraySize.value_or(texture->DepthOrArraySize);
+	UINT arraySize = ArraySize.value_or(texture->GetDepthOrArraySize());
 	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
-	desc.Format = getValidDSVFormat(texture->Format);
+	desc.Format = getValidDSVFormat(texture->GetFormat());
 	desc.Flags = D3D12_DSV_FLAG_NONE;
 
 	// TODO: Add support and MS support
-	switch (texture->Type)
+	switch (texture->GetType())
 	{
 	case Resource::Type::Texture1D:
 	{
-		if (texture->DepthOrArraySize > 1)
+		if (texture->GetDepthOrArraySize() > 1)
 		{
 			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
 			desc.Texture1DArray.MipSlice = mipSlice;
@@ -603,9 +481,10 @@ void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descript
 	}
 	break;
 
-	case Resource::Type::Texture2D:
+	case Resource::Type::Texture2D: [[fallthrough]];
+	case Resource::Type::TextureCube:
 	{
-		if (texture->DepthOrArraySize > 1)
+		if (texture->GetDepthOrArraySize() > 1)
 		{
 			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 			desc.Texture2DArray.MipSlice = mipSlice;
@@ -622,7 +501,7 @@ void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descript
 
 	case Resource::Type::Texture3D:
 	{
-		assert("Cannot create DSV for Texture3D resource type");
+		throw std::logic_error("Cannot create DSV for Texture3D resource type");
 	}
 	break;
 	}

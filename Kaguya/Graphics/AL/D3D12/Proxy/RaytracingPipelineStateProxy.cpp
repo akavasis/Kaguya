@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "RaytracingPipelineStateProxy.h"
-#include "Library.h"
-#include "RootSignature.h"
+#include "../Library.h"
+#include "../RootSignature.h"
 
 RaytracingPipelineStateProxy::RaytracingPipelineStateProxy()
 {

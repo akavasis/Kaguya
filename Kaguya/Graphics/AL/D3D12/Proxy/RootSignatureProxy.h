@@ -1,8 +1,10 @@
 #pragma once
 #include <d3d12.h>
+#include "Proxy.h"
 
-class RootSignatureProxy
+class RootSignatureProxy : public Proxy
 {
+	friend class RootSignature;
 public:
 	/*
 		The maximum size of a root signature is 64 DWORDs.
@@ -21,7 +23,7 @@ public:
 		If convenient, use root constants or root constant buffer views over putting constant buffer views in a descriptor heap.
 	*/
 	RootSignatureProxy();
-	~RootSignatureProxy() = default;
+	~RootSignatureProxy() override = default;
 
 	void AddRootConstantsParameter(UINT ShaderRegister, UINT RegisterSpace, UINT Num32BitValues, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
 	template<typename T>
@@ -31,9 +33,9 @@ public:
 		static_assert(sizeof(T) % 4 == 0, "typename T must be 4 byte aligned");
 		AddRootConstantsParameter(ShaderRegister, RegisterSpace, sizeof(T) / 4, ShaderVisibility);
 	}
-	void AddRootCBVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility= {});
-	void AddRootSRVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility= {});
-	void AddRootUAVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility= {});
+	void AddRootCBVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
+	void AddRootSRVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
+	void AddRootUAVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
 	void AddRootDescriptorTableParameter(std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
 
 	void AddStaticSampler(UINT ShaderRegister,
@@ -52,10 +54,9 @@ public:
 	void DenyPSAccess();
 	void AllowStreamOutput();
 	void SetAsLocalRootSignature();
+protected:
+	void Link() override;
 private:
-	friend class RootSignature;
-	void Link();
-
 	std::vector<D3D12_ROOT_PARAMETER1> m_Parameters;
 	std::vector<D3D12_STATIC_SAMPLER_DESC> m_StaticSamplers;
 	D3D12_ROOT_SIGNATURE_FLAGS m_Flags;

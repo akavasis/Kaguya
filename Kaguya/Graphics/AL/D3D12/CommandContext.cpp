@@ -19,7 +19,6 @@ bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
 	FlushResourceBarriers();
 	ThrowCOMIfFailed(m_pCommandList->Close());
 
-	// TODO: Add a pending command list
 	UINT numPendingBarriers = m_ResourceStateTracker.FlushPendingResourceBarriers(GlobalResourceStateTracker, m_pPendingCommandList.Get());
 	GlobalResourceStateTracker.UpdateResourceStates(m_ResourceStateTracker);
 	ThrowCOMIfFailed(m_pPendingCommandList->Close());
@@ -60,7 +59,7 @@ void CommandContext::SetDescriptorHeaps(const CBSRUADescriptorHeap* pCBSRUADescr
 		m_pCommandList->SetDescriptorHeaps(numDescriptorHeaps, pDescriptorHeapsToBind);
 }
 
-void CommandContext::TransitionBarrier(Resource* pResource, D3D12_RESOURCE_STATES TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
+void CommandContext::TransitionBarrier(Resource* pResource, Resource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
 {
 #define D3D12_RESOURCE_STATE_UNKNOWN (static_cast<D3D12_RESOURCE_STATES>(-1))
 	// Transition barriers indicate that a set of subresources transition between different usages.  
@@ -68,7 +67,10 @@ void CommandContext::TransitionBarrier(Resource* pResource, D3D12_RESOURCE_STATE
 	// The D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES flag is used to transition all subresources in a resource at the same time. 
 	ID3D12Resource* resource = pResource ? pResource->GetD3DResource() : nullptr;
 	if (resource)
-		m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_UNKNOWN, TransitionState, Subresource));
+	{
+		D3D12_RESOURCE_STATES transitionState = GetD3DResourceStates(TransitionState);
+		m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_UNKNOWN, transitionState, Subresource));
+	}
 #undef D3D12_RESOURCE_STATE_UNKNOWN
 }
 
@@ -102,9 +104,9 @@ void CommandContext::FlushResourceBarriers()
 
 void CommandContext::CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset, Buffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
 {
-	TransitionBarrier(pDstBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
-	if (!pSrcBuffer->GetCPUAccessibleHeapType().has_value()) // Upload resources have to be in D3D12_RESOURCE_STATE_GENERIC_READ so dont need to transition them
-		TransitionBarrier(pSrcBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	TransitionBarrier(pDstBuffer, Resource::State::CopyDest);
+	if (!(pSrcBuffer->GetCpuAccess() == Buffer::CpuAccess::Write)) // Upload resources have to be in D3D12_RESOURCE_STATE_GENERIC_READ so dont need to transition them
+		TransitionBarrier(pSrcBuffer, Resource::State::CopySource);
 	FlushResourceBarriers();
 	m_pCommandList->CopyBufferRegion(pDstBuffer->GetD3DResource(), DstOffset, pSrcBuffer->GetD3DResource(), SrcOffset, NumBytes);
 }
@@ -116,8 +118,8 @@ void CommandContext::CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION* pDst, 
 
 void CommandContext::CopyResource(Resource* pDstResource, Resource* pSrcResource)
 {
-	TransitionBarrier(pDstResource, D3D12_RESOURCE_STATE_COPY_DEST);
-	TransitionBarrier(pSrcResource, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	TransitionBarrier(pDstResource, Resource::State::CopyDest);
+	TransitionBarrier(pSrcResource, Resource::State::CopySource);
 	FlushResourceBarriers();
 	m_pCommandList->CopyResource(pDstResource->GetD3DResource(), pSrcResource->GetD3DResource());
 }

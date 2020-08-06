@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "RootSignature.h"
 #include "Device.h"
-#include "RootSignatureProxy.h"
+#include "Proxy/RootSignatureProxy.h"
 
-RootSignature::RootSignature(Device* pDevice, RootSignatureProxy& Proxy)
+RootSignature::RootSignature(const Device* pDevice, RootSignatureProxy& Proxy)
 {
 	Proxy.Link();
 

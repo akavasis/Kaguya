@@ -1,40 +1,34 @@
 #include "pch.h"
 #include "Buffer.h"
+#include "Device.h"
+#include "Proxy/BufferProxy.h"
 
-Buffer::Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
-	: Resource(ExistingID3D12Resource)
+Buffer::Buffer(const Device* pDevice, BufferProxy& Proxy)
+	: Resource(pDevice, Proxy),
+	m_Stride(Proxy.m_Stride),
+	m_CpuAccess(Proxy.m_CpuAccess),
+	m_pMappedData(nullptr)
 {
-	D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
-	m_SizeInBytes = desc.Width;
-}
-
-Buffer::Buffer(const Device* pDevice, const Properties& Properties)
-	: Resource(pDevice, Resource::Properties::Buffer(Properties.SizeInBytes, Properties.Flags), Properties.InitialState),
-	m_SizeInBytes(Properties.SizeInBytes),
-	m_Stride(Properties.Stride)
-{
-}
-
-Buffer::Buffer(const Device* pDevice, const Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData)
-	: Resource(pDevice, Resource::Properties::Buffer(Properties.SizeInBytes, Properties.Flags), CPUAccessibleHeapType),
-	m_SizeInBytes(Properties.SizeInBytes),
-	m_Stride(Properties.Stride),
-	m_CPUAccessibleHeapType(CPUAccessibleHeapType)
-{
-	if (m_CPUAccessibleHeapType == CPUAccessibleHeapType::Upload && pData)
+	if (m_CpuAccess == CpuAccess::Write && Proxy.m_pOptionalDataForUpload)
 	{
 		Map();
-		memcpy(m_pMappedData, pData, m_SizeInBytes);
+		memcpy(m_pMappedData, Proxy.m_pOptionalDataForUpload, GetSizeInBytes());
 		Unmap();
 	}
 }
 
-Buffer::Buffer(const Device* pDevice, const Properties& Properties, const Heap* pHeap, UINT64 HeapOffset)
-	: Resource(pDevice, Resource::Properties::Buffer(Properties.SizeInBytes, Properties.Flags), Properties.InitialState, pHeap, HeapOffset),
-	m_SizeInBytes(Properties.SizeInBytes),
-	m_Stride(Properties.Stride),
-	m_CPUAccessibleHeapType(pHeap->GetCPUAccessibleHeapType())
+Buffer::Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy)
+	: Resource(pDevice, pHeap, HeapOffset, Proxy),
+	m_Stride(Proxy.m_Stride),
+	m_CpuAccess(Proxy.m_CpuAccess),
+	m_pMappedData(nullptr)
 {
+	if (m_CpuAccess == CpuAccess::Write && Proxy.m_pOptionalDataForUpload)
+	{
+		Map();
+		memcpy(m_pMappedData, Proxy.m_pOptionalDataForUpload, GetSizeInBytes());
+		Unmap();
+	}
 }
 
 Buffer::~Buffer()
@@ -67,6 +61,7 @@ D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetGpuVirtualAddress() const
 
 D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetGpuVirtualAddressAt(INT Index) const
 {
-	assert(Index >= 0 && Index < (m_SizeInBytes / m_Stride) && "Index is out of range in Buffer");
+	assert(m_Stride != 0 && "Stride should not be 0");
+	assert(Index >= 0 && Index < (GetSizeInBytes() / m_Stride) && "Index is out of range in Buffer");
 	return UINT64(INT64(m_pResource->GetGPUVirtualAddress()) + INT64(Index) * INT64(m_Stride));
 }

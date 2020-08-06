@@ -10,7 +10,11 @@ void ResourceStateTracker::AddResourceState(ResourceType* pResource, D3D12_RESOU
 void ResourceStateTracker::RemoveResourceState(ResourceType* pResource)
 {
 	if (!pResource) return;
-	m_ResourceStates.erase(pResource);
+	auto iter = m_ResourceStates.find(pResource);
+	if (iter != m_ResourceStates.end())
+	{
+		m_ResourceStates.erase(iter);
+	}
 }
 
 void ResourceStateTracker::SetResourceState(ResourceType* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates)

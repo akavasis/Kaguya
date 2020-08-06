@@ -1,36 +1,32 @@
 #pragma once
 #include "Resource.h"
-#include "Math/MathLibrary.h"
+
+class Device;
+class BufferProxy;
 
 class Buffer : public Resource
 {
 public:
-	struct Properties
+	enum class CpuAccess
 	{
-		UINT64 SizeInBytes;
-		UINT Stride;
-		D3D12_RESOURCE_FLAGS Flags;
-
-		// Ignored if this is created with CPUAccessibleHeapType
-		D3D12_RESOURCE_STATES InitialState;
+		None,	//< The CPU can't access the buffer's content. The buffer can be updated using CommandContext
+		Write,	//< The buffer can be mapped for CPU writes
+		Read	//< The buffer can be mapped for CPU reads
 	};
 
 	Buffer() = default;
-	Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
-	Buffer(const Device* pDevice, const Properties& Properties);
-	Buffer(const Device* pDevice, const Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType, const void* pData /*pData is optional for upload vb and ib data*/);
-	Buffer(const Device* pDevice, const Properties& Properties, const Heap* pHeap, UINT64 HeapOffset);
+	Buffer(const Device* pDevice, BufferProxy& Proxy);
+	Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy);
 	~Buffer() override;
 
-	Buffer(Buffer&&) = default;
-	Buffer& operator=(Buffer&&) = default;
+	Buffer(Buffer&&) noexcept = default;
+	Buffer& operator=(Buffer&&) noexcept = default;
 
 	Buffer(const Buffer&) = delete;
 	Buffer& operator=(const Buffer&) = delete;
 
-	inline auto GetSizeInBytes() const { return m_SizeInBytes; }
 	inline auto GetStride() const { return m_Stride; }
-	inline auto GetCPUAccessibleHeapType() const { return m_CPUAccessibleHeapType; }
+	inline auto GetCpuAccess() const { return m_CpuAccess; }
 
 	BYTE* Map();
 	void Unmap();
@@ -38,12 +34,13 @@ public:
 	D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress() const;
 	D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddressAt(INT Index) const;
 	template<typename T>
-	void Update(INT ElementIndex, const T& Data);
+	void Update(INT ElementIndex, const T& Data)
+	{
+		assert(m_pMappedData && "Map() has not been called, invalid ptr");
+		memcpy(&m_pMappedData[ElementIndex * m_Stride], &Data, m_Stride);
+	}
 private:
-	BYTE* m_pMappedData = nullptr;
-	UINT m_SizeInBytes = 0;
-	UINT m_Stride = 0;
-	std::optional<CPUAccessibleHeapType> m_CPUAccessibleHeapType = std::nullopt;
+	UINT m_Stride;
+	CpuAccess m_CpuAccess;
+	BYTE* m_pMappedData;
 };
-
-#include "Buffer.inl"

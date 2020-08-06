@@ -12,22 +12,24 @@ GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t Verte
 		size_t bufferByteSize = m_Buffers[i].Allocator.GetSize();
 		RenderResourceHandle bufferHandle, uploadBufferHandle;
 
-		Buffer::Properties bufferProp = {};
-		bufferProp.SizeInBytes = bufferByteSize;
-		bufferProp.InitialState = D3D12_RESOURCE_STATE_COPY_DEST;
-		if (i == ConstantBuffer)
-		{
-			bufferProp.Stride = Math::AlignUp<UINT>(sizeof(ObjectConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-		}
-
 		if (i != ConstantBuffer)
 		{
-			bufferHandle = pRenderDevice->CreateBuffer(bufferProp);
+			bufferHandle = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+			{
+				proxy.SetSizeInBytes(bufferByteSize);
+				proxy.InitialState = Resource::State::CopyDest;
+			});
 			m_Buffers[i].BufferHandle = bufferHandle;
 			m_Buffers[i].pBuffer = pRenderDevice->GetBuffer(bufferHandle);
 		}
 
-		uploadBufferHandle = pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+		uploadBufferHandle = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(bufferByteSize);
+			proxy.SetStride(Math::AlignUp<UINT>(sizeof(ObjectConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
 		m_Buffers[i].UploadBufferHandle = uploadBufferHandle;
 		m_Buffers[i].pUploadBuffer = pRenderDevice->GetBuffer(uploadBufferHandle);
 		m_Buffers[i].pUploadBuffer->Map();
@@ -101,8 +103,8 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		}
 	}
 
-	pCommandContext->TransitionBarrier(m_Buffers[VertexBuffer].pBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	pCommandContext->TransitionBarrier(m_Buffers[IndexBuffer].pBuffer, D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	pCommandContext->TransitionBarrier(m_Buffers[VertexBuffer].pBuffer, Resource::State::VertexBuffer | Resource::State::NonPixelShaderResource);
+	pCommandContext->TransitionBarrier(m_Buffers[IndexBuffer].pBuffer, Resource::State::IndexBuffer | Resource::State::NonPixelShaderResource);
 	pCommandContext->FlushResourceBarriers();
 
 	CreateBottomLevelAS(Scene, pCommandContext);
@@ -208,18 +210,21 @@ void GpuBufferAllocator::CreateBottomLevelAS(Scene& Scene, CommandContext* pComm
 	{
 		auto memoryRequirements = rtblas.BLAS.GetAccelerationStructureMemoryRequirements(false);
 
-		Buffer::Properties bufferProp = {};
-		bufferProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-
 		// BLAS Result
-		bufferProp.SizeInBytes = memoryRequirements.ResultDataMaxSizeInBytes;
-		bufferProp.InitialState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-		rtblas.Handles.Result = pRenderDevice->CreateBuffer(bufferProp);
+		rtblas.Handles.Result = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(memoryRequirements.ResultDataMaxSizeInBytes);
+			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+			proxy.InitialState = Resource::State::AccelerationStructure;
+		});
 
 		// BLAS Scratch
-		bufferProp.SizeInBytes = memoryRequirements.ScratchDataSizeInBytes;
-		bufferProp.InitialState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-		rtblas.Handles.Scratch = pRenderDevice->CreateBuffer(bufferProp);
+		rtblas.Handles.Scratch = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(memoryRequirements.ScratchDataSizeInBytes);
+			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+			proxy.InitialState = Resource::State::UnorderedAccess;
+		});
 
 		Buffer* pResult = pRenderDevice->GetBuffer(rtblas.Handles.Result);
 		Buffer* pScratch = pRenderDevice->GetBuffer(rtblas.Handles.Scratch);
@@ -244,27 +249,32 @@ void GpuBufferAllocator::CreateTopLevelAS(Scene& Scene, CommandContext* pCommand
 
 	auto memoryRequirements = m_RaytracingTopLevelAccelerationStructure.TLAS.GetAccelerationStructureMemoryRequirements(true);
 
-	Buffer::Properties bufferProp = {};
-	bufferProp.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	// TLAS Result
+	m_RaytracingTopLevelAccelerationStructure.Handles.Result = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(memoryRequirements.ResultDataMaxSizeInBytes);
+		proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+		proxy.InitialState = Resource::State::AccelerationStructure;
+	});
 
-	// BLAS Result
-	bufferProp.SizeInBytes = memoryRequirements.ResultDataMaxSizeInBytes;
-	bufferProp.InitialState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-	m_RaytracingTopLevelAccelerationStructure.Handles.Result = pRenderDevice->CreateBuffer(bufferProp);
-
-	// BLAS Scratch
-	bufferProp.SizeInBytes = memoryRequirements.ScratchDataSizeInBytes;
-	bufferProp.InitialState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	m_RaytracingTopLevelAccelerationStructure.Handles.Scratch = pRenderDevice->CreateBuffer(bufferProp);
+	// TLAS Scratch
+	m_RaytracingTopLevelAccelerationStructure.Handles.Scratch = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(memoryRequirements.ScratchDataSizeInBytes);
+		proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+		proxy.InitialState = Resource::State::UnorderedAccess;
+	});
 
 	Buffer* pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Result);
 	Buffer* pScratch = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
 
 	m_RaytracingTopLevelAccelerationStructure.TLAS.SetAccelerationStructure(pResult, pScratch, nullptr);
 
-	bufferProp.SizeInBytes = memoryRequirements.InstanceDataSizeInBytes;
-	bufferProp.Flags = D3D12_RESOURCE_FLAG_NONE;
-	m_RaytracingTopLevelAccelerationStructure.InstanceHandle = pRenderDevice->CreateBuffer(bufferProp, CPUAccessibleHeapType::Upload, nullptr);
+	m_RaytracingTopLevelAccelerationStructure.InstanceHandle = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(memoryRequirements.InstanceDataSizeInBytes);
+		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+	});
 
 	Buffer* pInstance = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceHandle);
 

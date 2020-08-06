@@ -1,11 +1,8 @@
 #pragma once
 #include <wrl/client.h>
-#include "../Core/EventReceiver.h"
-
+#include "Core/EventReceiver.h"
 #include "DXGIManager.h"
-
 #include "Scene/Scene.h"
-
 #include "RenderDevice.h"
 #include "RenderGraph.h"
 #include "RendererRegistry.h"
@@ -42,11 +39,6 @@ private:
 		static constexpr UINT64 SunShadowMapResolution = 2048;
 	};
 
-	struct Status
-	{
-		bool IsSceneStaged = false;
-	} m_Status;
-
 	struct Statistics
 	{
 		UINT64 TotalFrameCount = 0;
@@ -54,14 +46,14 @@ private:
 		DOUBLE TimeElapsed = 0.0;
 		DOUBLE FPS = 0.0;
 		DOUBLE FPMS = 0.0;
-	} m_Statistics;
+	};
 
 	struct Setting
 	{
 		bool VSync = true;
 		bool WireFrame = false;
 		bool UseIrradianceMapAsSkybox = false;
-	} m_Setting;
+	};
 
 	struct Debug
 	{
@@ -73,7 +65,11 @@ private:
 		bool EnableEmissive = true;
 		// 0="None", 1="Albedo", 2="Normal", 3="Roughness", 4="Metallic", 5="Emissive" 
 		int DebugViewInput = 0;
-	} m_Debug;
+	};
+
+	Statistics m_Statistics;
+	Setting m_Setting;
+	Debug m_Debug;
 
 	// Swapchain resources
 	static constexpr DXGI_FORMAT SwapChainBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -92,12 +88,12 @@ private:
 	GpuBufferAllocator m_GpuBufferAllocator;
 	GpuTextureAllocator m_GpuTextureAllocator;
 
-	RenderResourceHandle m_FrameBufferHandle;
-	RenderResourceHandle m_FrameDepthStencilBufferHandle;
+	RenderResourceHandle m_RaytracingOutputBufferHandle;
+	RenderResourceHandle m_DepthStencilBufferHandle;
 	RenderResourceHandle m_RenderPassConstantBufferHandle;
 
-	Texture* m_pFrameBuffer;
-	Texture* m_pFrameDepthStencilBuffer;
+	Texture* m_pRaytracingOutputBuffer;
+	Texture* m_pDepthStencilBuffer;
 	Buffer* m_pRenderPassConstantBuffer;
 
 	struct GpuDescriptorIndices

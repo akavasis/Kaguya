@@ -11,7 +11,7 @@ public:
 	enum : UINT { UnboundDescriptorSize = UINT_MAX };
 
 	RootSignature() = default;
-	RootSignature(Device* pDevice, RootSignatureProxy& Proxy);
+	RootSignature(const Device* pDevice, RootSignatureProxy& Proxy);
 	~RootSignature();
 
 	RootSignature(RootSignature&&) noexcept;

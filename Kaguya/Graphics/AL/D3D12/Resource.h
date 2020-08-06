@@ -1,27 +1,65 @@
 #pragma once
-#include <optional>
+#include <d3d12.h>
+#include <wrl/client.h>
+#include "Core/Utility.h"
 #include "Heap.h"
 
-extern const D3D12_HEAP_PROPERTIES kDefaultHeapProps;
-extern const D3D12_HEAP_PROPERTIES kUploadHeapProps;
-extern const D3D12_HEAP_PROPERTIES kReadbackHeapProps;
-
 class Device;
+class ResourceProxy;
 
 class Resource
 {
 public:
 	enum class Type
 	{
-		Unknown,
-		Buffer,
-		Texture1D,
-		Texture2D,
-		Texture3D
+		Unknown,		//< Unknown resource state
+		Buffer,			//< Buffer. Can be bound to all shader-stages
+		Texture1D,		//< 1D texture. Can be bound as render-target, shader-resource and UAV
+		Texture2D,		//< 2D texture. Can be bound as render-target, shader-resource and UAV
+		Texture3D,		//< 3D texture. Can be bound as render-target, shader-resource and UAV
+		TextureCube,	//< Cube texture. Can be bound as render-target, shader-resource and UAV
+	};
+
+	enum class BindFlags
+	{
+		None					= 0,		//< The resource wont be bound to the pipeline
+		RenderTarget			= 1 << 0,	//< The resource will be bound as a render-target
+		DepthStencil			= 1 << 1,	//< The resource will be bound as a depth-stencil
+		UnorderedAccess			= 1 << 2,	//< The resource will be bound as an UAV
+		AccelerationStructure	= 1 << 3,	//< The resource will be bound as an acceleration structure
+	};
+
+	enum class State
+	{
+		Unknown					= 0,
+		PreInitialized			= 1 << 0,
+		Common					= 1 << 1,
+		VertexBuffer			= 1 << 2,
+		ConstantBuffer			= 1 << 3,
+		IndexBuffer				= 1 << 4,
+		RenderTarget			= 1 << 5,
+		UnorderedAccess			= 1 << 6,
+		DepthWrite				= 1 << 7,
+		DepthRead				= 1 << 8,
+		NonPixelShaderResource	= 1 << 9,
+		PixelShaderResource		= 1 << 10,
+		StreamOut				= 1 << 11,
+		IndirectArgument		= 1 << 12,
+		CopyDest				= 1 << 13,
+		CopySource				= 1 << 14,
+		ResolveDest				= 1 << 15,
+		ResolveSource			= 1 << 16,
+		AccelerationStructure	= 1 << 17,
+		ShadingRateSource		= 1 << 18,
+		GenericRead				= 1 << 19,
+		Present					= 1 << 20,
+		Predication				= 1 << 21
 	};
 
 	Resource() = default;
 	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
+	Resource(const Device* pDevice, ResourceProxy& Proxy);
+	Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy);
 	virtual ~Resource() = 0;
 
 	Resource(Resource&&) noexcept = default;
@@ -31,7 +69,11 @@ public:
 	Resource& operator=(const Resource&) = delete;
 
 	inline auto GetD3DResource() const { return m_pResource.Get(); }
-	inline auto GetInitialState() const { return m_InitialState; }
+	inline auto GetType() const { return m_Type; }
+	inline auto GetBindFlags() const { return m_BindFlags; }
+	inline auto GetSizeInBytes() const { return m_ResourceAllocationInfo.SizeInBytes; }
+	inline auto GetAlignment() const { return m_ResourceAllocationInfo.Alignment; }
+	inline auto GetHeapOffset() const { return m_HeapOffset; }
 	inline auto GetNumSubresources() const { return m_NumSubresources; }
 
 	void Release();
@@ -41,32 +83,17 @@ public:
 		m_pResource->SetName(Name);
 	}
 protected:
-	class Properties
-	{
-	public:
-		static Resource::Properties Buffer(UINT64 SizeInBytes, D3D12_RESOURCE_FLAGS Flags);
-		static Resource::Properties Texture(Resource::Type Type, DXGI_FORMAT Format,
-			UINT64 Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels,
-			D3D12_RESOURCE_FLAGS Flags, const D3D12_CLEAR_VALUE* pOptimizedClearValue);
-
-		inline const auto& GetD3DResourceDesc() const { return m_Desc; }
-		inline auto GetD3DClearValue() const { return m_ClearValue; }
-		inline auto GetNumSubresources() const { return m_NumSubresources; }
-	private:
-		D3D12_RESOURCE_DESC m_Desc;
-		std::optional<D3D12_CLEAR_VALUE> m_ClearValue;
-		UINT m_NumSubresources;
-	};
-	Resource(const Device* pDevice, const Resource::Properties& Properties, D3D12_RESOURCE_STATES InitialState);
-	Resource(const Device* pDevice, const Resource::Properties& Properties, CPUAccessibleHeapType CPUAccessibleHeapType);
-	Resource(const Device* pDevice, const Resource::Properties& Properties, D3D12_RESOURCE_STATES InitialState, const Heap* pHeap, UINT64 HeapOffset);
-
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pResource;
-	D3D12_RESOURCE_STATES m_InitialState;
-private:
-	std::optional<D3D12_CLEAR_VALUE> m_ClearValue = std::nullopt;
-	D3D12_RESOURCE_ALLOCATION_INFO m_ResourceAllocationInfo = {};
-	UINT64 m_HeapOffset = 0;
-	UINT m_NumSubresources = 0;
-	D3D12_RESOURCE_FLAGS m_Flags = D3D12_RESOURCE_FLAG_NONE;
+	Type m_Type;
+	BindFlags m_BindFlags;
+	D3D12_RESOURCE_ALLOCATION_INFO m_ResourceAllocationInfo;
+	UINT64 m_HeapOffset;
+	UINT m_NumSubresources;
 };
+
+ENABLE_BITMASK_OPERATORS(Resource::BindFlags);
+ENABLE_BITMASK_OPERATORS(Resource::State);
+
+D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type);
+D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::BindFlags Flags);
+D3D12_RESOURCE_STATES GetD3DResourceStates(Resource::State State);

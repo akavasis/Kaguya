@@ -36,9 +36,11 @@ DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool S
 	for (std::size_t i = 0; i < Ranges.size(); ++i)
 	{
 		UINT offset = i == 0 ? 0 : Ranges[i - 1];
-		m_DescriptorPartitions[i].RangeBlockInfo.StartCPUDescriptorHandle = cpuHandle.Offset(offset, m_DescriptorIncrementSize);
-		m_DescriptorPartitions[i].RangeBlockInfo.StartGPUDescriptorHandle = gpuHandle.Offset(offset, m_DescriptorIncrementSize);
-		m_DescriptorPartitions[i].RangeBlockInfo.Capacity = Ranges[i];
+		m_DescriptorPartitions[i].Allocation.StartDescriptor.CPUHandle = cpuHandle.Offset(offset, m_DescriptorIncrementSize);
+		m_DescriptorPartitions[i].Allocation.StartDescriptor.GPUHandle = gpuHandle.Offset(offset, m_DescriptorIncrementSize);
+		m_DescriptorPartitions[i].Allocation.StartDescriptor.HeapIndex = offset;
+		m_DescriptorPartitions[i].Allocation.StartDescriptor.IncrementSize = m_DescriptorIncrementSize;
+		m_DescriptorPartitions[i].Allocation.NumDescriptors = Ranges[i];
 		m_DescriptorPartitions[i].Allocator.Reset(Ranges[i]);
 	}
 }
@@ -59,7 +61,7 @@ std::optional<DescriptorAllocation> DescriptorHeap::Allocate(INT PartitionIndex,
 	{
 		gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(GetGPUHandleAt(PartitionIndex, offset));
 	}
-	UINT heapIndex = PartitionIndex * descriptorPartition.RangeBlockInfo.Capacity + offset;
+	UINT heapIndex = PartitionIndex * descriptorPartition.Allocation.NumDescriptors + offset;
 	Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex, m_DescriptorIncrementSize };
 	DescriptorAllocation descriptorAllocation;
 	descriptorAllocation.StartDescriptor = descriptor;
@@ -71,7 +73,7 @@ std::optional<DescriptorAllocation> DescriptorHeap::Allocate(INT PartitionIndex,
 void DescriptorHeap::Free(INT PartitionIndex, DescriptorAllocation& DescriptorAllocation)
 {
 	auto& descriptorPartition = GetDescriptorPartitionAt(PartitionIndex);
-	std::size_t offset = (DescriptorAllocation.StartDescriptor.CPUHandle.ptr - descriptorPartition.RangeBlockInfo.StartCPUDescriptorHandle.ptr) / m_DescriptorIncrementSize;
+	std::size_t offset = (DescriptorAllocation.StartDescriptor.CPUHandle.ptr - descriptorPartition.Allocation.StartDescriptor.CPUHandle.ptr) / m_DescriptorIncrementSize;
 	std::size_t size = DescriptorAllocation.NumDescriptors;
 	descriptorPartition.Allocator.Free(offset, size);
 	DescriptorAllocation = {};
@@ -80,14 +82,14 @@ void DescriptorHeap::Free(INT PartitionIndex, DescriptorAllocation& DescriptorAl
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::GetCPUHandleAt(INT PartitionIndex, INT Index) const
 {
 	auto& partition = GetDescriptorPartitionAt(PartitionIndex);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(partition.RangeBlockInfo.StartCPUDescriptorHandle);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(partition.Allocation.StartDescriptor.CPUHandle);
 	return cpuHandle.Offset(Index, m_DescriptorIncrementSize);
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GetGPUHandleAt(INT PartitionIndex, INT Index) const
 {
 	auto& partition = GetDescriptorPartitionAt(PartitionIndex);
-	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(partition.RangeBlockInfo.StartGPUDescriptorHandle);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(partition.Allocation.StartDescriptor.GPUHandle);
 	return gpuHandle.Offset(Index, m_DescriptorIncrementSize);
 }
 

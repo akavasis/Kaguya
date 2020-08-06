@@ -1,11 +1,12 @@
 #include "pch.h"
 #include "RaytracingPipelineState.h"
 #include "Device.h"
-#include "RaytracingPipelineStateProxy.h"
-#include "RootSignatureProxy.h"
+#include "Proxy/RaytracingPipelineStateProxy.h"
+#include "Proxy/RootSignatureProxy.h"
 #include <sstream>
 #include <codecvt>
 
+// From DirectX12 Sample
 inline void PrintStateObjectDesc(const D3D12_STATE_OBJECT_DESC* desc)
 {
 	std::wstringstream wstr;
@@ -34,7 +35,7 @@ inline void PrintStateObjectDesc(const D3D12_STATE_OBJECT_DESC* desc)
 
 	for (UINT i = 0; i < desc->NumSubobjects; i++)
 	{
-		wstr << L"| [" << i << L"]: ";
+		wstr << L"| Subobject: [" << i << L"]: ";
 		switch (desc->pSubobjects[i].Type)
 		{
 		case D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE:
@@ -122,7 +123,7 @@ inline void PrintStateObjectDesc(const D3D12_STATE_OBJECT_DESC* desc)
 	CORE_INFO(str);
 }
 
-RaytracingPipelineState::RaytracingPipelineState(Device* pDevice, RaytracingPipelineStateProxy& Proxy)
+RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, RaytracingPipelineStateProxy& Proxy)
 {
 	m_DummyGlobalRootSignature = RootSignature(pDevice, RootSignatureProxy());
 
@@ -249,4 +250,6 @@ RaytracingPipelineState::RaytracingPipelineState(Device* pDevice, RaytracingPipe
 
 	PrintStateObjectDesc(&desc);
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateStateObject(&desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
+	// Query the state object properties
+	ThrowCOMIfFailed(m_StateObject->QueryInterface(IID_PPV_ARGS(m_StateObjectProperties.ReleaseAndGetAddressOf())));
 }
