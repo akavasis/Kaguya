@@ -4,8 +4,9 @@
 
 class Keyboard
 {
-	friend class Window;
 public:
+	friend class Window;
+
 	struct Event
 	{
 		enum class Type
@@ -19,7 +20,6 @@ public:
 			unsigned char Code;
 		} data;
 
-		Event();
 		Event(Type type, unsigned char code);
 	};
 

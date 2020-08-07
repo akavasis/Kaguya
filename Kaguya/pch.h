@@ -46,6 +46,7 @@
 #pragma comment(lib, "d3d12.lib")
 #include "../External/DirectXTex/D3D12/d3dx12.h"
 
+#include "Core/Utility.h"
 #include "Core/Log.h"
 #include "Core/Exception.h"
 #include "Math/MathLibrary.h"

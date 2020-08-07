@@ -5,7 +5,7 @@
 #include <queue>
 #include "RenderResourceHandle.h"
 
-template <RenderResourceHandle::Types Type, typename T>
+template <RenderResourceType Type, typename T>
 class RenderResourceContainer
 {
 public:
@@ -51,20 +51,27 @@ public:
 	}
 
 	// Returns true if it is found and destroyed
-	bool Destroy(RenderResourceHandle RenderResourceHandle)
+	bool Destroy(RenderResourceHandle* pRenderResourceHandle)
 	{
+		if (!pRenderResourceHandle)
+			return false;
+
 		std::scoped_lock lk(m_Mutex);
-		auto iter = m_ResourceTable.find(RenderResourceHandle);
+		auto iter = m_ResourceTable.find(*pRenderResourceHandle);
 		if (iter != m_ResourceTable.end())
 		{
 			m_ResourceTable.erase(iter);
-			m_AvailableHandles.push(RenderResourceHandle);
+			m_AvailableHandles.push(*pRenderResourceHandle);
+
+			pRenderResourceHandle->Type = RenderResourceType::Unknown;
+			pRenderResourceHandle->Flags = RenderResourceFlags::Destroyed;
+			pRenderResourceHandle->Data = 0;
 			return true;
 		}
 		return false;
 	}
 private:
-	template<RenderResourceHandle::Types Type>
+	template<RenderResourceType Type>
 	class RenderResourceHandleFactory
 	{
 	public:
@@ -72,7 +79,7 @@ private:
 		{
 			m_AtomicData = 0;
 			m_Handle.Type = Type;
-			m_Handle.Flag = RenderResourceHandle::Flags::Active;
+			m_Handle.Flags = RenderResourceFlags::Active;
 			m_Handle.Data = 0;
 		}
 

@@ -2,7 +2,7 @@
 #include "CommandContext.h"
 #include "Device.h"
 
-CommandContext::CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, D3D12_COMMAND_LIST_TYPE Type)
+CommandContext::CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, Type Type)
 	: m_Type(Type)
 {
 	pOwningCommandQueue = pCommandQueue;
@@ -10,8 +10,9 @@ CommandContext::CommandContext(const Device* pDevice, CommandQueue* pCommandQueu
 	m_pCurrentAllocator = pOwningCommandQueue->RequestAllocator();
 	m_pCurrentPendingAllocator = pOwningCommandQueue->RequestAllocator();
 
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, Type, m_pCurrentAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, Type, m_pCurrentPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
+	D3D12_COMMAND_LIST_TYPE type = GetD3DCommandListType(Type);
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, type, m_pCurrentAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, type, m_pCurrentPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
 }
 
 bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
@@ -145,4 +146,15 @@ void CommandContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UI
 void CommandContext::BuildRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC* pDesc, UINT NumPostbuildInfoDescs, const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC* pPostbuildInfoDescs)
 {
 	m_pCommandList->BuildRaytracingAccelerationStructure(pDesc, NumPostbuildInfoDescs, pPostbuildInfoDescs);
+}
+
+D3D12_COMMAND_LIST_TYPE GetD3DCommandListType(CommandContext::Type Type)
+{
+	switch (Type)
+	{
+	case CommandContext::Type::Direct: return D3D12_COMMAND_LIST_TYPE_DIRECT;
+	case CommandContext::Type::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+	case CommandContext::Type::Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
+	}
+	return D3D12_COMMAND_LIST_TYPE(-1);
 }

@@ -382,17 +382,17 @@ void GpuTextureAllocator::Bind(std::optional<UINT> MaterialTextureIndicesRootPar
 {
 	if (MaterialTextureIndicesRootParameterIndex.has_value())
 	{
-		if (pCommandContext->GetD3DType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
+		if (pCommandContext->GetType() == CommandContext::Type::Direct)
 			pCommandContext->SetGraphicsRootShaderResourceView(MaterialTextureIndicesRootParameterIndex.value(), m_pMaterialTextureIndicesStructuredBuffer->GetGpuVirtualAddress());
-		else if (pCommandContext->GetD3DType() == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+		else if (pCommandContext->GetType() == CommandContext::Type::Compute)
 			pCommandContext->SetComputeRootShaderResourceView(MaterialTextureIndicesRootParameterIndex.value(), m_pMaterialTextureIndicesStructuredBuffer->GetGpuVirtualAddress());
 	}
 
 	if (MaterialTexturePropertiesRootParameterIndex.has_value())
 	{
-		if (pCommandContext->GetD3DType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
+		if (pCommandContext->GetType() == CommandContext::Type::Direct)
 			pCommandContext->SetGraphicsRootShaderResourceView(MaterialTexturePropertiesRootParameterIndex.value(), m_pMaterialTexturePropertiesStructuredBuffer->GetGpuVirtualAddress());
-		else if (pCommandContext->GetD3DType() == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+		else if (pCommandContext->GetType() == CommandContext::Type::Compute)
 			pCommandContext->SetComputeRootShaderResourceView(MaterialTexturePropertiesRootParameterIndex.value(), m_pMaterialTexturePropertiesStructuredBuffer->GetGpuVirtualAddress());
 	}
 }

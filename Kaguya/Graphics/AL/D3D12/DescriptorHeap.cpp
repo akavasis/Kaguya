@@ -70,13 +70,15 @@ std::optional<DescriptorAllocation> DescriptorHeap::Allocate(INT PartitionIndex,
 	return descriptorAllocation;
 }
 
-void DescriptorHeap::Free(INT PartitionIndex, DescriptorAllocation& DescriptorAllocation)
+void DescriptorHeap::Free(INT PartitionIndex, DescriptorAllocation* pDescriptorAllocation)
 {
+	if (!pDescriptorAllocation)
+		return;
 	auto& descriptorPartition = GetDescriptorPartitionAt(PartitionIndex);
-	std::size_t offset = (DescriptorAllocation.StartDescriptor.CPUHandle.ptr - descriptorPartition.Allocation.StartDescriptor.CPUHandle.ptr) / m_DescriptorIncrementSize;
-	std::size_t size = DescriptorAllocation.NumDescriptors;
+	std::size_t offset = (pDescriptorAllocation->StartDescriptor.CPUHandle.ptr - descriptorPartition.Allocation.StartDescriptor.CPUHandle.ptr) / m_DescriptorIncrementSize;
+	std::size_t size = pDescriptorAllocation->NumDescriptors;
 	descriptorPartition.Allocator.Free(offset, size);
-	DescriptorAllocation = {};
+	*pDescriptorAllocation = {};
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::GetCPUHandleAt(INT PartitionIndex, INT Index) const

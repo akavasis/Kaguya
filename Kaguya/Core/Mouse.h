@@ -3,8 +3,9 @@
 
 class Mouse
 {
-	friend class Window;
 public:
+	friend class Window;
+
 	struct Event
 	{
 		enum class Type
@@ -30,7 +31,6 @@ public:
 			bool RightMouseButtonIsPressed;
 		} data;
 
-		Event();
 		Event(Type type, const Mouse& mouse);
 	};
 
@@ -40,7 +40,6 @@ public:
 	};
 
 	Mouse();
-	~Mouse() = default;
 
 	void EnableRawInput();
 	void DisableRawInput();

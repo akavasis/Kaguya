@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Renderer.h"
-#include "../Core/Application.h"
-#include "../Core/Window.h"
-#include "../Core/Time.h"
+#include "Core/Application.h"
+#include "Core/Window.h"
+#include "Core/Time.h"
 
 struct ShadowPassData
 {
@@ -95,7 +95,7 @@ Renderer::Renderer(Window& Window)
 	}
 
 	// Allocate upload context
-	m_pUploadCommandContext = m_RenderDevice.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_pUploadCommandContext = m_RenderDevice.AllocateContext(CommandContext::Direct);
 
 	m_RaytracingOutputBufferHandle = m_RenderDevice.CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{

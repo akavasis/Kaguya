@@ -23,14 +23,14 @@ RenderDevice::~RenderDevice()
 {
 }
 
-CommandContext* RenderDevice::AllocateContext(D3D12_COMMAND_LIST_TYPE Type)
+CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
 {
 	CommandQueue* pCommandQueue = nullptr;
 	switch (Type)
 	{
-	case D3D12_COMMAND_LIST_TYPE_DIRECT: pCommandQueue = &m_GraphicsQueue; break;
-	case D3D12_COMMAND_LIST_TYPE_COMPUTE: pCommandQueue = &m_ComputeQueue; break;
-	case D3D12_COMMAND_LIST_TYPE_COPY: pCommandQueue = &m_CopyQueue; break;
+	case CommandContext::Type::Direct: pCommandQueue = &m_GraphicsQueue; break;
+	case CommandContext::Type::Compute: pCommandQueue = &m_ComputeQueue; break;
+	case CommandContext::Type::Copy: pCommandQueue = &m_CopyQueue; break;
 	default: throw std::logic_error("Unsupported command list type"); break;
 	}
 	m_RenderCommandContexts[Type].push_back(std::make_unique<CommandContext>(&m_Device, pCommandQueue, Type));
@@ -178,12 +178,12 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 		CORE_INFO("{} Info: Handle is NULL, Call redudant", __FUNCTION__);
 		return;
 	}
-	if (pRenderResourceHandle->Type == RenderResourceHandle::Types::Unknown)
+	if (pRenderResourceHandle->Type == RenderResourceType::Unknown)
 	{
 		CORE_INFO("{} Info: Resource type is unknown, Call redudant", __FUNCTION__);
 		return;
 	}
-	if (pRenderResourceHandle->Flag == RenderResourceHandle::Flags::Destroyed)
+	if (pRenderResourceHandle->Flags == RenderResourceFlags::Destroyed)
 	{
 		CORE_INFO("{} Info: Resource is already destroyed, Call redudant", __FUNCTION__);
 		return;
@@ -191,34 +191,34 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 
 	switch (pRenderResourceHandle->Type)
 	{
-	case RenderResourceHandle::Types::Shader: m_Shaders.Destroy(*pRenderResourceHandle); break;
-	case RenderResourceHandle::Types::Buffer:
+	case RenderResourceType::Shader: m_Shaders.Destroy(pRenderResourceHandle); break;
+	case RenderResourceType::Buffer:
 	{
 		auto buffer = m_Buffers.GetResource(*pRenderResourceHandle);
 		if (buffer)
 		{
 			m_GlobalResourceStateTracker.RemoveResourceState(buffer->GetD3DResource());
 		}
-		m_Buffers.Destroy(*pRenderResourceHandle);
+		m_Buffers.Destroy(pRenderResourceHandle);
 	}
 	break;
-	case RenderResourceHandle::Types::Texture:
+	case RenderResourceType::Texture:
 	{
 		auto texture = m_Textures.GetResource(*pRenderResourceHandle);
 		if (texture)
 		{
 			m_GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
 		}
-		m_Textures.Destroy(*pRenderResourceHandle);
+		m_Textures.Destroy(pRenderResourceHandle);
 	}
 	break;
-	case RenderResourceHandle::Types::Heap: m_Heaps.Destroy(*pRenderResourceHandle); break;
-	case RenderResourceHandle::Types::RootSignature: m_RootSignatures.Destroy(*pRenderResourceHandle); break;
-	case RenderResourceHandle::Types::GraphicsPSO: m_GraphicsPipelineStates.Destroy(*pRenderResourceHandle); break;
-	case RenderResourceHandle::Types::ComputePSO: m_ComputePipelineStates.Destroy(*pRenderResourceHandle); break;
+	case RenderResourceType::Heap: m_Heaps.Destroy(pRenderResourceHandle); break;
+	case RenderResourceType::RootSignature: m_RootSignatures.Destroy(pRenderResourceHandle); break;
+	case RenderResourceType::GraphicsPSO: m_GraphicsPipelineStates.Destroy(pRenderResourceHandle); break;
+	case RenderResourceType::ComputePSO: m_ComputePipelineStates.Destroy(pRenderResourceHandle); break;
 	}
-	pRenderResourceHandle->Type = RenderResourceHandle::Types::Unknown;
-	pRenderResourceHandle->Flag = RenderResourceHandle::Flags::Destroyed;
+	pRenderResourceHandle->Type = RenderResourceType::Unknown;
+	pRenderResourceHandle->Flags = RenderResourceFlags::Destroyed;
 	pRenderResourceHandle->Data = 0;
 }
 
@@ -238,13 +238,17 @@ void RenderDevice::DestroySwapChainTexture(RenderResourceHandle* pRenderResource
 	{
 		m_GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
 	}
-	m_SwapChainTextures.Destroy(*pRenderResourceHandle);
+	m_SwapChainTextures.Destroy(pRenderResourceHandle);
 }
 
 void RenderDevice::CreateRTVForSwapChainTexture(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)
 {
 	Texture* swapChainTexture = m_SwapChainTextures.GetResource(RenderResourceHandle);
-	assert(swapChainTexture != nullptr && "Could not find swapchain texture given the handle");
+	if (!swapChainTexture)
+	{
+		throw std::logic_error("Could not find swapchain texture given the handle");
+		return;
+	}
 
 	m_Device.GetD3DDevice()->CreateRenderTargetView(swapChainTexture->GetD3DResource(), nullptr, DestDescriptor.CPUHandle);
 }
@@ -252,7 +256,11 @@ void RenderDevice::CreateRTVForSwapChainTexture(RenderResourceHandle RenderResou
 void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
-	assert(texture != nullptr && "Could not find texture given the handle");
+	if (!texture)
+	{
+		throw std::logic_error("Could not find texture given the handle");
+		return;
+	}
 
 	auto getValidSRVFormat = [](DXGI_FORMAT Format)
 	{
@@ -320,7 +328,11 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
-	assert(texture != nullptr && "Could not find texture given the handle");
+	if (!texture)
+	{
+		throw std::logic_error("Could not find texture given the handle");
+		return;
+	}
 
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
@@ -383,7 +395,11 @@ void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, Descript
 void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
-	assert(texture != nullptr && "Could not find texture given the handle");
+	if (!texture)
+	{
+		throw std::logic_error("Could not find texture given the handle");
+		return;
+	}
 
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
@@ -447,7 +463,11 @@ void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, Descript
 void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
 	Texture* texture = GetTexture(RenderResourceHandle);
-	assert(texture != nullptr && "Could not find texture given the handle");
+	if (!texture)
+	{
+		throw std::logic_error("Could not find texture given the handle");
+		return;
+	}
 
 	auto getValidDSVFormat = [](DXGI_FORMAT Format)
 	{

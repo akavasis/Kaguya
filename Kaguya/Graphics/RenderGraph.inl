@@ -44,9 +44,9 @@ inline RenderPass<Data>* RenderGraph::AddRenderPass(RenderPassType Type, typenam
 	m_RenderPasses.emplace_back(std::make_unique<RenderPass<Data>>(Type, std::forward<PassCallback>(RenderPassPassCallback), std::forward<ResizeCallback>(RenderPassResizeCallback)));
 	switch (Type)
 	{
-		case RenderPassType::Graphics: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT)); break;
-		case RenderPassType::Compute: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(D3D12_COMMAND_LIST_TYPE_COMPUTE)); break;
-		case RenderPassType::Copy: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(D3D12_COMMAND_LIST_TYPE_COPY)); break;
+		case RenderPassType::Graphics: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); break;
+		case RenderPassType::Compute: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Compute)); break;
+		case RenderPassType::Copy: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Copy)); break;
 	}
 	m_RenderPassDataIDs.emplace_back(typeid(Data));
 	m_NumRenderPasses++;

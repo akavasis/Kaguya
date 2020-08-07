@@ -11,10 +11,6 @@ DescriptorAllocator::DescriptorAllocator(Device* pDevice)
 {
 }
 
-DescriptorAllocator::~DescriptorAllocator()
-{
-}
-
 DescriptorAllocation DescriptorAllocator::AllocateCBDescriptors(UINT NumDescriptors)
 {
 	auto ret = m_CBSRUADescriptorHeap.AllocateCBDescriptors(NumDescriptors).value_or(DescriptorAllocation());
@@ -75,62 +71,44 @@ DescriptorAllocation DescriptorAllocator::AllocateDepthStencilDescriptors(UINT N
 	return ret;
 }
 
-void DescriptorAllocator::FreeCBDescriptors(DescriptorAllocation& DescriptorAllocation)
+void DescriptorAllocator::FreeCBDescriptors(DescriptorAllocation* pDescriptorAllocation)
 {
-	if (DescriptorAllocation.pOwningHeap != &m_CBSRUADescriptorHeap);
-	{
-		CORE_WARN("This descriptor allocation did not come from this heap");
+	if (!pDescriptorAllocation)
 		return;
-	}
-	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, DescriptorAllocation);
+	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, pDescriptorAllocation);
 }
 
-void DescriptorAllocator::FreeSRDescriptors(DescriptorAllocation& DescriptorAllocation)
+void DescriptorAllocator::FreeSRDescriptors(DescriptorAllocation* pDescriptorAllocation)
 {
-	if (DescriptorAllocation.pOwningHeap != &m_CBSRUADescriptorHeap);
-	{
-		CORE_WARN("This descriptor allocation did not come from this heap");
+	if (!pDescriptorAllocation)
 		return;
-	}
-	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ShaderResource, DescriptorAllocation);
+	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ShaderResource, pDescriptorAllocation);
 }
 
-void DescriptorAllocator::FreeUADescriptors(DescriptorAllocation& DescriptorAllocation)
+void DescriptorAllocator::FreeUADescriptors(DescriptorAllocation* pDescriptorAllocation)
 {
-	if (DescriptorAllocation.pOwningHeap != &m_CBSRUADescriptorHeap);
-	{
-		CORE_WARN("This descriptor allocation did not come from this heap");
+	if (!pDescriptorAllocation)
 		return;
-	}
-	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::UnorderedAccess, DescriptorAllocation);
+	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::UnorderedAccess, pDescriptorAllocation);
 }
 
-void DescriptorAllocator::FreeSamplerDescriptors(DescriptorAllocation& DescriptorAllocation)
+void DescriptorAllocator::FreeSamplerDescriptors(DescriptorAllocation* pDescriptorAllocation)
 {
-	if (DescriptorAllocation.pOwningHeap != &m_SamplerDescriptorHeap);
-	{
-		CORE_WARN("This descriptor allocation did not come from this heap");
+	if (!pDescriptorAllocation)
 		return;
-	}
-	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, DescriptorAllocation);
+	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, pDescriptorAllocation);
 }
 
-void DescriptorAllocator::FreeRenderTargetDescriptors(DescriptorAllocation& DescriptorAllocation)
+void DescriptorAllocator::FreeRenderTargetDescriptors(DescriptorAllocation* pDescriptorAllocation)
 {
-	if (DescriptorAllocation.pOwningHeap != &m_RenderTargetDescriptorHeap);
-	{
-		CORE_WARN("This descriptor allocation did not come from this heap");
+	if (!pDescriptorAllocation)
 		return;
-	}
-	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, DescriptorAllocation);
+	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, pDescriptorAllocation);
 }
 
-void DescriptorAllocator::FreeDepthStencilDescriptors(DescriptorAllocation& DescriptorAllocation)
+void DescriptorAllocator::FreeDepthStencilDescriptors(DescriptorAllocation* pDescriptorAllocation)
 {
-	if (DescriptorAllocation.pOwningHeap != &m_DepthStencilDescriptorHeap);
-	{
-		CORE_WARN("This descriptor allocation did not come from this heap");
+	if (!pDescriptorAllocation)
 		return;
-	}
-	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, DescriptorAllocation);
+	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, pDescriptorAllocation);
 }

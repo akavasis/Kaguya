@@ -1,8 +1,7 @@
 #pragma once
 #include <d3d12.h>
 #include <wrl/client.h>
-
-#include "../../../Core/Allocator/VariableSizedAllocator.h"
+#include "Core/Allocator/VariableSizedAllocator.h"
 
 class Device;
 
@@ -49,7 +48,7 @@ public:
 	inline auto GetD3DDescriptorHeap() const { return m_pDescriptorHeap.Get(); }
 
 	std::optional<DescriptorAllocation> Allocate(INT PartitionIndex, UINT NumDescriptors);
-	void Free(INT PartitionIndex, DescriptorAllocation& DescriptorAllocation);
+	void Free(INT PartitionIndex, DescriptorAllocation* pDescriptorAllocation);
 protected:
 	auto& GetDescriptorPartitionAt(INT Index) { return m_DescriptorPartitions[Index]; }
 	auto& GetDescriptorPartitionAt(INT Index) const { return m_DescriptorPartitions[Index]; }

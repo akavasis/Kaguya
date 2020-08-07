@@ -40,7 +40,7 @@ public:
 	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
 	[[nodiscard]] inline ResourceStateTracker& GetGlobalResourceStateTracker() { return m_GlobalResourceStateTracker; }
 	[[nodiscard]] inline DescriptorAllocator& GetDescriptorAllocator() { return m_DescriptorAllocator; }
-	[[nodiscard]] CommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE Type);
+	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
 	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const;
 	auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const
@@ -100,7 +100,7 @@ private:
 	CommandQueue m_CopyQueue;
 	ResourceStateTracker m_GlobalResourceStateTracker;
 	DescriptorAllocator m_DescriptorAllocator;
-	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[4];
+	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[CommandContext::NumTypes];
 
 	enum DescriptorRanges
 	{
@@ -112,17 +112,17 @@ private:
 	};
 	std::array<D3D12_DESCRIPTOR_RANGE1, std::size_t(DescriptorRanges::NumDescriptorRanges)> m_StandardShaderLayoutDescriptorRanges;
 
-	RenderResourceContainer<RenderResourceHandle::Types::Shader, Shader> m_Shaders;
-	RenderResourceContainer<RenderResourceHandle::Types::Library, Library> m_Libraries;
+	RenderResourceContainer<RenderResourceType::Shader, Shader> m_Shaders;
+	RenderResourceContainer<RenderResourceType::Library, Library> m_Libraries;
 
-	RenderResourceContainer<RenderResourceHandle::Types::Buffer, Buffer> m_Buffers;
-	RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_Textures;
+	RenderResourceContainer<RenderResourceType::Buffer, Buffer> m_Buffers;
+	RenderResourceContainer<RenderResourceType::Texture, Texture> m_Textures;
 
-	RenderResourceContainer<RenderResourceHandle::Types::Heap, Heap> m_Heaps;
-	RenderResourceContainer<RenderResourceHandle::Types::RootSignature, RootSignature> m_RootSignatures;
-	RenderResourceContainer<RenderResourceHandle::Types::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
-	RenderResourceContainer<RenderResourceHandle::Types::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
-	RenderResourceContainer<RenderResourceHandle::Types::RaytracingPSO, RaytracingPipelineState> m_RaytracingPipelineStates;
+	RenderResourceContainer<RenderResourceType::Heap, Heap> m_Heaps;
+	RenderResourceContainer<RenderResourceType::RootSignature, RootSignature> m_RootSignatures;
+	RenderResourceContainer<RenderResourceType::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
+	RenderResourceContainer<RenderResourceType::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
+	RenderResourceContainer<RenderResourceType::RaytracingPSO, RaytracingPipelineState> m_RaytracingPipelineStates;
 
-	RenderResourceContainer<RenderResourceHandle::Types::Texture, Texture> m_SwapChainTextures;
+	RenderResourceContainer<RenderResourceType::Texture, Texture> m_SwapChainTextures;
 };

@@ -1,12 +1,6 @@
 #include "pch.h"
 #include "Keyboard.h"
 
-Keyboard::Event::Event()
-	: type(Keyboard::Event::Type::Invalid)
-{
-	data.Code = NULL;
-}
-
 Keyboard::Event::Event(Type type, unsigned char code)
 	: type(type)
 {
@@ -41,7 +35,7 @@ bool Keyboard::IsKeyPressed(unsigned char KeyCode) const
 Keyboard::Event Keyboard::ReadKey()
 {
 	if (m_KeyBuffer.empty())
-		return Keyboard::Event();
+		return Keyboard::Event(Keyboard::Event::Type::Invalid, NULL);
 	Keyboard::Event e = m_KeyBuffer.front();
 	m_KeyBuffer.pop();
 	return e;

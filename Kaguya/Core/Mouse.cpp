@@ -1,11 +1,6 @@
 #include "pch.h"
 #include "Mouse.h"
 
-Mouse::Event::Event()
-	: type(Mouse::Event::Type::Invalid), data()
-{
-}
-
 Mouse::Event::Event(Type type, const Mouse& mouse)
 	: type(type)
 {
@@ -72,7 +67,7 @@ bool Mouse::IsInWindow() const
 Mouse::Event Mouse::Read()
 {
 	if (m_MouseBuffer.empty())
-		return Mouse::Event();
+		return Mouse::Event(Mouse::Event::Type::Invalid, *this);
 	Mouse::Event e = m_MouseBuffer.front();
 	m_MouseBuffer.pop();
 	return e;

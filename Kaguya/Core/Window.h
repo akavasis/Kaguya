@@ -37,7 +37,6 @@ public:
 	bool CursorEnabled() const;
 
 	inline const HWND& GetWindowHandle() const { return m_WindowHandle; }
-	inline const std::wstring& GetClassName() const { return m_ClassName; }
 	inline const std::wstring& GetWindowName() const { return m_WindowName; }
 	inline unsigned int GetWindowWidth() const { return m_WindowWidth; }
 	inline unsigned int GetWindowHeight() const { return m_WindowHeight; }
@@ -55,6 +54,13 @@ private:
 	void ShowCursor();
 	void HideCursor();
 
+	class ImGuiContextManager
+	{
+	public:
+		ImGuiContextManager();
+		~ImGuiContextManager();
+	};
+
 	unsigned int m_WindowWidth;
 	unsigned int m_WindowHeight;
 	HWND m_WindowHandle;
@@ -63,11 +69,5 @@ private:
 	bool m_CursorEnabled;
 	Mouse m_Mouse;
 	Keyboard m_Keyboard;
-
-	class ImGuiContextManager
-	{
-	public:
-		ImGuiContextManager();
-		~ImGuiContextManager();
-	} m_ImGuiContextManager;
+	ImGuiContextManager m_ImGuiContextManager;
 };

@@ -1,41 +1,29 @@
 #pragma once
 #include <d3d12.h>
-
 #include "ResourceStateTracker.h"
 #include "DescriptorHeap.h"
-
 #include "CommandQueue.h"
-
 #include "Buffer.h"
 #include "Texture.h"
 #include "Heap.h"
 #include "RootSignature.h"
 #include "PipelineState.h"
 
-class CommandQueue;
-
-class Resource;
-class Buffer;
-class Texture;
-class RootSignature;
-class PipelineState;
-class GraphicsPipelineState;
-class ComputePipelineState;
-
 class CommandContext
 {
 public:
-	enum class Type
+	enum Type
 	{
 		Direct,
 		Compute,
-		Copy
+		Copy,
+		NumTypes
 	};
 
-	CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, D3D12_COMMAND_LIST_TYPE Type);
+	CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, Type Type);
 
 	inline auto GetD3DCommandList() const { return m_pCommandList.Get(); }
-	inline auto GetD3DType() const { return m_Type; }
+	inline auto GetType() const { return m_Type; }
 
 	void SetPipelineState(const PipelineState* pPipelineState);
 	void SetDescriptorHeaps(const CBSRUADescriptorHeap* pCBSRUADescriptorHeap, const SamplerDescriptorHeap* pSamplerDescriptorHeap);
@@ -98,10 +86,12 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> m_pPendingCommandList;
 	ID3D12CommandAllocator* m_pCurrentAllocator; // Given by the CommandQueue
 	ID3D12CommandAllocator* m_pCurrentPendingAllocator; // Given by the CommandQueue
-	D3D12_COMMAND_LIST_TYPE m_Type;
+	Type m_Type;
 
 	// Resource state tracker for this command list
 	ResourceStateTracker m_ResourceStateTracker;
 };
 
 #include "CommandContext.inl"
+
+D3D12_COMMAND_LIST_TYPE GetD3DCommandListType(CommandContext::Type Type);

@@ -67,14 +67,14 @@ operator^=(Enum& lhs, Enum rhs)
 	return lhs;
 }
 
-#define ENABLE_BITMASK_OPERATORS(x)							\
+#define ENABLE_BITMASK_OPERATORS(Enum)						\
 template<>													\
-struct EnableBitMaskOperators<x>							\
+struct EnableBitMaskOperators<Enum>							\
 {															\
 	static const bool Enable = true;						\
 };															\
 															\
-inline bool EnumMaskBitSet(x mask, x component)				\
+inline bool EnumMaskBitSet(Enum Mask, Enum Component)		\
 {															\
-    return (mask & component) == component;					\
+    return (Mask & Component) == Component;					\
 }
