@@ -221,3 +221,15 @@ void RootSignatureProxy::Link()
 	}
 #endif
 }
+
+D3D12_ROOT_SIGNATURE_DESC1 RootSignatureProxy::BuildD3DDesc()
+{
+	D3D12_ROOT_SIGNATURE_DESC1 desc = {};
+	desc.NumParameters = static_cast<UINT>(m_Parameters.size());
+	desc.pParameters = m_Parameters.data();
+	desc.NumStaticSamplers = static_cast<UINT>(m_StaticSamplers.size());
+	desc.pStaticSamplers = m_StaticSamplers.data();
+	desc.Flags = m_Flags;
+
+	return desc;
+}

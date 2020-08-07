@@ -1,13 +1,7 @@
 #pragma once
 #include <d3d12.h>
 #include <wrl/client.h>
-
-#include <mutex>
-
 #include "CommandAllocatorPool.h"
-
-class CommandList;
-class ResourceStateTracker;
 
 class CommandQueue
 {

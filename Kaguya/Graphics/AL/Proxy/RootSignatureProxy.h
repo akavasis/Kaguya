@@ -1,10 +1,10 @@
 #pragma once
 #include <d3d12.h>
 #include "Proxy.h"
+#include "../D3D12/RootSignature.h"
 
 class RootSignatureProxy : public Proxy
 {
-	friend class RootSignature;
 public:
 	/*
 		The maximum size of a root signature is 64 DWORDs.
@@ -22,8 +22,8 @@ public:
 		Arrange parameters in a large root signature so that the parameters most likely to change often, or if low access latency for a given parameter is important, occur first.
 		If convenient, use root constants or root constant buffer views over putting constant buffer views in a descriptor heap.
 	*/
+	friend class RootSignature;
 	RootSignatureProxy();
-	~RootSignatureProxy() override = default;
 
 	void AddRootConstantsParameter(UINT ShaderRegister, UINT RegisterSpace, UINT Num32BitValues, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
 	template<typename T>
@@ -56,6 +56,7 @@ public:
 	void SetAsLocalRootSignature();
 protected:
 	void Link() override;
+	D3D12_ROOT_SIGNATURE_DESC1 BuildD3DDesc();
 private:
 	std::vector<D3D12_ROOT_PARAMETER1> m_Parameters;
 	std::vector<D3D12_STATIC_SAMPLER_DESC> m_StaticSamplers;

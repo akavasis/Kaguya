@@ -25,6 +25,13 @@ class ComputePipelineState;
 class CommandContext
 {
 public:
+	enum class Type
+	{
+		Direct,
+		Compute,
+		Copy
+	};
+
 	CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, D3D12_COMMAND_LIST_TYPE Type);
 
 	inline auto GetD3DCommandList() const { return m_pCommandList.Get(); }

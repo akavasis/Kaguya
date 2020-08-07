@@ -1,15 +1,15 @@
 #include "pch.h"
 #include "RaytracingPipelineStateProxy.h"
-#include "../Library.h"
-#include "../RootSignature.h"
+#include "../D3D12/RootSignature.h"
+#include "../D3D12/Library.h"
 
 RaytracingPipelineStateProxy::RaytracingPipelineStateProxy()
 {
-	m_RaytracingShaderConfig = {};
-	m_RaytracingPipelineConfig = {};
+	m_ShaderConfig = {};
+	m_PipelineConfig = {};
 }
 
-void RaytracingPipelineStateProxy::AddLibrary(Library* pLibrary, const std::vector<std::wstring>& Symbols)
+void RaytracingPipelineStateProxy::AddLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols)
 {
 	// Add a DXIL library to the pipeline. Note that this library has to be
 	// compiled with dxc, using a lib_6_3 target. The exported symbols must correspond exactly to the
@@ -45,24 +45,25 @@ void RaytracingPipelineStateProxy::AddHitGroup(LPCWSTR pHitGroupName, LPCWSTR pA
 	// name.
 }
 
-void RaytracingPipelineStateProxy::AddRootSignatureAssociation(RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
+void RaytracingPipelineStateProxy::AddRootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
 {
 	m_RootSignatureAssociations.emplace_back(RootSignatureAssociation(pRootSignature, Symbols));
 }
 
 void RaytracingPipelineStateProxy::SetRaytracingShaderConfig(UINT MaxPayloadSizeInBytes, UINT MaxAttributeSizeInBytes)
 {
-	m_RaytracingShaderConfig.MaxPayloadSizeInBytes = MaxPayloadSizeInBytes;
-	m_RaytracingShaderConfig.MaxAttributeSizeInBytes = MaxAttributeSizeInBytes;
+	m_ShaderConfig.MaxPayloadSizeInBytes = MaxPayloadSizeInBytes;
+	m_ShaderConfig.MaxAttributeSizeInBytes = MaxAttributeSizeInBytes;
 }
 
 void RaytracingPipelineStateProxy::SetRaytracingPipelineConfig(UINT MaxTraceRecursionDepth)
 {
-	m_RaytracingPipelineConfig.MaxTraceRecursionDepth = MaxTraceRecursionDepth;
+	m_PipelineConfig.MaxTraceRecursionDepth = MaxTraceRecursionDepth;
 }
 
 void RaytracingPipelineStateProxy::Link()
 {
+	assert(m_PipelineConfig.MaxTraceRecursionDepth >= 0 && m_PipelineConfig.MaxTraceRecursionDepth < 31);
 }
 
 std::vector<std::wstring> RaytracingPipelineStateProxy::BuildShaderExportList()
@@ -158,46 +159,4 @@ std::vector<std::wstring> RaytracingPipelineStateProxy::BuildShaderExportList()
 	}
 
 	return exportedSymbols;
-}
-
-RaytracingPipelineStateProxy::DXILLibrary::DXILLibrary(Library* pLibrary, const std::vector<std::wstring>& Symbols)
-	: pLibrary(pLibrary), Symbols(Symbols), Exports(Symbols.size())
-{
-	for (size_t i = 0; i < this->Symbols.size(); ++i)
-	{
-		D3D12_EXPORT_DESC exportDesc = {};
-		exportDesc.Name = this->Symbols[i].data();
-		exportDesc.ExportToRename = nullptr;
-		exportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
-
-		Exports[i] = exportDesc;
-	}
-
-	Desc.DXILLibrary = this->pLibrary->GetD3DShaderBytecode();
-	Desc.NumExports = static_cast<UINT>(Exports.size());
-	Desc.pExports = Exports.data();
-}
-
-RaytracingPipelineStateProxy::HitGroup::HitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol)
-	: HitGroupName(pHitGroupName ? pHitGroupName : L""),
-	AnyHitSymbol(pAnyHitSymbol ? pAnyHitSymbol : L""),
-	ClosestHitSymbol(pClosestHitSymbol ? pClosestHitSymbol : L""),
-	IntersectionSymbol(pIntersectionSymbol ? pIntersectionSymbol : L"")
-{
-	Desc.HitGroupExport = pHitGroupName ? HitGroupName.data() : nullptr;
-	Desc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
-	Desc.AnyHitShaderImport = pAnyHitSymbol ? AnyHitSymbol.data() : nullptr;
-	Desc.ClosestHitShaderImport = pClosestHitSymbol ? ClosestHitSymbol.data() : nullptr;
-	Desc.IntersectionShaderImport = pIntersectionSymbol ? IntersectionSymbol.data() : nullptr;
-}
-
-RaytracingPipelineStateProxy::RootSignatureAssociation::RootSignatureAssociation(RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
-	: pRootSignature(pRootSignature), Symbols(Symbols), SymbolPtrs(Symbols.size())
-{
-	for (size_t i = 0; i < this->Symbols.size(); ++i)
-	{
-		SymbolPtrs[i] = this->Symbols[i].data();
-	}
-	pLocalRootSignature.pLocalRootSignature = pRootSignature->GetD3DRootSignature();
-	Association = {};
 }

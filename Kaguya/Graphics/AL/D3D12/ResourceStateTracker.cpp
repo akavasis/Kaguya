@@ -3,18 +3,22 @@
 
 void ResourceStateTracker::AddResourceState(ResourceType* pResource, D3D12_RESOURCE_STATES ResourceStates)
 {
-	if (!pResource) return;
+	if (!pResource) 
+		return;
 	m_ResourceStates[pResource].SetSubresourceState(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, ResourceStates);
 }
 
-void ResourceStateTracker::RemoveResourceState(ResourceType* pResource)
+bool ResourceStateTracker::RemoveResourceState(ResourceType* pResource)
 {
-	if (!pResource) return;
+	if (!pResource) 
+		return false;
 	auto iter = m_ResourceStates.find(pResource);
 	if (iter != m_ResourceStates.end())
 	{
 		m_ResourceStates.erase(iter);
+		return true;
 	}
+	return false;
 }
 
 void ResourceStateTracker::SetResourceState(ResourceType* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates)

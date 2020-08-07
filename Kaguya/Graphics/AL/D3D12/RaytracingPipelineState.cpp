@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "RaytracingPipelineState.h"
 #include "Device.h"
-#include "Proxy/RaytracingPipelineStateProxy.h"
-#include "Proxy/RootSignatureProxy.h"
+#include "../Proxy/RaytracingPipelineStateProxy.h"
+#include "../Proxy/RootSignatureProxy.h"
 #include <sstream>
 #include <codecvt>
 
@@ -123,6 +123,28 @@ inline void PrintStateObjectDesc(const D3D12_STATE_OBJECT_DESC* desc)
 	CORE_INFO(str);
 }
 
+DXILLibrary::DXILLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols)
+	: pLibrary(pLibrary), Symbols(Symbols)
+{
+}
+
+HitGroup::HitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol)
+{
+	if (pHitGroupName)
+		HitGroupName = pHitGroupName;
+	if (pAnyHitSymbol)
+		AnyHitSymbol = pAnyHitSymbol;
+	if (pClosestHitSymbol)
+		ClosestHitSymbol = pClosestHitSymbol;
+	if (pIntersectionSymbol)
+		IntersectionSymbol = pIntersectionSymbol;
+}
+
+RootSignatureAssociation::RootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
+	: pRootSignature(pRootSignature), Symbols(Symbols)
+{
+}
+
 RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, RaytracingPipelineStateProxy& Proxy)
 {
 	m_DummyGlobalRootSignature = RootSignature(pDevice, RootSignatureProxy());
@@ -133,49 +155,38 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 
 	Proxy.Link();
 
-	// Build a list of all the symbols for ray generation, miss and hit groups
-	// Those shaders have to be associated with the payload definition
-	std::vector<std::wstring> exportedSymbols = Proxy.BuildShaderExportList();
-	std::vector<LPCWSTR> exportedSymbolPointers;
-
-	exportedSymbolPointers.reserve(exportedSymbols.size());
-	for (const auto& exportedSymbol : exportedSymbols)
-	{
-		exportedSymbolPointers.push_back(exportedSymbol.data());
-	}
-
-	UINT64 numSubobjects =
-		Proxy.m_Libraries.size() +						// DXIL libraries
-		Proxy.m_HitGroups.size() +						// Hit group declarations
-		1 +												// Shader configuration
-		1 +												// Shader payload
-		2 * Proxy.m_RootSignatureAssociations.size() +	// Root signature declaration + association
-		2 +												// Empty global and local root signatures
-		1;												// Final pipeline subobject
-
-	// Initialize a vector with the target object count. It is necessary to make the allocation before
-	// adding subobjects as some subobjects reference other subobjects by pointer. Using push_back may
-	// reallocate the array and invalidate those pointers.
-	std::vector<D3D12_STATE_SUBOBJECT> subobjects(numSubobjects);
-
-	size_t i = 0;
-
+	CD3DX12_STATE_OBJECT_DESC desc(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
+	
 	// Add all the DXIL libraries
 	for (const auto& library : Proxy.m_Libraries)
 	{
-		D3D12_STATE_SUBOBJECT librarySubobject = {};
-		librarySubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
-		librarySubobject.pDesc = &library.Desc;
-		subobjects[i++] = librarySubobject;
+		auto pLibrarySubobject = desc.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+
+		D3D12_SHADER_BYTECODE shaderByteCode = library.pLibrary->GetD3DShaderBytecode();
+		pLibrarySubobject->SetDXILLibrary(&shaderByteCode);
+
+		for (const auto& symbol : library.Symbols)
+		{
+			pLibrarySubobject->DefineExport(symbol.data());
+		}
 	}
 
 	// Add all the hit group declarations
 	for (const auto& hitGroup : Proxy.m_HitGroups)
 	{
-		D3D12_STATE_SUBOBJECT hitGroupSubobject = {};
-		hitGroupSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
-		hitGroupSubobject.pDesc = &hitGroup.Desc;
-		subobjects[i++] = hitGroupSubobject;
+		auto pHitgroupSubobject = desc.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+
+		pHitgroupSubobject->SetHitGroupExport(hitGroup.HitGroupName.data());
+		pHitgroupSubobject->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
+		LPCWSTR pAnyHitSymbolImport = hitGroup.AnyHitSymbol.empty() ? nullptr : hitGroup.AnyHitSymbol.data();
+		pHitgroupSubobject->SetAnyHitShaderImport(pAnyHitSymbolImport);
+
+		LPCWSTR pClosestHitShaderImport = hitGroup.ClosestHitSymbol.empty() ? nullptr : hitGroup.ClosestHitSymbol.data();
+		pHitgroupSubobject->SetClosestHitShaderImport(pClosestHitShaderImport);
+
+		LPCWSTR pIntersectionShaderImport = hitGroup.IntersectionSymbol.empty() ? nullptr : hitGroup.IntersectionSymbol.data();
+		pHitgroupSubobject->SetIntersectionShaderImport(pIntersectionShaderImport);
 	}
 
 	// Add 2 subobjects for every root signature association
@@ -185,71 +196,51 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 		// signature, and another to associate that root signature to a set of symbols
 
 		// Add a subobject to declare the local root signature
-		D3D12_STATE_SUBOBJECT localRootSignatureSubobject = {};
-		localRootSignatureSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-		localRootSignatureSubobject.pDesc = &rootSignatureAssociation.pLocalRootSignature;
-		subobjects[i++] = localRootSignatureSubobject;
+		auto pLocalRootSignatureSubobject = desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
 
-		rootSignatureAssociation.Association.NumExports = static_cast<UINT>(rootSignatureAssociation.SymbolPtrs.size());
-		rootSignatureAssociation.Association.pExports = rootSignatureAssociation.SymbolPtrs.data();
-		rootSignatureAssociation.Association.pSubobjectToAssociate = &subobjects[i - 1];
+		pLocalRootSignatureSubobject->SetRootSignature(rootSignatureAssociation.pRootSignature->GetD3DRootSignature());
 
 		// Add a subobject for the association between the exported shader symbols and the local root signature
-		D3D12_STATE_SUBOBJECT localRootSignatureAssociationSubobject = {};
-		localRootSignatureAssociationSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
-		localRootSignatureAssociationSubobject.pDesc = &rootSignatureAssociation.Association;
-		subobjects[i++] = localRootSignatureAssociationSubobject;
+		auto pAssociationSubobject = desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+
+		for (const auto& symbols : rootSignatureAssociation.Symbols)
+		{
+			pAssociationSubobject->AddExport(symbols.data());
+		}
+		pAssociationSubobject->SetSubobjectToAssociate(*pLocalRootSignatureSubobject);
 	}
 
 	// The pipeline construction always requires an empty global root signature
-	D3D12_GLOBAL_ROOT_SIGNATURE globalRootSignature;
-	globalRootSignature.pGlobalRootSignature = m_DummyGlobalRootSignature.GetD3DRootSignature();
-
-	D3D12_STATE_SUBOBJECT globalRootSignatureSubobject = {};
-	globalRootSignatureSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
-	globalRootSignatureSubobject.pDesc = &globalRootSignature;
-	subobjects[i++] = globalRootSignatureSubobject;
+	auto pGlobalRootSignatureSubobject = desc.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+	pGlobalRootSignatureSubobject->SetRootSignature(m_DummyGlobalRootSignature.GetD3DRootSignature());
 
 	// The pipeline construction always requires an empty local root signature
-	D3D12_LOCAL_ROOT_SIGNATURE localRootSignature;
-	localRootSignature.pLocalRootSignature = m_DummyLocalRootSignature.GetD3DRootSignature();
-
-	D3D12_STATE_SUBOBJECT localRootSignatureSubobject = {};
-	localRootSignatureSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-	localRootSignatureSubobject.pDesc = &localRootSignature;
-	subobjects[i++] = localRootSignatureSubobject;
+	auto pLocalRootSignatureSubobject = desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+	pLocalRootSignatureSubobject->SetRootSignature(m_DummyLocalRootSignature.GetD3DRootSignature());
 
 	// Add a subobject for the raytracing shader config
-	D3D12_STATE_SUBOBJECT shaderConfigSubobject = {};
-	shaderConfigSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
-	shaderConfigSubobject.pDesc = &Proxy.m_RaytracingShaderConfig;
-	subobjects[i++] = shaderConfigSubobject;
+	auto pShaderConfigSubobject = desc.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+	pShaderConfigSubobject->Config(Proxy.m_ShaderConfig.MaxPayloadSizeInBytes, Proxy.m_ShaderConfig.MaxAttributeSizeInBytes);
 
 	// Add a subobject for the association between shaders and the payload
-	D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION shaderPayloadAssociation = {};
-	shaderPayloadAssociation.NumExports = static_cast<UINT>(exportedSymbolPointers.size());
-	shaderPayloadAssociation.pExports = exportedSymbolPointers.data();
-	shaderPayloadAssociation.pSubobjectToAssociate = &subobjects[i - 1];
 
-	D3D12_STATE_SUBOBJECT shaderPayloadAssociationSubobject = {};
-	shaderPayloadAssociationSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
-	shaderPayloadAssociationSubobject.pDesc = &shaderPayloadAssociation;
-	subobjects[i++] = shaderPayloadAssociationSubobject;
+	// Build a list of all the symbols for ray generation, miss and hit groups
+	// Those shaders have to be associated with the payload definition
+	std::vector<std::wstring> exportedSymbols = Proxy.BuildShaderExportList();
+	auto pAssociationSubobject = desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+
+	for (const auto& symbols : exportedSymbols)
+	{
+		pAssociationSubobject->AddExport(symbols.data());
+	}
+	pAssociationSubobject->SetSubobjectToAssociate(*pShaderConfigSubobject);
 
 	// Add a subobject for the raytracing pipeline configuration
-	D3D12_STATE_SUBOBJECT raytracingPipelineConfigSubobject = {};
-	raytracingPipelineConfigSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
-	raytracingPipelineConfigSubobject.pDesc = &Proxy.m_RaytracingPipelineConfig;
-	subobjects[i++] = raytracingPipelineConfigSubobject;
+	auto pPipelineConfigSubobject = desc.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+	pPipelineConfigSubobject->Config(Proxy.m_PipelineConfig.MaxTraceRecursionDepth);
 
-	// Describe the ray tracing pipeline state object
-	D3D12_STATE_OBJECT_DESC desc = {};
-	desc.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE;
-	desc.NumSubobjects = i; // static_cast<UINT>(subobjects.size());
-	desc.pSubobjects = subobjects.data();
-
-	PrintStateObjectDesc(&desc);
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateStateObject(&desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
+	PrintStateObjectDesc(desc);
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateStateObject(desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
 	// Query the state object properties
 	ThrowCOMIfFailed(m_StateObject->QueryInterface(IID_PPV_ARGS(m_StateObjectProperties.ReleaseAndGetAddressOf())));
 }

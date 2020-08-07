@@ -32,6 +32,7 @@ void BufferProxy::SetOptionalDataForUpload(const void* pOptionDataForUpload)
 
 void BufferProxy::Link()
 {
+	assert(m_SizeInBytes != 0);
 	m_NumSubresources = 1;
 
 	switch (m_CpuAccess)
@@ -53,8 +54,7 @@ D3D12_HEAP_PROPERTIES BufferProxy::BuildD3DHeapProperties() const
 	}
 }
 
-D3D12_RESOURCE_DESC BufferProxy::BuildD3DResourceDesc() const
+D3D12_RESOURCE_DESC BufferProxy::BuildD3DDesc() const
 {
-	assert(m_SizeInBytes != 0);
 	return CD3DX12_RESOURCE_DESC::Buffer(m_SizeInBytes, GetD3DResourceFlags(BindFlags));
 }

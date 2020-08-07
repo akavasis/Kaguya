@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Transform.h"
+using namespace DirectX;
 
 Transform::Transform()
 {
@@ -8,26 +9,26 @@ Transform::Transform()
 
 void Transform::Reset()
 {
-	DirectX::XMStoreFloat3(&Position, DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
-	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionIdentity());
-	DirectX::XMStoreFloat3(&Scale, DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	XMStoreFloat3(&Position, XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
+	XMStoreFloat4(&Orientation, XMQuaternionIdentity());
+	XMStoreFloat3(&Scale, XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
 }
 
 void Transform::SetTransform(DirectX::FXMMATRIX M)
 {
-	DirectX::XMVECTOR translation, orientation, scale;
-	DirectX::XMMatrixDecompose(&scale, &orientation, &translation, M);
+	XMVECTOR translation, orientation, scale;
+	XMMatrixDecompose(&scale, &orientation, &translation, M);
 
-	DirectX::XMStoreFloat3(&Position, translation);
-	DirectX::XMStoreFloat4(&Orientation, orientation);
-	DirectX::XMStoreFloat3(&Scale, scale);
+	XMStoreFloat3(&Position, translation);
+	XMStoreFloat4(&Orientation, orientation);
+	XMStoreFloat3(&Scale, scale);
 }
 
 void Transform::Translate(float DeltaX, float DeltaY, float DeltaZ)
 {
-	DirectX::XMVECTOR CurrentPosition = XMLoadFloat3(&Position);
-	DirectX::XMVECTOR Velocity = DirectX::XMVector3Rotate(DirectX::XMVectorSet(DeltaX, DeltaY, DeltaZ, 0.0f), DirectX::XMLoadFloat4(&Orientation));
-	DirectX::XMStoreFloat3(&Position, DirectX::XMVectorAdd(CurrentPosition, Velocity));
+	XMVECTOR CurrentPosition = XMLoadFloat3(&Position);
+	XMVECTOR Velocity = XMVector3Rotate(XMVectorSet(DeltaX, DeltaY, DeltaZ, 0.0f), XMLoadFloat4(&Orientation));
+	XMStoreFloat3(&Position, XMVectorAdd(CurrentPosition, Velocity));
 }
 
 void Transform::SetScale(float ScaleX, float ScaleY, float ScaleZ)
@@ -39,38 +40,38 @@ void Transform::SetScale(float ScaleX, float ScaleY, float ScaleZ)
 
 void Transform::Rotate(float AngleX, float AngleY, float AngleZ)
 {
-	DirectX::XMVECTOR currentRotation = DirectX::XMLoadFloat4(&Orientation);
-	DirectX::XMVECTOR pitch = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Right(), AngleX));
-	DirectX::XMVECTOR yaw = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Math::Up, AngleY));
-	DirectX::XMVECTOR roll = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Forward(), AngleZ));
+	XMVECTOR currentRotation = XMLoadFloat4(&Orientation);
+	XMVECTOR pitch = XMQuaternionNormalize(XMQuaternionRotationAxis(Right(), AngleX));
+	XMVECTOR yaw = XMQuaternionNormalize(XMQuaternionRotationAxis(Math::Up, AngleY));
+	XMVECTOR roll = XMQuaternionNormalize(XMQuaternionRotationAxis(Forward(), AngleZ));
 
-	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(currentRotation, pitch));
+	XMStoreFloat4(&Orientation, XMQuaternionMultiply(currentRotation, pitch));
+	currentRotation = XMLoadFloat4(&Orientation);
+	XMStoreFloat4(&Orientation, XMQuaternionMultiply(currentRotation, yaw));
 	currentRotation = DirectX::XMLoadFloat4(&Orientation);
-	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(currentRotation, yaw));
-	currentRotation = DirectX::XMLoadFloat4(&Orientation);
-	DirectX::XMStoreFloat4(&Orientation, DirectX::XMQuaternionMultiply(currentRotation, roll));
+	XMStoreFloat4(&Orientation, XMQuaternionMultiply(currentRotation, roll));
 }
 
 DirectX::XMMATRIX Transform::Matrix() const
 {
 	// S * R * T
 	return
-		DirectX::XMMatrixMultiply(
-			DirectX::XMMatrixMultiply(DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&Scale)), DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionNormalize(XMLoadFloat4(&Orientation)))),
-			DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&Position)));
+		XMMatrixMultiply(
+			XMMatrixMultiply(XMMatrixScalingFromVector(XMLoadFloat3(&Scale)), XMMatrixRotationQuaternion(XMQuaternionNormalize(XMLoadFloat4(&Orientation)))),
+			XMMatrixTranslationFromVector(XMLoadFloat3(&Position)));
 }
 
 DirectX::XMVECTOR Transform::Up() const
 {
-	return DirectX::XMVector3Rotate(Math::Up, DirectX::XMLoadFloat4(&Orientation));
+	return XMVector3Rotate(Math::Up, XMLoadFloat4(&Orientation));
 }
 
 DirectX::XMVECTOR Transform::Right() const
 {
-	return DirectX::XMVector3Rotate(Math::Right, DirectX::XMLoadFloat4(&Orientation));
+	return XMVector3Rotate(Math::Right, XMLoadFloat4(&Orientation));
 }
 
 DirectX::XMVECTOR Transform::Forward() const
 {
-	return DirectX::XMVector3Rotate(Math::Forward, DirectX::XMLoadFloat4(&Orientation));
+	return XMVector3Rotate(Math::Forward, XMLoadFloat4(&Orientation));
 }

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Heap.h"
 #include "Device.h"
-#include "Proxy/HeapProxy.h"
+#include "../Proxy/HeapProxy.h"
 
 const D3D12_HEAP_PROPERTIES kDefaultHeapProps =
 {
@@ -31,18 +31,14 @@ const D3D12_HEAP_PROPERTIES kReadbackHeapProps =
 };
 
 Heap::Heap(const Device* pDevice, HeapProxy& Proxy)
-	: m_SizeInBytes(Math::AlignUp<UINT64>(Proxy.m_SizeInBytes, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)),
-	m_Type(Proxy.m_Type),
-	m_Flags(Proxy.m_Flags)
+	: m_SizeInBytes(Math::AlignUp<UINT64>(Proxy.SizeInBytes, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)),
+	m_Type(Proxy.Type),
+	m_Flags(Proxy.Flags)
 {
 	Proxy.Link();
 
-	D3D12_HEAP_DESC desc = Proxy.GetD3DHeapDesc();
+	D3D12_HEAP_DESC desc = Proxy.BuildD3DDesc();
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateHeap(&desc, IID_PPV_ARGS(&m_pHeap)));
-}
-
-Heap::~Heap()
-{
 }
 
 D3D12_HEAP_FLAGS GetD3DHeapFlags(Heap::Flags Flags)

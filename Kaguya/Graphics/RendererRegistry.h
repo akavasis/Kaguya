@@ -119,7 +119,7 @@ struct Shaders
 		inline static RenderResourceHandle Default;
 		inline static RenderResourceHandle Quad;
 		inline static RenderResourceHandle Shadow;
-		inline static RenderResourceHandle Sky;
+		inline static RenderResourceHandle Skybox;
 	};
 
 	struct PS
@@ -128,7 +128,7 @@ struct Shaders
 		inline static RenderResourceHandle ConvolutionIrradiance;
 		inline static RenderResourceHandle ConvolutionPrefilter;
 		inline static RenderResourceHandle PBR;
-		inline static RenderResourceHandle Sky;
+		inline static RenderResourceHandle Skybox;
 
 		inline static RenderResourceHandle PostProcess_Tonemapping;
 	};

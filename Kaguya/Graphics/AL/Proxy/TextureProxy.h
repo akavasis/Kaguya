@@ -1,6 +1,6 @@
 #pragma once
 #include "ResourceProxy.h"
-#include "../Texture.h"
+#include "../D3D12/Texture.h"
 
 class TextureProxy : public ResourceProxy
 {
@@ -17,7 +17,7 @@ public:
 protected:
 	void Link() override;
 	D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const override;
-	D3D12_RESOURCE_DESC BuildD3DResourceDesc() const override;
+	D3D12_RESOURCE_DESC BuildD3DDesc() const override;
 private:
 	DXGI_FORMAT m_Format;		//< Default value: DXGI_FORMAT_UNKNOWN, must be set
 	UINT64 m_Width;				//< Default value: 0, must be set

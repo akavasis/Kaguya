@@ -1,11 +1,11 @@
 #pragma once
 #include "ResourceProxy.h"
-#include "../Buffer.h"
+#include "../D3D12/Buffer.h"
 
 class BufferProxy : public ResourceProxy
 {
-	friend class Buffer;
 public:
+	friend class Buffer;
 	BufferProxy();
 
 	void SetSizeInBytes(UINT64 SizeInBytes);
@@ -15,7 +15,7 @@ public:
 protected:
 	void Link() override;
 	D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const override;
-	D3D12_RESOURCE_DESC BuildD3DResourceDesc() const override;
+	D3D12_RESOURCE_DESC BuildD3DDesc() const override;
 private:
 	UINT64 m_SizeInBytes;					//< Default value: 0, must be set
 	UINT m_Stride;							//< Default value: 0, must be set

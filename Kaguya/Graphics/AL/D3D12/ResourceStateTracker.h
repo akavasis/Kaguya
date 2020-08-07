@@ -35,7 +35,7 @@ public:
 	};
 
 	void AddResourceState(ResourceType* pResource, D3D12_RESOURCE_STATES ResourceStates);
-	void RemoveResourceState(ResourceType* pResource);
+	bool RemoveResourceState(ResourceType* pResource);
 	void SetResourceState(ResourceType* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates);
 	void UpdateResourceStates(const ResourceStateTracker& RST);
 	void Reset();

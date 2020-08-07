@@ -1,17 +1,19 @@
 #pragma once
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
+#include <cmath>
 
 namespace Math
 {
-	static constexpr DirectX::XMVECTOR Right = { 1.0f,  0.0f,  0.0f, 1.0f };
-	static constexpr DirectX::XMVECTOR Up = { 0.0f,  1.0f,  0.0f, 1.0f };
-	static constexpr DirectX::XMVECTOR Forward = { 0.0f,  0.0f,  1.0f, 1.0f };
+	static constexpr DirectX::XMVECTOR Right = { 1.0f,  0.0f,  0.0f, 0.0f };
+	static constexpr DirectX::XMVECTOR Up = { 0.0f,  1.0f,  0.0f, 0.0f };
+	static constexpr DirectX::XMVECTOR Forward = { 0.0f,  0.0f,  1.0f, 0.0f };
 	static constexpr float Epsilon = 1.192092896e-7f;
+	static constexpr float Infinity = std::numeric_limits<float>::infinity();
 
 	// NOTE: [] = inclusive, () = exclusive
 
-	// Returns random int in [a, b).
+	// Returns random int in [a, b].
 	int Rand(int min, int max);
 
 	// Returns random float in [0, 1).
@@ -22,28 +24,28 @@ namespace Math
 
 	// Returns the minimum of a or b
 	template<typename T>
-	constexpr inline T Min(const T& a, const T& b)
+	constexpr inline T Min(T a, T b)
 	{
 		return a < b ? a : b;
 	}
 
 	// Returns the maximum of a or b
 	template<typename T>
-	constexpr inline T Max(const T& a, const T& b)
+	constexpr inline T Max(T a, T b)
 	{
 		return a > b ? a : b;
 	}
 
 	// Returns the interpolated value in [v0, v1]
 	template<typename T>
-	constexpr inline T Lerp(const T& v0, const T& v1, float t)
+	constexpr inline T Lerp(T v0, T v1, float t)
 	{
 		return ((T)1 - t) * v0 + t * v1;
 	}
 
 	// Returns the clamped value between [min, max]
 	template<typename T>
-	constexpr inline T Clamp(const T& value, const T& min, const T& max)
+	constexpr inline T Clamp(T value, T min, T max)
 	{
 		return value < min ? min : (value > max ? max : value);
 	}
@@ -52,6 +54,15 @@ namespace Math
 	DirectX::XMVECTOR CartesianToSpherical(float x, float y, float z);
 	// Returns the converted spherical system from cartesian
 	DirectX::XMVECTOR SphericalToCartesian(float radius, float theta, float phi);
+
+	DirectX::XMVECTOR RandomVector();
+	DirectX::XMVECTOR RandomVector(float Min, float Max);
+	DirectX::XMVECTOR RandomUnitVector();
+	DirectX::XMVECTOR RandomInUnitDisk();
+	DirectX::XMVECTOR RandomInUnitSphere();
+	DirectX::XMVECTOR RandomInHemisphere(DirectX::FXMVECTOR Normal);
+
+	float SchlickApproximation(float cosineTheta, float indexOfRefraction);
 
 	// Returns an Identity matrix in the type XMFLOAT4X4
 	DirectX::XMFLOAT4X4 Identity();
@@ -69,9 +80,9 @@ namespace Math
 	}
 
 	template <typename T>
-	constexpr inline T DivideByMultiple(T value, size_t alignment)
+	constexpr inline T DivideByMultiple(T Value, size_t Alignment)
 	{
-		return (T)((value + alignment - 1) / alignment);
+		return (T)((Value + Alignment - 1) / Alignment);
 	}
 }
 

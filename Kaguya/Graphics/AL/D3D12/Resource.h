@@ -12,21 +12,21 @@ class Resource
 public:
 	enum class Type
 	{
-		Unknown,		//< Unknown resource state
-		Buffer,			//< Buffer. Can be bound to all shader-stages
-		Texture1D,		//< 1D texture. Can be bound as render-target, shader-resource and UAV
-		Texture2D,		//< 2D texture. Can be bound as render-target, shader-resource and UAV
-		Texture3D,		//< 3D texture. Can be bound as render-target, shader-resource and UAV
-		TextureCube,	//< Cube texture. Can be bound as render-target, shader-resource and UAV
+		Unknown,		// Unknown resource state
+		Buffer,			// Buffer. Can be bound to all shader-stages
+		Texture1D,		// 1D texture. Can be bound as render-target, shader-resource and UAV
+		Texture2D,		// 2D texture. Can be bound as render-target, shader-resource and UAV
+		Texture3D,		// 3D texture. Can be bound as render-target, shader-resource and UAV
+		TextureCube,	// Cube texture. Can be bound as render-target, shader-resource and UAV
 	};
 
 	enum class BindFlags
 	{
-		None					= 0,		//< The resource wont be bound to the pipeline
-		RenderTarget			= 1 << 0,	//< The resource will be bound as a render-target
-		DepthStencil			= 1 << 1,	//< The resource will be bound as a depth-stencil
-		UnorderedAccess			= 1 << 2,	//< The resource will be bound as an UAV
-		AccelerationStructure	= 1 << 3,	//< The resource will be bound as an acceleration structure
+		None					= 0,		// The resource wont be bound to the pipeline
+		RenderTarget			= 1 << 0,	// The resource will be bound as a render-target
+		DepthStencil			= 1 << 1,	// The resource will be bound as a depth-stencil
+		UnorderedAccess			= 1 << 2,	// The resource will be bound as an UAV
+		AccelerationStructure	= 1 << 3,	// The resource will be bound as an acceleration structure
 	};
 
 	enum class State
@@ -71,8 +71,8 @@ public:
 	inline auto GetD3DResource() const { return m_pResource.Get(); }
 	inline auto GetType() const { return m_Type; }
 	inline auto GetBindFlags() const { return m_BindFlags; }
-	inline auto GetSizeInBytes() const { return m_ResourceAllocationInfo.SizeInBytes; }
-	inline auto GetAlignment() const { return m_ResourceAllocationInfo.Alignment; }
+	inline auto GetSizeInBytes() const { return m_SizeInBytes; }
+	inline auto GetAlignment() const { return m_Alignment; }
 	inline auto GetHeapOffset() const { return m_HeapOffset; }
 	inline auto GetNumSubresources() const { return m_NumSubresources; }
 
@@ -86,7 +86,8 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pResource;
 	Type m_Type;
 	BindFlags m_BindFlags;
-	D3D12_RESOURCE_ALLOCATION_INFO m_ResourceAllocationInfo;
+	UINT64 m_SizeInBytes;
+	UINT64 m_Alignment;
 	UINT64 m_HeapOffset;
 	UINT m_NumSubresources;
 };

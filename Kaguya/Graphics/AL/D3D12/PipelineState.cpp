@@ -1,32 +1,24 @@
 #include "pch.h"
 #include "PipelineState.h"
 #include "Device.h"
+#include "../Proxy/PipelineStateProxy.h"
 
-PipelineState::PipelineState(Type Type)
-	: m_Type(Type)
+PipelineState::PipelineState(PipelineStateProxy& Proxy)
+	: m_Type(Proxy.m_Type)
 {
+	Proxy.Link();
 }
 
-PipelineState::~PipelineState()
+GraphicsPipelineState::GraphicsPipelineState(const Device* pDevice, GraphicsPipelineStateProxy& Proxy)
+	: PipelineState(Proxy)
 {
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = Proxy.BuildD3DDesc();
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 }
 
-GraphicsPipelineState::GraphicsPipelineState(Device* pDevice, const Properties& Properties)
-	: PipelineState(PipelineState::Type::Graphics)
+ComputePipelineState::ComputePipelineState(const Device* pDevice, ComputePipelineStateProxy& Proxy)
+	: PipelineState(Proxy)
 {
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateGraphicsPipelineState(&Properties.Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
-}
-
-GraphicsPipelineState::~GraphicsPipelineState()
-{
-}
-
-ComputePipelineState::ComputePipelineState(Device* pDevice, const Properties& Properties)
-	: PipelineState(PipelineState::Type::Compute)
-{
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateComputePipelineState(&Properties.Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
-}
-
-ComputePipelineState::~ComputePipelineState()
-{
+	D3D12_COMPUTE_PIPELINE_STATE_DESC desc = Proxy.BuildD3DDesc();
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 }

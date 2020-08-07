@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Texture.h"
 #include "Device.h"
-#include "Proxy/TextureProxy.h"
+#include "../Proxy/TextureProxy.h"
 
 Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 	: Resource(ExistingID3D12Resource),

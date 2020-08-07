@@ -1,31 +1,19 @@
 #pragma once
-#include <memory>
-#include <mutex>
-#include <atomic>
-#include <unordered_map>
 #include "../Core/Delegate.h"
 
 #include "AL/D3D12/Device.h"
 #include "AL/D3D12/ShaderCompiler.h"
 #include "AL/D3D12/ResourceStateTracker.h"
-#include "AL/D3D12/DescriptorHeap.h"
 #include "AL/D3D12/DescriptorAllocator.h"
 #include "AL/D3D12/CommandQueue.h"
 #include "AL/D3D12/CommandContext.h"
 
-#include "AL/D3D12/Buffer.h"
-#include "AL/D3D12/Texture.h"
-#include "AL/D3D12/Heap.h"
-#include "AL/D3D12/RootSignature.h"
-#include "AL/D3D12/PipelineState.h"
-#include "AL/D3D12/RaytracingPipelineState.h"
-
-#include "AL/D3D12/Proxy/BufferProxy.h"
-#include "AL/D3D12/Proxy/TextureProxy.h"
-#include "AL/D3D12/Proxy/HeapProxy.h"
-#include "AL/D3D12/Proxy/RootSignatureProxy.h"
-//#include "AL/D3D12/Proxy/PipelineStateProxy.h"
-#include "AL/D3D12/Proxy/RaytracingPipelineStateProxy.h"
+#include "AL/Proxy/BufferProxy.h"
+#include "AL/Proxy/TextureProxy.h"
+#include "AL/Proxy/HeapProxy.h"
+#include "AL/Proxy/RootSignatureProxy.h"
+#include "AL/Proxy/PipelineStateProxy.h"
+#include "AL/Proxy/RaytracingPipelineStateProxy.h"
 
 #include "RenderResourceContainer.h"
 
@@ -74,8 +62,8 @@ public:
 
 	[[nodiscard]] RenderResourceHandle CreateHeap(Delegate<void(HeapProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties);
-	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(const ComputePipelineState::Properties& Properties);
+	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(Delegate<void(GraphicsPipelineStateProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(Delegate<void(ComputePipelineStateProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateRaytracingPipelineState(Delegate<void(RaytracingPipelineStateProxy&)> Configurator);
 
 	void Destroy(RenderResourceHandle* pRenderResourceHandle);

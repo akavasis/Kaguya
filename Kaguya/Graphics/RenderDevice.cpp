@@ -144,15 +144,21 @@ RenderResourceHandle RenderDevice::CreateRootSignature(StandardShaderLayoutOptio
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateGraphicsPipelineState(const GraphicsPipelineState::Properties& Properties)
+RenderResourceHandle RenderDevice::CreateGraphicsPipelineState(Delegate<void(GraphicsPipelineStateProxy&)> Configurator)
 {
-	auto [handle, graphicsPSO] = m_GraphicsPipelineStates.CreateResource(&m_Device, Properties);
+	GraphicsPipelineStateProxy proxy;
+	Configurator(proxy);
+
+	auto [handle, graphicsPSO] = m_GraphicsPipelineStates.CreateResource(&m_Device, proxy);
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateComputePipelineState(const ComputePipelineState::Properties& Properties)
+RenderResourceHandle RenderDevice::CreateComputePipelineState(Delegate<void(ComputePipelineStateProxy&)> Configurator)
 {
-	auto [handle, computePSO] = m_ComputePipelineStates.CreateResource(&m_Device, Properties);
+	ComputePipelineStateProxy proxy;
+	Configurator(proxy);
+
+	auto [handle, computePSO] = m_ComputePipelineStates.CreateResource(&m_Device, proxy);
 	return handle;
 }
 

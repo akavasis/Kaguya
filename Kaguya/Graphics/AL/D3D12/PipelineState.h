@@ -3,6 +3,9 @@
 #include <wrl/client.h>
 
 class Device;
+class PipelineStateProxy;
+class GraphicsPipelineStateProxy;
+class ComputePipelineStateProxy;
 
 class PipelineState
 {
@@ -15,8 +18,8 @@ public:
 	};
 
 	PipelineState() = default;
-	PipelineState(Type Type);
-	virtual ~PipelineState();
+	PipelineState(PipelineStateProxy& Proxy);
+	virtual ~PipelineState() = default;
 
 	PipelineState(PipelineState&&) noexcept = default;
 	PipelineState& operator=(PipelineState&&) noexcept = default;
@@ -28,20 +31,14 @@ public:
 	inline auto GetType() const { return m_Type; }
 protected:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
-	Type m_Type = PipelineState::Type::Unknown;
+	Type m_Type;
 };
 
 class GraphicsPipelineState : public PipelineState
 {
 public:
-	struct Properties
-	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc;
-	};
-
 	GraphicsPipelineState() = default;
-	GraphicsPipelineState(Device* pDevice, const Properties& Properties);
-	~GraphicsPipelineState() override;
+	GraphicsPipelineState(const Device* pDevice, GraphicsPipelineStateProxy& Proxy);
 
 	GraphicsPipelineState(GraphicsPipelineState&&) noexcept = default;
 	GraphicsPipelineState& operator=(GraphicsPipelineState&&) noexcept = default;
@@ -53,14 +50,8 @@ public:
 class ComputePipelineState : public PipelineState
 {
 public:
-	struct Properties
-	{
-		D3D12_COMPUTE_PIPELINE_STATE_DESC Desc;
-	};
-
 	ComputePipelineState() = default;
-	ComputePipelineState(Device* pDevice, const Properties& Properties);
-	~ComputePipelineState() override;
+	ComputePipelineState(const Device* pDevice, ComputePipelineStateProxy& Proxy);
 
 	ComputePipelineState(ComputePipelineState&&) noexcept = default;
 	ComputePipelineState& operator=(ComputePipelineState&&) noexcept = default;

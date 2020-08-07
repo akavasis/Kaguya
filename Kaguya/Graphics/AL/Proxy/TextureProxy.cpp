@@ -62,7 +62,7 @@ D3D12_HEAP_PROPERTIES TextureProxy::BuildD3DHeapProperties() const
 	return kDefaultHeapProps;
 }
 
-D3D12_RESOURCE_DESC TextureProxy::BuildD3DResourceDesc() const
+D3D12_RESOURCE_DESC TextureProxy::BuildD3DDesc() const
 {
 	D3D12_RESOURCE_FLAGS flags = GetD3DResourceFlags(BindFlags);
 	switch (m_Type)

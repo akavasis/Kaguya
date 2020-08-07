@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Buffer.h"
 #include "Device.h"
-#include "Proxy/BufferProxy.h"
+#include "../Proxy/BufferProxy.h"
 
 Buffer::Buffer(const Device* pDevice, BufferProxy& Proxy)
 	: Resource(pDevice, Proxy),

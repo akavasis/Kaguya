@@ -31,7 +31,6 @@ public:
 
 	Heap() = default;
 	Heap(const Device* pDevice, HeapProxy& Proxy);
-	~Heap();
 
 	Heap(Heap&&) noexcept = default;
 	Heap& operator=(Heap&&) noexcept = default;

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Resource.h"
 #include "Device.h"
-#include "Proxy/ResourceProxy.h"
+#include "../Proxy/ResourceProxy.h"
 
 Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 	: m_pResource(ExistingID3D12Resource)
@@ -18,7 +18,9 @@ Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource
 
 	ID3D12Device* pDevice = nullptr;
 	ExistingID3D12Resource->GetDevice(IID_PPV_ARGS(&pDevice));
-	m_ResourceAllocationInfo = pDevice->GetResourceAllocationInfo(0, 1, &desc);
+	D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetResourceAllocationInfo(0, 1, &desc);
+	m_SizeInBytes = allocInfo.SizeInBytes;
+	m_Alignment = allocInfo.Alignment;
 	pDevice->Release();
 	m_HeapOffset = 0;
 
@@ -37,11 +39,13 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 
 	const D3D12_HEAP_PROPERTIES prop = Proxy.BuildD3DHeapProperties();
 	const D3D12_HEAP_FLAGS flag = D3D12_HEAP_FLAG_NONE;
-	const D3D12_RESOURCE_DESC desc = Proxy.BuildD3DResourceDesc();
+	const D3D12_RESOURCE_DESC desc = Proxy.BuildD3DDesc();
 	const D3D12_RESOURCE_STATES state = GetD3DResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE* clearValue = Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
 
-	m_ResourceAllocationInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &desc);
+	D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &desc);
+	m_SizeInBytes = allocInfo.SizeInBytes;
+	m_Alignment = allocInfo.Alignment;
 	m_HeapOffset = 0;
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommittedResource(
 		&prop,
@@ -61,11 +65,13 @@ Resource::Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, 
 
 	m_BindFlags = Proxy.BindFlags;
 
-	const D3D12_RESOURCE_DESC desc = Proxy.BuildD3DResourceDesc();
+	const D3D12_RESOURCE_DESC desc = Proxy.BuildD3DDesc();
 	D3D12_RESOURCE_STATES state = GetD3DResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE* clearValue = Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
 
-	m_ResourceAllocationInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &desc);
+	D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &desc);
+	m_SizeInBytes = allocInfo.SizeInBytes;
+	m_Alignment = allocInfo.Alignment;
 	m_HeapOffset = HeapOffset;
 	switch (pHeap->GetType())
 	{
@@ -89,6 +95,8 @@ Resource::~Resource()
 void Resource::Release()
 {
 	m_pResource.Reset();
+	m_Type = Resource::Type::Unknown;
+	m_BindFlags = BindFlags::None;
 }
 
 D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type)
