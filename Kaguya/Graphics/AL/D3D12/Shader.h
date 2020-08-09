@@ -3,12 +3,23 @@
 #include <wrl/client.h>
 #include <dxcapi.h>
 
+struct ShaderIdentifier
+{
+	BYTE Data[D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES];
+};
+
 class Shader
 {
 public:
 	enum class Type
 	{
-		Unknown, Vertex, Hull, Domain, Geometry, Pixel, Compute
+		Unknown,
+		Vertex,
+		Hull,
+		Domain,
+		Geometry,
+		Pixel,
+		Compute
 	};
 
 	Shader() = default;

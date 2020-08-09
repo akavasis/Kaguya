@@ -12,7 +12,7 @@ Device::Device(IDXGIAdapter4* pAdapter)
 	pDebug1->SetEnableGPUBasedValidation(gpuBasedValidation);
 #endif
 
-	const D3D_FEATURE_LEVEL minimumFeatureLevel = D3D_FEATURE_LEVEL_12_1;
+	constexpr D3D_FEATURE_LEVEL minimumFeatureLevel = D3D_FEATURE_LEVEL_12_1;
 	// Create our virtual device used for interacting with the GPU so we can create resources
 	ThrowCOMIfFailed(::D3D12CreateDevice(pAdapter, minimumFeatureLevel, IID_PPV_ARGS(m_pDevice5.ReleaseAndGetAddressOf())));
 

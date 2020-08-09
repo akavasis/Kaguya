@@ -1,7 +1,5 @@
 #include "pch.h"
 #include "RaytracingPipelineStateProxy.h"
-#include "../D3D12/RootSignature.h"
-#include "../D3D12/Library.h"
 
 RaytracingPipelineStateProxy::RaytracingPipelineStateProxy()
 {

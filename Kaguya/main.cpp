@@ -130,6 +130,9 @@ int main(int argc, char** argv)
 			}
 
 			time.Signal();
+			std::wstring msg = L"   FPS: " + std::to_wstring(Renderer::Statistics::FPS);
+			msg += L"   FPMS: " + std::to_wstring(Renderer::Statistics::FPMS);
+			window.AppendToTitle(msg);
 			renderer.Update(time);
 			renderer.Render(scene);
 		});

@@ -9,14 +9,8 @@ RenderPassBase::RenderPassBase(RenderPassType Type)
 
 RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice),
-	m_ExecutionPolicy(Sequenced),
 	m_NumRenderPasses(0)
 {
-}
-
-void RenderGraph::SetExecutionPolicy(ExecutionPolicy ExecutionPolicy)
-{
-	m_ExecutionPolicy = ExecutionPolicy;
 }
 
 void RenderGraph::Setup()
@@ -29,24 +23,15 @@ void RenderGraph::Setup()
 	m_Futures.resize(m_NumRenderPasses);
 }
 
-void RenderGraph::Execute(Scene& Scene)
+void RenderGraph::Execute(UINT FrameIndex, Scene& Scene)
 {
+	m_FrameIndex = FrameIndex;
 	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
 	{
 		if (!m_RenderPasses[i]->Enabled)
 			continue;
 
-		switch (m_ExecutionPolicy)
-		{
-		case ExecutionPolicy::Sequenced:
-		{
-			RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
-			pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
-			m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
-		}
-		break;
-
-		case ExecutionPolicy::Parallel:
+		if constexpr (RenderGraph::Settings::MultiThreaded)
 		{
 			m_Futures[i] = m_ThreadPool->AddWork([this, i, &Scene = Scene]()
 			{
@@ -55,7 +40,11 @@ void RenderGraph::Execute(Scene& Scene)
 				m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
 			});
 		}
-		break;
+		else
+		{
+			RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
+			pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
+			m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
 		}
 	}
 }
@@ -74,10 +63,10 @@ void RenderGraph::ThreadBarrier()
 	}
 }
 
-void RenderGraph::Resize()
+void RenderGraph::Resize(UINT Width, UINT Height)
 {
 	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
 	{
-		m_RenderPasses[i]->Resize(pRenderDevice);
+		m_RenderPasses[i]->Resize(Width, Height, pRenderDevice);
 	}
 }

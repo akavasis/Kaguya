@@ -48,7 +48,8 @@ BYTE* Buffer::Map()
 
 void Buffer::Unmap()
 {
-	if (!m_pMappedData) return;
+	if (!m_pMappedData) 
+		return;
 
 	m_pResource->Unmap(0, nullptr);
 	m_pMappedData = nullptr;

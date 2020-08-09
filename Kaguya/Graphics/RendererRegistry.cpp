@@ -313,8 +313,8 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		proxy.AddHitGroup(L"HitGroup", nullptr, L"ClosestHit", nullptr);
 
 		RootSignature* pRayGenerationRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::RayGeneration);
-		RootSignature* pHitRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Hit);
 		RootSignature* pMissRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Miss);
+		RootSignature* pHitRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Hit);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
@@ -322,10 +322,28 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		// to as hit groups, meaning that the underlying intersection, any-hit and
 		// closest-hit shaders share the same root signature.
 		proxy.AddRootSignatureAssociation(pRayGenerationRootSignature, { L"RayGen" });
-		proxy.AddRootSignatureAssociation(pHitRootSignature, { L"HitGroup" });
 		proxy.AddRootSignatureAssociation(pMissRootSignature, { L"Miss" });
+		proxy.AddRootSignatureAssociation(pHitRootSignature, { L"HitGroup" });
 
 		proxy.SetRaytracingShaderConfig(4 * sizeof(float), 2 * sizeof(float));
 		proxy.SetRaytracingPipelineConfig(1);
 	});
+	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(Raytracing);
+	D3D12_GPU_DESCRIPTOR_HANDLE universalDescriptorHeapGpuHandle = pRenderDevice->GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart();
+	auto pPtr = reinterpret_cast<UINT64*>(universalDescriptorHeapGpuHandle.ptr);
+
+	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::RayGeneration, L"RayGen", { pPtr });
+	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::Miss, L"Miss", {});
+	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::HitGroup, L"HitGroup", {});
+
+	RaytracingShaderTableBuffer = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+	{
+		auto memoryRequirements = pRaytracingPipelineState->GetShaderTable().GetShaderTableMemoryRequirements();
+
+		proxy.SetSizeInBytes(memoryRequirements.ShaderTableSizeInBytes);
+		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+	});
+
+	Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(RaytracingShaderTableBuffer);
+	pRaytracingPipelineState->GetShaderTable().Upload(pRaytracingPipelineState, pShaderTableBuffer);
 }

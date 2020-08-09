@@ -1,9 +1,9 @@
 #pragma region RenderPass
 template<typename Data>
-inline RenderPass<Data>::RenderPass(RenderPassType Type, PassCallback&& RenderPassPassCallback, ResizeCallback&& RenderPassResizeCallback)
+inline RenderPass<Data>::RenderPass(RenderPassType Type, SetupCallback&& RenderPassSetupCallback, ResizeCallback&& RenderPassResizeCallback)
 	: RenderPassBase(Type),
-	m_Data(),
-	m_PassCallback(std::forward<PassCallback>(RenderPassPassCallback)),
+	Data(),
+	m_SetupCallback(std::forward<SetupCallback>(RenderPassSetupCallback)),
 	m_ResizeCallback(std::forward<ResizeCallback>(RenderPassResizeCallback))
 {
 }
@@ -11,19 +11,19 @@ inline RenderPass<Data>::RenderPass(RenderPassType Type, PassCallback&& RenderPa
 template<typename Data>
 inline void RenderPass<Data>::Setup(RenderDevice* pRenderDevice)
 {
-	m_ExecuteCallback = m_PassCallback(m_Data, std::forward<RenderDevice*>(pRenderDevice));
+	m_ExecuteCallback = m_SetupCallback(*this, std::forward<RenderDevice*>(pRenderDevice));
 }
 
 template<typename Data>
 inline void RenderPass<Data>::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
-	m_ExecuteCallback(m_Data, Scene, RenderGraphRegistry, std::forward<CommandContext*>(pCommandContext));
+	m_ExecuteCallback(*this, Scene, RenderGraphRegistry, std::forward<CommandContext*>(pCommandContext));
 }
 
 template<typename Data>
-inline void RenderPass<Data>::Resize(RenderDevice* pRenderDevice)
+inline void RenderPass<Data>::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
 {
-	m_ResizeCallback(m_Data, std::forward<RenderDevice*>(pRenderDevice));
+	m_ResizeCallback(*this, std::forward<UINT>(Width), std::forward<UINT>(Height), std::forward<RenderDevice*>(pRenderDevice));
 }
 #pragma endregion RenderPass
 
@@ -38,15 +38,15 @@ inline RenderPass<Data>* RenderGraph::GetRenderPass()
 	return nullptr;
 }
 
-template<typename Data, typename PassCallback, typename ResizeCallback>
-inline RenderPass<Data>* RenderGraph::AddRenderPass(RenderPassType Type, typename PassCallback&& RenderPassPassCallback, typename ResizeCallback&& RenderPassResizeCallback)
+template<typename Data, typename SetupCallback, typename ResizeCallback>
+inline RenderPass<Data>* RenderGraph::AddRenderPass(RenderPassType Type, typename SetupCallback&& RenderPassSetupCallback, typename ResizeCallback&& RenderPassResizeCallback)
 {
-	m_RenderPasses.emplace_back(std::make_unique<RenderPass<Data>>(Type, std::forward<PassCallback>(RenderPassPassCallback), std::forward<ResizeCallback>(RenderPassResizeCallback)));
+	m_RenderPasses.emplace_back(std::make_unique<RenderPass<Data>>(Type, std::forward<SetupCallback>(RenderPassSetupCallback), std::forward<ResizeCallback>(RenderPassResizeCallback)));
 	switch (Type)
 	{
-		case RenderPassType::Graphics: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); break;
-		case RenderPassType::Compute: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Compute)); break;
-		case RenderPassType::Copy: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Copy)); break;
+	case RenderPassType::Graphics: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); break;
+	case RenderPassType::Compute: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Compute)); break;
+	case RenderPassType::Copy: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Copy)); break;
 	}
 	m_RenderPassDataIDs.emplace_back(typeid(Data));
 	m_NumRenderPasses++;

@@ -3,6 +3,7 @@
 #include <wrl/client.h>
 #include "RootSignature.h"
 #include "Library.h"
+#include "ShaderTable.h"
 
 class Device;
 class RaytracingPipelineStateProxy;
@@ -19,10 +20,10 @@ struct HitGroup
 {
 	HitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol);
 
-	std::wstring HitGroupName;
-	std::wstring AnyHitSymbol;
-	std::wstring ClosestHitSymbol;
-	std::wstring IntersectionSymbol;
+	const std::wstring HitGroupName;
+	const std::wstring AnyHitSymbol;
+	const std::wstring ClosestHitSymbol;
+	const std::wstring IntersectionSymbol;
 };
 
 struct RootSignatureAssociation
@@ -30,7 +31,7 @@ struct RootSignatureAssociation
 	RootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols);
 
 	const RootSignature* pRootSignature;
-	std::vector<std::wstring> Symbols;
+	const std::vector<std::wstring> Symbols;
 };
 
 class RaytracingPipelineState
@@ -58,9 +59,14 @@ public:
 
 	inline auto GetD3DPipelineState() const { return m_StateObject.Get(); }
 	inline auto GetD3DPipelineStateProperties() const { return m_StateObjectProperties.Get(); }
+	inline auto& GetShaderTable() { return m_ShaderTable; }
+
+	ShaderIdentifier GetShaderIdentifier(const std::wstring& ExportName);
 private:
 	Microsoft::WRL::ComPtr<ID3D12StateObject> m_StateObject;
 	Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> m_StateObjectProperties;
 	RootSignature m_DummyGlobalRootSignature;
 	RootSignature m_DummyLocalRootSignature;
+
+	ShaderTable m_ShaderTable;
 };

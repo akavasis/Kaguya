@@ -1,8 +1,9 @@
 #pragma once
 #include "Math/Transform.h"
-#include "Device.h"
-#include "CommandContext.h"
-#include "Buffer.h"
+
+class Device;
+class Buffer;
+class CommandContext;
 
 struct RaytracingGeometryDesc
 {

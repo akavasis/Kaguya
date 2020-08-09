@@ -3,7 +3,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_set>
-#include "../Core/ThreadPool.h"
+#include "Core/ThreadPool.h"
 #include "RenderDevice.h"
 #include "Scene/Scene.h"
 
@@ -27,10 +27,12 @@ public:
 
 	virtual void Setup(RenderDevice*) = 0;
 	virtual void Execute(const Scene&, RenderGraphRegistry&, CommandContext*) = 0;
-	virtual void Resize(RenderDevice*) = 0;
+	virtual void Resize(UINT, UINT, RenderDevice*) = 0;
 
 	bool Enabled;
 	const RenderPassType Type;
+	std::vector<RenderResourceHandle> Outputs;
+	std::vector<DescriptorAllocation> ResourceViews;
 };
 
 struct VoidRenderPassData {};
@@ -39,24 +41,22 @@ template<typename Data>
 class RenderPass : public RenderPassBase
 {
 public:
-	using ExecuteCallback = Delegate<void(const Data&, const Scene&, RenderGraphRegistry&, CommandContext*)>;
-	using PassCallback = Delegate<ExecuteCallback(Data&, RenderDevice*)>;
-	using ResizeCallback = Delegate<void(Data&, RenderDevice*)>;
+	using ExecuteCallback = Delegate<void(const RenderPass<Data>&, const Scene&, RenderGraphRegistry&, CommandContext*)>;
+	using SetupCallback = Delegate<ExecuteCallback(RenderPass<Data>&, RenderDevice*)>;
+	using ResizeCallback = Delegate<void(RenderPass<Data>&, UINT, UINT, RenderDevice*)>;
 
-	RenderPass(RenderPassType Type, PassCallback&& RenderPassPassCallback, ResizeCallback&& RenderPassResizeCallback);
+	RenderPass(RenderPassType Type, SetupCallback&& RenderPassSetupCallback, ResizeCallback&& RenderPassResizeCallback);
 	~RenderPass() override = default;
-
-	inline auto& GetData() { return m_Data; }
-	inline const auto& GetData() const { return m_Data; }
 
 	void Setup(RenderDevice* pRenderDevice) override;
 	void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
-	void Resize(RenderDevice* pRenderDevice) override;
+	void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
+
+	Data Data;
 private:
 	friend class RenderGraph;
 
-	Data m_Data;
-	PassCallback m_PassCallback;
+	SetupCallback m_SetupCallback;
 	ExecuteCallback m_ExecuteCallback;
 	ResizeCallback m_ResizeCallback;
 };
@@ -90,43 +90,73 @@ private:
 class RenderGraph
 {
 public:
-	enum ExecutionPolicy
+	struct Settings
 	{
-		Sequenced, // Single threaded (Same thread as renderer), useful for debug, this is by default
-		Parallel // Multi threaded, maximize performance
+		static constexpr bool MultiThreaded = true;
 	};
 
 	RenderGraph(RenderDevice* pRenderDevice);
 
-	void SetExecutionPolicy(ExecutionPolicy ExecutionPolicy);
+	inline auto GetFrameIndex() const { return m_FrameIndex; }
+
+	RenderResourceHandle GetNonTransientResource(const std::string& Name)
+	{
+		auto iter = m_NonTransientResources.find(Name);
+		if (iter != m_NonTransientResources.end())
+		{
+			return iter->second;
+		}
+		return RenderResourceHandle();
+	}
+
+	void AddNonTransientResource(const std::string& Name, RenderResourceHandle Handle)
+	{
+		auto [iter, success] = m_NonTransientResources.emplace(Name, Handle);
+		if (!success)
+		{
+			throw std::logic_error("The name has been taken");
+		}
+	}
+
+	bool RemoveNonTransientResource(const std::string& Name)
+	{
+		auto iter = m_NonTransientResources.find(Name);
+		if (iter != m_NonTransientResources.end())
+		{
+			m_NonTransientResources.erase(iter);
+			return true;
+		}
+		return false;
+	}
 
 	template<typename Data>
 	RenderPass<Data>* GetRenderPass();
 
-	template<typename Data, typename PassCallback = RenderPass<Data>::PassCallback, typename ResizeCallback = RenderPass<Data>::ResizeCallback>
-	RenderPass<Data>* AddRenderPass(RenderPassType Type, typename PassCallback&& RenderPassPassCallback, typename ResizeCallback&& RenderPassResizeCallback);
+	template<typename Data, typename SetupCallback = RenderPass<Data>::SetupCallback, typename ResizeCallback = RenderPass<Data>::ResizeCallback>
+	RenderPass<Data>* AddRenderPass(RenderPassType Type, typename SetupCallback&& RenderPassSetupCallback, typename ResizeCallback&& RenderPassResizeCallback);
 
 	// Only call once
 	void Setup();
 
 	// Call every frame
-	void Execute(Scene& Scene);
+	void Execute(UINT FrameIndex, Scene& Scene);
 	void ExecuteCommandContexts();
 
 	void ThreadBarrier();
 
-	void Resize();
+	void Resize(UINT Width, UINT Height);
 private:
 	RenderDevice* pRenderDevice;
-	ExecutionPolicy m_ExecutionPolicy;
 	std::unique_ptr<ThreadPool> m_ThreadPool;
 	std::vector<std::future<void>> m_Futures;
 
-	unsigned int m_NumRenderPasses;
+	UINT m_NumRenderPasses;
 	std::vector<std::unique_ptr<RenderPassBase>> m_RenderPasses;
+	std::vector<std::reference_wrapper<const std::type_info>> m_RenderPassDataIDs;
 	std::vector<CommandContext*> m_CommandContexts;
 
-	std::vector<std::reference_wrapper<const std::type_info>> m_RenderPassDataIDs;
+	std::unordered_map<std::string, RenderResourceHandle> m_NonTransientResources;
+	UINT m_FrameIndex;
 };
 
 #include "RenderGraph.inl"

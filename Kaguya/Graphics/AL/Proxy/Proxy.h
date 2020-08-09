@@ -9,6 +9,9 @@
 	classes that inherits from Proxy must implement Link method, this method essentially
 	links proxy data to api specific data and it can also check for invalid arguments,
 	Link method should always be called at the beginning of resource constructor associated with the proxy
+
+	I chose this pattern because it makes graphics api object creations platform agnostic, also allows cleaner and safer
+	code
 */
 class Proxy
 {

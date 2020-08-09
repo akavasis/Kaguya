@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "AccelerationStructure.h"
+#include "Device.h"
+#include "Buffer.h"
+#include "CommandContext.h"
 
 RaytracingAccelerationStructure::RaytracingAccelerationStructure(const Device* pDevice)
 	: pDevice(pDevice)
@@ -8,6 +11,7 @@ RaytracingAccelerationStructure::RaytracingAccelerationStructure(const Device* p
 	m_ASDesc = {};
 	m_ASBuildFlags = {};
 }
+
 void RaytracingAccelerationStructure::SetAccelerationStructure(Buffer* pResult, Buffer* pScratch, Buffer* pSource)
 {
 	assert(pResult);

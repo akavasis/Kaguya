@@ -6,7 +6,15 @@
 template<typename Type, size_t TypeBitField, typename Flags, size_t FlagsBitField>
 struct Handle
 {
+	Handle()
+		: Data(0)
+	{
+	}
 	auto operator<=>(const Handle<Type, TypeBitField, Flags, FlagsBitField>&) const = default;
+	operator bool() const
+	{
+		return Data != 0;
+	}
 
 	Type Type : TypeBitField;
 	Flags Flags : FlagsBitField;

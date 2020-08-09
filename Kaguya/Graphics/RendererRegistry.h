@@ -1,6 +1,4 @@
 #pragma once
-#include "Scene/Light.h"
-#include "Scene/SharedTypes.h"
 #include "RenderDevice.h"
 
 enum CubemapConvolution
@@ -15,6 +13,7 @@ struct Resolutions
 	static constexpr UINT64 BRDFLUT = 512;
 	static constexpr UINT64 Irradiance = 64;
 	static constexpr UINT64 Prefilter = 512;
+	static constexpr UINT64 SunShadowMapResolution = 2048;
 };
 
 struct ConvolutionIrradianceSetting
@@ -201,6 +200,7 @@ struct ComputePSOs
 struct RaytracingPSOs
 {
 	inline static RenderResourceHandle Raytracing;
+	inline static RenderResourceHandle RaytracingShaderTableBuffer;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

@@ -12,14 +12,17 @@ public:
 
 	RootSignature() = default;
 	RootSignature(const Device* pDevice, RootSignatureProxy& Proxy);
+	~RootSignature();
 
-	RootSignature(RootSignature&&) noexcept = default;
-	RootSignature& operator=(RootSignature&&) noexcept = default;
+	RootSignature(RootSignature&&) noexcept;
+	RootSignature& operator=(RootSignature&&) noexcept;
 
 	RootSignature(const RootSignature&) = delete;
 	RootSignature& operator=(const RootSignature&) = delete;
 
 	inline auto GetD3DRootSignature() const { return m_RootSignature.Get(); }
+	inline const auto& GetD3DRootSignatureDesc() const { return m_RootSignatureDesc; }
 private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
+	D3D12_ROOT_SIGNATURE_DESC1 m_RootSignatureDesc;
 };

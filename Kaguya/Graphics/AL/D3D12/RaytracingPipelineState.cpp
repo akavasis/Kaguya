@@ -129,15 +129,11 @@ DXILLibrary::DXILLibrary(const Library* pLibrary, const std::vector<std::wstring
 }
 
 HitGroup::HitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol)
+	: HitGroupName(pHitGroupName ? pHitGroupName : L""),
+	AnyHitSymbol(pAnyHitSymbol ? pAnyHitSymbol : L""),
+	ClosestHitSymbol(pClosestHitSymbol ? pClosestHitSymbol : L""),
+	IntersectionSymbol(pIntersectionSymbol ? pIntersectionSymbol : L"")
 {
-	if (pHitGroupName)
-		HitGroupName = pHitGroupName;
-	if (pAnyHitSymbol)
-		AnyHitSymbol = pAnyHitSymbol;
-	if (pClosestHitSymbol)
-		ClosestHitSymbol = pClosestHitSymbol;
-	if (pIntersectionSymbol)
-		IntersectionSymbol = pIntersectionSymbol;
 }
 
 RootSignatureAssociation::RootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
@@ -156,7 +152,7 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 	Proxy.Link();
 
 	CD3DX12_STATE_OBJECT_DESC desc(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
-	
+
 	// Add all the DXIL libraries
 	for (const auto& library : Proxy.m_Libraries)
 	{
@@ -243,4 +239,18 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateStateObject(desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
 	// Query the state object properties
 	ThrowCOMIfFailed(m_StateObject->QueryInterface(IID_PPV_ARGS(m_StateObjectProperties.ReleaseAndGetAddressOf())));
+}
+
+ShaderIdentifier RaytracingPipelineState::GetShaderIdentifier(const std::wstring& ExportName)
+{
+	ShaderIdentifier shaderIdentifier = {};
+	void* pShaderIdentifier = m_StateObjectProperties->GetShaderIdentifier(ExportName.data());
+	if (!pShaderIdentifier)
+	{
+		std::wstring errMsg(std::wstring(L"Unknown shader identifier: ") + ExportName);
+		throw std::logic_error(std::string(errMsg.begin(), errMsg.end()));
+	}
+
+	memcpy(shaderIdentifier.Data, pShaderIdentifier, sizeof(ShaderIdentifier));
+	return shaderIdentifier;
 }
