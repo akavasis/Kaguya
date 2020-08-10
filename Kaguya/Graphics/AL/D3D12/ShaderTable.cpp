@@ -8,12 +8,12 @@ ShaderTable::ShaderTable()
 	m_ShaderRecordStrides.fill(0);
 }
 
-void ShaderTable::AddShaderRecord(ShaderTable::RecordType Type, LPCWSTR pExportName, std::vector<void*> RootArguments)
+void ShaderTable::AddShaderRecord(RecordType Type, LPCWSTR pExportName, std::vector<void*> RootArguments)
 {
 	constexpr UINT64 ShaderIdentiferSizeInBytes = sizeof(ShaderIdentifier);
 	UINT64 recordSizeInBytes = ShaderIdentiferSizeInBytes;
 	recordSizeInBytes += 8 * static_cast<UINT64>(RootArguments.size());
-	recordSizeInBytes = Math::AlignUp<UINT64>(recordSizeInBytes, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+	recordSizeInBytes = Math::AlignUp<UINT64>(recordSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
 	ShaderRecord shaderRecord = {};
 	shaderRecord.ExportName = pExportName ? pExportName : L"";

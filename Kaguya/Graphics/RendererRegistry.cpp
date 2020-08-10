@@ -142,27 +142,19 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	});
 
 	// Raytracing RSs
-	// Ray Generation RS
-	RootSignatures::Raytracing::RayGeneration = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	// Global RS
+	RootSignatures::Raytracing::Global = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootSRVParameter(0, 0); // RaytracingAccelerationStructure
 		proxy.AddRootCBVParameter(0, 0); // Camera
 
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
 		CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
-		proxy.AddRootDescriptorTableParameter({ uavRange });
-
-		proxy.SetAsLocalRootSignature();
+		proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
 	});
 
-	// Closest Hit RS
-	RootSignatures::Raytracing::Hit = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
-	{
-		proxy.SetAsLocalRootSignature();
-	});
-
-	// Miss RS
-	RootSignatures::Raytracing::Miss = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	// Empty Local RS
+	RootSignatures::Raytracing::EmptyLocal = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
 		proxy.SetAsLocalRootSignature();
 	});
@@ -303,36 +295,34 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 	Raytracing = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
 	{
 		const Library* pRayGenerationLibrary = pRenderDevice->GetLibrary(Libraries::RayGeneration);
-		const Library* pClosestHitLibrary = pRenderDevice->GetLibrary(Libraries::ClosestHit);
 		const Library* pMissLibrary = pRenderDevice->GetLibrary(Libraries::Miss);
+		const Library* pClosestHitLibrary = pRenderDevice->GetLibrary(Libraries::ClosestHit);
 
 		proxy.AddLibrary(pRayGenerationLibrary, { L"RayGen" });
-		proxy.AddLibrary(pClosestHitLibrary, { L"ClosestHit" });
 		proxy.AddLibrary(pMissLibrary, { L"Miss" });
+		proxy.AddLibrary(pClosestHitLibrary, { L"ClosestHit" });
 
 		proxy.AddHitGroup(L"HitGroup", nullptr, L"ClosestHit", nullptr);
 
-		RootSignature* pRayGenerationRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::RayGeneration);
-		RootSignature* pMissRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Miss);
-		RootSignature* pHitRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Hit);
+		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
+		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
 		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
 		// to as hit groups, meaning that the underlying intersection, any-hit and
 		// closest-hit shaders share the same root signature.
-		proxy.AddRootSignatureAssociation(pRayGenerationRootSignature, { L"RayGen" });
-		proxy.AddRootSignatureAssociation(pMissRootSignature, { L"Miss" });
-		proxy.AddRootSignatureAssociation(pHitRootSignature, { L"HitGroup" });
+		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature, { L"RayGen" });
+		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature, { L"Miss" });
+		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature, { L"HitGroup" });
+		proxy.SetGlobalRootSignature(pGlobalRootSignature);
 
 		proxy.SetRaytracingShaderConfig(4 * sizeof(float), 2 * sizeof(float));
 		proxy.SetRaytracingPipelineConfig(1);
 	});
 	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(Raytracing);
-	D3D12_GPU_DESCRIPTOR_HANDLE universalDescriptorHeapGpuHandle = pRenderDevice->GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart();
-	auto pPtr = reinterpret_cast<UINT64*>(universalDescriptorHeapGpuHandle.ptr);
 
-	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::RayGeneration, L"RayGen", { pPtr });
+	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::RayGeneration, L"RayGen", {});
 	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::Miss, L"Miss", {});
 	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::HitGroup, L"HitGroup", {});
 

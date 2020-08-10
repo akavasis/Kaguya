@@ -60,7 +60,7 @@ void AddCSMRenderPass(
 		}
 
 		This.Outputs.push_back(handle);
-		This.ResourceViews.push_back(resourceView);
+		This.ResourceViews.push_back(std::move(resourceView));
 
 		This.Data.pGpuBufferAllocator = pGpuBufferAllocator;
 		This.Data.pGpuTextureAllocator = pGpuTextureAllocator;
@@ -85,7 +85,7 @@ void AddCSMRenderPass(
 			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Shadow));
 			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Shadow));
 
-			This.Data.pGpuBufferAllocator->Bind(pCommandContext);
+			This.Data.pGpuBufferAllocator->Bind(false, {}, pCommandContext);
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;

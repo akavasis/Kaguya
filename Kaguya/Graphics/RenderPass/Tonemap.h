@@ -2,8 +2,10 @@
 #include "Graphics/Scene/Scene.h"
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
+#include "Graphics/Renderer.h"
 
-#include "Skybox.h"
+#include "ForwardRendering.h"
+#include "Raytracing.h"
 
 class RenderGraph;
 
@@ -21,13 +23,22 @@ void AddTonemapRenderPass(
 	UINT InitialSwapChainBufferIndex,
 	RenderGraph* pRenderGraph)
 {
-	auto pSkyboxRenderPass = pRenderGraph->GetRenderPass<SkyboxRenderPassData>();
+	constexpr bool useRasterization = Renderer::Settings::Rasterization;
 
 	pRenderGraph->AddRenderPass<TonemapRenderPassData>(
 		RenderPassType::Graphics,
 		[=](RenderPass<TonemapRenderPassData>& This, RenderDevice* pRenderDevice)
 	{
-		This.Data.pSource = pRenderDevice->GetTexture(pSkyboxRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget]);
+		if (useRasterization)
+		{
+			auto pForwardRenderingRenderPass = pRenderGraph->GetRenderPass<ForwardRenderingRenderPassData>();
+			This.Data.pSource = pRenderDevice->GetTexture(pForwardRenderingRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget]);
+		}
+		else
+		{
+			auto pRaytracingRenderPass = pRenderGraph->GetRenderPass<RaytracingRenderPassData>();
+			This.Data.pSource = pRenderDevice->GetTexture(pRaytracingRenderPass->Outputs[RaytracingRenderPassData::Outputs::RenderTarget]);
+		}
 
 		return [](const RenderPass<TonemapRenderPassData>& This, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
@@ -66,6 +77,15 @@ void AddTonemapRenderPass(
 	},
 		[=](RenderPass<TonemapRenderPassData>& This, UINT Width, UINT Height, RenderDevice* pRenderDevice)
 	{
-		This.Data.pSource = pRenderDevice->GetTexture(pSkyboxRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget]);
+		if (useRasterization)
+		{
+			auto pSkyboxRenderPass = pRenderGraph->GetRenderPass<ForwardRenderingRenderPassData>();
+			This.Data.pSource = pRenderDevice->GetTexture(pSkyboxRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget]);
+		}
+		else
+		{
+			auto pRaytracingRenderPass = pRenderGraph->GetRenderPass<RaytracingRenderPassData>();
+			This.Data.pSource = pRenderDevice->GetTexture(pRaytracingRenderPass->Outputs[RaytracingRenderPassData::Outputs::RenderTarget]);
+		}
 	});
 }

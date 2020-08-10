@@ -45,7 +45,7 @@ public:
 private:
 	struct Status
 	{
-		bool BRDFGenerated = false;
+		inline static bool BRDFGenerated = false;
 	};
 
 	struct StagingTexture
@@ -75,8 +75,6 @@ private:
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
 
 	RenderDevice* pRenderDevice;
-
-	Status m_Status;
 
 	enum : UINT { NumDescriptorsPerRange = 2048 };
 	CBSRUADescriptorHeap m_CBSRUADescriptorHeap;

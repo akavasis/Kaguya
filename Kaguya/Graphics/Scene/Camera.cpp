@@ -40,6 +40,11 @@ XMMATRIX Camera::ProjectionMatrix() const
 	return XMLoadFloat4x4(&m_Projection);
 }
 
+DirectX::XMMATRIX Camera::InverseViewMatrix() const
+{
+	return XMMatrixInverse(nullptr, ViewMatrix());
+}
+
 XMMATRIX Camera::InverseProjectionMatrix() const
 {
 	return XMMatrixInverse(nullptr, ProjectionMatrix());

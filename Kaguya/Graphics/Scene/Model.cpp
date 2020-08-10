@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Model.h"
+using namespace DirectX;
 
 void Model::SetTransform(DirectX::FXMMATRIX M)
 {
@@ -36,30 +37,34 @@ struct MeshData
 
 Vertex MidPoint(const Vertex& v0, const Vertex& v1)
 {
-	DirectX::XMVECTOR p0 = XMLoadFloat3(&v0.Position);
-	DirectX::XMVECTOR p1 = XMLoadFloat3(&v1.Position);
+	XMVECTOR p0 = XMLoadFloat3(&v0.Position);
+	XMVECTOR p1 = XMLoadFloat3(&v1.Position);
 
-	DirectX::XMVECTOR n0 = XMLoadFloat3(&v0.Normal);
-	DirectX::XMVECTOR n1 = XMLoadFloat3(&v1.Normal);
+	XMVECTOR n0 = XMLoadFloat3(&v0.Normal);
+	XMVECTOR n1 = XMLoadFloat3(&v1.Normal);
 
-	DirectX::XMVECTOR tan0 = XMLoadFloat3(&v0.Tangent);
-	DirectX::XMVECTOR tan1 = XMLoadFloat3(&v1.Tangent);
+	XMVECTOR tan0 = XMLoadFloat3(&v0.Tangent);
+	XMVECTOR tan1 = XMLoadFloat3(&v1.Tangent);
 
-	DirectX::XMVECTOR tex0 = XMLoadFloat2(&v0.Texture);
-	DirectX::XMVECTOR tex1 = XMLoadFloat2(&v1.Texture);
+	XMVECTOR tex0 = XMLoadFloat2(&v0.Texture);
+	XMVECTOR tex1 = XMLoadFloat2(&v1.Texture);
 
 	// Compute the midpoints of all the attributes.  Vectors need to be normalized 
 	// since linear interpolating can make them not unit length.   
-	DirectX::XMVECTOR pos = DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorAdd(p0, p1)); // 0.5f * (p0 + p1) 
-	DirectX::XMVECTOR normal = DirectX::XMVector3Normalize(DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorAdd(n0, n1))); // 0.5f * (n0 + n1) 
-	DirectX::XMVECTOR tangent = DirectX::XMVector3Normalize(DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorAdd(tan0, tan1))); // 0.5f * (tan0 + tan1) 
-	DirectX::XMVECTOR tex = DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorAdd(tex0, tex1)); // 0.5f * (tex0 + tex1) 
+	XMVECTOR pos = XMVectorReplicate(0.5f) * (p0 + p1); // 0.5f * (p0 + p1) 
+	XMVECTOR normal = XMVectorReplicate(0.5f) * (n0 + n1); // 0.5f * (n0 + n1) 
+	normal = XMVector3Normalize(normal);
+
+	XMVECTOR tangent = XMVectorReplicate(0.5f) * (tan0 + tan1); // 0.5f * (tan0 + tan1) 
+	tangent = XMVector3Normalize(tangent);
+
+	XMVECTOR tex = XMVectorReplicate(0.5f) * (tex0 + tex1); // 0.5f * (tex0 + tex1) 
 
 	Vertex v;
-	DirectX::XMStoreFloat3(&v.Position, pos);
-	DirectX::XMStoreFloat3(&v.Normal, normal);
-	DirectX::XMStoreFloat3(&v.Tangent, tangent);
-	DirectX::XMStoreFloat2(&v.Texture, tex);
+	XMStoreFloat3(&v.Position, pos);
+	XMStoreFloat3(&v.Normal, normal);
+	XMStoreFloat3(&v.Tangent, tangent);
+	XMStoreFloat2(&v.Texture, tex);
 	return v;
 }
 
@@ -137,6 +142,30 @@ Model CreateFromMeshData(MeshData& meshData)
 
 	model.Meshes.push_back(std::move(mesh));
 	return model;
+}
+
+Model CreateTriangle()
+{
+	MeshData meshData;
+
+	Vertex v[3];
+	v[0].Position = XMFLOAT3(0.0f, 0.25f, 0.0f);
+	v[1].Position = XMFLOAT3(0.25f, -0.25f, 0.0f);
+	v[2].Position = XMFLOAT3(-0.25f, -0.25f, 0.0f);
+
+	v[0].Texture = XMFLOAT2(0.0f, 0.5f);
+	v[1].Texture = XMFLOAT2(1.0f, 1.0f);
+	v[2].Texture = XMFLOAT2(1.0f, 0.0f);
+
+	v[0].Normal = v[1].Normal = v[2].Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
+	v[0].Tangent = v[1].Tangent = v[2].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
+
+	meshData.Vertices.assign(&v[0], &v[2]);
+
+	unsigned int i[3] = { 0, 1, 2 };
+	meshData.Indices.assign(&i[0], &i[2]);
+
+	return CreateFromMeshData(meshData);
 }
 
 Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions)

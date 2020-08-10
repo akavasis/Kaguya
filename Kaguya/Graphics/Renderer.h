@@ -28,6 +28,7 @@ public:
 	struct Settings
 	{
 		inline static bool VSync = false;
+		inline static constexpr bool Rasterization = false;
 	};
 
 	Renderer(Window& Window);
@@ -54,8 +55,7 @@ private:
 
 	struct GpuDescriptorIndices
 	{
-		UINT CSMDepthBufferIndex;
-		UINT RenderTargetBufferIndex;
+		DescriptorAllocation RenderTargetShaderResourceViews;
 		DescriptorAllocation TextureShaderResourceViews;
 	};
 
@@ -68,9 +68,6 @@ private:
 	UINT m_FrameIndex;
 	float m_AspectRatio;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
-	RenderResourceHandle m_SwapChainTextureHandles[NumSwapChainBuffers];
-	Texture* m_pSwapChainTextures[NumSwapChainBuffers];
-	DescriptorAllocation m_SwapChainRTVs;
 
 	DXGIManager m_DXGIManager;
 
@@ -79,6 +76,10 @@ private:
 	RenderGraph m_RenderGraph;
 	GpuBufferAllocator m_GpuBufferAllocator;
 	GpuTextureAllocator m_GpuTextureAllocator;
+
+	RenderResourceHandle m_SwapChainTextureHandles[NumSwapChainBuffers];
+	Texture* m_pSwapChainTextures[NumSwapChainBuffers];
+	DescriptorAllocation m_SwapChainRTVs;
 
 	RenderResourceHandle m_RenderPassConstantBufferHandle;
 	Buffer* m_pRenderPassConstantBuffer;

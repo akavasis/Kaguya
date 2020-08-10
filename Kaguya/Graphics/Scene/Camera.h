@@ -12,6 +12,7 @@ public:
 	DirectX::XMMATRIX WorldMatrix() const;
 	DirectX::XMMATRIX ViewMatrix() const;
 	DirectX::XMMATRIX ProjectionMatrix() const;
+	DirectX::XMMATRIX InverseViewMatrix() const;
 	DirectX::XMMATRIX InverseProjectionMatrix() const;
 	DirectX::XMMATRIX ViewProjectionMatrix() const;
 	DirectX::XMMATRIX InverseViewProjectionMatrix() const;

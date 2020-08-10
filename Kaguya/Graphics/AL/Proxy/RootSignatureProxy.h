@@ -38,6 +38,7 @@ public:
 	void AddRootUAVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
 	void AddRootDescriptorTableParameter(std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
 
+	// Register Space: space0
 	void AddStaticSampler(UINT ShaderRegister,
 		D3D12_FILTER Filter,
 		D3D12_TEXTURE_ADDRESS_MODE AddressUVW,

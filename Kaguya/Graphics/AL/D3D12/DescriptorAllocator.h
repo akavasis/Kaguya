@@ -1,5 +1,4 @@
 #pragma once
-#include <d3d12.h>
 #include "DescriptorHeap.h"
 
 class Device;
@@ -15,22 +14,16 @@ public:
 	DescriptorAllocation AllocateCBDescriptors(UINT NumDescriptors);
 	DescriptorAllocation AllocateSRDescriptors(UINT NumDescriptors);
 	DescriptorAllocation AllocateUADescriptors(UINT NumDescriptors);
-
 	DescriptorAllocation AllocateSamplerDescriptors(UINT NumDescriptors);
-
 	DescriptorAllocation AllocateRenderTargetDescriptors(UINT NumDescriptors);
-
 	DescriptorAllocation AllocateDepthStencilDescriptors(UINT NumDescriptors);
 
-	void FreeCBDescriptors(DescriptorAllocation* pDescriptorAllocation);
-	void FreeSRDescriptors(DescriptorAllocation* pDescriptorAllocation);
-	void FreeUADescriptors(DescriptorAllocation* pDescriptorAllocation);
-
-	void FreeSamplerDescriptors(DescriptorAllocation* pDescriptorAllocation);
-
-	void FreeRenderTargetDescriptors(DescriptorAllocation* pDescriptorAllocation);
-
-	void FreeDepthStencilDescriptors(DescriptorAllocation* pDescriptorAllocation);
+	void FreeCBDescriptors(DescriptorAllocation&& DescriptorAllocation);
+	void FreeSRDescriptors(DescriptorAllocation&& DescriptorAllocation);
+	void FreeUADescriptors(DescriptorAllocation&& DescriptorAllocation);
+	void FreeSamplerDescriptors(DescriptorAllocation&& DescriptorAllocation);
+	void FreeRenderTargetDescriptors(DescriptorAllocation&& DescriptorAllocation);
+	void FreeDepthStencilDescriptors(DescriptorAllocation&& DescriptorAllocation);
 private:
 	enum : UINT { NumDescriptorsPerRange = 2048 };
 

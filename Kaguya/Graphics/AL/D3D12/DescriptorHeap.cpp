@@ -2,12 +2,80 @@
 #include "DescriptorHeap.h"
 #include "Device.h"
 
+DescriptorAllocation::DescriptorAllocation()
+	: StartDescriptor(Descriptor()),
+	NumDescriptors(0),
+	IncrementSize(0),
+	PartitonIndex(-1),
+	pOwningHeap(nullptr)
+{
+}
+
+DescriptorAllocation::DescriptorAllocation(Descriptor StartDescriptor, UINT NumDescriptors, UINT IncrementSize, INT PartitonIndex, DescriptorHeap* pOwningHeap)
+	: StartDescriptor(StartDescriptor),
+	NumDescriptors(NumDescriptors),
+	IncrementSize(IncrementSize),
+	PartitonIndex(PartitonIndex),
+	pOwningHeap(pOwningHeap)
+{
+}
+
+DescriptorAllocation::~DescriptorAllocation()
+{
+	if (*this && pOwningHeap)
+	{
+		pOwningHeap->Free(PartitonIndex, std::move(*this));
+
+		StartDescriptor = Descriptor();
+		NumDescriptors = 0;
+		IncrementSize = 0;
+		PartitonIndex = -1;
+		pOwningHeap = nullptr;
+	}
+}
+
+DescriptorAllocation::DescriptorAllocation(DescriptorAllocation&& rvalue) noexcept
+	: DescriptorAllocation(
+		rvalue.StartDescriptor,
+		rvalue.NumDescriptors,
+		rvalue.IncrementSize,
+		rvalue.PartitonIndex,
+		rvalue.pOwningHeap)
+{
+	rvalue.StartDescriptor = Descriptor();
+	rvalue.NumDescriptors = 0;
+	rvalue.IncrementSize = 0;
+	rvalue.PartitonIndex = -1;
+	rvalue.pOwningHeap = nullptr;
+}
+
+DescriptorAllocation& DescriptorAllocation::operator=(DescriptorAllocation&& rvalue) noexcept
+{
+	if (this != &rvalue)
+	{
+		this->~DescriptorAllocation();
+
+		StartDescriptor = rvalue.StartDescriptor;
+		NumDescriptors = rvalue.NumDescriptors;
+		IncrementSize = rvalue.IncrementSize;
+		PartitonIndex = rvalue.PartitonIndex;
+		pOwningHeap = rvalue.pOwningHeap;
+
+		rvalue.StartDescriptor = Descriptor();
+		rvalue.NumDescriptors = 0;
+		rvalue.IncrementSize = 0;
+		rvalue.PartitonIndex = -1;
+		rvalue.pOwningHeap = nullptr;
+	}
+	return *this;
+}
+
 Descriptor DescriptorAllocation::operator[](INT Index) const
 {
 	assert(Index >= 0 && Index < NumDescriptors && "Descriptor index out of range");
 	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(StartDescriptor.CPUHandle);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(StartDescriptor.GPUHandle);
-	return { cpuHandle.Offset(Index, StartDescriptor.IncrementSize), gpuHandle.Offset(Index, StartDescriptor.IncrementSize), StartDescriptor.HeapIndex + Index, StartDescriptor.IncrementSize };
+	return { cpuHandle.Offset(Index, IncrementSize), gpuHandle.Offset(Index, IncrementSize), StartDescriptor.HeapIndex + Index };
 }
 
 DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type)
@@ -36,22 +104,20 @@ DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool S
 	for (std::size_t i = 0; i < Ranges.size(); ++i)
 	{
 		UINT offset = i == 0 ? 0 : Ranges[i - 1];
-		m_DescriptorPartitions[i].Allocation.StartDescriptor.CPUHandle = cpuHandle.Offset(offset, m_DescriptorIncrementSize);
-		m_DescriptorPartitions[i].Allocation.StartDescriptor.GPUHandle = gpuHandle.Offset(offset, m_DescriptorIncrementSize);
-		m_DescriptorPartitions[i].Allocation.StartDescriptor.HeapIndex = offset;
-		m_DescriptorPartitions[i].Allocation.StartDescriptor.IncrementSize = m_DescriptorIncrementSize;
-		m_DescriptorPartitions[i].Allocation.NumDescriptors = Ranges[i];
+
+		Descriptor descriptor = { cpuHandle.Offset(offset, m_DescriptorIncrementSize), gpuHandle.Offset(offset, m_DescriptorIncrementSize), offset };
+		m_DescriptorPartitions[i].Allocation = DescriptorAllocation(descriptor, Ranges[i], m_DescriptorIncrementSize, i, this);
 		m_DescriptorPartitions[i].Allocator.Reset(Ranges[i]);
 	}
 }
 
-std::optional<DescriptorAllocation> DescriptorHeap::Allocate(INT PartitionIndex, UINT NumDescriptors)
+DescriptorAllocation DescriptorHeap::Allocate(INT PartitionIndex, UINT NumDescriptors)
 {
 	auto& descriptorPartition = GetDescriptorPartitionAt(PartitionIndex);
 
 	auto pair = descriptorPartition.Allocator.Allocate(NumDescriptors);
 	if (!pair)
-		return std::nullopt;
+		return DescriptorAllocation();
 
 	auto [offset, size] = pair.value();
 
@@ -62,23 +128,18 @@ std::optional<DescriptorAllocation> DescriptorHeap::Allocate(INT PartitionIndex,
 		gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(GetGPUHandleAt(PartitionIndex, offset));
 	}
 	UINT heapIndex = PartitionIndex * descriptorPartition.Allocation.NumDescriptors + offset;
-	Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex, m_DescriptorIncrementSize };
-	DescriptorAllocation descriptorAllocation;
-	descriptorAllocation.StartDescriptor = descriptor;
-	descriptorAllocation.NumDescriptors = NumDescriptors;
-	descriptorAllocation.pOwningHeap = this;
-	return descriptorAllocation;
+	Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex };
+	return DescriptorAllocation(descriptor, NumDescriptors, m_DescriptorIncrementSize, PartitionIndex, this);
 }
 
-void DescriptorHeap::Free(INT PartitionIndex, DescriptorAllocation* pDescriptorAllocation)
+void DescriptorHeap::Free(INT PartitionIndex, DescriptorAllocation&& DescriptorAllocation)
 {
-	if (!pDescriptorAllocation)
+	if (!DescriptorAllocation)
 		return;
 	auto& descriptorPartition = GetDescriptorPartitionAt(PartitionIndex);
-	std::size_t offset = (pDescriptorAllocation->StartDescriptor.CPUHandle.ptr - descriptorPartition.Allocation.StartDescriptor.CPUHandle.ptr) / m_DescriptorIncrementSize;
-	std::size_t size = pDescriptorAllocation->NumDescriptors;
+	std::size_t offset = (DescriptorAllocation.StartDescriptor.CPUHandle.ptr - descriptorPartition.Allocation.StartDescriptor.CPUHandle.ptr) / m_DescriptorIncrementSize;
+	std::size_t size = DescriptorAllocation.NumDescriptors;
 	descriptorPartition.Allocator.Free(offset, size);
-	*pDescriptorAllocation = {};
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::GetCPUHandleAt(INT PartitionIndex, INT Index) const
@@ -100,17 +161,17 @@ CBSRUADescriptorHeap::CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptor
 {
 }
 
-std::optional<DescriptorAllocation> CBSRUADescriptorHeap::AllocateCBDescriptors(UINT NumDescriptors)
+DescriptorAllocation CBSRUADescriptorHeap::AllocateCBDescriptors(UINT NumDescriptors)
 {
 	return Allocate(RangeType::ConstantBuffer, NumDescriptors);
 }
 
-std::optional<DescriptorAllocation> CBSRUADescriptorHeap::AllocateSRDescriptors(UINT NumDescriptors)
+DescriptorAllocation CBSRUADescriptorHeap::AllocateSRDescriptors(UINT NumDescriptors)
 {
 	return Allocate(RangeType::ShaderResource, NumDescriptors);
 }
 
-std::optional<DescriptorAllocation> CBSRUADescriptorHeap::AllocateUADescriptors(UINT NumDescriptors)
+DescriptorAllocation CBSRUADescriptorHeap::AllocateUADescriptors(UINT NumDescriptors)
 {
 	return Allocate(RangeType::UnorderedAccess, NumDescriptors);
 }

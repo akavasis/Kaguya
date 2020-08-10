@@ -13,7 +13,7 @@ DescriptorAllocator::DescriptorAllocator(Device* pDevice)
 
 DescriptorAllocation DescriptorAllocator::AllocateCBDescriptors(UINT NumDescriptors)
 {
-	auto ret = m_CBSRUADescriptorHeap.AllocateCBDescriptors(NumDescriptors).value_or(DescriptorAllocation());
+	auto ret = m_CBSRUADescriptorHeap.AllocateCBDescriptors(NumDescriptors);
 	if (!ret)
 	{
 		CORE_ERROR("{} Failed, consider increasing NumDescriptorsPerRange", __FUNCTION__);
@@ -23,7 +23,7 @@ DescriptorAllocation DescriptorAllocator::AllocateCBDescriptors(UINT NumDescript
 
 DescriptorAllocation DescriptorAllocator::AllocateSRDescriptors(UINT NumDescriptors)
 {
-	auto ret = m_CBSRUADescriptorHeap.AllocateSRDescriptors(NumDescriptors).value_or(DescriptorAllocation());
+	auto ret = m_CBSRUADescriptorHeap.AllocateSRDescriptors(NumDescriptors);
 	if (!ret)
 	{
 		CORE_ERROR("{} Failed, consider increasing NumDescriptorsPerRange", __FUNCTION__);
@@ -33,7 +33,7 @@ DescriptorAllocation DescriptorAllocator::AllocateSRDescriptors(UINT NumDescript
 
 DescriptorAllocation DescriptorAllocator::AllocateUADescriptors(UINT NumDescriptors)
 {
-	auto ret = m_CBSRUADescriptorHeap.AllocateUADescriptors(NumDescriptors).value_or(DescriptorAllocation());
+	auto ret = m_CBSRUADescriptorHeap.AllocateUADescriptors(NumDescriptors);
 	if (!ret)
 	{
 		CORE_ERROR("{} Failed, consider increasing NumDescriptorsPerRange", __FUNCTION__);
@@ -43,7 +43,7 @@ DescriptorAllocation DescriptorAllocator::AllocateUADescriptors(UINT NumDescript
 
 DescriptorAllocation DescriptorAllocator::AllocateSamplerDescriptors(UINT NumDescriptors)
 {
-	auto ret = m_SamplerDescriptorHeap.Allocate(0, NumDescriptors).value_or(DescriptorAllocation());
+	auto ret = m_SamplerDescriptorHeap.Allocate(0, NumDescriptors);
 	if (!ret)
 	{
 		CORE_ERROR("{} Failed, consider increasing NumDescriptorsPerRange", __FUNCTION__);
@@ -53,7 +53,7 @@ DescriptorAllocation DescriptorAllocator::AllocateSamplerDescriptors(UINT NumDes
 
 DescriptorAllocation DescriptorAllocator::AllocateRenderTargetDescriptors(UINT NumDescriptors)
 {
-	auto ret = m_RenderTargetDescriptorHeap.Allocate(0, NumDescriptors).value_or(DescriptorAllocation());
+	auto ret = m_RenderTargetDescriptorHeap.Allocate(0, NumDescriptors);
 	if (!ret)
 	{
 		CORE_ERROR("{} Failed, consider increasing NumDescriptorsPerRange", __FUNCTION__);
@@ -63,7 +63,7 @@ DescriptorAllocation DescriptorAllocator::AllocateRenderTargetDescriptors(UINT N
 
 DescriptorAllocation DescriptorAllocator::AllocateDepthStencilDescriptors(UINT NumDescriptors)
 {
-	auto ret = m_DepthStencilDescriptorHeap.Allocate(0, NumDescriptors).value_or(DescriptorAllocation());
+	auto ret = m_DepthStencilDescriptorHeap.Allocate(0, NumDescriptors);
 	if (!ret)
 	{
 		CORE_ERROR("{} Failed, consider increasing NumDescriptorsPerRange", __FUNCTION__);
@@ -71,44 +71,44 @@ DescriptorAllocation DescriptorAllocator::AllocateDepthStencilDescriptors(UINT N
 	return ret;
 }
 
-void DescriptorAllocator::FreeCBDescriptors(DescriptorAllocation* pDescriptorAllocation)
+void DescriptorAllocator::FreeCBDescriptors(DescriptorAllocation&& DescriptorAllocation)
 {
-	if (!pDescriptorAllocation)
+	if (!DescriptorAllocation)
 		return;
-	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, pDescriptorAllocation);
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, std::move(DescriptorAllocation));
 }
 
-void DescriptorAllocator::FreeSRDescriptors(DescriptorAllocation* pDescriptorAllocation)
+void DescriptorAllocator::FreeSRDescriptors(DescriptorAllocation&& DescriptorAllocation)
 {
-	if (!pDescriptorAllocation)
+	if (!DescriptorAllocation)
 		return;
-	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ShaderResource, pDescriptorAllocation);
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ShaderResource, std::move(DescriptorAllocation));
 }
 
-void DescriptorAllocator::FreeUADescriptors(DescriptorAllocation* pDescriptorAllocation)
+void DescriptorAllocator::FreeUADescriptors(DescriptorAllocation&& DescriptorAllocation)
 {
-	if (!pDescriptorAllocation)
+	if (!DescriptorAllocation)
 		return;
-	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::UnorderedAccess, pDescriptorAllocation);
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::UnorderedAccess, std::move(DescriptorAllocation));
 }
 
-void DescriptorAllocator::FreeSamplerDescriptors(DescriptorAllocation* pDescriptorAllocation)
+void DescriptorAllocator::FreeSamplerDescriptors(DescriptorAllocation&& DescriptorAllocation)
 {
-	if (!pDescriptorAllocation)
+	if (!DescriptorAllocation)
 		return;
-	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, pDescriptorAllocation);
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, std::move(DescriptorAllocation));
 }
 
-void DescriptorAllocator::FreeRenderTargetDescriptors(DescriptorAllocation* pDescriptorAllocation)
+void DescriptorAllocator::FreeRenderTargetDescriptors(DescriptorAllocation&& DescriptorAllocation)
 {
-	if (!pDescriptorAllocation)
+	if (!DescriptorAllocation)
 		return;
-	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, pDescriptorAllocation);
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, std::move(DescriptorAllocation));
 }
 
-void DescriptorAllocator::FreeDepthStencilDescriptors(DescriptorAllocation* pDescriptorAllocation)
+void DescriptorAllocator::FreeDepthStencilDescriptors(DescriptorAllocation&& DescriptorAllocation)
 {
-	if (!pDescriptorAllocation)
+	if (!DescriptorAllocation)
 		return;
-	pDescriptorAllocation->pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, pDescriptorAllocation);
+	DescriptorAllocation.pOwningHeap->Free(CBSRUADescriptorHeap::RangeType::ConstantBuffer, std::move(DescriptorAllocation));
 }

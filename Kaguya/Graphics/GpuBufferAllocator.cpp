@@ -125,19 +125,26 @@ void GpuBufferAllocator::Update(Scene& Scene)
 	}
 }
 
-void GpuBufferAllocator::Bind(CommandContext* pCommandContext) const
+void GpuBufferAllocator::Bind(bool Raytracing, std::optional<UINT> TopLevelAccelerationStructureRootParameterIndex, CommandContext* pCommandContext) const
 {
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-	vertexBufferView.BufferLocation = m_Buffers[VertexBuffer].pBuffer->GetGpuVirtualAddress();
-	vertexBufferView.SizeInBytes = m_Buffers[VertexBuffer].Allocator.GetCurrentSize();
-	vertexBufferView.StrideInBytes = sizeof(Vertex);
-	pCommandContext->SetVertexBuffers(0, 1, &vertexBufferView);
+	if (Raytracing && TopLevelAccelerationStructureRootParameterIndex.has_value())
+	{
+		pCommandContext->SetComputeRootShaderResourceView(TopLevelAccelerationStructureRootParameterIndex.value(), m_RaytracingTopLevelAccelerationStructure.TLAS.GetResultBuffer()->GetGpuVirtualAddress());
+	}
+	else
+	{
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+		vertexBufferView.BufferLocation = m_Buffers[VertexBuffer].pBuffer->GetGpuVirtualAddress();
+		vertexBufferView.SizeInBytes = m_Buffers[VertexBuffer].Allocator.GetCurrentSize();
+		vertexBufferView.StrideInBytes = sizeof(Vertex);
+		pCommandContext->SetVertexBuffers(0, 1, &vertexBufferView);
 
-	D3D12_INDEX_BUFFER_VIEW indexBufferView;
-	indexBufferView.BufferLocation = m_Buffers[IndexBuffer].pBuffer->GetGpuVirtualAddress();
-	indexBufferView.SizeInBytes = m_Buffers[IndexBuffer].Allocator.GetCurrentSize();
-	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	pCommandContext->SetIndexBuffer(&indexBufferView);
+		D3D12_INDEX_BUFFER_VIEW indexBufferView;
+		indexBufferView.BufferLocation = m_Buffers[IndexBuffer].pBuffer->GetGpuVirtualAddress();
+		indexBufferView.SizeInBytes = m_Buffers[IndexBuffer].Allocator.GetCurrentSize();
+		indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		pCommandContext->SetIndexBuffer(&indexBufferView);
+	}
 }
 
 size_t GpuBufferAllocator::StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext)

@@ -109,6 +109,15 @@ struct RootParameters
 			NumRootParameters
 		};
 	};
+	struct Raytracing
+	{
+		enum
+		{
+			RaytracingAccelerationStructure,
+			Camera,
+			RenderTarget
+		};
+	};
 };
 
 struct Shaders
@@ -166,9 +175,8 @@ struct RootSignatures
 
 	struct Raytracing
 	{
-		inline static RenderResourceHandle RayGeneration;
-		inline static RenderResourceHandle Hit;
-		inline static RenderResourceHandle Miss;
+		inline static RenderResourceHandle Global;
+		inline static RenderResourceHandle EmptyLocal;
 	};
 
 	static void Register(RenderDevice* pRenderDevice);

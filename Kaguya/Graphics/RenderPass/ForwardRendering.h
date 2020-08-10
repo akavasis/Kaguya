@@ -78,8 +78,8 @@ void AddForwardRenderingRenderPass(
 		pRenderDevice->CreateRTV(renderTarget, rtv[0], {}, {}, {});
 		pRenderDevice->CreateDSV(depthStencil, dsv[0], {}, {}, {});
 
-		This.ResourceViews.push_back(rtv);
-		This.ResourceViews.push_back(dsv);
+		This.ResourceViews.push_back(std::move(rtv));
+		This.ResourceViews.push_back(std::move(dsv));
 
 		This.Data.pGpuBufferAllocator = pGpuBufferAllocator;
 		This.Data.pGpuTextureAllocator = pGpuTextureAllocator;
@@ -107,7 +107,7 @@ void AddForwardRenderingRenderPass(
 			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PBR));
 			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PBR));
 
-			This.Data.pGpuBufferAllocator->Bind(pCommandContext);
+			This.Data.pGpuBufferAllocator->Bind(false, {}, pCommandContext);
 			This.Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, RootParameters::PBR::MaterialTexturePropertiesSBuffer, pCommandContext);
 			pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB + RootParameters::PBR::NumRootParameters,
 				This.Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
@@ -150,11 +150,20 @@ void AddForwardRenderingRenderPass(
 				}
 			}
 
+			// Skybox
+			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Skybox));
+			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Skybox));
+
+			pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB, This.Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));
+			pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+
+			pCommandContext->DrawIndexedInstanced(Scene.Skybox.Mesh.IndexCount, 1, Scene.Skybox.Mesh.StartIndexLocation, Scene.Skybox.Mesh.BaseVertexLocation, 0);
+
 			pCommandContext->TransitionBarrier(pRenderTarget, Resource::State::PixelShaderResource);
 			pCommandContext->TransitionBarrier(pDepthStencil, Resource::State::DepthRead);
 		};
 	},
-		[=](RenderPass<ForwardRenderingRenderPassData>& This, UINT Width, UINT Height, RenderDevice* pRenderDevice)
+		[](RenderPass<ForwardRenderingRenderPassData>& This, UINT Width, UINT Height, RenderDevice* pRenderDevice)
 	{
 		// Destroy render target and depth stencil
 		for (auto& output : This.Outputs)
@@ -184,8 +193,8 @@ void AddForwardRenderingRenderPass(
 		});
 
 		// Recreate descriptors
-		const DescriptorAllocation& RenderTargetView = This.ResourceViews[ForwardRenderingRenderPassData::Outputs::RenderTarget];
-		const DescriptorAllocation& DepthStencilView = This.ResourceViews[ForwardRenderingRenderPassData::Outputs::DepthStencil];
+		const auto& RenderTargetView = This.ResourceViews[ForwardRenderingRenderPassData::Outputs::RenderTarget];
+		const auto& DepthStencilView = This.ResourceViews[ForwardRenderingRenderPassData::Outputs::DepthStencil];
 
 		pRenderDevice->CreateRTV(This.Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget], RenderTargetView[0], {}, {}, {});
 		pRenderDevice->CreateDSV(This.Outputs[ForwardRenderingRenderPassData::Outputs::DepthStencil], DepthStencilView[0], {}, {}, {});

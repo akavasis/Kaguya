@@ -85,7 +85,10 @@ RenderResourceHandle RenderDevice::CreateBuffer(Delegate<void(BufferProxy&)> Con
 	Configurator(proxy);
 
 	auto [handle, buffer] = m_Buffers.CreateResource(&m_Device, proxy);
-	m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
+
+	// No need to track resources that have preinitialized states
+	if (buffer->GetCpuAccess() == Buffer::CpuAccess::None)
+		m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 

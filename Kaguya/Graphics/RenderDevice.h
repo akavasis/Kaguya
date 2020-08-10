@@ -17,6 +17,7 @@
 
 #include "RenderResourceContainer.h"
 
+// Standard Shader Layout is added after Configurator call
 struct StandardShaderLayoutOptions
 {
 	BOOL InitConstantDataTypeAsRootConstants;
@@ -45,7 +46,7 @@ public:
 	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const;
 	auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const
 	{
-		return m_DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::ShaderResource);
+		return m_DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::ShaderResource).GPUHandle;
 	}
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 

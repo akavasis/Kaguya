@@ -3,6 +3,7 @@
 
 RaytracingPipelineStateProxy::RaytracingPipelineStateProxy()
 {
+	m_pGlobalRootSignature = nullptr;
 	m_ShaderConfig = {};
 	m_PipelineConfig = {};
 }
@@ -48,6 +49,11 @@ void RaytracingPipelineStateProxy::AddRootSignatureAssociation(const RootSignatu
 	m_RootSignatureAssociations.emplace_back(RootSignatureAssociation(pRootSignature, Symbols));
 }
 
+void RaytracingPipelineStateProxy::SetGlobalRootSignature(const RootSignature* pGlobalRootSignature)
+{
+	m_pGlobalRootSignature = pGlobalRootSignature;
+}
+
 void RaytracingPipelineStateProxy::SetRaytracingShaderConfig(UINT MaxPayloadSizeInBytes, UINT MaxAttributeSizeInBytes)
 {
 	m_ShaderConfig.MaxPayloadSizeInBytes = MaxPayloadSizeInBytes;
@@ -61,6 +67,7 @@ void RaytracingPipelineStateProxy::SetRaytracingPipelineConfig(UINT MaxTraceRecu
 
 void RaytracingPipelineStateProxy::Link()
 {
+	assert(m_pGlobalRootSignature != nullptr);
 	assert(m_PipelineConfig.MaxTraceRecursionDepth >= 0 && m_PipelineConfig.MaxTraceRecursionDepth < 31);
 }
 

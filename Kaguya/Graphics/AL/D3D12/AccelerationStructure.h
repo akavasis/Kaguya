@@ -27,6 +27,8 @@ public:
 	RaytracingAccelerationStructure(const Device* pDevice);
 
 	void SetAccelerationStructure(Buffer* pResult, Buffer* pScratch, Buffer* pSource);
+
+	inline auto GetResultBuffer() const { return pResult; }
 protected:
 	const Device* pDevice;
 

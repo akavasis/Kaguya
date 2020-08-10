@@ -15,6 +15,7 @@ public:
 	void AddLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols);
 	void AddHitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol);
 	void AddRootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols);
+	void SetGlobalRootSignature(const RootSignature* pGlobalRootSignature);
 
 	void SetRaytracingShaderConfig(UINT MaxPayloadSizeInBytes, UINT MaxAttributeSizeInBytes);
 	void SetRaytracingPipelineConfig(UINT MaxTraceRecursionDepth);
@@ -26,6 +27,7 @@ private:
 	std::vector<DXILLibrary> m_Libraries;
 	std::vector<HitGroup> m_HitGroups;
 	std::vector<RootSignatureAssociation> m_RootSignatureAssociations;
+	const RootSignature* m_pGlobalRootSignature;
 	RaytracingPipelineState::ShaderConfig m_ShaderConfig;
 	RaytracingPipelineState::PipelineConfig m_PipelineConfig;
 };

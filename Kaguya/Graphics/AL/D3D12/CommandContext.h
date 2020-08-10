@@ -8,6 +8,7 @@
 #include "Heap.h"
 #include "RootSignature.h"
 #include "PipelineState.h"
+#include "RaytracingPipelineState.h"
 
 class CommandContext
 {
@@ -70,9 +71,20 @@ public:
 
 	void Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ);
 
-	void BuildRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC* pDesc,
+	void BuildRaytracingAccelerationStructure(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC* pDesc,
 		UINT NumPostbuildInfoDescs,
 		const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC* pPostbuildInfoDescs);
+
+	void SetRaytracingPipelineState(RaytracingPipelineState* pPipelineState)
+	{
+		m_pCommandList->SetPipelineState1(pPipelineState->GetD3DPipelineState());
+	}
+
+	void DispatchRays(const D3D12_DISPATCH_RAYS_DESC* pDesc)
+	{
+		FlushResourceBarriers();
+		m_pCommandList->DispatchRays(pDesc);
+	}
 private:
 	friend class RenderDevice;
 

@@ -65,8 +65,6 @@ public:
 private:
 	Microsoft::WRL::ComPtr<ID3D12StateObject> m_StateObject;
 	Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> m_StateObjectProperties;
-	RootSignature m_DummyGlobalRootSignature;
-	RootSignature m_DummyLocalRootSignature;
 
 	ShaderTable m_ShaderTable;
 };

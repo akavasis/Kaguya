@@ -43,6 +43,10 @@ std::optional<std::pair<VariableSizedAllocator::OffsetType, VariableSizedAllocat
 
 void VariableSizedAllocator::Free(OffsetType Offset, SizeType Size)
 {
+	// Cannot free whats already freed
+	if (Offset == 0 && Size == m_Capacity)
+		return;
+
 	// upper_bound returns end if it there is no next block
 	auto nextIter = m_FreeBlocksByOffsetPool.upper_bound(Offset);
 	auto prevIter = nextIter;

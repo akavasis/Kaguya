@@ -77,11 +77,12 @@ public:
 	[[nodiscard]] inline RootSignature* GetRootSignature(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetRootSignature(RenderResourceHandle); }
 	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetGraphicsPSO(RenderResourceHandle); }
 	[[nodiscard]] inline ComputePipelineState* GetComputePSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetComputePSO(RenderResourceHandle); }
+	[[nodiscard]] inline RaytracingPipelineState* GetRaytracingPSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetRaytracingPSO(RenderResourceHandle); }
 
 	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const { return pRenderDevice->GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart(); }
 
 	template<typename Data>
-	[[nodiscard]] inline RenderPass<Data>* GetRenderPass() { return pRenderGraph->GetRenderPass<Type, Data>(); }
+	[[nodiscard]] inline RenderPass<Data>* GetRenderPass() { return pRenderGraph->GetRenderPass<Data>(); }
 private:
 	RenderDevice* pRenderDevice;
 	RenderGraph* pRenderGraph;

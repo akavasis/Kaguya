@@ -12,6 +12,10 @@ struct ObjectConstants
 
 struct RenderPassConstants
 {
+	matrix View;
+	matrix Projection;
+	matrix InvView;
+	matrix InvProjection;
 	matrix ViewProjection;
 	float3 EyePosition;
 	float _padding;

@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 #endif
 
 		Application application;
-		Window window{ L"Kaguya" };
+		Window window{ L"DXR" };
 		Renderer renderer{ window };
 
 		MaterialLoader materialLoader{ application.ExecutableFolderPath() };

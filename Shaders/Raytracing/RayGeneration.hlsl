@@ -1,28 +1,23 @@
-#pragma pack_matrix( row_major )
+#include "../HLSLCommon.hlsli"
 #include "Common.hlsl"
 
 // Raytracing output texture, accessed as a UAV
-RWTexture2D<float4> gOutput : register(u0);
+RWTexture2D<float4> RenderTarget : register(u0);
 
 // Raytracing acceleration structure, accessed as a SRV
 RaytracingAccelerationStructure SceneBVH : register(t0, space0);
 
 // #DXR Extra: Perspective Camera
-cbuffer CameraParams : register(b0)
-{
-	float4x4 view;
-	float4x4 projection;
-	float4x4 viewI;
-	float4x4 projectionI;
-}
+ConstantBuffer<RenderPassConstants> RenderPassDataCB : register(b0);
 
 // RayGeneration.hlsl contains the ray generation program RayGen(), flagged by its semantic [shader("raygeneration")]. 
 // It also declares its access to the raytracing output buffer gOutput bound as a unordered access view (UAV), 
 // and the raytracing acceleration structure SceneBVH, bound as a shader resource view (SRV)
-[shader("raygeneration")] void RayGen()
+[shader("raygeneration")] 
+void RayGen()
 {
   // Initialize the ray payload
-	HitInfo payload;
+	RayPayload payload;
 	payload.colorAndDistance = float4(0.0, 0.0, 0.0, 0.0);
 
   // Get the location within the dispatched 2D grid of work items
@@ -36,9 +31,9 @@ cbuffer CameraParams : register(b0)
 	float aspectRatio = dims.x / dims.y;
     // Perspective
 	RayDesc ray;
-	ray.Origin = mul(float4(0, 0, 0, 1), viewI).xyz;
-	float4 target = mul(float4(d.x, -d.y, 1, 1), projectionI);
-	ray.Direction = mul(float4(target.xyz, 0), viewI).xyz;
+	ray.Origin = mul(float4(0, 0, 0, 1), RenderPassDataCB.InvView).xyz;
+	float4 target = mul(float4(d.x, -d.y, 1, 1), RenderPassDataCB.InvProjection);
+	ray.Direction = mul(float4(target.xyz, 0), RenderPassDataCB.InvView).xyz;
 	ray.TMin = 0;
 	ray.TMax = 100000;
     
@@ -90,5 +85,5 @@ cbuffer CameraParams : register(b0)
   // shaders and the raygen
   payload);
 
-	gOutput[launchIndex] = float4(payload.colorAndDistance.rgb, 1.f);
+	RenderTarget[launchIndex] = float4(payload.colorAndDistance.rgb, 1.f);
 }

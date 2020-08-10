@@ -7,7 +7,7 @@
 // ie. the barycentric coordinates. This shader simply writes a constant color to the payload, as well as the distance from the origin, 
 // provided by the built-in RayCurrentT() function.
 [shader("closesthit")] 
-void ClosestHit(inout HitInfo payload, Attributes attrib) 
+void ClosestHit(inout RayPayload payload, Attributes attrib) 
 {
     float3 barycentrics =
     float3(1.f - attrib.bary.x - attrib.bary.y, attrib.bary.x, attrib.bary.y);

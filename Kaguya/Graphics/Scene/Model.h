@@ -31,5 +31,6 @@ struct Model
 	void Rotate(float AngleX, float AngleY, float AngleZ);
 };
 
+Model CreateTriangle();
 Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions);
 Model CreateGrid(float Width, float Depth, UINT M, UINT N);

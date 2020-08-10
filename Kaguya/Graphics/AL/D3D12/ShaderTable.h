@@ -30,7 +30,10 @@ public:
 
 	ShaderTable();
 
-	void AddShaderRecord(ShaderTable::RecordType Type, LPCWSTR pExportName, std::vector<void*> RootArguments);
+	inline auto GetShaderRecordSize(RecordType Type) const { return m_ShaderRecordStrides[Type] * m_ShaderRecords[Type].size(); }
+	inline auto GetShaderRecordStride(RecordType Type) const { return m_ShaderRecordStrides[Type]; }
+
+	void AddShaderRecord(RecordType Type, LPCWSTR pExportName, std::vector<void*> RootArguments);
 	void Reset();
 
 	MemoryRequirements GetShaderTableMemoryRequirements() const;

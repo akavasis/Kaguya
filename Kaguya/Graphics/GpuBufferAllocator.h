@@ -22,7 +22,7 @@ public:
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
 	void Update(Scene& Scene);
-	void Bind(CommandContext* pCommandContext) const;
+	void Bind(bool Raytracing, std::optional<UINT> TopLevelAccelerationStructureRootParameterIndex, CommandContext* pCommandContext) const;
 private:
 	size_t StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
 	size_t StageIndex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);

@@ -4,31 +4,53 @@
 #include "Core/Allocator/VariableSizedAllocator.h"
 
 class Device;
+class DescriptorHeap;
 
 struct Descriptor
 {
+	inline bool IsValid() const { return CPUHandle.ptr != NULL; }
+	inline bool IsReferencedByShader() const { return GPUHandle.ptr != NULL; }
+
 	D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle = { NULL };
 	D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle = { NULL };
 	UINT HeapIndex = 0;
-	UINT IncrementSize = 0;
-
-	inline bool IsValid() const { return CPUHandle.ptr != NULL; }
-	inline bool IsReferencedByShader() const { return GPUHandle.ptr != NULL; }
 };
 
-struct DescriptorAllocation
+class DescriptorAllocation
 {
-	Descriptor StartDescriptor = {};
-	UINT NumDescriptors = 0;
+public:
+	// Constructs NULL Descriptor Allocation
+	DescriptorAllocation();
+	DescriptorAllocation(Descriptor StartDescriptor, UINT NumDescriptors, UINT IncrementSize, INT PartitonIndex, DescriptorHeap* pOwningHeap);
+
+	// Frees this DescriptorAllocation
+	~DescriptorAllocation();
+
+	// Only allow move semantics
+	DescriptorAllocation(DescriptorAllocation&& rvalue) noexcept;
+	DescriptorAllocation& operator=(DescriptorAllocation&& rvalue) noexcept;
+
+	// No copy
+	DescriptorAllocation(const DescriptorAllocation&) = delete;
+	DescriptorAllocation& operator=(const DescriptorAllocation&) = delete;
 
 	Descriptor operator[](INT Index) const;
 	inline operator bool() const
 	{
 		return StartDescriptor.IsValid();
 	}
+
+	inline auto GetStartDescriptor() const { return StartDescriptor; }
+	inline auto GetNumDescriptors() const { return NumDescriptors; }
+	inline auto GetIncrementSize() const { return IncrementSize; }
 private:
 	friend class DescriptorHeap;
 	friend class DescriptorAllocator;
+
+	Descriptor StartDescriptor;
+	UINT NumDescriptors;
+	UINT IncrementSize;
+	INT PartitonIndex;
 	DescriptorHeap* pOwningHeap = nullptr;
 };
 
@@ -47,8 +69,8 @@ public:
 
 	inline auto GetD3DDescriptorHeap() const { return m_pDescriptorHeap.Get(); }
 
-	std::optional<DescriptorAllocation> Allocate(INT PartitionIndex, UINT NumDescriptors);
-	void Free(INT PartitionIndex, DescriptorAllocation* pDescriptorAllocation);
+	DescriptorAllocation Allocate(INT PartitionIndex, UINT NumDescriptors);
+	void Free(INT PartitionIndex, DescriptorAllocation&& DescriptorAllocation);
 protected:
 	auto& GetDescriptorPartitionAt(INT Index) { return m_DescriptorPartitions[Index]; }
 	auto& GetDescriptorPartitionAt(INT Index) const { return m_DescriptorPartitions[Index]; }
@@ -81,14 +103,14 @@ public:
 
 	CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible);
 
-	std::optional<DescriptorAllocation> AllocateCBDescriptors(UINT NumDescriptors);
-	std::optional<DescriptorAllocation> AllocateSRDescriptors(UINT NumDescriptors);
-	std::optional<DescriptorAllocation> AllocateUADescriptors(UINT NumDescriptors);
+	DescriptorAllocation AllocateCBDescriptors(UINT NumDescriptors);
+	DescriptorAllocation AllocateSRDescriptors(UINT NumDescriptors);
+	DescriptorAllocation AllocateUADescriptors(UINT NumDescriptors);
 
-	D3D12_GPU_DESCRIPTOR_HANDLE GetRangeHandleFromStart(RangeType Type) const
+	Descriptor GetRangeHandleFromStart(RangeType Type) const
 	{
 		auto& descriptorPartition = GetDescriptorPartitionAt(INT(Type));
-		return descriptorPartition.Allocation.StartDescriptor.GPUHandle;
+		return descriptorPartition.Allocation[0];
 	}
 };
 
