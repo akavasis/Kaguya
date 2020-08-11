@@ -17,7 +17,8 @@ struct RaytracingRenderPassData
 	{
 		enum
 		{
-			Raytracing,
+			AccelerationStructure,
+			RenderTarget
 		};
 	};
 
@@ -48,9 +49,13 @@ void AddRaytracingRenderPass(
 
 		This.Outputs.push_back(raytracingOutput);
 
-		auto uav = pRenderDevice->GetDescriptorAllocator().AllocateUADescriptors(1);
+		auto srv = pRenderDevice->GetDescriptorAllocator()->AllocateSRDescriptors(1);
+		pRenderDevice->CreateSRV(pGpuBufferAllocator->GetRTTLASResourceHandle(), srv[0]);
+
+		auto uav = pRenderDevice->GetDescriptorAllocator()->AllocateUADescriptors(1);
 		pRenderDevice->CreateUAV(raytracingOutput, uav[0], {}, {});
 
+		This.ResourceViews.push_back(std::move(srv));
 		This.ResourceViews.push_back(std::move(uav));
 
 		This.Data.pGpuBufferAllocator = pGpuBufferAllocator;
@@ -68,9 +73,9 @@ void AddRaytracingRenderPass(
 
 			pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Global));
 			
-			This.Data.pGpuBufferAllocator->Bind(true, RootParameters::Raytracing::RaytracingAccelerationStructure, pCommandContext);
+			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RaytracingAccelerationStructure, This.ResourceViews[0].GetStartDescriptor().GPUHandle);
+			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, This.ResourceViews[1].GetStartDescriptor().GPUHandle);
 			pCommandContext->SetComputeRootConstantBufferView(RootParameters::Raytracing::Camera, This.Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(0));
-			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, This.ResourceViews[0].GetStartDescriptor().GPUHandle);
 
 			// Setup the raytracing task
 			D3D12_DISPATCH_RAYS_DESC desc = {};
@@ -124,7 +129,7 @@ void AddRaytracingRenderPass(
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 
-		const auto& uav = This.ResourceViews[0];
+		const auto& uav = This.ResourceViews[1];
 		pRenderDevice->CreateUAV(This.Outputs[RaytracingRenderPassData::Outputs::RenderTarget], uav[0], {}, {});
 	});
 }

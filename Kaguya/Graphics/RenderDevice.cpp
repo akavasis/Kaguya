@@ -45,7 +45,7 @@ void RenderDevice::BindUniversalGpuDescriptorHeap(CommandContext* pCommandContex
 void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[])
 {
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
-	commandlistsToBeExecuted.reserve(NumCommandContexts);
+	commandlistsToBeExecuted.reserve(NumCommandContexts * 2);
 	for (UINT i = 0; i < NumCommandContexts; ++i)
 	{
 		CommandContext* pCommandContext = ppCommandContexts[i];
@@ -258,74 +258,95 @@ void RenderDevice::CreateRTVForSwapChainTexture(RenderResourceHandle RenderResou
 
 void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)
 {
-	Texture* texture = GetTexture(RenderResourceHandle);
-	if (!texture)
-	{
-		throw std::logic_error("Could not find texture given the handle");
-		return;
-	}
-
-	auto getValidSRVFormat = [](DXGI_FORMAT Format)
-	{
-		if (Format == DXGI_FORMAT_R32_TYPELESS)
-			return DXGI_FORMAT_R32_FLOAT;
-		return Format;
-	};
-
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-	desc.Format = getValidSRVFormat(texture->GetFormat());
-	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	switch (RenderResourceHandle.Type)
+	{
+	case RenderResourceType::Buffer:
+	{
+		Buffer* pBuffer = GetBuffer(RenderResourceHandle);
 
-	switch (texture->GetType())
-	{
-	case Resource::Type::Texture1D:
-	{
-		if (texture->GetDepthOrArraySize() > 1)
+		if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::BindFlags::AccelerationStructure))
 		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-			desc.Texture1DArray.MipLevels = texture->GetMipLevels();
-			desc.Texture1DArray.ArraySize = texture->GetDepthOrArraySize();
-		}
-		else
-		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-			desc.Texture1D.MipLevels = texture->GetMipLevels();
+			desc.Format = DXGI_FORMAT_UNKNOWN;
+			desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+			desc.RaytracingAccelerationStructure.Location = pBuffer->GetGpuVirtualAddress();
+
+			m_Device.GetD3DDevice()->CreateShaderResourceView(nullptr, &desc, DestDescriptor.CPUHandle);
 		}
 	}
 	break;
 
-	case Resource::Type::Texture2D:
+	case RenderResourceType::Texture:
 	{
-		if (texture->GetDepthOrArraySize() > 1)
+		Texture* pTexture = GetTexture(RenderResourceHandle);
+
+		auto getValidSRVFormat = [](DXGI_FORMAT Format)
 		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipLevels = texture->GetMipLevels();
-			desc.Texture2DArray.ArraySize = texture->GetDepthOrArraySize();
-		}
-		else
+			if (Format == DXGI_FORMAT_R32_TYPELESS)
+				return DXGI_FORMAT_R32_FLOAT;
+			return Format;
+		};
+
+		desc.Format = getValidSRVFormat(pTexture->GetFormat());
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+		switch (pTexture->GetType())
 		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipLevels = texture->GetMipLevels();
+		case Resource::Type::Texture1D:
+		{
+			if (pTexture->GetDepthOrArraySize() > 1)
+			{
+				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+				desc.Texture1DArray.MipLevels = pTexture->GetMipLevels();
+				desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			}
+			else
+			{
+				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+				desc.Texture1D.MipLevels = pTexture->GetMipLevels();
+			}
 		}
+		break;
+
+		case Resource::Type::Texture2D:
+		{
+			if (pTexture->GetDepthOrArraySize() > 1)
+			{
+				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+				desc.Texture2DArray.MipLevels = pTexture->GetMipLevels();
+				desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			}
+			else
+			{
+				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				desc.Texture2D.MipLevels = pTexture->GetMipLevels();
+			}
+		}
+		break;
+
+		case Resource::Type::Texture3D:
+		{
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+			desc.Texture3D.MipLevels = pTexture->GetMipLevels();
+		}
+		break;
+
+		case Resource::Type::TextureCube:
+		{
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			desc.TextureCube.MipLevels = pTexture->GetMipLevels();
+		}
+		break;
+		}
+
+		m_Device.GetD3DDevice()->CreateShaderResourceView(pTexture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 	}
 	break;
 
-	case Resource::Type::Texture3D:
-	{
-		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-		desc.Texture3D.MipLevels = texture->GetMipLevels();
+	default:
+		throw std::logic_error("Could not find resource given the handle");
 	}
-	break;
-
-	case Resource::Type::TextureCube:
-	{
-		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-		desc.TextureCube.MipLevels = texture->GetMipLevels();
-	}
-	break;
-	}
-
-	m_Device.GetD3DDevice()->CreateShaderResourceView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 }
 
 void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)

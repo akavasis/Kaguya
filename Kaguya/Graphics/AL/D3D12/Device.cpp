@@ -4,7 +4,7 @@
 Device::Device(IDXGIAdapter4* pAdapter)
 {
 #if defined(_DEBUG)
-	constexpr BOOL gpuBasedValidation = FALSE; // Enabling this will cause texture copying to copy black pixels
+	constexpr BOOL gpuBasedValidation = FALSE; // Enabling this will cause texture copying to copy black pixels, also disables you from binding acceleration structure because its in the wrong state
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
 	Microsoft::WRL::ComPtr<ID3D12Debug1> pDebug1;
 	ThrowCOMIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(pDebug1.ReleaseAndGetAddressOf())));
@@ -21,7 +21,7 @@ Device::Device(IDXGIAdapter4* pAdapter)
 	CheckSM6PlusSupport();
 	CheckRaytracingSupport();
 
-	// Query descriptor size (descriptor size vary based on GPU vendor) and create descriptor allocator
+	// Query descriptor size (descriptor size vary based on GPU vendor)
 	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
 		m_DescriptorHandleIncrementSizeCache[i] = m_pDevice5->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE(i));

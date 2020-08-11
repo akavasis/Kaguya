@@ -59,6 +59,7 @@ private:
 		DescriptorAllocation TextureShaderResourceViews;
 	};
 
+	const Window* pWindow;
 	EventReceiver m_EventReceiver;
 
 	enum { NumSwapChainBuffers = 3 };

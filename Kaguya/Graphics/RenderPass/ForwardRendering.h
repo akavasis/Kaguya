@@ -72,8 +72,8 @@ void AddForwardRenderingRenderPass(
 		This.Outputs.push_back(renderTarget);
 		This.Outputs.push_back(depthStencil);
 
-		auto rtv = pRenderDevice->GetDescriptorAllocator().AllocateRenderTargetDescriptors(1);
-		auto dsv = pRenderDevice->GetDescriptorAllocator().AllocateDepthStencilDescriptors(1);
+		auto rtv = pRenderDevice->GetDescriptorAllocator()->AllocateRenderTargetDescriptors(1);
+		auto dsv = pRenderDevice->GetDescriptorAllocator()->AllocateDepthStencilDescriptors(1);
 
 		pRenderDevice->CreateRTV(renderTarget, rtv[0], {}, {}, {});
 		pRenderDevice->CreateDSV(depthStencil, dsv[0], {}, {}, {});
@@ -107,7 +107,7 @@ void AddForwardRenderingRenderPass(
 			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PBR));
 			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PBR));
 
-			This.Data.pGpuBufferAllocator->Bind(false, {}, pCommandContext);
+			This.Data.pGpuBufferAllocator->Bind(pCommandContext);
 			This.Data.pGpuTextureAllocator->Bind(RootParameters::PBR::MaterialTextureIndicesSBuffer, RootParameters::PBR::MaterialTexturePropertiesSBuffer, pCommandContext);
 			pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB + RootParameters::PBR::NumRootParameters,
 				This.Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(NUM_CASCADES));

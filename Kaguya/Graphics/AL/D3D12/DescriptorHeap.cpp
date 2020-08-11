@@ -93,21 +93,23 @@ DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool S
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pDescriptorHeap)));
 	m_DescriptorIncrementSize = pDevice->GetDescriptorIncrementSize(Type);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE();
+	D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle = m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle = {};
 	if (m_ShaderVisible)
-	{
-		gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-	}
+		GpuHandle = m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 
+	UINT heapIndex = 0;
 	m_DescriptorPartitions.resize(Ranges.size());
 	for (std::size_t i = 0; i < Ranges.size(); ++i)
 	{
-		UINT offset = i == 0 ? 0 : Ranges[i - 1];
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {}; CD3DX12_CPU_DESCRIPTOR_HANDLE::InitOffsetted(cpuHandle, CpuHandle, heapIndex, m_DescriptorIncrementSize);
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {}; CD3DX12_GPU_DESCRIPTOR_HANDLE::InitOffsetted(gpuHandle, GpuHandle, heapIndex, m_DescriptorIncrementSize);
 
-		Descriptor descriptor = { cpuHandle.Offset(offset, m_DescriptorIncrementSize), gpuHandle.Offset(offset, m_DescriptorIncrementSize), offset };
+		Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex };
 		m_DescriptorPartitions[i].Allocation = DescriptorAllocation(descriptor, Ranges[i], m_DescriptorIncrementSize, i, this);
 		m_DescriptorPartitions[i].Allocator.Reset(Ranges[i]);
+
+		heapIndex += Ranges[i];
 	}
 }
 
@@ -121,12 +123,11 @@ DescriptorAllocation DescriptorHeap::Allocate(INT PartitionIndex, UINT NumDescri
 
 	auto [offset, size] = pair.value();
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(GetCPUHandleAt(PartitionIndex, offset));
-	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE();
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = GetCPUHandleAt(PartitionIndex, offset);
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
 	if (m_ShaderVisible)
-	{
-		gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(GetGPUHandleAt(PartitionIndex, offset));
-	}
+		gpuHandle = GetGPUHandleAt(PartitionIndex, offset);
+
 	UINT heapIndex = PartitionIndex * descriptorPartition.Allocation.NumDescriptors + offset;
 	Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex };
 	return DescriptorAllocation(descriptor, NumDescriptors, m_DescriptorIncrementSize, PartitionIndex, this);
@@ -144,16 +145,16 @@ void DescriptorHeap::Free(INT PartitionIndex, DescriptorAllocation&& DescriptorA
 
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::GetCPUHandleAt(INT PartitionIndex, INT Index) const
 {
-	auto& partition = GetDescriptorPartitionAt(PartitionIndex);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(partition.Allocation.StartDescriptor.CPUHandle);
-	return cpuHandle.Offset(Index, m_DescriptorIncrementSize);
+	const auto& partition = GetDescriptorPartitionAt(PartitionIndex);
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {}; CD3DX12_CPU_DESCRIPTOR_HANDLE::InitOffsetted(cpuHandle, partition.Allocation.StartDescriptor.CPUHandle, Index, m_DescriptorIncrementSize);
+	return cpuHandle;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GetGPUHandleAt(INT PartitionIndex, INT Index) const
 {
-	auto& partition = GetDescriptorPartitionAt(PartitionIndex);
-	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(partition.Allocation.StartDescriptor.GPUHandle);
-	return gpuHandle.Offset(Index, m_DescriptorIncrementSize);
+	const auto& partition = GetDescriptorPartitionAt(PartitionIndex);
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {}; CD3DX12_GPU_DESCRIPTOR_HANDLE::InitOffsetted(gpuHandle, partition.Allocation.StartDescriptor.GPUHandle, Index, m_DescriptorIncrementSize);
+	return gpuHandle;
 }
 
 CBSRUADescriptorHeap::CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible)

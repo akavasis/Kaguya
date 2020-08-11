@@ -22,6 +22,7 @@
 #include <iostream>
 #include <exception>
 #include <optional>
+#include <variant>
 
 // C++ STL
 #include <array>

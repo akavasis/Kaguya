@@ -1,14 +1,9 @@
 #include "../HLSLCommon.hlsli"
 #include "Common.hlsl"
 
-// Raytracing output texture, accessed as a UAV
-RWTexture2D<float4> RenderTarget : register(u0);
-
-// Raytracing acceleration structure, accessed as a SRV
 RaytracingAccelerationStructure SceneBVH : register(t0, space0);
-
-// #DXR Extra: Perspective Camera
-ConstantBuffer<RenderPassConstants> RenderPassDataCB : register(b0);
+RWTexture2D<float4> RenderTarget : register(u0, space0);
+ConstantBuffer<RenderPassConstants> RenderPassDataCB : register(b0, space0);
 
 // RayGeneration.hlsl contains the ray generation program RayGen(), flagged by its semantic [shader("raygeneration")]. 
 // It also declares its access to the raytracing output buffer gOutput bound as a unordered access view (UAV), 

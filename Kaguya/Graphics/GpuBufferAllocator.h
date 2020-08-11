@@ -2,13 +2,13 @@
 #include "RenderDevice.h"
 #include "Core/Allocator/VariableSizedAllocator.h"
 #include "Scene/Scene.h"
-#include "AL/D3D12/AccelerationStructure.h"
+#include "AL/D3D12/RaytracingAccelerationStructure.h"
 
 struct RaytracingAccelerationStructureHandles
 {
-	RenderResourceHandle Result;
 	RenderResourceHandle Scratch;
-	RenderResourceHandle Source;
+	RenderResourceHandle Result;
+	RenderResourceHandle InstanceDescs;
 };
 
 class GpuBufferAllocator
@@ -19,17 +19,16 @@ public:
 	inline auto GetVertexBuffer() const { return m_Buffers[VertexBuffer].pBuffer; }
 	inline auto GetIndexBuffer() const { return m_Buffers[IndexBuffer].pBuffer; }
 	inline auto GetConstantBuffer() const { return m_Buffers[ConstantBuffer].pUploadBuffer; }
+	inline auto GetRTTLASResourceHandle() const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
 	void Update(Scene& Scene);
-	void Bind(bool Raytracing, std::optional<UINT> TopLevelAccelerationStructureRootParameterIndex, CommandContext* pCommandContext) const;
+	void Bind(CommandContext* pCommandContext) const;
 private:
 	size_t StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
 	size_t StageIndex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
 	void CreateBottomLevelAS(Scene& Scene, CommandContext* pCommandContext);
 	void CreateTopLevelAS(Scene& Scene, CommandContext* pCommandContext);
-
-	RenderDevice* pRenderDevice;
 
 	enum InternalBufferTypes
 	{
@@ -38,6 +37,7 @@ private:
 		ConstantBuffer,
 		NumInternalBufferTypes
 	};
+
 	struct InternalBufferStructure
 	{
 		VariableSizedAllocator Allocator;
@@ -56,6 +56,9 @@ private:
 			return Allocator.Allocate(ByteSize);
 		}
 	};
+
+	RenderDevice* pRenderDevice;
+
 	InternalBufferStructure m_Buffers[NumInternalBufferTypes];
 	UINT m_NumVertices;
 	UINT m_NumIndices;
@@ -63,24 +66,15 @@ private:
 	struct RTBLAS
 	{
 		RaytracingAccelerationStructureHandles Handles;
+		RaytracingAccelerationStructureBuffers Buffers;
 		BottomLevelAccelerationStructure BLAS;
-
-		RTBLAS(const Device* pDevice)
-			: BLAS(pDevice)
-		{
-		}
 	};
 	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
 	struct RTTLAS
 	{
 		RaytracingAccelerationStructureHandles Handles;
-		RenderResourceHandle InstanceHandle;
+		RaytracingAccelerationStructureBuffers Buffers;
 		TopLevelAccelerationStructure TLAS;
-
-		RTTLAS(const Device* pDevice)
-			: TLAS(pDevice)
-		{
-		}
 	};
 	RTTLAS m_RaytracingTopLevelAccelerationStructure;
 };

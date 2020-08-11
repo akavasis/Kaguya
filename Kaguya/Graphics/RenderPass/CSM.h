@@ -52,7 +52,7 @@ void AddCSMRenderPass(
 			proxy.InitialState = Resource::State::DepthWrite;
 		});
 
-		auto resourceView = pRenderDevice->GetDescriptorAllocator().AllocateDepthStencilDescriptors(NUM_CASCADES);
+		auto resourceView = pRenderDevice->GetDescriptorAllocator()->AllocateDepthStencilDescriptors(NUM_CASCADES);
 		for (UINT i = 0; i < NUM_CASCADES; ++i)
 		{
 			Descriptor descriptor = resourceView[i];
@@ -85,7 +85,7 @@ void AddCSMRenderPass(
 			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::Shadow));
 			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Shadow));
 
-			This.Data.pGpuBufferAllocator->Bind(false, {}, pCommandContext);
+			This.Data.pGpuBufferAllocator->Bind(pCommandContext);
 
 			D3D12_VIEWPORT vp;
 			vp.TopLeftX = vp.TopLeftY = 0.0f;

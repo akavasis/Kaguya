@@ -145,12 +145,13 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	// Global RS
 	RootSignatures::Raytracing::Global = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootSRVParameter(0, 0); // RaytracingAccelerationStructure
-		proxy.AddRootCBVParameter(0, 0); // Camera
-
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
+		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
 		CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
+
+		proxy.AddRootDescriptorTableParameter({ srvRange }); // RaytracingAccelerationStructure
 		proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
+		proxy.AddRootCBVParameter(0, 0); // Camera
 	});
 
 	// Empty Local RS

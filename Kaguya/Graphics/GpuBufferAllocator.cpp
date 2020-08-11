@@ -4,8 +4,7 @@
 
 GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize)
 	: pRenderDevice(pRenderDevice),
-	m_Buffers{ { VertexBufferByteSize }, { IndexBufferByteSize } , { Math::AlignUp<UINT64>(ConstantBufferByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)} },
-	m_RaytracingTopLevelAccelerationStructure(&pRenderDevice->GetDevice())
+	m_Buffers{ { VertexBufferByteSize }, { IndexBufferByteSize } , { Math::AlignUp<UINT64>(ConstantBufferByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)} }
 {
 	for (size_t i = 0; i < NumInternalBufferTypes; ++i)
 	{
@@ -80,7 +79,10 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		m_NumVertices += model.Vertices.size();
 		m_NumIndices += model.Indices.size();
 
-		CORE_INFO("{} Loaded", model.Path);
+		if (!model.Path.empty())
+		{
+			CORE_INFO("{} Loaded", model.Path);
+		}
 	}
 
 	for (auto& model : Scene.Models)
@@ -125,26 +127,19 @@ void GpuBufferAllocator::Update(Scene& Scene)
 	}
 }
 
-void GpuBufferAllocator::Bind(bool Raytracing, std::optional<UINT> TopLevelAccelerationStructureRootParameterIndex, CommandContext* pCommandContext) const
+void GpuBufferAllocator::Bind(CommandContext* pCommandContext) const
 {
-	if (Raytracing && TopLevelAccelerationStructureRootParameterIndex.has_value())
-	{
-		pCommandContext->SetComputeRootShaderResourceView(TopLevelAccelerationStructureRootParameterIndex.value(), m_RaytracingTopLevelAccelerationStructure.TLAS.GetResultBuffer()->GetGpuVirtualAddress());
-	}
-	else
-	{
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-		vertexBufferView.BufferLocation = m_Buffers[VertexBuffer].pBuffer->GetGpuVirtualAddress();
-		vertexBufferView.SizeInBytes = m_Buffers[VertexBuffer].Allocator.GetCurrentSize();
-		vertexBufferView.StrideInBytes = sizeof(Vertex);
-		pCommandContext->SetVertexBuffers(0, 1, &vertexBufferView);
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+	vertexBufferView.BufferLocation = m_Buffers[VertexBuffer].pBuffer->GetGpuVirtualAddress();
+	vertexBufferView.SizeInBytes = m_Buffers[VertexBuffer].Allocator.GetCurrentSize();
+	vertexBufferView.StrideInBytes = sizeof(Vertex);
+	pCommandContext->SetVertexBuffers(0, 1, &vertexBufferView);
 
-		D3D12_INDEX_BUFFER_VIEW indexBufferView;
-		indexBufferView.BufferLocation = m_Buffers[IndexBuffer].pBuffer->GetGpuVirtualAddress();
-		indexBufferView.SizeInBytes = m_Buffers[IndexBuffer].Allocator.GetCurrentSize();
-		indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-		pCommandContext->SetIndexBuffer(&indexBufferView);
-	}
+	D3D12_INDEX_BUFFER_VIEW indexBufferView;
+	indexBufferView.BufferLocation = m_Buffers[IndexBuffer].pBuffer->GetGpuVirtualAddress();
+	indexBufferView.SizeInBytes = m_Buffers[IndexBuffer].Allocator.GetCurrentSize();
+	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	pCommandContext->SetIndexBuffer(&indexBufferView);
 }
 
 size_t GpuBufferAllocator::StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext)
@@ -196,7 +191,7 @@ void GpuBufferAllocator::CreateBottomLevelAS(Scene& Scene, CommandContext* pComm
 	geometryDesc.IsOpaque = true;
 	for (auto& model : Scene.Models)
 	{
-		RTBLAS rtblas(&pRenderDevice->GetDevice());
+		RTBLAS rtblas;
 
 		geometryDesc.NumVertices = model.Vertices.size();
 		geometryDesc.VertexOffset = vertexOffset;
@@ -215,29 +210,32 @@ void GpuBufferAllocator::CreateBottomLevelAS(Scene& Scene, CommandContext* pComm
 
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
-		auto memoryRequirements = rtblas.BLAS.GetAccelerationStructureMemoryRequirements(false);
-
-		// BLAS Result
-		rtblas.Handles.Result = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
-		{
-			proxy.SetSizeInBytes(memoryRequirements.ResultDataMaxSizeInBytes);
-			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
-			proxy.InitialState = Resource::State::AccelerationStructure;
-		});
+		UINT64 scratchSizeInBytes, resultSizeInBytes;
+		rtblas.BLAS.ComputeMemoryRequirements(pRenderDevice->GetDevice(), false, &scratchSizeInBytes, &resultSizeInBytes);
 
 		// BLAS Scratch
-		rtblas.Handles.Scratch = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+		rtblas.Handles.Scratch = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 		{
-			proxy.SetSizeInBytes(memoryRequirements.ScratchDataSizeInBytes);
+			proxy.SetSizeInBytes(scratchSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
 			proxy.InitialState = Resource::State::UnorderedAccess;
+		});
+
+		// BLAS Result
+		rtblas.Handles.Result = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(resultSizeInBytes);
+			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+			proxy.InitialState = Resource::State::AccelerationStructure;
 		});
 
 		Buffer* pResult = pRenderDevice->GetBuffer(rtblas.Handles.Result);
 		Buffer* pScratch = pRenderDevice->GetBuffer(rtblas.Handles.Scratch);
 
-		rtblas.BLAS.SetAccelerationStructure(pResult, pScratch, nullptr);
-		rtblas.BLAS.Generate(false, pCommandContext);
+		rtblas.Buffers.pScratch = pScratch;
+		rtblas.Buffers.pResult = pResult;
+
+		rtblas.BLAS.Generate(pCommandContext, pScratch, pResult);
 	}
 }
 
@@ -249,42 +247,49 @@ void GpuBufferAllocator::CreateTopLevelAS(Scene& Scene, CommandContext* pCommand
 		RTBLAS& rtblas = m_RaytracingBottomLevelAccelerationStructures[model.BottomLevelAccelerationStructureIndex];
 		Buffer* blas = pRenderDevice->GetBuffer(rtblas.Handles.Result);
 
-		m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(blas, model.Transform, i, 0);
+		RaytracingInstanceDesc desc = {};
+		desc.pBottomLevelAccelerationStructure = blas;
+		desc.Transform = model.Transform.Matrix();
+		desc.InstanceID = i;
+
+		desc.HitGroupIndex = 0;
+
+		m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(desc);
 
 		i++;
 	}
 
-	auto memoryRequirements = m_RaytracingTopLevelAccelerationStructure.TLAS.GetAccelerationStructureMemoryRequirements(true);
-
-	// TLAS Result
-	m_RaytracingTopLevelAccelerationStructure.Handles.Result = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(memoryRequirements.ResultDataMaxSizeInBytes);
-		proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
-		proxy.InitialState = Resource::State::AccelerationStructure;
-	});
+	UINT64 scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
+	m_RaytracingTopLevelAccelerationStructure.TLAS.ComputeMemoryRequirements(pRenderDevice->GetDevice(), true, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
 
 	// TLAS Scratch
-	m_RaytracingTopLevelAccelerationStructure.Handles.Scratch = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+	m_RaytracingTopLevelAccelerationStructure.Handles.Scratch = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 	{
-		proxy.SetSizeInBytes(memoryRequirements.ScratchDataSizeInBytes);
+		proxy.SetSizeInBytes(scratchSizeInBytes);
 		proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 
-	Buffer* pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Result);
-	Buffer* pScratch = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
-
-	m_RaytracingTopLevelAccelerationStructure.TLAS.SetAccelerationStructure(pResult, pScratch, nullptr);
-
-	m_RaytracingTopLevelAccelerationStructure.InstanceHandle = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+	// TLAS Result
+	m_RaytracingTopLevelAccelerationStructure.Handles.Result = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 	{
-		proxy.SetSizeInBytes(memoryRequirements.InstanceDataSizeInBytes);
+		proxy.SetSizeInBytes(resultSizeInBytes);
+		proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+		proxy.InitialState = Resource::State::AccelerationStructure;
+	});
+
+	m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(instanceDescsSizeInBytes);
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
-	Buffer* pInstance = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceHandle);
+	Buffer* pScratch = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
+	Buffer* pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Result);
+	Buffer* pInstanceDescs = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
 
-	m_RaytracingTopLevelAccelerationStructure.TLAS.SetInstanceBuffer(pInstance);
-	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(false, pCommandContext);
+	pScratch->SetDebugName(L"RTTLAS Scratch");
+	pResult->SetDebugName(L"RTTLAS Result");
+
+	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(pCommandContext, pScratch, pResult, pInstanceDescs);
 }

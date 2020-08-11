@@ -35,18 +35,22 @@ public:
 	RenderDevice(IDXGIAdapter4* pAdapter);
 	~RenderDevice();
 
-	[[nodiscard]] inline Device& GetDevice() { return m_Device; }
+	[[nodiscard]] inline Device* GetDevice() { return &m_Device; }
 	[[nodiscard]] inline CommandQueue* GetGraphicsQueue() { return &m_GraphicsQueue; }
 	[[nodiscard]] inline CommandQueue* GetComputeQueue() { return &m_ComputeQueue; }
 	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
-	[[nodiscard]] inline ResourceStateTracker& GetGlobalResourceStateTracker() { return m_GlobalResourceStateTracker; }
-	[[nodiscard]] inline DescriptorAllocator& GetDescriptorAllocator() { return m_DescriptorAllocator; }
+	[[nodiscard]] inline ResourceStateTracker* GetGlobalResourceStateTracker() { return &m_GlobalResourceStateTracker; }
+	[[nodiscard]] inline DescriptorAllocator* GetDescriptorAllocator() { return &m_DescriptorAllocator; }
 	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
 	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const;
 	auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const
 	{
 		return m_DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::ShaderResource).GPUHandle;
+	}
+	auto GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart() const
+	{
+		return m_DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::UnorderedAccess).GPUHandle;
 	}
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 

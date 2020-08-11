@@ -12,7 +12,8 @@
 #include "RenderPass/Raytracing.h"
 
 Renderer::Renderer(Window& Window)
-	: m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
+	: pWindow(&Window),
+	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(&m_RenderDevice),
 	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB),
 	m_GpuTextureAllocator(&m_RenderDevice, 100)
@@ -44,7 +45,7 @@ Renderer::Renderer(Window& Window)
 	m_FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 
 	// Initialize Non-transient resources
-	m_SwapChainRTVs = m_RenderDevice.GetDescriptorAllocator().AllocateRenderTargetDescriptors(NumSwapChainBuffers);
+	m_SwapChainRTVs = m_RenderDevice.GetDescriptorAllocator()->AllocateRenderTargetDescriptors(NumSwapChainBuffers);
 	for (UINT i = 0; i < NumSwapChainBuffers; ++i)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
@@ -59,6 +60,40 @@ Renderer::Renderer(Window& Window)
 
 	// Allocate upload context
 	m_pUploadCommandContext = m_RenderDevice.AllocateContext(CommandContext::Direct);
+}
+
+Renderer::~Renderer()
+{
+	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
+	m_RenderDevice.GetCopyQueue()->WaitForIdle();
+	m_RenderDevice.GetComputeQueue()->WaitForIdle();
+}
+
+void Renderer::UploadScene(Scene& Scene)
+{
+	PIXCapture();
+
+	// Create texture srvs
+	{
+		m_GpuBufferAllocator.Stage(Scene, m_pUploadCommandContext);
+		m_GpuBufferAllocator.Bind(m_pUploadCommandContext);
+		m_GpuTextureAllocator.Stage(Scene, m_pUploadCommandContext);
+		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
+
+		const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures();
+		m_GpuDescriptorIndices.TextureShaderResourceViews = m_RenderDevice.GetDescriptorAllocator()->GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate);
+
+		for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
+		{
+			auto handle = m_GpuTextureAllocator.AssetTextures[i];
+			m_RenderDevice.CreateSRV(handle, m_GpuDescriptorIndices.TextureShaderResourceViews[i]);
+		}
+
+		for (auto iter = m_GpuTextureAllocator.TextureStorage.TextureIndices.begin(); iter != m_GpuTextureAllocator.TextureStorage.TextureIndices.end(); ++iter)
+		{
+			m_RenderDevice.CreateSRV(m_GpuTextureAllocator.TextureStorage.TextureHandles[iter->first], m_GpuDescriptorIndices.TextureShaderResourceViews[iter->second]);
+		}
+	}
 
 	m_RenderPassConstantBufferHandle = m_RenderDevice.CreateBuffer([](BufferProxy& proxy)
 	{
@@ -77,81 +112,45 @@ Renderer::Renderer(Window& Window)
 	if constexpr (Settings::Rasterization)
 	{
 		AddCSMRenderPass(&m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
-		AddForwardRenderingRenderPass(Window.GetWindowWidth(), Window.GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
+		AddForwardRenderingRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
 		AddTonemapRenderPass(m_FrameIndex, &m_RenderGraph);
 	}
 	else
 	{
-		AddRaytracingRenderPass(Window.GetWindowWidth(), Window.GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
+		AddRaytracingRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
 		AddTonemapRenderPass(m_FrameIndex, &m_RenderGraph);
 	}
 
 	m_RenderGraph.Setup();
-}
-
-Renderer::~Renderer()
-{
-	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
-	m_RenderDevice.GetCopyQueue()->WaitForIdle();
-	m_RenderDevice.GetComputeQueue()->WaitForIdle();
-}
-
-void Renderer::UploadScene(Scene& Scene)
-{
-	PIXCapture();
-
-	// Create texture srvs
-	{
-		m_GpuBufferAllocator.Stage(Scene, m_pUploadCommandContext);
-		m_GpuBufferAllocator.Bind(false, {}, m_pUploadCommandContext);
-		m_GpuTextureAllocator.Stage(Scene, m_pUploadCommandContext);
-		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
-
-		const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures();
-		m_GpuDescriptorIndices.TextureShaderResourceViews = m_RenderDevice.GetDescriptorAllocator().GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate);
-
-		for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
-		{
-			auto handle = m_GpuTextureAllocator.AssetTextures[i];
-			m_RenderDevice.CreateSRV(handle, m_GpuDescriptorIndices.TextureShaderResourceViews[i]);
-		}
-
-		for (auto iter = m_GpuTextureAllocator.TextureStorage.TextureIndices.begin(); iter != m_GpuTextureAllocator.TextureStorage.TextureIndices.end(); ++iter)
-		{
-			m_RenderDevice.CreateSRV(m_GpuTextureAllocator.TextureStorage.TextureHandles[iter->first], m_GpuDescriptorIndices.TextureShaderResourceViews[iter->second]);
-		}
-	}
 
 	// Create render target srvs
+	if (Renderer::Settings::Rasterization)
 	{
-		if (Renderer::Settings::Rasterization)
-		{
-			const std::size_t numSRVsToAllocate = 2;
-			m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.GetDescriptorAllocator().GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate);
+		const std::size_t numSRVsToAllocate = 2;
+		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.GetDescriptorAllocator()->AllocateSRDescriptors(numSRVsToAllocate);
 
-			auto pCSMRenderPass = m_RenderGraph.GetRenderPass<CSMRenderPassData>();
-			auto pForwardRenderingRenderPass = m_RenderGraph.GetRenderPass<ForwardRenderingRenderPassData>();
-			auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
+		auto pCSMRenderPass = m_RenderGraph.GetRenderPass<CSMRenderPassData>();
+		auto pForwardRenderingRenderPass = m_RenderGraph.GetRenderPass<ForwardRenderingRenderPassData>();
+		auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
 
-			m_RenderDevice.CreateSRV(pCSMRenderPass->Outputs[CSMRenderPassData::Outputs::DepthBuffer], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
-			m_RenderDevice.CreateSRV(pForwardRenderingRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[1]);
+		m_RenderDevice.CreateSRV(pCSMRenderPass->Outputs[CSMRenderPassData::Outputs::DepthBuffer], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
+		m_RenderDevice.CreateSRV(pForwardRenderingRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[1]);
 
-			pTonemapRenderPass->Data.TonemapData.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[1].HeapIndex -
-				m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
-		}
-		else
-		{
-			const std::size_t numSRVsToAllocate = 1;
-			m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.GetDescriptorAllocator().GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate);
+		pTonemapRenderPass->Data.TonemapData.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[1].HeapIndex -
+			m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
+	}
+	else
+	{
+		const std::size_t numSRVsToAllocate = 1;
+		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.GetDescriptorAllocator()->AllocateSRDescriptors(numSRVsToAllocate);
 
-			auto pRaytracingRenderPass = m_RenderGraph.GetRenderPass<RaytracingRenderPassData>();
-			auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
+		auto pRaytracingRenderPass = m_RenderGraph.GetRenderPass<RaytracingRenderPassData>();
+		auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
 
-			m_RenderDevice.CreateSRV(pRaytracingRenderPass->Outputs[RaytracingRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
+		m_RenderDevice.CreateSRV(pRaytracingRenderPass->Outputs[RaytracingRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
 
-			pTonemapRenderPass->Data.TonemapData.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex -
-				m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
-		}
+		pTonemapRenderPass->Data.TonemapData.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex -
+			m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
 	}
 }
 
@@ -230,7 +229,7 @@ void Renderer::Render(Scene& Scene)
 	{
 		CORE_ERROR("DXGI_ERROR_DEVICE_REMOVED");
 		Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedData> pDred;
-		ThrowCOMIfFailed(m_RenderDevice.GetDevice().GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&pDred)));
+		ThrowCOMIfFailed(m_RenderDevice.GetDevice()->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&pDred)));
 		D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT DredAutoBreadcrumbsOutput;
 		D3D12_DRED_PAGE_FAULT_OUTPUT DredPageFaultOutput;
 		ThrowCOMIfFailed(pDred->GetAutoBreadcrumbsOutput(&DredAutoBreadcrumbsOutput));

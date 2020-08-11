@@ -44,9 +44,9 @@ std::pair<RenderResourceHandle, size_t> GpuTextureAllocator::TextureStorage::Get
 
 GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t NumMaterials)
 	: pRenderDevice(pRenderDevice),
-	m_CBSRUADescriptorHeap(&pRenderDevice->GetDevice(), NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true)
+	m_CBSRUADescriptorHeap(pRenderDevice->GetDevice(), NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true)
 {
-	m_RTV = pRenderDevice->GetDescriptorAllocator().AllocateRenderTargetDescriptors(1);
+	m_RTV = pRenderDevice->GetDescriptorAllocator()->AllocateRenderTargetDescriptors(1);
 
 	// Create BRDF LUT
 	AssetTextures[BRDFLUT] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
@@ -155,7 +155,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t Num
 		D3D12_FEATURE_DATA_FORMAT_SUPPORT featureDataFormatSupport;
 		featureDataFormatSupport.Format = optionalFormats[i];
 
-		ThrowCOMIfFailed(pRenderDevice->GetDevice().GetD3DDevice()->CheckFeatureSupport(
+		ThrowCOMIfFailed(pRenderDevice->GetDevice()->GetD3DDevice()->CheckFeatureSupport(
 			D3D12_FEATURE_FORMAT_SUPPORT,
 			&featureDataFormatSupport,
 			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
@@ -259,7 +259,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		});
 
 		UINT numDescriptorsToAllocate = numMips * 6;
-		DescriptorAllocation tempCubemapRTVs = pRenderDevice->GetDescriptorAllocator().AllocateRenderTargetDescriptors(numDescriptorsToAllocate);
+		DescriptorAllocation tempCubemapRTVs = pRenderDevice->GetDescriptorAllocator()->AllocateRenderTargetDescriptors(numDescriptorsToAllocate);
 
 		// Generate cube map
 		pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -518,7 +518,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	std::vector<UINT64> rowSizeInBytes(NumSubresources);
 	UINT64 totalBytes = 0;
 
-	auto pD3DDevice = pRenderDevice->GetDevice().GetD3DDevice();
+	auto pD3DDevice = pRenderDevice->GetDevice()->GetD3DDevice();
 	pD3DDevice->GetCopyableFootprints(&pTexture->GetD3DResource()->GetDesc(), 0, NumSubresources, 0,
 		placedSubresourceLayouts.data(), numRows.data(), rowSizeInBytes.data(), &totalBytes);
 
@@ -711,7 +711,7 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 				}
 			};
 
-			pRenderDevice->GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
+			pRenderDevice->GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
 		}
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
@@ -822,7 +822,7 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 					.PlaneSlice = 0,
 				}
 			};
-			pRenderDevice->GetDevice().GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
+			pRenderDevice->GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
 		}
 
 		for (uint32_t mip = 0; mip < numMips; ++mip)

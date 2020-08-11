@@ -114,8 +114,8 @@ struct RootParameters
 		enum
 		{
 			RaytracingAccelerationStructure,
-			Camera,
-			RenderTarget
+			RenderTarget,
+			Camera
 		};
 	};
 };
