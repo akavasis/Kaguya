@@ -141,7 +141,7 @@ RenderResourceHandle RenderDevice::CreateRootSignature(StandardShaderLayoutOptio
 	RootSignatureProxy proxy;
 	Configurator(proxy);
 	if (pOptions)
-		AddStandardShaderLayoutRootParameter(pOptions, proxy);
+		AppendStandardShaderLayoutRootParameter(pOptions, proxy);
 
 	auto [handle, rootSignature] = m_RootSignatures.CreateResource(&m_Device, proxy);
 	return handle;
@@ -273,6 +273,18 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 			desc.RaytracingAccelerationStructure.Location = pBuffer->GetGpuVirtualAddress();
 
 			m_Device.GetD3DDevice()->CreateShaderResourceView(nullptr, &desc, DestDescriptor.CPUHandle);
+		}
+		else
+		{
+			desc.Format = DXGI_FORMAT_UNKNOWN;
+			desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			desc.Buffer.FirstElement = 0;
+			desc.Buffer.NumElements = pBuffer->GetSizeInBytes() / pBuffer->GetStride();
+			desc.Buffer.StructureByteStride = pBuffer->GetStride();
+			desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+			m_Device.GetD3DDevice()->CreateShaderResourceView(pBuffer->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 		}
 	}
 	break;
@@ -559,7 +571,7 @@ void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descript
 	m_Device.GetD3DDevice()->CreateDepthStencilView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 }
 
-void RenderDevice::AddStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy)
+void RenderDevice::AppendStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy)
 {
 	// ConstantDataCB
 	if (pOptions->InitConstantDataTypeAsRootConstants)

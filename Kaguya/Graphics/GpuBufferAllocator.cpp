@@ -4,6 +4,7 @@
 
 GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize)
 	: pRenderDevice(pRenderDevice),
+	m_BufferStrides{ sizeof(Vertex), sizeof(unsigned int), Math::AlignUp<UINT>(sizeof(ObjectConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) },
 	m_Buffers{ { VertexBufferByteSize }, { IndexBufferByteSize } , { Math::AlignUp<UINT64>(ConstantBufferByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)} }
 {
 	for (size_t i = 0; i < NumInternalBufferTypes; ++i)
@@ -13,19 +14,20 @@ GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t Verte
 
 		if (i != ConstantBuffer)
 		{
-			bufferHandle = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+			bufferHandle = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 			{
 				proxy.SetSizeInBytes(bufferByteSize);
+				proxy.SetStride(m_BufferStrides[i]);
 				proxy.InitialState = Resource::State::CopyDest;
 			});
 			m_Buffers[i].BufferHandle = bufferHandle;
 			m_Buffers[i].pBuffer = pRenderDevice->GetBuffer(bufferHandle);
 		}
 
-		uploadBufferHandle = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+		uploadBufferHandle = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(bufferByteSize);
-			proxy.SetStride(Math::AlignUp<UINT>(sizeof(ObjectConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+			proxy.SetStride(m_BufferStrides[i]);
 			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 		});
 
@@ -180,6 +182,7 @@ size_t GpuBufferAllocator::StageIndex(const void* pData, size_t ByteSize, Comman
 
 void GpuBufferAllocator::CreateBottomLevelAS(Scene& Scene, CommandContext* pCommandContext)
 {
+	// we dont create a BLAS for skybox's box geometry
 	UINT vertexOffset = Scene.Skybox.Mesh.VertexCount;
 	UINT indexOffset = Scene.Skybox.Mesh.IndexCount;
 

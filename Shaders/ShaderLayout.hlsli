@@ -19,6 +19,7 @@ ConstantBuffer<RenderPassDataType>	RenderPassDataCB	: register(b1, space100);
 Texture2D				Tex2DTable[]					: register(t0, space100);
 Texture2DArray			Tex2DArrayTable[]				: register(t0, space101);
 TextureCube				TexCubeTable[]					: register(t0, space102);
+ByteAddressBuffer		RawBufferTable[]				: register(t0, space103);
 
 // Static Samplers
 SamplerState			SamplerPointWrap				: register(s0);

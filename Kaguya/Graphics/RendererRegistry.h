@@ -113,7 +113,7 @@ struct RootParameters
 	{
 		enum
 		{
-			RaytracingAccelerationStructure,
+			GeometryTable,
 			RenderTarget,
 			Camera
 		};
@@ -152,9 +152,7 @@ struct Shaders
 
 struct Libraries
 {
-	inline static RenderResourceHandle RayGeneration;
-	inline static RenderResourceHandle ClosestHit;
-	inline static RenderResourceHandle Miss;
+	inline static RenderResourceHandle Raytrace;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

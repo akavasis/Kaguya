@@ -49,8 +49,10 @@ void AddRaytracingRenderPass(
 
 		This.Outputs.push_back(raytracingOutput);
 
-		auto srv = pRenderDevice->GetDescriptorAllocator()->AllocateSRDescriptors(1);
+		auto srv = pRenderDevice->GetDescriptorAllocator()->AllocateSRDescriptors(3);
 		pRenderDevice->CreateSRV(pGpuBufferAllocator->GetRTTLASResourceHandle(), srv[0]);
+		pRenderDevice->CreateSRV(pGpuBufferAllocator->GetVertexBufferHandle(), srv[1]);
+		pRenderDevice->CreateSRV(pGpuBufferAllocator->GetIndexBufferHandle(), srv[2]);
 
 		auto uav = pRenderDevice->GetDescriptorAllocator()->AllocateUADescriptors(1);
 		pRenderDevice->CreateUAV(raytracingOutput, uav[0], {}, {});
@@ -73,7 +75,7 @@ void AddRaytracingRenderPass(
 
 			pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Global));
 			
-			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RaytracingAccelerationStructure, This.ResourceViews[0].GetStartDescriptor().GPUHandle);
+			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, This.ResourceViews[0].GetStartDescriptor().GPUHandle);
 			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, This.ResourceViews[1].GetStartDescriptor().GPUHandle);
 			pCommandContext->SetComputeRootConstantBufferView(RootParameters::Raytracing::Camera, This.Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(0));
 

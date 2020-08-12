@@ -19,6 +19,9 @@ public:
 	inline auto GetVertexBuffer() const { return m_Buffers[VertexBuffer].pBuffer; }
 	inline auto GetIndexBuffer() const { return m_Buffers[IndexBuffer].pBuffer; }
 	inline auto GetConstantBuffer() const { return m_Buffers[ConstantBuffer].pUploadBuffer; }
+
+	inline auto GetVertexBufferHandle() const { return m_Buffers[VertexBuffer].BufferHandle; }
+	inline auto GetIndexBufferHandle() const { return m_Buffers[IndexBuffer].BufferHandle; }
 	inline auto GetRTTLASResourceHandle() const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
@@ -61,24 +64,27 @@ private:
 		}
 	};
 
-	RenderDevice* pRenderDevice;
-
-	InternalBufferStructure m_Buffers[NumInternalBufferTypes];
-	UINT m_NumVertices;
-	UINT m_NumIndices;
-
 	struct RTBLAS
 	{
 		RaytracingAccelerationStructureHandles Handles;
 		RaytracingAccelerationStructureBuffers Buffers;
 		BottomLevelAccelerationStructure BLAS;
 	};
-	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
+
 	struct RTTLAS
 	{
 		RaytracingAccelerationStructureHandles Handles;
 		RaytracingAccelerationStructureBuffers Buffers;
 		TopLevelAccelerationStructure TLAS;
 	};
+
+	RenderDevice* pRenderDevice;
+
+	UINT m_BufferStrides[NumInternalBufferTypes];
+	InternalBufferStructure m_Buffers[NumInternalBufferTypes];
+	UINT m_NumVertices;
+	UINT m_NumIndices;
+
+	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS m_RaytracingTopLevelAccelerationStructure;
 };

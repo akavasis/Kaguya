@@ -23,9 +23,7 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 
 void Libraries::Register(RenderDevice* pRenderDevice)
 {
-	RayGeneration = pRenderDevice->CompileLibrary(L"../../Shaders/Raytracing/RayGeneration.hlsl");
-	ClosestHit = pRenderDevice->CompileLibrary(L"../../Shaders/Raytracing/Hit.hlsl");
-	Miss = pRenderDevice->CompileLibrary(L"../../Shaders/Raytracing/Miss.hlsl");
+	Raytrace = pRenderDevice->CompileLibrary(L"../../Shaders/Raytracing/Raytrace.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
@@ -145,10 +143,11 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	// Global RS
 	RootSignatures::Raytracing::Global = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		// 3 descriptors, 1 for AS, 1 for VB, 1 for IB
+		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);
 		CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		proxy.AddRootDescriptorTableParameter({ srvRange }); // RaytracingAccelerationStructure
+		proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
 		proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
 		proxy.AddRootCBVParameter(0, 0); // Camera
 	});
@@ -294,15 +293,19 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 {
 	Raytracing = pRenderDevice->CreateRaytracingPipelineState([=](RaytracingPipelineStateProxy& proxy)
 	{
-		const Library* pRayGenerationLibrary = pRenderDevice->GetLibrary(Libraries::RayGeneration);
-		const Library* pMissLibrary = pRenderDevice->GetLibrary(Libraries::Miss);
-		const Library* pClosestHitLibrary = pRenderDevice->GetLibrary(Libraries::ClosestHit);
+		const Library* pRaytraceLibrary = pRenderDevice->GetLibrary(Libraries::Raytrace);
 
-		proxy.AddLibrary(pRayGenerationLibrary, { L"RayGen" });
-		proxy.AddLibrary(pMissLibrary, { L"Miss" });
-		proxy.AddLibrary(pClosestHitLibrary, { L"ClosestHit" });
+		const std::vector<std::wstring> symbols =
+		{
+			L"RayGen",							// Ray generation program
+			L"Miss", L"ClosestHit",				// Primary
+			L"ShadowMiss", L"ShadowClosestHit"	// Shadow
+		};
+
+		proxy.AddLibrary(pRaytraceLibrary, symbols);
 
 		proxy.AddHitGroup(L"HitGroup", nullptr, L"ClosestHit", nullptr);
+		proxy.AddHitGroup(L"ShadowHitGroup", nullptr, L"ShadowClosestHit", nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
@@ -312,19 +315,21 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
 		// to as hit groups, meaning that the underlying intersection, any-hit and
 		// closest-hit shaders share the same root signature.
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature, { L"RayGen" });
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature, { L"Miss" });
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature, { L"HitGroup" });
+		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature, symbols);
+
 		proxy.SetGlobalRootSignature(pGlobalRootSignature);
 
 		proxy.SetRaytracingShaderConfig(4 * sizeof(float), 2 * sizeof(float));
-		proxy.SetRaytracingPipelineConfig(1);
+		proxy.SetRaytracingPipelineConfig(2);
 	});
 	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(Raytracing);
 
 	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::RayGeneration, L"RayGen", {});
 	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::Miss, L"Miss", {});
+	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::Miss, L"ShadowMiss", {});
+
 	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::HitGroup, L"HitGroup", {});
+	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::HitGroup, L"ShadowHitGroup", {});
 
 	RaytracingShaderTableBuffer = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
 	{

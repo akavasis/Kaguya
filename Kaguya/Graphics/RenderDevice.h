@@ -66,6 +66,8 @@ public:
 	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(TextureProxy&)> Configurator);
 
 	[[nodiscard]] RenderResourceHandle CreateHeap(Delegate<void(HeapProxy&)> Configurator);
+
+	// If pOptions is not null, AppendStandardShaderLayoutRootParameter will be called after Configurator
 	[[nodiscard]] RenderResourceHandle CreateRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(Delegate<void(GraphicsPipelineStateProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(Delegate<void(ComputePipelineStateProxy&)> Configurator);
@@ -96,7 +98,7 @@ public:
 	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle) { return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
 private:
-	void AddStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
+	void AppendStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
 
 	Device m_Device;
 	ShaderCompiler m_ShaderCompiler;
@@ -112,6 +114,7 @@ private:
 		Tex2DTableRange,
 		Tex2DArrayTableRange,
 		TexCubeTableRange,
+		RawBufferTableRange,
 
 		NumDescriptorRanges
 	};

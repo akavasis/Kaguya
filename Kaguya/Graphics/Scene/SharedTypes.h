@@ -44,4 +44,11 @@ struct MaterialTextureIndices
 	int EmissiveMapIndex;
 	bool IsMasked;
 };
+
+struct GeometryInfo
+{
+	unsigned int VertexOffset;
+	unsigned int IndexOffset;
+	unsigned int MaterialIndex;
+};
 #endif
