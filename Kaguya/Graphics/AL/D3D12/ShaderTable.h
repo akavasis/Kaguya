@@ -23,11 +23,6 @@ public:
 		UINT64 SizeInBytes;
 	};
 
-	struct MemoryRequirements
-	{
-		UINT64 ShaderTableSizeInBytes;
-	};
-
 	ShaderTable();
 
 	inline auto GetShaderRecordSize(RecordType Type) const { return m_ShaderRecordStrides[Type] * static_cast<UINT64>(m_ShaderRecords[Type].size()); }
@@ -36,7 +31,7 @@ public:
 	void AddShaderRecord(RecordType Type, LPCWSTR pExportName, std::vector<void*> RootArguments);
 	void Reset();
 
-	MemoryRequirements GetShaderTableMemoryRequirements() const;
+	void ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) const;
 	void Upload(RaytracingPipelineState* pRaytracingPipelineState, Buffer* pShaderTableBuffer);
 private:
 	// For each entry, copy the shader identifier followed by its resource pointers and/or root

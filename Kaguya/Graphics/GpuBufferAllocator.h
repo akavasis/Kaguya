@@ -47,7 +47,11 @@ private:
 		Buffer* pUploadBuffer;
 
 		InternalBufferStructure(size_t BufferByteSize)
-			: Allocator(BufferByteSize)
+			: Allocator(BufferByteSize),
+			BufferHandle(),
+			pBuffer(nullptr),
+			UploadBufferHandle(),
+			pUploadBuffer(nullptr)
 		{
 		}
 

@@ -33,18 +33,18 @@ void ShaderTable::Reset()
 	}
 }
 
-ShaderTable::MemoryRequirements ShaderTable::GetShaderTableMemoryRequirements() const
+void ShaderTable::ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) const
 {
+	assert(pShaderTableSizeInBytes != nullptr);
+
 	UINT64 shaderTableSizeInBytes = 0;
 	for (size_t i = 0; i < NumRecordTypes; ++i)
 	{
 		shaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords[i].size()) * m_ShaderRecordStrides[i];
 	}
+	shaderTableSizeInBytes = Math::AlignUp<UINT64>(shaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
-	MemoryRequirements memoryRequirements = {};
-	memoryRequirements.ShaderTableSizeInBytes = Math::AlignUp<UINT64>(shaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-
-	return memoryRequirements;
+	*pShaderTableSizeInBytes = shaderTableSizeInBytes;
 }
 
 void ShaderTable::Upload(RaytracingPipelineState* pRaytracingPipelineState, Buffer* pShaderTableBuffer)

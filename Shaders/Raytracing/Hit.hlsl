@@ -1,6 +1,5 @@
 #include "Common.hlsl"
 
-// Hit.hlsl contains a very simple closest hit shader ClosestHit(), with its semantic [shader("closesthit")] .
 // It will be executed upon hitting the geometry (our triangle). 
 // As the miss shader, it takes the ray payload payload as a inout parameter. 
 // It also has a second parameter defining the intersection attributes as provided by the intersection shader, 

@@ -113,13 +113,13 @@ void AddRaytracingRenderPass(
 	},
 		[](RenderPass<RaytracingRenderPassData>& This, UINT Width, UINT Height, RenderDevice* pRenderDevice)
 	{
-		// Destroy render target and depth stencil
+		// Destroy render target
 		for (auto& output : This.Outputs)
 		{
 			pRenderDevice->Destroy(&output);
 		}
 
-		// Recreate render target and depth stencil
+		// Recreate render target
 		This.Outputs[RaytracingRenderPassData::Outputs::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(RendererFormats::HDRBufferFormat);

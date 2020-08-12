@@ -1,6 +1,5 @@
 #include "Common.hlsl"
 
-// Miss.hlsl defines the Miss() shader, with its semantic [shader(�miss�)]. 
 // This shader will be executed when no geometry is hit, and will write a constant color in the payload. 
 // Note that this shader takes the payload as a inout parameter. It will be provided to the shader automatically by DXR.
 [shader("miss")]

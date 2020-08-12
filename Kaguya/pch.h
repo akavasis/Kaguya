@@ -23,6 +23,8 @@
 #include <exception>
 #include <optional>
 #include <variant>
+#include <sstream>
+#include <codecvt>
 
 // C++ STL
 #include <array>

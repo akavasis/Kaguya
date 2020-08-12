@@ -145,9 +145,8 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	// Global RS
 	RootSignatures::Raytracing::Global = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
+		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		proxy.AddRootDescriptorTableParameter({ srvRange }); // RaytracingAccelerationStructure
 		proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
@@ -293,7 +292,7 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 
 void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 {
-	Raytracing = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
+	Raytracing = pRenderDevice->CreateRaytracingPipelineState([=](RaytracingPipelineStateProxy& proxy)
 	{
 		const Library* pRayGenerationLibrary = pRenderDevice->GetLibrary(Libraries::RayGeneration);
 		const Library* pMissLibrary = pRenderDevice->GetLibrary(Libraries::Miss);
@@ -329,9 +328,10 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 
 	RaytracingShaderTableBuffer = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
 	{
-		auto memoryRequirements = pRaytracingPipelineState->GetShaderTable().GetShaderTableMemoryRequirements();
+		UINT64 shaderTableSizeInBytes;
+		pRaytracingPipelineState->GetShaderTable().ComputeMemoryRequirements(&shaderTableSizeInBytes);
 
-		proxy.SetSizeInBytes(memoryRequirements.ShaderTableSizeInBytes);
+		proxy.SetSizeInBytes(shaderTableSizeInBytes);
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 

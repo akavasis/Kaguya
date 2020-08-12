@@ -3,10 +3,10 @@
 
 RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	: m_Device(pAdapter),
-	m_GraphicsQueue(&m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
-	m_ComputeQueue(&m_Device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
-	m_CopyQueue(&m_Device, D3D12_COMMAND_LIST_TYPE_COPY),
-	m_DescriptorAllocator(&m_Device)
+	m_GraphicsQueue(GetDevice(), D3D12_COMMAND_LIST_TYPE_DIRECT),
+	m_ComputeQueue(GetDevice(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
+	m_CopyQueue(GetDevice(), D3D12_COMMAND_LIST_TYPE_COPY),
+	m_DescriptorAllocator(GetDevice())
 {
 	for (std::size_t i = 0; i < DescriptorRanges::NumDescriptorRanges; ++i)
 	{
@@ -45,7 +45,7 @@ void RenderDevice::BindUniversalGpuDescriptorHeap(CommandContext* pCommandContex
 void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[])
 {
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
-	commandlistsToBeExecuted.reserve(NumCommandContexts * 2);
+	commandlistsToBeExecuted.reserve(size_t(NumCommandContexts) * 2);
 	for (UINT i = 0; i < NumCommandContexts; ++i)
 	{
 		CommandContext* pCommandContext = ppCommandContexts[i];

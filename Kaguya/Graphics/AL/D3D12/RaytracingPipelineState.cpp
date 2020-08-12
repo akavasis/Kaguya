@@ -2,7 +2,6 @@
 #include "RaytracingPipelineState.h"
 #include "Device.h"
 #include "../Proxy/RaytracingPipelineStateProxy.h"
-#include "../Proxy/RootSignatureProxy.h"
 
 DXILLibrary::DXILLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols)
 	: pLibrary(pLibrary), Symbols(Symbols)
@@ -90,9 +89,6 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 	pShaderConfigSubobject->Config(Proxy.m_ShaderConfig.MaxPayloadSizeInBytes, Proxy.m_ShaderConfig.MaxAttributeSizeInBytes);
 
 	// Add a subobject for the association between shaders and the payload
-
-	// Build a list of all the symbols for ray generation, miss and hit groups
-	// Those shaders have to be associated with the payload definition
 	std::vector<std::wstring> exportedSymbols = Proxy.BuildShaderExportList();
 	auto pAssociationSubobject = desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 
@@ -117,8 +113,10 @@ ShaderIdentifier RaytracingPipelineState::GetShaderIdentifier(const std::wstring
 	void* pShaderIdentifier = m_StateObjectProperties->GetShaderIdentifier(ExportName.data());
 	if (!pShaderIdentifier)
 	{
-		std::wstring errMsg(std::wstring(L"Unknown shader identifier: ") + ExportName);
-		throw std::logic_error(std::string(errMsg.begin(), errMsg.end()));
+		using convert_type = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<convert_type, wchar_t> converter;
+
+		throw std::logic_error("Unknown shader identifier: " + converter.to_bytes(ExportName));
 	}
 
 	memcpy(shaderIdentifier.Data, pShaderIdentifier, sizeof(ShaderIdentifier));
