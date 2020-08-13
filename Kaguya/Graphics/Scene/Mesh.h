@@ -10,6 +10,7 @@ struct Mesh
 	uint32_t StartIndexLocation;
 	uint32_t VertexCount;
 	uint32_t BaseVertexLocation;
+	size_t BottomLevelAccelerationStructureIndex;
 	size_t MaterialIndex;
 	size_t ObjectConstantsIndex;
 };

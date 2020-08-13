@@ -129,7 +129,7 @@ void TopLevelAccelerationStructure::AddInstance(const RaytracingInstanceDesc& De
 	desc.InstanceMask = 0xFF; // TODO: should be accessible from outside
 	desc.InstanceContributionToHitGroupIndex = Desc.HitGroupIndex;
 	desc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE; // TODO: should be accessible from outside
-	desc.AccelerationStructure = Desc.pBottomLevelAccelerationStructure->GetGpuVirtualAddress();
+	desc.AccelerationStructure = Desc.AccelerationStructure;
 
 	RaytracingInstanceDescs.push_back(desc);
 }

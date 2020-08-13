@@ -45,7 +45,7 @@ private:
 
 struct RaytracingInstanceDesc
 {
-	Buffer* pBottomLevelAccelerationStructure;
+	D3D12_GPU_VIRTUAL_ADDRESS AccelerationStructure;
 	DirectX::XMMATRIX Transform;
 	UINT InstanceID;
 

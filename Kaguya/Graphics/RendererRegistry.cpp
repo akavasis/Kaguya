@@ -160,7 +160,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	RootSignatures::Raytracing::HitGroup = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootConstantsParameter(0, 0, 1);
+		proxy.AddRootConstantsParameter(0, 100, 1);
 
 		proxy.SetAsLocalRootSignature();
 	});
@@ -298,37 +298,73 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 
 void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 {
+#define ENUM_TO_LSTR(Enum) L#Enum
+	enum Symbols
+	{
+		RayGen,
+		Miss,
+		ShadowMiss,
+		ClosestHit,
+		ShadowClosestHit,
+		NumSymbols
+	};
+
+	const LPCWSTR symbols[NumSymbols] =
+	{
+		ENUM_TO_LSTR(RayGen),
+		ENUM_TO_LSTR(Miss), ENUM_TO_LSTR(ShadowMiss),
+		ENUM_TO_LSTR(ClosestHit), ENUM_TO_LSTR(ShadowClosestHit),
+	};
+
+	enum HitGroups
+	{
+		Default,
+		Shadow,
+		NumHitGroups
+	};
+
+	const LPCWSTR hitGroups[NumHitGroups] =
+	{
+		ENUM_TO_LSTR(Default),
+		ENUM_TO_LSTR(Shadow)
+	};
+
 	Raytracing = pRenderDevice->CreateRaytracingPipelineState([=](RaytracingPipelineStateProxy& proxy)
 	{
 		const Library* pRaytraceLibrary = pRenderDevice->GetLibrary(Libraries::Raytrace);
 
-		const std::vector<std::wstring> symbols =
-		{
-			L"RayGen",							// Ray generation program
-			L"Miss", L"ClosestHit",				// Primary
-			L"ShadowMiss", L"ShadowClosestHit"	// Shadow
-		};
+		proxy.AddLibrary(pRaytraceLibrary,
+			{
+				symbols[RayGen],
+				symbols[Miss], symbols[ShadowMiss],
+				symbols[ClosestHit], symbols[ShadowClosestHit]
+			});
 
-		proxy.AddLibrary(pRaytraceLibrary, symbols);
-
-		proxy.AddHitGroup(L"HitGroup", nullptr, L"ClosestHit", nullptr);
-		proxy.AddHitGroup(L"ShadowHitGroup", nullptr, L"ShadowClosestHit", nullptr);
+		proxy.AddHitGroup(hitGroups[Default], nullptr, L"ClosestHit", nullptr);
+		proxy.AddHitGroup(hitGroups[Shadow], nullptr, L"ShadowClosestHit", nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
+		RootSignature* pHitGroupRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::HitGroup);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
 		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
 		// to as hit groups, meaning that the underlying intersection, any-hit and
 		// closest-hit shaders share the same root signature.
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature, symbols);
+		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
+			{
+				symbols[RayGen], symbols[Miss], symbols[ShadowMiss]
+			});
+
+		proxy.AddRootSignatureAssociation(pHitGroupRootSignature,
+			{
+				hitGroups[Default], hitGroups[Shadow]
+			});
 
 		proxy.SetGlobalRootSignature(pGlobalRootSignature);
 
 		proxy.SetRaytracingShaderConfig(4 * sizeof(float), 2 * sizeof(float));
 		proxy.SetRaytracingPipelineConfig(2);
 	});
-
-
 }

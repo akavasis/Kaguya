@@ -183,10 +183,6 @@ size_t GpuBufferAllocator::StageIndex(const void* pData, size_t ByteSize, Comman
 
 void GpuBufferAllocator::CreateBottomLevelAS(Scene& Scene, CommandContext* pCommandContext)
 {
-	// we dont create a BLAS for skybox's box geometry
-	UINT vertexOffset = Scene.Skybox.Mesh.VertexCount;
-	UINT indexOffset = Scene.Skybox.Mesh.IndexCount;
-
 	RaytracingGeometryDesc geometryDesc = {};
 	geometryDesc.pVertexBuffer = m_Buffers[VertexBuffer].pBuffer;
 	geometryDesc.VertexStride = sizeof(Vertex);
@@ -195,21 +191,21 @@ void GpuBufferAllocator::CreateBottomLevelAS(Scene& Scene, CommandContext* pComm
 	geometryDesc.IsOpaque = true;
 	for (auto& model : Scene.Models)
 	{
-		RTBLAS rtblas;
+		for (auto& mesh : model.Meshes)
+		{
+			RTBLAS rtblas;
 
-		geometryDesc.NumVertices = model.Vertices.size();
-		geometryDesc.VertexOffset = vertexOffset;
+			geometryDesc.NumVertices = mesh.VertexCount;
+			geometryDesc.VertexOffset = mesh.BaseVertexLocation;
 
-		geometryDesc.NumIndices = model.Indices.size();
-		geometryDesc.IndexOffset = indexOffset;
+			geometryDesc.NumIndices = mesh.IndexCount;
+			geometryDesc.IndexOffset = mesh.StartIndexLocation;
 
-		rtblas.BLAS.AddGeometry(geometryDesc);
+			rtblas.BLAS.AddGeometry(geometryDesc);
 
-		vertexOffset += model.Vertices.size();
-		indexOffset += model.Indices.size();
-
-		model.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
-		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
+			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
+			m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
+		}
 	}
 
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
@@ -245,22 +241,27 @@ void GpuBufferAllocator::CreateBottomLevelAS(Scene& Scene, CommandContext* pComm
 
 void GpuBufferAllocator::CreateTopLevelAS(Scene& Scene, CommandContext* pCommandContext)
 {
-	size_t i = 0;
-	for (auto& model : Scene.Models)
+	size_t instanceID = 0;
+	size_t hitGroupIndex = 0;
+	for (const auto& model : Scene.Models)
 	{
-		RTBLAS& rtblas = m_RaytracingBottomLevelAccelerationStructures[model.BottomLevelAccelerationStructureIndex];
-		Buffer* blas = pRenderDevice->GetBuffer(rtblas.Handles.Result);
+		for (const auto& mesh : model.Meshes)
+		{
+			RTBLAS& rtblas = m_RaytracingBottomLevelAccelerationStructures[mesh.BottomLevelAccelerationStructureIndex];
+			Buffer* blas = pRenderDevice->GetBuffer(rtblas.Handles.Result);
 
-		RaytracingInstanceDesc desc = {};
-		desc.pBottomLevelAccelerationStructure = blas;
-		desc.Transform = model.Transform.Matrix();
-		desc.InstanceID = i;
+			RaytracingInstanceDesc desc = {};
+			desc.AccelerationStructure = blas->GetGpuVirtualAddress();
+			desc.Transform = mesh.Transform.Matrix();
+			desc.InstanceID = instanceID;
 
-		desc.HitGroupIndex = 0;
+			desc.HitGroupIndex = hitGroupIndex;
 
-		m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(desc);
+			m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(desc);
 
-		i++;
+			instanceID++;
+			hitGroupIndex += 2;
+		}
 	}
 
 	UINT64 scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
@@ -345,19 +346,29 @@ void GpuBufferAllocator::CreateShaderTableBuffers(Scene& Scene)
 
 	// Hit Group Shader Table
 	{
-		struct HitInfo
+		struct HitGroupShaderRootArguments
 		{
-			unsigned int GeometryIndex;
+			unsigned int GeometryIndex; // Constants
 		};
 
-		ShaderTable<void> shaderTable;
-		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"HitGroup"));
-		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"ShadowHitGroup"));
+		ShaderTable<HitGroupShaderRootArguments> shaderTable;
+
+		ShaderIdentifier hitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
+		ShaderIdentifier shadowHitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Shadow");
 
 		size_t i = 0;
-		for (auto& model : Scene.Models)
+		for (const auto& model : Scene.Models)
 		{
-			
+			for (const auto& mesh : model.Meshes)
+			{
+				HitGroupShaderRootArguments hitInfo = {};
+				hitInfo.GeometryIndex = i;
+
+				shaderTable.AddShaderRecord(hitGroupSID, hitInfo);
+				shaderTable.AddShaderRecord(shadowHitGroupSID, hitInfo);
+
+				i++;
+			}
 		}
 
 		UINT64 shaderTableSizeInBytes; UINT stride;

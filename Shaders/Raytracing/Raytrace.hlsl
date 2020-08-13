@@ -4,7 +4,7 @@ struct HitInfo
 {
 	uint GeometryIndex;
 };
-ConstantBuffer<HitInfo> HitGroupCB : register(b0, space0);
+ConstantBuffer<HitInfo> HitGroupCB : register(b0, space100);
 
 [shader("raygeneration")]
 void RayGen()
@@ -48,6 +48,12 @@ void Miss(inout RayPayload payload)
 
 	float ramp = launchIndex.y / dims.y;
 	payload.colorAndDistance = float4(0.0f, 0.2f, 0.7f - 0.3f * ramp, -1.0f);
+}
+
+[shader("miss")]
+void ShadowMiss(inout ShadowRayPayload payload)
+{
+	payload.visibility = 1.0f;
 }
 
 // It will be executed upon hitting the geometry (our triangle). 
@@ -102,12 +108,6 @@ void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 
 	hitColor *= shadowRayPayload.visibility;
 	payload.colorAndDistance = float4(hitColor, RayTCurrent());
-}
-
-[shader("miss")]
-void ShadowMiss(inout ShadowRayPayload payload)
-{
-	payload.visibility = 1.0f;
 }
 
 [shader("closesthit")]
