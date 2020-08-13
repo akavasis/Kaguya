@@ -71,6 +71,7 @@ public:
 	inline auto GetD3DResource() const { return m_pResource.Get(); }
 	inline auto GetType() const { return m_Type; }
 	inline auto GetBindFlags() const { return m_BindFlags; }
+	inline auto GetMemoryRequested() const { return m_MemoryRequested; }
 	inline auto GetSizeInBytes() const { return m_SizeInBytes; }
 	inline auto GetAlignment() const { return m_Alignment; }
 	inline auto GetHeapOffset() const { return m_HeapOffset; }
@@ -86,10 +87,11 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_pResource;
 	Type m_Type;
 	BindFlags m_BindFlags;
+	UINT m_NumSubresources;
+	UINT64 m_MemoryRequested;
 	UINT64 m_SizeInBytes;
 	UINT64 m_Alignment;
 	UINT64 m_HeapOffset;
-	UINT m_NumSubresources;
 };
 
 ENABLE_BITMASK_OPERATORS(Resource::BindFlags);

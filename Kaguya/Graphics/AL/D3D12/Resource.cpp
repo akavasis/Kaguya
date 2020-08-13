@@ -6,7 +6,13 @@
 Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 	: m_pResource(ExistingID3D12Resource)
 {
-	D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
+	const D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
+	bool isArray = (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D || desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D) && desc.DepthOrArraySize > 1;
+	ID3D12Device* pDevice = nullptr;
+	ExistingID3D12Resource->GetDevice(IID_PPV_ARGS(&pDevice));
+	const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetResourceAllocationInfo(0, 1, &desc);
+	pDevice->Release();
+
 	switch (desc.Dimension)
 	{
 	case D3D12_RESOURCE_DIMENSION_TEXTURE1D: m_Type = Resource::Type::Texture1D; break;
@@ -15,35 +21,28 @@ Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource
 	default: m_Type = Resource::Type::Unknown; break;
 	}
 	m_BindFlags = {};
-
-	ID3D12Device* pDevice = nullptr;
-	ExistingID3D12Resource->GetDevice(IID_PPV_ARGS(&pDevice));
-	D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetResourceAllocationInfo(0, 1, &desc);
+	m_NumSubresources = isArray ? desc.DepthOrArraySize * desc.MipLevels : desc.MipLevels;
+	m_MemoryRequested = desc.Width;
 	m_SizeInBytes = allocInfo.SizeInBytes;
 	m_Alignment = allocInfo.Alignment;
-	pDevice->Release();
 	m_HeapOffset = 0;
-
-	bool isArray = (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D || desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D) && desc.DepthOrArraySize > 1;
-	m_NumSubresources = isArray ? desc.DepthOrArraySize * desc.MipLevels : desc.MipLevels;
 }
 
 Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 {
 	Proxy.Link();
 
-	m_Type = Proxy.m_Type;
-	m_NumSubresources = Proxy.m_NumSubresources;
-
-	m_BindFlags = Proxy.BindFlags;
-
 	const D3D12_HEAP_PROPERTIES prop = Proxy.BuildD3DHeapProperties();
 	const D3D12_HEAP_FLAGS flag = D3D12_HEAP_FLAG_NONE;
 	const D3D12_RESOURCE_DESC desc = Proxy.BuildD3DDesc();
 	const D3D12_RESOURCE_STATES state = GetD3DResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE* clearValue = Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
+	const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &desc);
 
-	D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &desc);
+	m_Type = Proxy.m_Type;
+	m_BindFlags = Proxy.BindFlags;
+	m_NumSubresources = Proxy.m_NumSubresources;
+	m_MemoryRequested = desc.Width;
 	m_SizeInBytes = allocInfo.SizeInBytes;
 	m_Alignment = allocInfo.Alignment;
 	m_HeapOffset = 0;
@@ -60,16 +59,15 @@ Resource::Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, 
 {
 	Proxy.Link();
 
-	m_Type = Proxy.m_Type;
-	m_NumSubresources = Proxy.m_NumSubresources;
-
-	m_BindFlags = Proxy.BindFlags;
-
 	const D3D12_RESOURCE_DESC desc = Proxy.BuildD3DDesc();
 	D3D12_RESOURCE_STATES state = GetD3DResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE* clearValue = Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
+	const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &desc);
 
-	D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &desc);
+	m_Type = Proxy.m_Type;
+	m_BindFlags = Proxy.BindFlags;
+	m_NumSubresources = Proxy.m_NumSubresources;
+	m_MemoryRequested = desc.Width;
 	m_SizeInBytes = allocInfo.SizeInBytes;
 	m_Alignment = allocInfo.Alignment;
 	m_HeapOffset = HeapOffset;

@@ -12,7 +12,7 @@ Buffer::Buffer(const Device* pDevice, BufferProxy& Proxy)
 	if (m_CpuAccess == CpuAccess::Write && Proxy.m_pOptionalDataForUpload)
 	{
 		Map();
-		memcpy(m_pMappedData, Proxy.m_pOptionalDataForUpload, GetSizeInBytes());
+		memcpy(m_pMappedData, Proxy.m_pOptionalDataForUpload, GetMemoryRequested());
 		Unmap();
 	}
 }
@@ -26,7 +26,7 @@ Buffer::Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, Buff
 	if (m_CpuAccess == CpuAccess::Write && Proxy.m_pOptionalDataForUpload)
 	{
 		Map();
-		memcpy(m_pMappedData, Proxy.m_pOptionalDataForUpload, GetSizeInBytes());
+		memcpy(m_pMappedData, Proxy.m_pOptionalDataForUpload, GetMemoryRequested());
 		Unmap();
 	}
 }

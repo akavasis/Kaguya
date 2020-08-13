@@ -324,22 +324,62 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 	});
 	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(Raytracing);
 
-	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::RayGeneration, L"RayGen", {});
-	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::Miss, L"Miss", {});
-	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::Miss, L"ShadowMiss", {});
-
-	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::HitGroup, L"HitGroup", {});
-	pRaytracingPipelineState->GetShaderTable().AddShaderRecord(ShaderTable::HitGroup, L"ShadowHitGroup", {});
-
-	RaytracingShaderTableBuffer = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+	// Ray Generation Shader Table
 	{
-		UINT64 shaderTableSizeInBytes;
-		pRaytracingPipelineState->GetShaderTable().ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		ShaderTable rayGenerationShaderTable;
+		RayGenerationShaderTable = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+		{
+			rayGenerationShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"RayGen"), {});
 
-		proxy.SetSizeInBytes(shaderTableSizeInBytes);
-		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-	});
+			UINT64 shaderTableSizeInBytes;
+			rayGenerationShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 
-	Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(RaytracingShaderTableBuffer);
-	pRaytracingPipelineState->GetShaderTable().Upload(pRaytracingPipelineState, pShaderTableBuffer);
+			proxy.SetSizeInBytes(shaderTableSizeInBytes);
+			proxy.SetStride(rayGenerationShaderTable.GetShaderRecordStride());
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(RayGenerationShaderTable);
+		rayGenerationShaderTable.Generate(pShaderTableBuffer);
+	}
+
+	// Miss Shader Table
+	{
+		ShaderTable missShaderTable;
+		MissShaderTable = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+		{
+			missShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"Miss"), {});
+			missShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"ShadowMiss"), {});
+
+			UINT64 shaderTableSizeInBytes;
+			missShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+
+			proxy.SetSizeInBytes(shaderTableSizeInBytes);
+			proxy.SetStride(missShaderTable.GetShaderRecordStride());
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(MissShaderTable);
+		missShaderTable.Generate(pShaderTableBuffer);
+	}
+
+	// Hit Group Shader Table
+	{
+		ShaderTable hitGroupShaderTable;
+		HitGroupShaderTable = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+		{
+			hitGroupShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"HitGroup"), {});
+			hitGroupShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"ShadowHitGroup"), {});
+		
+			UINT64 shaderTableSizeInBytes;
+			hitGroupShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+
+			proxy.SetSizeInBytes(shaderTableSizeInBytes);
+			proxy.SetStride(hitGroupShaderTable.GetShaderRecordStride());
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(HitGroupShaderTable);
+		hitGroupShaderTable.Generate(pShaderTableBuffer);
+	}
 }

@@ -206,7 +206,9 @@ struct ComputePSOs
 struct RaytracingPSOs
 {
 	inline static RenderResourceHandle Raytracing;
-	inline static RenderResourceHandle RaytracingShaderTableBuffer;
+	inline static RenderResourceHandle RayGenerationShaderTable;
+	inline static RenderResourceHandle MissShaderTable;
+	inline static RenderResourceHandle HitGroupShaderTable;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

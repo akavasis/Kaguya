@@ -29,6 +29,11 @@ public:
 	inline auto GetCpuAccess() const { return m_CpuAccess; }
 
 	BYTE* Map();
+	template<typename T>
+	T* Map()
+	{
+		return reinterpret_cast<T*>(Map());
+	}
 	void Unmap();
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress() const;
@@ -36,6 +41,7 @@ public:
 	template<typename T>
 	void Update(INT ElementIndex, const T& Data)
 	{
+		assert(m_Stride != 0);
 		assert(m_pMappedData && "Map() has not been called, invalid ptr");
 		memcpy(&m_pMappedData[ElementIndex * m_Stride], &Data, m_Stride);
 	}

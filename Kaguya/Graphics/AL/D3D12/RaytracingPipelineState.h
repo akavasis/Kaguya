@@ -3,6 +3,7 @@
 #include <wrl/client.h>
 #include "RootSignature.h"
 #include "Library.h"
+#include "Shader.h"
 #include "ShaderTable.h"
 
 class Device;
@@ -59,12 +60,9 @@ public:
 
 	inline auto GetD3DPipelineState() const { return m_StateObject.Get(); }
 	inline auto GetD3DPipelineStateProperties() const { return m_StateObjectProperties.Get(); }
-	inline auto& GetShaderTable() { return m_ShaderTable; }
 
-	ShaderIdentifier GetShaderIdentifier(const std::wstring& ExportName);
+	ShaderIdentifier GetShaderIdentifier(LPCWSTR pExportName);
 private:
 	Microsoft::WRL::ComPtr<ID3D12StateObject> m_StateObject;
 	Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> m_StateObjectProperties;
-
-	ShaderTable m_ShaderTable;
 };

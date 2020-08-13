@@ -9,8 +9,6 @@ struct Transform
 
 	Transform();
 
-	void Reset();
-
 	void SetTransform(DirectX::FXMMATRIX M);
 	void Translate(float DeltaX, float DeltaY, float DeltaZ);
 	void SetScale(float ScaleX, float ScaleY, float ScaleZ);

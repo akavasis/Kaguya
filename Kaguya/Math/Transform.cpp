@@ -4,11 +4,6 @@ using namespace DirectX;
 
 Transform::Transform()
 {
-	Reset();
-}
-
-void Transform::Reset()
-{
 	XMStoreFloat3(&Position, XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
 	XMStoreFloat4(&Orientation, XMQuaternionIdentity());
 	XMStoreFloat3(&Scale, XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
@@ -54,11 +49,16 @@ void Transform::Rotate(float AngleX, float AngleY, float AngleZ)
 
 DirectX::XMMATRIX Transform::Matrix() const
 {
+	XMVECTOR scale = XMLoadFloat3(&Scale);
+	XMVECTOR orientation = XMLoadFloat4(&Orientation);
+	XMVECTOR position = XMLoadFloat3(&Position);
+
+	XMMATRIX S = XMMatrixScalingFromVector(scale);
+	XMMATRIX R = XMMatrixRotationQuaternion(orientation);
+	XMMATRIX T = XMMatrixTranslationFromVector(position);
+
 	// S * R * T
-	return
-		XMMatrixMultiply(
-			XMMatrixMultiply(XMMatrixScalingFromVector(XMLoadFloat3(&Scale)), XMMatrixRotationQuaternion(XMQuaternionNormalize(XMLoadFloat4(&Orientation)))),
-			XMMatrixTranslationFromVector(XMLoadFloat3(&Position)));
+	return S * R * T;
 }
 
 DirectX::XMVECTOR Transform::Up() const

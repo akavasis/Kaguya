@@ -13,7 +13,7 @@ void RayGen()
 	RayPayload payload;
 	payload.colorAndDistance = float4(0.0f, 0.0f, 0.0f, 0.0f);
     
-  	// Transform from screen space to world space
+  	// Transform from screen space to projection space
 	RayDesc ray;
 	ray.Origin = mul(float4(0.0f, 0.0f, 0.0f, 1.0f), RenderPassDataCB.InvView).xyz;
 	float4 target = mul(float4(ndcCoord, 1.0f, 1.0f), RenderPassDataCB.InvProjection);

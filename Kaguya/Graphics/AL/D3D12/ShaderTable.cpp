@@ -1,36 +1,31 @@
 #include "pch.h"
 #include "ShaderTable.h"
 #include "Buffer.h"
-#include "RaytracingPipelineState.h"
 
 ShaderTable::ShaderTable()
+	: m_ShaderRecordStride(0)
 {
-	m_ShaderRecordStrides.fill(0);
 }
 
-void ShaderTable::AddShaderRecord(RecordType Type, LPCWSTR pExportName, std::vector<void*> RootArguments)
+void ShaderTable::AddShaderRecord(ShaderIdentifier ShaderIdentifier, std::vector<void*> RootArguments)
 {
 	constexpr UINT64 ShaderIdentiferSizeInBytes = sizeof(ShaderIdentifier);
 	UINT64 recordSizeInBytes = ShaderIdentiferSizeInBytes;
 	recordSizeInBytes += 8 * static_cast<UINT64>(RootArguments.size());
-	recordSizeInBytes = Math::AlignUp<UINT64>(recordSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+	recordSizeInBytes = Math::AlignUp<UINT64>(recordSizeInBytes, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
 	ShaderRecord shaderRecord = {};
-	shaderRecord.ExportName = pExportName ? pExportName : L"";
+	shaderRecord.ShaderIdentifier = ShaderIdentifier;
 	shaderRecord.RootArguments = std::move(RootArguments);
-	shaderRecord.SizeInBytes = recordSizeInBytes;
 
-	m_ShaderRecords[Type].push_back(shaderRecord);
-	m_ShaderRecordStrides[Type] = std::max(m_ShaderRecordStrides[Type], recordSizeInBytes);
+	m_ShaderRecords.push_back(shaderRecord);
+	m_ShaderRecordStride = std::max(m_ShaderRecordStride, recordSizeInBytes);
 }
 
 void ShaderTable::Reset()
 {
-	for (size_t i = 0; i < NumRecordTypes; ++i)
-	{
-		m_ShaderRecords[i].clear();
-		m_ShaderRecordStrides[i] = 0;
-	}
+	m_ShaderRecords.clear();
+	m_ShaderRecordStride = 0;
 }
 
 void ShaderTable::ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) const
@@ -38,40 +33,25 @@ void ShaderTable::ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) con
 	assert(pShaderTableSizeInBytes != nullptr);
 
 	UINT64 shaderTableSizeInBytes = 0;
-	for (size_t i = 0; i < NumRecordTypes; ++i)
-	{
-		shaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords[i].size()) * m_ShaderRecordStrides[i];
-	}
+	shaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
 	shaderTableSizeInBytes = Math::AlignUp<UINT64>(shaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
 	*pShaderTableSizeInBytes = shaderTableSizeInBytes;
 }
 
-void ShaderTable::Upload(RaytracingPipelineState* pRaytracingPipelineState, Buffer* pShaderTableBuffer)
+void ShaderTable::Generate(Buffer* pShaderTableBuffer)
 {
 	BYTE* pData = pShaderTableBuffer->Map();
-	UINT64 offset = 0;
-
-	for (size_t i = 0; i < NumRecordTypes; ++i)
+	
+	for (const auto& shaderRecord : m_ShaderRecords)
 	{
-		offset = UploadShaderData(pRaytracingPipelineState, pData, m_ShaderRecords[i], m_ShaderRecordStrides[i]);
-		pData += offset;
-	}
-	pShaderTableBuffer->Unmap();
-}
-
-UINT64 ShaderTable::UploadShaderData(RaytracingPipelineState* pRaytracingPipelineState, BYTE* pData, const std::vector<ShaderTable::ShaderRecord>& ShaderRecords, UINT64 ShaderRecordStride)
-{
-	for (const auto& shaderRecord : ShaderRecords)
-	{
-		ShaderIdentifier shaderIdentifier = pRaytracingPipelineState->GetShaderIdentifier(shaderRecord.ExportName);
 		// Copy the shader identifier
-		memcpy(pData, shaderIdentifier.Data, sizeof(ShaderIdentifier));
+		memcpy(pData, shaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
 		// Copy all its resources pointers or values in bulk
 		memcpy(pData + sizeof(ShaderIdentifier), shaderRecord.RootArguments.data(), shaderRecord.RootArguments.size() * 8);
 
-		pData += ShaderRecordStride;
+		pData += m_ShaderRecordStride;
 	}
-	// Return the number of bytes actually written to the output buffer
-	return static_cast<UINT64>(ShaderRecords.size()) * ShaderRecordStride;
+
+	pShaderTableBuffer->Unmap();
 }

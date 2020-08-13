@@ -2,45 +2,28 @@
 #include "Shader.h"
 
 class Buffer;
-class RaytracingPipelineState;
+
+// ShaderRecord = {{Shader Identifier}, {RootArguments}}
+struct ShaderRecord
+{
+	ShaderIdentifier ShaderIdentifier;
+	std::vector<void*> RootArguments;
+};
 
 class ShaderTable
 {
 public:
-	enum RecordType
-	{
-		RayGeneration,
-		Miss,
-		HitGroup,
-		NumRecordTypes
-	};
-
-	struct ShaderRecord
-	{
-		std::wstring ExportName;
-		std::vector<void*> RootArguments;
-
-		UINT64 SizeInBytes;
-	};
-
 	ShaderTable();
 
-	inline auto GetShaderRecordSize(RecordType Type) const { return m_ShaderRecordStrides[Type] * static_cast<UINT64>(m_ShaderRecords[Type].size()); }
-	inline auto GetShaderRecordStride(RecordType Type) const { return m_ShaderRecordStrides[Type]; }
+	inline auto GetShaderRecordStride() const { return m_ShaderRecordStride; }
 
-	void AddShaderRecord(RecordType Type, LPCWSTR pExportName, std::vector<void*> RootArguments);
+	void AddShaderRecord(ShaderIdentifier ShaderIdentifier, std::vector<void*> RootArguments);
 	void Reset();
 
 	void ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) const;
-	void Upload(RaytracingPipelineState* pRaytracingPipelineState, Buffer* pShaderTableBuffer);
+	void Generate(Buffer* pShaderTableBuffer);
 private:
-	// For each entry, copy the shader identifier followed by its resource pointers and/or root
-	// constants in outputData, with a stride in bytes of entrySize, and returns the size in bytes
-	// actually written to pData.
-	UINT64 UploadShaderData(RaytracingPipelineState* pRaytracingPipelineState,
-		BYTE* pData, const std::vector<ShaderRecord>& ShaderRecords, UINT64 ShaderRecordStride);
-
-	std::vector<ShaderRecord> m_ShaderRecords[NumRecordTypes];
+	std::vector<ShaderRecord> m_ShaderRecords;
 	// The stride of a shader record type, this is the maximum record size for each type
-	std::array<UINT64, NumRecordTypes> m_ShaderRecordStrides;
+	UINT64 m_ShaderRecordStride;
 };

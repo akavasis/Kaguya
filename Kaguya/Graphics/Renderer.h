@@ -28,7 +28,7 @@ public:
 	struct Settings
 	{
 		inline static bool VSync = false;
-		inline static constexpr bool Rasterization = true;
+		inline static constexpr bool Rasterization = false;
 	};
 
 	Renderer(Window& Window);

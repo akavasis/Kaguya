@@ -17,7 +17,7 @@ struct RaytracingRenderPassData
 	{
 		enum
 		{
-			AccelerationStructure,
+			GeometryTable,
 			RenderTarget
 		};
 	};
@@ -67,41 +67,35 @@ void AddRaytracingRenderPass(
 		{
 			PIXMarker(pCommandContext->GetD3DCommandList(), L"Raytracing");
 			auto pOutput = RenderGraphRegistry.GetTexture(This.Outputs[RaytracingRenderPassData::Outputs::RenderTarget]);
-			auto pShaderTableBuffer = RenderGraphRegistry.GetBuffer(RaytracingPSOs::RaytracingShaderTableBuffer);
+			auto pRayGenerationShaderTable = RenderGraphRegistry.GetBuffer(RaytracingPSOs::RayGenerationShaderTable);
+			auto pMissShaderTable = RenderGraphRegistry.GetBuffer(RaytracingPSOs::MissShaderTable);
+			auto pHitGroupShaderTable = RenderGraphRegistry.GetBuffer(RaytracingPSOs::HitGroupShaderTable);
+
 			auto pRaytracingPipelineState = RenderGraphRegistry.GetRaytracingPSO(RaytracingPSOs::Raytracing);
-			auto& ShaderTable = pRaytracingPipelineState->GetShaderTable();
 
 			pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
 			pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Global));
 			
-			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, This.ResourceViews[0].GetStartDescriptor().GPUHandle);
+			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::AccelerationStructure, This.ResourceViews[0].GetStartDescriptor().GPUHandle);
 			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, This.ResourceViews[1].GetStartDescriptor().GPUHandle);
 			pCommandContext->SetComputeRootConstantBufferView(RootParameters::Raytracing::Camera, This.Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(0));
 
-			// Setup the raytracing task
 			D3D12_DISPATCH_RAYS_DESC desc = {};
-			// The layout of the SB is as follows: ray generation shader, miss
-			// shaders, hit groups. all SB entries of a given type have the same size to allow a fixed stride.
 
 			// The ray generation shaders are always at the beginning of the ST. 
-			UINT64 rayGenerationShaderRecordSizeInBytes = ShaderTable.GetShaderRecordSize(ShaderTable::RayGeneration);
-			desc.RayGenerationShaderRecord.StartAddress = pShaderTableBuffer->GetGpuVirtualAddress();
-			desc.RayGenerationShaderRecord.SizeInBytes = rayGenerationShaderRecordSizeInBytes;
+			desc.RayGenerationShaderRecord.StartAddress = pRayGenerationShaderTable->GetGpuVirtualAddress();
+			desc.RayGenerationShaderRecord.SizeInBytes = pRayGenerationShaderTable->GetMemoryRequested();
 
 			// The miss shaders are in the second SB section, right after ray generation record
-			UINT64 missShaderTableSizeInBytes = ShaderTable.GetShaderRecordSize(ShaderTable::Miss);
-			UINT64 missShaderTableStride = ShaderTable.GetShaderRecordStride(ShaderTable::Miss);
-			desc.MissShaderTable.StartAddress = pShaderTableBuffer->GetGpuVirtualAddress() + rayGenerationShaderRecordSizeInBytes;
-			desc.MissShaderTable.SizeInBytes = missShaderTableSizeInBytes;
-			desc.MissShaderTable.StrideInBytes = missShaderTableStride;
+			desc.MissShaderTable.StartAddress = pMissShaderTable->GetGpuVirtualAddress();
+			desc.MissShaderTable.SizeInBytes = pMissShaderTable->GetMemoryRequested();
+			desc.MissShaderTable.StrideInBytes = pMissShaderTable->GetStride();
 
 			// The hit groups section start after the miss shaders
-			UINT64 hitGroupShaderTableSizeInBytes = ShaderTable.GetShaderRecordSize(ShaderTable::HitGroup);
-			UINT64 hitGroupShaderTableStride = ShaderTable.GetShaderRecordStride(ShaderTable::HitGroup);
-			desc.HitGroupTable.StartAddress = pShaderTableBuffer->GetGpuVirtualAddress() + rayGenerationShaderRecordSizeInBytes + missShaderTableSizeInBytes;
-			desc.HitGroupTable.SizeInBytes = hitGroupShaderTableSizeInBytes;
-			desc.HitGroupTable.StrideInBytes = hitGroupShaderTableStride;
+			desc.HitGroupTable.StartAddress = pHitGroupShaderTable->GetGpuVirtualAddress();
+			desc.HitGroupTable.SizeInBytes = pHitGroupShaderTable->GetMemoryRequested();
+			desc.HitGroupTable.StrideInBytes = pHitGroupShaderTable->GetStride();
 
 			desc.Width = pOutput->GetWidth();
 			desc.Height = pOutput->GetHeight();

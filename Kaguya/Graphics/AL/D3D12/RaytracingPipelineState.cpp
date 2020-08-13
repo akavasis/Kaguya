@@ -107,16 +107,16 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 	ThrowCOMIfFailed(m_StateObject->QueryInterface(IID_PPV_ARGS(m_StateObjectProperties.ReleaseAndGetAddressOf())));
 }
 
-ShaderIdentifier RaytracingPipelineState::GetShaderIdentifier(const std::wstring& ExportName)
+ShaderIdentifier RaytracingPipelineState::GetShaderIdentifier(LPCWSTR pExportName)
 {
 	ShaderIdentifier shaderIdentifier = {};
-	void* pShaderIdentifier = m_StateObjectProperties->GetShaderIdentifier(ExportName.data());
+	void* pShaderIdentifier = m_StateObjectProperties->GetShaderIdentifier(pExportName);
 	if (!pShaderIdentifier)
 	{
 		using convert_type = std::codecvt_utf8<wchar_t>;
 		std::wstring_convert<convert_type, wchar_t> converter;
 
-		throw std::logic_error("Unknown shader identifier: " + converter.to_bytes(ExportName));
+		throw std::logic_error("Unknown shader identifier: " + converter.to_bytes(pExportName));
 	}
 
 	memcpy(shaderIdentifier.Data, pShaderIdentifier, sizeof(ShaderIdentifier));

@@ -113,13 +113,12 @@ void Renderer::UploadScene(Scene& Scene)
 	{
 		AddCSMRenderPass(&m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
 		AddForwardRenderingRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
-		AddTonemapRenderPass(m_FrameIndex, &m_RenderGraph);
 	}
 	else
 	{
 		AddRaytracingRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
-		AddTonemapRenderPass(m_FrameIndex, &m_RenderGraph);
 	}
+	AddTonemapRenderPass(m_FrameIndex, &m_RenderGraph);
 
 	m_RenderGraph.Setup();
 
