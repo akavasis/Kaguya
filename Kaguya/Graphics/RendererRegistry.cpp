@@ -157,6 +157,13 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	{
 		proxy.SetAsLocalRootSignature();
 	});
+
+	RootSignatures::Raytracing::HitGroup = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootConstantsParameter(0, 0, 1);
+
+		proxy.SetAsLocalRootSignature();
+	});
 }
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
@@ -322,64 +329,6 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		proxy.SetRaytracingShaderConfig(4 * sizeof(float), 2 * sizeof(float));
 		proxy.SetRaytracingPipelineConfig(2);
 	});
-	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(Raytracing);
 
-	// Ray Generation Shader Table
-	{
-		ShaderTable rayGenerationShaderTable;
-		RayGenerationShaderTable = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
-		{
-			rayGenerationShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"RayGen"), {});
 
-			UINT64 shaderTableSizeInBytes;
-			rayGenerationShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
-
-			proxy.SetSizeInBytes(shaderTableSizeInBytes);
-			proxy.SetStride(rayGenerationShaderTable.GetShaderRecordStride());
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-		});
-
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(RayGenerationShaderTable);
-		rayGenerationShaderTable.Generate(pShaderTableBuffer);
-	}
-
-	// Miss Shader Table
-	{
-		ShaderTable missShaderTable;
-		MissShaderTable = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
-		{
-			missShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"Miss"), {});
-			missShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"ShadowMiss"), {});
-
-			UINT64 shaderTableSizeInBytes;
-			missShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
-
-			proxy.SetSizeInBytes(shaderTableSizeInBytes);
-			proxy.SetStride(missShaderTable.GetShaderRecordStride());
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-		});
-
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(MissShaderTable);
-		missShaderTable.Generate(pShaderTableBuffer);
-	}
-
-	// Hit Group Shader Table
-	{
-		ShaderTable hitGroupShaderTable;
-		HitGroupShaderTable = pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
-		{
-			hitGroupShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"HitGroup"), {});
-			hitGroupShaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"ShadowHitGroup"), {});
-		
-			UINT64 shaderTableSizeInBytes;
-			hitGroupShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
-
-			proxy.SetSizeInBytes(shaderTableSizeInBytes);
-			proxy.SetStride(hitGroupShaderTable.GetShaderRecordStride());
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-		});
-
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(HitGroupShaderTable);
-		hitGroupShaderTable.Generate(pShaderTableBuffer);
-	}
 }

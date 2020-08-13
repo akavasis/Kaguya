@@ -67,9 +67,9 @@ void AddRaytracingRenderPass(
 		{
 			PIXMarker(pCommandContext->GetD3DCommandList(), L"Raytracing");
 			auto pOutput = RenderGraphRegistry.GetTexture(This.Outputs[RaytracingRenderPassData::Outputs::RenderTarget]);
-			auto pRayGenerationShaderTable = RenderGraphRegistry.GetBuffer(RaytracingPSOs::RayGenerationShaderTable);
-			auto pMissShaderTable = RenderGraphRegistry.GetBuffer(RaytracingPSOs::MissShaderTable);
-			auto pHitGroupShaderTable = RenderGraphRegistry.GetBuffer(RaytracingPSOs::HitGroupShaderTable);
+			auto pRayGenerationShaderTable = RenderGraphRegistry.GetBuffer(This.Data.pGpuBufferAllocator->GetRayGenerationShaderTableHandle());
+			auto pMissShaderTable = RenderGraphRegistry.GetBuffer(This.Data.pGpuBufferAllocator->GetMissShaderTableHandle());
+			auto pHitGroupShaderTable = RenderGraphRegistry.GetBuffer(This.Data.pGpuBufferAllocator->GetHitGroupShaderTableHandle());
 
 			auto pRaytracingPipelineState = RenderGraphRegistry.GetRaytracingPSO(RaytracingPSOs::Raytracing);
 
@@ -77,7 +77,7 @@ void AddRaytracingRenderPass(
 
 			pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Global));
 			
-			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::AccelerationStructure, This.ResourceViews[0].GetStartDescriptor().GPUHandle);
+			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, This.ResourceViews[0].GetStartDescriptor().GPUHandle);
 			pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, This.ResourceViews[1].GetStartDescriptor().GPUHandle);
 			pCommandContext->SetComputeRootConstantBufferView(RootParameters::Raytracing::Camera, This.Data.pRenderPassConstantBuffer->GetGpuVirtualAddressAt(0));
 

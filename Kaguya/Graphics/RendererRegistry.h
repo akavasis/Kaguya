@@ -117,6 +117,14 @@ struct RootParameters
 			RenderTarget,
 			Camera
 		};
+
+		struct HitGroup
+		{
+			enum
+			{
+				HitInfo
+			};
+		};
 	};
 };
 
@@ -175,6 +183,7 @@ struct RootSignatures
 	{
 		inline static RenderResourceHandle Global;
 		inline static RenderResourceHandle EmptyLocal;
+		inline static RenderResourceHandle HitGroup;
 	};
 
 	static void Register(RenderDevice* pRenderDevice);
@@ -206,9 +215,6 @@ struct ComputePSOs
 struct RaytracingPSOs
 {
 	inline static RenderResourceHandle Raytracing;
-	inline static RenderResourceHandle RayGenerationShaderTable;
-	inline static RenderResourceHandle MissShaderTable;
-	inline static RenderResourceHandle HitGroupShaderTable;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

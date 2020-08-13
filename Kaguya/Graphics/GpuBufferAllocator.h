@@ -23,6 +23,9 @@ public:
 	inline auto GetVertexBufferHandle() const { return m_Buffers[VertexBuffer].BufferHandle; }
 	inline auto GetIndexBufferHandle() const { return m_Buffers[IndexBuffer].BufferHandle; }
 	inline auto GetRTTLASResourceHandle() const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
+	inline auto GetRayGenerationShaderTableHandle() const { return RayGenerationShaderTable; }
+	inline auto GetMissShaderTableHandle() const { return MissShaderTable; }
+	inline auto GetHitGroupShaderTableHandle() const { return HitGroupShaderTable; }
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
 	void Update(Scene& Scene);
@@ -32,6 +35,7 @@ private:
 	size_t StageIndex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
 	void CreateBottomLevelAS(Scene& Scene, CommandContext* pCommandContext);
 	void CreateTopLevelAS(Scene& Scene, CommandContext* pCommandContext);
+	void CreateShaderTableBuffers(Scene& Scene);
 
 	enum InternalBufferTypes
 	{
@@ -87,4 +91,8 @@ private:
 
 	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS m_RaytracingTopLevelAccelerationStructure;
+
+	RenderResourceHandle RayGenerationShaderTable;
+	RenderResourceHandle MissShaderTable;
+	RenderResourceHandle HitGroupShaderTable;
 };

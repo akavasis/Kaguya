@@ -1,5 +1,11 @@
 #include "Global.hlsli"
 
+struct HitInfo
+{
+	uint GeometryIndex;
+};
+ConstantBuffer<HitInfo> HitGroupCB : register(b0, space0);
+
 [shader("raygeneration")]
 void RayGen()
 {
