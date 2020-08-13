@@ -67,23 +67,10 @@ void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 	float3 barycentrics =
     float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
 
-	const float3 A = float3(1, 0, 0);
-	const float3 B = float3(0, 1, 0);
-	const float3 C = float3(0, 0, 1);
-
-	float3 hitColor = float3(0.7, 0.7, 0.7);
-	switch (InstanceID())
-	{
-		case 0:
-			hitColor = A * barycentrics.x + B * barycentrics.y + C * barycentrics.z;
-			break;
-		case 1:
-			hitColor = B * barycentrics.x + B * barycentrics.y + C * barycentrics.z;
-			break;
-		case 2:
-			hitColor = C * barycentrics.x + B * barycentrics.y + C * barycentrics.z;
-			break;
-	}
+	float multiplier = float(HitGroupCB.GeometryIndex);
+	float3 hitColor = float3(1.0f, 0.0f, 0.0f);
+	hitColor *= multiplier;
+	hitColor *= barycentrics;
 
 	// Initialize the ray payload
 	ShadowRayPayload shadowRayPayload;
