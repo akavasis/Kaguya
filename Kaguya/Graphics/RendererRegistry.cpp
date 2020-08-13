@@ -340,8 +340,8 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 				symbols[ClosestHit], symbols[ShadowClosestHit]
 			});
 
-		proxy.AddHitGroup(hitGroups[Default], nullptr, L"ClosestHit", nullptr);
-		proxy.AddHitGroup(hitGroups[Shadow], nullptr, L"ShadowClosestHit", nullptr);
+		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
+		proxy.AddHitGroup(hitGroups[Shadow], nullptr, symbols[ShadowClosestHit], nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);

@@ -103,6 +103,13 @@ RenderResourceHandle RenderDevice::CreateBuffer(RenderResourceHandle HeapHandle,
 	return handle;
 }
 
+RenderResourceHandle RenderDevice::CreateTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState)
+{
+	auto [handle, texture] = m_Textures.CreateResource(ExistingResource);
+	m_GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3DResourceStates(InitialState));
+	return handle;
+}
+
 RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, Delegate<void(TextureProxy&)> Configurator)
 {
 	TextureProxy proxy(Type);
@@ -223,37 +230,6 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 	pRenderResourceHandle->Type = RenderResourceType::Unknown;
 	pRenderResourceHandle->Flags = RenderResourceFlags::Destroyed;
 	pRenderResourceHandle->Data = 0;
-}
-
-RenderResourceHandle RenderDevice::CreateSwapChainTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState)
-{
-	auto [handle, texture] = m_SwapChainTextures.CreateResource(ExistingResource);
-	m_GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3DResourceStates(InitialState));
-	return handle;
-}
-
-void RenderDevice::DestroySwapChainTexture(RenderResourceHandle* pRenderResourceHandle)
-{
-	if (!pRenderResourceHandle)
-		return;
-	auto texture = m_SwapChainTextures.GetResource(*pRenderResourceHandle);
-	if (texture)
-	{
-		m_GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
-	}
-	m_SwapChainTextures.Destroy(pRenderResourceHandle);
-}
-
-void RenderDevice::CreateRTVForSwapChainTexture(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)
-{
-	Texture* swapChainTexture = m_SwapChainTextures.GetResource(RenderResourceHandle);
-	if (!swapChainTexture)
-	{
-		throw std::logic_error("Could not find swapchain texture given the handle");
-		return;
-	}
-
-	m_Device.GetD3DDevice()->CreateRenderTargetView(swapChainTexture->GetD3DResource(), nullptr, DestDescriptor.CPUHandle);
 }
 
 void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)

@@ -50,9 +50,9 @@ Renderer::Renderer(Window& Window)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-		m_SwapChainTextureHandles[i] = m_RenderDevice.CreateSwapChainTexture(pBackBuffer, Resource::State::Common);
-		m_pSwapChainTextures[i] = m_RenderDevice.GetSwapChainTexture(m_SwapChainTextureHandles[i]);
-		m_RenderDevice.CreateRTVForSwapChainTexture(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i]);
+		m_SwapChainTextureHandles[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
+		m_pSwapChainTextures[i] = m_RenderDevice.GetTexture(m_SwapChainTextureHandles[i]);
+		m_RenderDevice.CreateRTV(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i], {}, {}, {});
 
 		std::string name = "Swap Chain: " + std::to_string(i);
 		m_RenderGraph.AddNonTransientResource(name.data(), m_SwapChainTextureHandles[i]);
@@ -244,7 +244,7 @@ void Renderer::Resize(UINT Width, UINT Height)
 
 		// Release resources before resize swap chain
 		for (UINT i = 0u; i < NumSwapChainBuffers; ++i)
-			m_RenderDevice.DestroySwapChainTexture(&m_SwapChainTextureHandles[i]);
+			m_RenderDevice.Destroy(&m_SwapChainTextureHandles[i]);
 
 		// Resize backbuffer
 		constexpr UINT NodeMask = 0;
@@ -263,9 +263,9 @@ void Renderer::Resize(UINT Width, UINT Height)
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-			m_SwapChainTextureHandles[i] = m_RenderDevice.CreateSwapChainTexture(pBackBuffer, Resource::State::Common);
-			m_pSwapChainTextures[i] = m_RenderDevice.GetSwapChainTexture(m_SwapChainTextureHandles[i]);
-			m_RenderDevice.CreateRTVForSwapChainTexture(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i]);
+			m_SwapChainTextureHandles[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
+			m_pSwapChainTextures[i] = m_RenderDevice.GetTexture(m_SwapChainTextureHandles[i]);
+			m_RenderDevice.CreateRTV(m_SwapChainTextureHandles[i], m_SwapChainRTVs[i], {}, {}, {});
 
 			std::string name = "Swap Chain: " + std::to_string(i);
 			m_RenderGraph.RemoveNonTransientResource(name.data());

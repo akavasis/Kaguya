@@ -1,5 +1,5 @@
 #pragma once
-#include "../Core/Delegate.h"
+#include "Core/Delegate.h"
 
 #include "AL/D3D12/Device.h"
 #include "AL/D3D12/ShaderCompiler.h"
@@ -62,6 +62,7 @@ public:
 	[[nodiscard]] RenderResourceHandle CreateBuffer(Delegate<void(BufferProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(BufferProxy&)> Configurator);
 
+	[[nodiscard]] RenderResourceHandle CreateTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
 	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, Delegate<void(TextureProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(TextureProxy&)> Configurator);
 
@@ -74,12 +75,6 @@ public:
 	[[nodiscard]] RenderResourceHandle CreateRaytracingPipelineState(Delegate<void(RaytracingPipelineStateProxy&)> Configurator);
 
 	void Destroy(RenderResourceHandle* pRenderResourceHandle);
-
-	// Special creation methods
-	[[nodiscard]] RenderResourceHandle CreateSwapChainTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
-	[[nodiscard]] inline auto GetSwapChainTexture(RenderResourceHandle RenderResourceHandle) { return m_SwapChainTextures.GetResource(RenderResourceHandle); }
-	void DestroySwapChainTexture(RenderResourceHandle* pRenderResourceHandle);
-	void CreateRTVForSwapChainTexture(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor);
 
 	// Resource view creation
 	void CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor);
@@ -131,6 +126,4 @@ private:
 	RenderResourceContainer<RenderResourceType::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
 	RenderResourceContainer<RenderResourceType::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
 	RenderResourceContainer<RenderResourceType::RaytracingPSO, RaytracingPipelineState> m_RaytracingPipelineStates;
-
-	RenderResourceContainer<RenderResourceType::Texture, Texture> m_SwapChainTextures;
 };
