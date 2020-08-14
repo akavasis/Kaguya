@@ -11,6 +11,7 @@ struct InputVertex
 	float2 textureCoord : TEXCOORD;
 	float3 normalL : NORMAL;
 	float3 tangentL : TANGENT;
+	float3 bitangentL : BITANGENT;
 };
 struct OutputVertex
 {
@@ -36,7 +37,7 @@ OutputVertex main(InputVertex inputVertex)
 	// Build orthonormal basis.
 	float3 N = normalize(mul(inputVertex.normalL, (float3x3) ConstantDataCB.World));
 	float3 T = normalize(mul(inputVertex.tangentL, (float3x3) ConstantDataCB.World));
-	float3 B = normalize(cross(N, T));
+	float3 B = normalize(mul(inputVertex.bitangentL, (float3x3) ConstantDataCB.World));
 	
 	output.normalW = N;
 	output.tbnMatrix = float3x3(T, B, N);

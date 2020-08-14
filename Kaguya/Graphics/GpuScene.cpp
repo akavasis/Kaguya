@@ -2,7 +2,7 @@
 #include "GpuScene.h"
 
 GpuScene::GpuScene(RenderDevice* pRenderDevice)
-	: m_GpuBufferAllocator(pRenderDevice, 50_MiB, 50_MiB, 64_KiB),
+	: m_GpuBufferAllocator(pRenderDevice, 50_MiB, 50_MiB, 64_KiB, 64_KiB),
 	m_GpuTextureAllocator(pRenderDevice, 100)
 {
 }

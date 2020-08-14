@@ -13,6 +13,9 @@
 class GpuTextureAllocator
 {
 public:
+	inline auto GetMaterialTextureIndicesBufferHandle() const { return m_MaterialTextureIndicesStructuredBufferHandle; }
+	inline auto GetMaterialTexturePropertiesBufferHandle() const { return m_MaterialTexturePropertiesStructuredBufferHandle; }
+
 	enum AssetTextures
 	{
 		BRDFLUT,

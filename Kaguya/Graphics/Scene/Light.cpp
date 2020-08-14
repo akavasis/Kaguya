@@ -5,7 +5,14 @@ using namespace DirectX;
 
 DirectionalLight::DirectionalLight()
 {
-	Reset();
+	Strength = { 1.0f, 1.0f, 1.0f };
+	Intensity = 3.0f;
+	XMStoreFloat3(&Direction, XMVector3Normalize(XMVectorSet(-0.1f, -0.6f, 0.8f, 0.0f)));
+	Lambda = 0.5f;
+	for (size_t i = 0; i < NUM_CASCADES; ++i)
+	{
+		Cascades[i] = {};
+	}
 }
 
 void DirectionalLight::RenderImGuiWindow()
@@ -23,18 +30,10 @@ void DirectionalLight::RenderImGuiWindow()
 
 		if (ImGui::Button("Reset"))
 		{
-			Reset();
+			*this = DirectionalLight();
 		}
 		ImGui::TreePop();
 	}
-}
-
-void DirectionalLight::Reset()
-{
-	Strength = { 1.0f, 1.0f, 1.0f };
-	Intensity = 3.0f;
-	XMStoreFloat3(&Direction, XMVector3Normalize(XMVectorSet(-0.1f, -0.6f, 0.8f, 0.0f)));
-	Lambda = 0.5f;
 }
 
 std::array<OrthographicCamera, NUM_CASCADES> DirectionalLight::GenerateCascades(const Camera& Camera, unsigned int Resolution)
@@ -164,7 +163,10 @@ std::array<OrthographicCamera, NUM_CASCADES> DirectionalLight::GenerateCascades(
 
 PointLight::PointLight()
 {
-	Reset();
+	Strength = { 1.0f, 1.0f, 1.0f };
+	Intensity = 3.0f;
+	Position = { 0.0f, 0.0f, 0.0f };
+	Radius = 25.0f;
 }
 
 void PointLight::RenderImGuiWindow()
@@ -183,23 +185,23 @@ void PointLight::RenderImGuiWindow()
 
 		if (ImGui::Button("Reset"))
 		{
-			Reset();
+			*this = PointLight();
 		}
 		ImGui::TreePop();
 	}
 }
 
-void PointLight::Reset()
+SpotLight::SpotLight()
 {
 	Strength = { 1.0f, 1.0f, 1.0f };
 	Intensity = 3.0f;
 	Position = { 0.0f, 0.0f, 0.0f };
-	Radius = 25.0f;
-}
+	InnerConeAngle = cosf(XMConvertToRadians(2.0f));
+	Direction = { 0.0f, -1.0f, 0.0f };
+	OuterConeAngle = cosf(XMConvertToRadians(25.0f));
+	Radius = 500.0f;
 
-SpotLight::SpotLight()
-{
-	Reset();
+	_padding = {};
 }
 
 void SpotLight::RenderImGuiWindow()
@@ -228,19 +230,8 @@ void SpotLight::RenderImGuiWindow()
 
 		if (ImGui::Button("Reset"))
 		{
-			Reset();
+			*this = SpotLight();
 		}
 		ImGui::TreePop();
 	}
-}
-
-void SpotLight::Reset()
-{
-	Strength = { 1.0f, 1.0f, 1.0f };
-	Intensity = 3.0f;
-	Position = { 0.0f, 0.0f, 0.0f };
-	InnerConeAngle = cosf(XMConvertToRadians(2.0f));
-	Direction = { 0.0f, -1.0f, 0.0f };
-	OuterConeAngle = cosf(XMConvertToRadians(25.0f));
-	Radius = 500.0f;
 }

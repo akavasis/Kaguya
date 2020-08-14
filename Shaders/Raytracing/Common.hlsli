@@ -4,6 +4,7 @@ struct Vertex
   float2 Texture;
   float3 Normal;
   float3 Tangent;
+  float3 Bitangent;
 };
 
 // BERP: Short for barycentric interpolation
@@ -30,10 +31,11 @@ float4 BERP(in float4 v0, in float4 v1, in float4 v2, in float3 barycentric)
 Vertex BERP(in Vertex v0, in Vertex v1, in Vertex v2, in float3 barycentric)
 {
   Vertex vertex;
-  vertex.Position = BERP(v0.Position, v1.Position, v2.Position, barycentric);
-  vertex.Texture = BERP(v0.Texture, v1.Texture, v2.Texture, barycentric);
-  vertex.Normal = BERP(v0.Normal, v1.Normal, v2.Normal, barycentric);
-  vertex.Tangent = BERP(v0.Tangent, v1.Tangent, v2.Tangent, barycentric);
+  vertex.Position   = BERP(v0.Position, v1.Position, v2.Position, barycentric);
+  vertex.Texture    = BERP(v0.Texture, v1.Texture, v2.Texture, barycentric);
+  vertex.Normal     = BERP(v0.Normal, v1.Normal, v2.Normal, barycentric);
+  vertex.Tangent    = BERP(v0.Tangent, v1.Tangent, v2.Tangent, barycentric);
+  vertex.Bitangent  = BERP(v0.Bitangent, v1.Bitangent, v2.Bitangent, barycentric);
 
   return vertex;
 }

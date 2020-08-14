@@ -256,7 +256,7 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 			desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 			desc.Buffer.FirstElement = 0;
-			desc.Buffer.NumElements = pBuffer->GetSizeInBytes() / pBuffer->GetStride();
+			desc.Buffer.NumElements = pBuffer->GetMemoryRequested() / pBuffer->GetStride();
 			desc.Buffer.StructureByteStride = pBuffer->GetStride();
 			desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 

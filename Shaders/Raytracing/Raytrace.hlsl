@@ -4,14 +4,14 @@ struct HitInfo
 {
 	uint GeometryIndex;
 };
-ConstantBuffer<HitInfo> HitGroupCB : register(b0, space100);
+ConstantBuffer<HitInfo> HitGroupCB : register(b0, space0);
 
 [shader("raygeneration")]
 void RayGen()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	const float2 pixel = float2(launchIndex) / float2(launchDimensions);
+	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions);
 	float2 ndcCoord = pixel * 2.0f - 1.0f; // Uncompress each component from [0,1] to [-1,1].
 	ndcCoord.y *= -1.0f;
   
@@ -38,16 +38,15 @@ void RayGen()
 	RenderTarget[launchIndex] = float4(payload.colorAndDistance.rgb, 1.0f);
 }
 
-// This shader will be executed when no geometry is hit, and will write a constant color in the payload. 
-// Note that this shader takes the payload as a inout parameter. It will be provided to the shader automatically by DXR.
 [shader("miss")]
 void Miss(inout RayPayload payload)
 {
-	uint2 launchIndex = DispatchRaysIndex().xy;
-	float2 dims = float2(DispatchRaysDimensions().xy);
+	const float3 rayDir = WorldRayDirection();
 
-	float ramp = launchIndex.y / dims.y;
-	payload.colorAndDistance = float4(0.0f, 0.2f, 0.7f - 0.3f * ramp, -1.0f);
+	TextureCube skybox = TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex];
+	float3 color = skybox.SampleLevel(SamplerLinearWrap, rayDir, 0.0f).xyz;
+
+	payload.colorAndDistance = float4(color, -1.0f);
 }
 
 [shader("miss")]
@@ -56,30 +55,52 @@ void ShadowMiss(inout ShadowRayPayload payload)
 	payload.visibility = 1.0f;
 }
 
-// It will be executed upon hitting the geometry (our triangle). 
-// As the miss shader, it takes the ray payload payload as a inout parameter. 
-// It also has a second parameter defining the intersection attributes as provided by the intersection shader, 
-// ie. the barycentric coordinates. This shader simply writes a constant color to the payload, as well as the distance from the origin, 
-// provided by the built-in RayCurrentT() function.
-[shader("closesthit")]
-void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
+Vertex GetHitSurface(in HitAttributes attrib, in uint geometryIndex)
 {
 	float3 barycentrics =
     float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
 
-	float multiplier = float(HitGroupCB.GeometryIndex);
-	float3 hitColor = float3(1.0f, 0.0f, 0.0f);
-	hitColor *= multiplier;
-	hitColor *= barycentrics;
+	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
+
+	const uint primIndex = PrimitiveIndex();
+	const uint idx0 = IndexBuffer[primIndex * 3 + info.IndexOffset + 0];
+    const uint idx1 = IndexBuffer[primIndex * 3 + info.IndexOffset + 1];
+    const uint idx2 = IndexBuffer[primIndex * 3 + info.IndexOffset + 2];
+	
+	const Vertex vtx0 = VertexBuffer[idx0 + info.VertexOffset];
+    const Vertex vtx1 = VertexBuffer[idx1 + info.VertexOffset];
+    const Vertex vtx2 = VertexBuffer[idx2 + info.VertexOffset];
+
+	return BERP(vtx0, vtx1, vtx2, barycentrics);
+}
+
+MaterialTextureIndices GetMaterialIndices(in uint geometryIndex)
+{
+	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
+	return MaterialIndices[info.MaterialIndex];
+}
+
+MaterialTextureProperties GetMaterialProperties(in uint geometryIndex)
+{
+	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
+	return MaterialProperties[info.MaterialIndex];
+}
+
+[shader("closesthit")]
+void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
+{
+	Vertex hitSurface = GetHitSurface(attrib, HitGroupCB.GeometryIndex);
+	MaterialTextureIndices materialIndices = GetMaterialIndices(HitGroupCB.GeometryIndex);
+	MaterialTextureProperties materialProperties = GetMaterialProperties(HitGroupCB.GeometryIndex);
+
+	const float3 incomingRayOriginWS = WorldRayOrigin();
+    const float3 incomingRayDirWS = WorldRayDirection();
 
 	// Initialize the ray payload
 	ShadowRayPayload shadowRayPayload;
 	shadowRayPayload.visibility = 1.0f;
 
 	// Shoot a shadow ray
-	const float3 incomingRayOriginWS = WorldRayOrigin();
-    const float3 incomingRayDirWS = WorldRayDirection();
-
 	RayDesc ray;
 	ray.Origin = incomingRayOriginWS + incomingRayDirWS * RayTCurrent();
 	ray.Direction = -RenderPassDataCB.Sun.Direction;
@@ -92,6 +113,51 @@ void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 	const uint hitGroupIndexMultiplier = NumRayTypes;
 	const uint missShaderIndex = RayTypeShadow;
 	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, shadowRayPayload);
+
+	// Fetch albedo/diffuse data
+	if (materialIndices.AlbedoMapIndex != -1)
+	{
+		Texture2D albedoMap = Tex2DTable[materialIndices.AlbedoMapIndex];
+		float4 albedoMapSample = albedoMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		materialProperties.Albedo = albedoMapSample.rgb;
+	}
+	
+	// Fetch normal data
+	if (materialIndices.NormalMapIndex != -1)
+	{
+		float3x3 tbnMatrix = float3x3(hitSurface.Tangent, hitSurface.Bitangent, hitSurface.Normal); 
+
+		Texture2D normalMap = Tex2DTable[materialIndices.NormalMapIndex];
+		float4 normalMapSample = normalMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		float3 normalT = normalize(2.0f * normalMapSample.rgb - 1.0f); // Uncompress each component from [0,1] to [-1,1].
+		hitSurface.Normal = normalize(mul(normalT, tbnMatrix)); // Transform from tangent space to world space.
+	}
+	
+	// Fetch roughness data
+	if (materialIndices.RoughnessMapIndex != -1)
+	{
+		Texture2D roughnessMap = Tex2DTable[materialIndices.RoughnessMapIndex];
+		float4 roughnessMapSample = roughnessMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		materialProperties.Roughness = roughnessMapSample.r;
+	}
+	
+	// Fetch metallic data
+	if (materialIndices.MetallicMapIndex != -1)
+	{
+		Texture2D metallicMap = Tex2DTable[materialIndices.MetallicMapIndex];
+		float4 metallicMapSample = metallicMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		materialProperties.Metallic = metallicMapSample.r;
+	}
+	
+	// Fetch emissive data
+	if (materialIndices.EmissiveMapIndex != -1)
+	{
+		Texture2D emissiveMap = Tex2DTable[materialIndices.EmissiveMapIndex];
+		float4 emissiveMapSample = emissiveMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		materialProperties.Emissive = emissiveMapSample.rgb;
+	}
+
+	float3 hitColor = materialProperties.Albedo;
 
 	hitColor *= shadowRayPayload.visibility;
 	payload.colorAndDistance = float4(hitColor, RayTCurrent());

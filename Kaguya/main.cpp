@@ -51,9 +51,20 @@ int main(int argc, char** argv)
 			nullptr,
 			nullptr
 		));
-		nullMaterial.Properties.Albedo = { 1.0f, 1.0f, 1.0f };
+		nullMaterial.Properties.Albedo = { 1.0f, 0.0f, 0.0f };
 		nullMaterial.Properties.Roughness = 0.0f;
 		nullMaterial.Properties.Metallic = 1.0f;
+
+		auto& nullMaterial1 = scene.AddMaterial(materialLoader.LoadMaterial(
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr
+		));
+		nullMaterial1.Properties.Albedo = { 1.0f, 1.0f, 1.0f };
+		nullMaterial1.Properties.Roughness = 0.0f;
+		nullMaterial1.Properties.Metallic = 0.0f;
 
 		auto& cerberusMat = scene.AddMaterial(materialLoader.LoadMaterial(
 			"Assets/Models/Cerberus/Textures/Cerberus_Albedo.dds",
@@ -64,7 +75,7 @@ int main(int argc, char** argv)
 		));
 
 		auto& cerberus = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx", 0.05f));
-		cerberus.Meshes[0].MaterialIndex = 1;
+		cerberus.Meshes[0].MaterialIndex = 2;
 		cerberus.Translate(0.0f, 5.0f, -5.0f);
 		cerberus.Rotate(DirectX::XMConvertToRadians(90.0f), DirectX::XMConvertToRadians(90.0f), 0.0f);
 
@@ -72,6 +83,7 @@ int main(int argc, char** argv)
 
 		auto& grid = scene.AddModel(CreateGrid(100.0f, 100.0f, 10, 10));
 		grid.Translate(0.0f, -10.0f, 0.0f);
+		grid.Meshes[0].MaterialIndex = 1;
 
 		renderer.UploadScene(scene);
 

@@ -14,18 +14,20 @@ struct RaytracingAccelerationStructureHandles
 class GpuBufferAllocator
 {
 public:
-	GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize);
+	GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize, size_t GeometryInfoBufferByteSize);
 
 	inline auto GetVertexBuffer() const { return m_Buffers[VertexBuffer].pBuffer; }
 	inline auto GetIndexBuffer() const { return m_Buffers[IndexBuffer].pBuffer; }
 	inline auto GetConstantBuffer() const { return m_Buffers[ConstantBuffer].pUploadBuffer; }
+	inline auto GetGeometryInfoBuffer() const { return m_Buffers[GeometryInfoBuffer].pBuffer; }
 
 	inline auto GetVertexBufferHandle() const { return m_Buffers[VertexBuffer].BufferHandle; }
 	inline auto GetIndexBufferHandle() const { return m_Buffers[IndexBuffer].BufferHandle; }
+	inline auto GetGeometryInfoBufferHandle() const { return m_Buffers[GeometryInfoBuffer].BufferHandle; }
 	inline auto GetRTTLASResourceHandle() const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
-	inline auto GetRayGenerationShaderTableHandle() const { return RayGenerationShaderTable; }
-	inline auto GetMissShaderTableHandle() const { return MissShaderTable; }
-	inline auto GetHitGroupShaderTableHandle() const { return HitGroupShaderTable; }
+	inline auto GetRayGenerationShaderTableHandle() const { return m_RayGenerationShaderTable; }
+	inline auto GetMissShaderTableHandle() const { return m_MissShaderTable; }
+	inline auto GetHitGroupShaderTableHandle() const { return m_HitGroupShaderTable; }
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
 	void Update(Scene& Scene);
@@ -42,6 +44,7 @@ private:
 		VertexBuffer,
 		IndexBuffer,
 		ConstantBuffer,
+		GeometryInfoBuffer,
 		NumInternalBufferTypes
 	};
 
@@ -84,15 +87,12 @@ private:
 
 	RenderDevice* pRenderDevice;
 
-	UINT m_BufferStrides[NumInternalBufferTypes];
 	InternalBufferStructure m_Buffers[NumInternalBufferTypes];
-	UINT m_NumVertices;
-	UINT m_NumIndices;
 
 	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS m_RaytracingTopLevelAccelerationStructure;
 
-	RenderResourceHandle RayGenerationShaderTable;
-	RenderResourceHandle MissShaderTable;
-	RenderResourceHandle HitGroupShaderTable;
+	RenderResourceHandle m_RayGenerationShaderTable;
+	RenderResourceHandle m_MissShaderTable;
+	RenderResourceHandle m_HitGroupShaderTable;
 };

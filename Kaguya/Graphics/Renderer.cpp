@@ -15,7 +15,7 @@ Renderer::Renderer(Window& Window)
 	: pWindow(&Window),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(&m_RenderDevice),
-	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB),
+	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB, 64_KiB),
 	m_GpuTextureAllocator(&m_RenderDevice, 100)
 {
 	m_EventReceiver.Register(Window, [&](const Event& event)
@@ -192,9 +192,10 @@ void Renderer::Render(Scene& Scene)
 	renderPassCPU.Sun = Scene.Sun;
 	renderPassCPU.SunShadowMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex -
 		m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
-	renderPassCPU.BRDFLUTMapIndex = GpuTextureAllocator::BRDFLUT;
-	renderPassCPU.IrradianceCubemapIndex = GpuTextureAllocator::SkyboxIrradianceCubemap;
-	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::SkyboxPrefilteredCubemap;
+	renderPassCPU.BRDFLUTMapIndex = GpuTextureAllocator::AssetTextures::BRDFLUT;
+	renderPassCPU.RadianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxCubemap;
+	renderPassCPU.IrradianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxIrradianceCubemap;
+	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxPrefilteredCubemap;
 
 	// Update shadow render pass cbuffer
 	if constexpr (Renderer::Settings::Rasterization)

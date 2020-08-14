@@ -141,15 +141,15 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	// Raytracing RSs
 	// Global RS
-	RootSignatures::Raytracing::Global = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	options.InitConstantDataTypeAsRootConstants = FALSE;
+	options.Num32BitValues = 0;
+	RootSignatures::Raytracing::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
 	{
-		// 3 descriptors, 1 for AS, 1 for VB, 1 for IB
-		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 6, 0, 0);
 		CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
 		proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
-		proxy.AddRootCBVParameter(0, 0); // Camera
 	});
 
 	// Empty Local RS
@@ -160,7 +160,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	RootSignatures::Raytracing::HitGroup = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootConstantsParameter(0, 100, 1);
+		proxy.AddRootConstantsParameter(0, 0, 1);
 
 		proxy.SetAsLocalRootSignature();
 	});
@@ -173,6 +173,7 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 	inputLayoutProxy.InputLayout.AddVertexLayoutElement("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, -1);
 	inputLayoutProxy.InputLayout.AddVertexLayoutElement("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
 	inputLayoutProxy.InputLayout.AddVertexLayoutElement("TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
+	inputLayoutProxy.InputLayout.AddVertexLayoutElement("BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
 
 	// BRDF Integration PSO
 	GraphicsPSOs::BRDFIntegration = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)

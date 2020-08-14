@@ -30,7 +30,6 @@ struct DirectionalLight
 	DirectionalLight();
 
 	void RenderImGuiWindow();
-	void Reset();
 
 	std::array<OrthographicCamera, NUM_CASCADES> GenerateCascades(const Camera& Camera, unsigned int Resolution);
 #endif
@@ -47,7 +46,6 @@ struct PointLight
 	PointLight();
 
 	void RenderImGuiWindow();
-	void Reset();
 #endif
 };
 
@@ -66,7 +64,6 @@ struct SpotLight
 	SpotLight();
 
 	void RenderImGuiWindow();
-	void Reset();
 #endif
 };
 #endif

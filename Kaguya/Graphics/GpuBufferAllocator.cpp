@@ -2,11 +2,16 @@
 #include "GpuBufferAllocator.h"
 #include "RendererRegistry.h"
 
-GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize)
+GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize, size_t GeometryInfoBufferByteSize)
 	: pRenderDevice(pRenderDevice),
-	m_BufferStrides{ sizeof(Vertex), sizeof(unsigned int), Math::AlignUp<UINT>(sizeof(ObjectConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) },
-	m_Buffers{ { VertexBufferByteSize }, { IndexBufferByteSize } , { Math::AlignUp<UINT64>(ConstantBufferByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)} }
+	m_Buffers{
+	{ VertexBufferByteSize },
+	{ IndexBufferByteSize },
+	{ Math::AlignUp<UINT64>(ConstantBufferByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)},
+	{ GeometryInfoBufferByteSize } }
 {
+	UINT strides[NumInternalBufferTypes] = { sizeof(Vertex), sizeof(unsigned int), Math::AlignUp<UINT>(sizeof(ObjectConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT), sizeof(GeometryInfo) };
+
 	for (size_t i = 0; i < NumInternalBufferTypes; ++i)
 	{
 		size_t bufferByteSize = m_Buffers[i].Allocator.GetSize();
@@ -17,7 +22,7 @@ GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t Verte
 			bufferHandle = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 			{
 				proxy.SetSizeInBytes(bufferByteSize);
-				proxy.SetStride(m_BufferStrides[i]);
+				proxy.SetStride(strides[i]);
 				proxy.InitialState = Resource::State::CopyDest;
 			});
 			m_Buffers[i].BufferHandle = bufferHandle;
@@ -27,7 +32,7 @@ GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t Verte
 		uploadBufferHandle = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(bufferByteSize);
-			proxy.SetStride(m_BufferStrides[i]);
+			proxy.SetStride(strides[i]);
 			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 		});
 
@@ -35,7 +40,6 @@ GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t Verte
 		m_Buffers[i].pUploadBuffer = pRenderDevice->GetBuffer(uploadBufferHandle);
 		m_Buffers[i].pUploadBuffer->Map();
 	}
-	m_NumVertices = m_NumIndices = 0;
 }
 
 void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
@@ -57,9 +61,6 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 
 		StageVertex(vertices.data(), totalVertexBytes, pCommandContext);
 		StageIndex(indices.data(), totalIndexBytes, pCommandContext);
-
-		m_NumVertices += vertices.size();
-		m_NumIndices += indices.size();
 	}
 
 	for (auto& model : Scene.Models)
@@ -77,9 +78,6 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 			mesh.BaseVertexLocation += (vertexByteOffset / sizeof(Vertex));
 			mesh.StartIndexLocation += (indexByteOffset / sizeof(UINT));
 		}
-
-		m_NumVertices += model.Vertices.size();
-		m_NumIndices += model.Indices.size();
 
 		if (!model.Path.empty())
 		{
@@ -105,6 +103,34 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 			mesh.ObjectConstantsIndex = constantBufferIndex + constantBufferIndexOffset;
 			constantBufferIndex++;
 		}
+	}
+
+	for (auto& model : Scene.Models)
+	{
+		UINT64 totalGeometryInfoBytes = model.Meshes.size() * m_Buffers[GeometryInfoBuffer].pUploadBuffer->GetStride();
+		auto pair = m_Buffers[GeometryInfoBuffer].Allocate(totalGeometryInfoBytes);
+		if (!pair)
+		{
+			CORE_WARN("{} : Unable to allocate geometry info data, consider increasing memory", __FUNCTION__);
+			assert(false);
+		}
+		auto [geometryInfoOffset, geometryInfoSize] = pair.value();
+		std::vector<GeometryInfo> infos;
+
+		for (auto& mesh : model.Meshes)
+		{
+			GeometryInfo info;
+			info.VertexOffset = mesh.BaseVertexLocation;
+			info.IndexOffset = mesh.StartIndexLocation;
+			info.MaterialIndex = mesh.MaterialIndex;
+
+			infos.push_back(info);
+		}
+
+		auto pGPU = m_Buffers[GeometryInfoBuffer].pUploadBuffer->Map();
+		void* pCPU = infos.data();
+		memcpy(&pGPU[geometryInfoOffset], pCPU, totalGeometryInfoBytes);
+		pCommandContext->CopyBufferRegion(m_Buffers[GeometryInfoBuffer].pBuffer, geometryInfoOffset, m_Buffers[GeometryInfoBuffer].pUploadBuffer, geometryInfoOffset, geometryInfoSize);
 	}
 
 	pCommandContext->TransitionBarrier(m_Buffers[VertexBuffer].pBuffer, Resource::State::VertexBuffer | Resource::State::NonPixelShaderResource);
@@ -312,14 +338,14 @@ void GpuBufferAllocator::CreateShaderTableBuffers(Scene& Scene)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		RayGenerationShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		m_RayGenerationShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
 			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 		});
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(RayGenerationShaderTable);
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_RayGenerationShaderTable);
 		shaderTable.Generate(pShaderTableBuffer);
 	}
 
@@ -333,14 +359,14 @@ void GpuBufferAllocator::CreateShaderTableBuffers(Scene& Scene)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		MissShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		m_MissShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
 			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 		});
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(MissShaderTable);
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_MissShaderTable);
 		shaderTable.Generate(pShaderTableBuffer);
 	}
 
@@ -375,14 +401,14 @@ void GpuBufferAllocator::CreateShaderTableBuffers(Scene& Scene)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		HitGroupShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		m_HitGroupShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
 			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 		});
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(HitGroupShaderTable);
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_HitGroupShaderTable);
 		shaderTable.Generate(pShaderTableBuffer);
 	}
 }

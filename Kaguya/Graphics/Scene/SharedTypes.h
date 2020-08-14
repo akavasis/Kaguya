@@ -23,6 +23,7 @@ struct RenderPassConstants
 	DirectionalLight Sun;
 	unsigned int SunShadowMapIndex;
 	unsigned int BRDFLUTMapIndex;
+	unsigned int RadianceCubemapIndex;
 	unsigned int IrradianceCubemapIndex;
 	unsigned int PrefilteredRadianceCubemapIndex;
 };

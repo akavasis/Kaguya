@@ -64,7 +64,10 @@ Model ModelLoader::LoadFromFile(const char* pPath, float Scale)
 
 			// Tangents and Bitangents
 			if (paiMesh->HasTangentsAndBitangents())
+			{
 				v.Tangent = DirectX::XMFLOAT3(paiMesh->mTangents[vertexIndex].x, paiMesh->mTangents[vertexIndex].y, paiMesh->mTangents[vertexIndex].z);
+				v.Bitangent = DirectX::XMFLOAT3(paiMesh->mBitangents[vertexIndex].x, paiMesh->mBitangents[vertexIndex].y, paiMesh->mBitangents[vertexIndex].z);
+			}
 
 			vertices.push_back(v);
 		}

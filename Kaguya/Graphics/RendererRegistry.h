@@ -115,15 +115,7 @@ struct RootParameters
 		{
 			GeometryTable,
 			RenderTarget,
-			Camera
-		};
-
-		struct HitGroup
-		{
-			enum
-			{
-				HitInfo
-			};
+			NumRootParameters
 		};
 	};
 };
