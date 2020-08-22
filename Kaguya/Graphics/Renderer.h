@@ -41,18 +41,6 @@ public:
 private:
 	void Resize(UINT Width, UINT Height);
 
-	struct Debug
-	{
-		inline static bool VisualizeCascade = false;
-		inline static bool EnableAlbedo = true;
-		inline static bool EnableNormal = true;
-		inline static bool EnableRoughness = true;
-		inline static bool EnableMetallic = true;
-		inline static bool EnableEmissive = true;
-		// 0="None", 1="Albedo", 2="Normal", 3="Roughness", 4="Metallic", 5="Emissive" 
-		inline static int DebugViewInput = 0;
-	};
-
 	struct GpuDescriptorIndices
 	{
 		DescriptorAllocation RenderTargetShaderResourceViews;

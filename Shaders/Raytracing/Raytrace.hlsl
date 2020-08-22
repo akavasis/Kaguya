@@ -55,7 +55,7 @@ void ShadowMiss(inout ShadowRayPayload payload)
 	payload.visibility = 1.0f;
 }
 
-Vertex GetHitSurface(in HitAttributes attrib, in uint geometryIndex)
+Vertex GetBERPedVertex(in HitAttributes attrib, in uint geometryIndex)
 {
 	float3 barycentrics =
     float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
@@ -89,7 +89,7 @@ MaterialTextureProperties GetMaterialProperties(in uint geometryIndex)
 [shader("closesthit")]
 void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 {
-	Vertex hitSurface = GetHitSurface(attrib, HitGroupCB.GeometryIndex);
+	Vertex hitSurface = GetBERPedVertex(attrib, HitGroupCB.GeometryIndex);
 	MaterialTextureIndices materialIndices = GetMaterialIndices(HitGroupCB.GeometryIndex);
 	MaterialTextureProperties materialProperties = GetMaterialProperties(HitGroupCB.GeometryIndex);
 

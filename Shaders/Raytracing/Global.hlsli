@@ -10,7 +10,7 @@ StructuredBuffer<GeometryInfo> GeometryInfoBuffer               : register(t3, s
 StructuredBuffer<MaterialTextureIndices> MaterialIndices        : register(t4, space0);
 StructuredBuffer<MaterialTextureProperties> MaterialProperties  : register(t5, space0);
 
-RWTexture2D<float4> RenderTarget : register(u0, space0);
+RWTexture2D<float4> RenderTarget                                : register(u0, space0);
 
 #define RenderPassDataType RenderPassConstants
 #include "../ShaderLayout.hlsli"

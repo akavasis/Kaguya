@@ -202,6 +202,7 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 	switch (pRenderResourceHandle->Type)
 	{
 	case RenderResourceType::Shader: m_Shaders.Destroy(pRenderResourceHandle); break;
+	case RenderResourceType::Library: m_Libraries.Destroy(pRenderResourceHandle); break;
 	case RenderResourceType::Buffer:
 	{
 		auto buffer = m_Buffers.GetResource(*pRenderResourceHandle);
@@ -226,6 +227,7 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 	case RenderResourceType::RootSignature: m_RootSignatures.Destroy(pRenderResourceHandle); break;
 	case RenderResourceType::GraphicsPSO: m_GraphicsPipelineStates.Destroy(pRenderResourceHandle); break;
 	case RenderResourceType::ComputePSO: m_ComputePipelineStates.Destroy(pRenderResourceHandle); break;
+	case RenderResourceType::RaytracingPSO: m_RaytracingPipelineStates.Destroy(pRenderResourceHandle); break;
 	}
 	pRenderResourceHandle->Type = RenderResourceType::Unknown;
 	pRenderResourceHandle->Flags = RenderResourceFlags::Destroyed;

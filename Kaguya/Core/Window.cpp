@@ -255,22 +255,21 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (!m_Mouse.RawInputEnabled())
 			break;
 		UINT size = 0;
-		std::unique_ptr<BYTE[]> rawBuffer;
 		// First get the size of the input data
 		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1)
 		{
 			CORE_ERROR("GetRawInputData Error: ", ::GetLastError());
 			break;
 		}
-		rawBuffer = std::make_unique<BYTE[]>(size);
+		BYTE* rawBuffer = (BYTE*)alloca(size);
 		// Read in the input data
-		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, rawBuffer.get(), &size, sizeof(RAWINPUTHEADER)) != size)
+		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, rawBuffer, &size, sizeof(RAWINPUTHEADER)) != size)
 		{
 			CORE_ERROR("The number of bytes copied into pData does not match the size queried");
 			break;
 		}
 		// Process the raw input data
-		const RAWINPUT& rawInput = reinterpret_cast<const RAWINPUT&>(*rawBuffer.get());
+		const RAWINPUT& rawInput = reinterpret_cast<const RAWINPUT&>(*rawBuffer);
 		if (rawInput.header.dwType == RIM_TYPEMOUSE &&
 			(rawInput.data.mouse.lLastX != 0 || rawInput.data.mouse.lLastY != 0))
 		{

@@ -9,9 +9,9 @@ class Buffer : public Resource
 public:
 	enum class CpuAccess
 	{
-		None,	//< The CPU can't access the buffer's content. The buffer can be updated using CommandContext
-		Write,	//< The buffer can be mapped for CPU writes
-		Read	//< The buffer can be mapped for CPU reads
+		None,	// The CPU can't access the buffer's content. The buffer can be updated using CommandContext
+		Write,	// The buffer can be mapped for CPU writes
+		Read	// The buffer can be mapped for CPU reads
 	};
 
 	Buffer() = default;
