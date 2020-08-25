@@ -1,6 +1,3 @@
 # Must be included
 !Engine/ThirdParty
 !Engine/Assets
-
-# Directories
-VisualStudio

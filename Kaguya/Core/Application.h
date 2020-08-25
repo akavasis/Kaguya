@@ -10,7 +10,7 @@ public:
 	Application();
 	~Application();
 
-	std::filesystem::path ExecutableFolderPath();
+	std::filesystem::path ExecutableFolderPath() const;
 	int Run(Delegate<void()> Callback);
 private:
 	std::filesystem::path m_ExecutableFolderPath;

@@ -28,7 +28,7 @@ Application::~Application()
 	CoUninitialize();
 }
 
-std::filesystem::path Application::ExecutableFolderPath()
+std::filesystem::path Application::ExecutableFolderPath() const
 {
 	return m_ExecutableFolderPath;
 }

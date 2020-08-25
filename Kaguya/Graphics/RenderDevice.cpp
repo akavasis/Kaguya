@@ -67,15 +67,15 @@ void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, Command
 	m_GraphicsQueue.Flush();
 }
 
-RenderResourceHandle RenderDevice::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
+RenderResourceHandle RenderDevice::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
-	auto [handle, shader] = m_Shaders.CreateResource(m_ShaderCompiler.CompileShader(Type, pPath, pEntryPoint, ShaderDefines));
+	auto [handle, shader] = m_Shaders.CreateResource(m_ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines));
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CompileLibrary(LPCWSTR pPath)
+RenderResourceHandle RenderDevice::CompileLibrary(const std::filesystem::path& Path)
 {
-	auto [handle, library] = m_Libraries.CreateResource(m_ShaderCompiler.CompileLibrary(pPath));
+	auto [handle, library] = m_Libraries.CreateResource(m_ShaderCompiler.CompileLibrary(Path.c_str()));
 	return handle;
 }
 

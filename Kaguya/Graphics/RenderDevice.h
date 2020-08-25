@@ -55,8 +55,8 @@ public:
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
 	// Shader compilation
-	[[nodiscard]] RenderResourceHandle CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
-	[[nodiscard]] RenderResourceHandle CompileLibrary(LPCWSTR pPath);
+	[[nodiscard]] RenderResourceHandle CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
+	[[nodiscard]] RenderResourceHandle CompileLibrary(const std::filesystem::path& Path);
 
 	// Resource creation
 	[[nodiscard]] RenderResourceHandle CreateBuffer(Delegate<void(BufferProxy&)> Configurator);

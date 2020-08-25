@@ -31,7 +31,7 @@ public:
 		inline static constexpr bool Rasterization = false;
 	};
 
-	Renderer(Window& Window);
+	Renderer(const Application& Application, Window& Window);
 	~Renderer();
 
 	void UploadScene(Scene& Scene);

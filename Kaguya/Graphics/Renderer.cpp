@@ -11,7 +11,7 @@
 
 #include "RenderPass/Raytracing.h"
 
-Renderer::Renderer(Window& Window)
+Renderer::Renderer(const Application& Application, Window& Window)
 	: pWindow(&Window),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(&m_RenderDevice),
@@ -33,8 +33,8 @@ Renderer::Renderer(Window& Window)
 
 	m_AspectRatio = static_cast<float>(Window.GetWindowWidth()) / static_cast<float>(Window.GetWindowHeight());
 
-	Shaders::Register(&m_RenderDevice);
-	Libraries::Register(&m_RenderDevice);
+	Shaders::Register(&m_RenderDevice, Application.ExecutableFolderPath());
+	Libraries::Register(&m_RenderDevice, Application.ExecutableFolderPath());
 	RootSignatures::Register(&m_RenderDevice);
 	GraphicsPSOs::Register(&m_RenderDevice);
 	ComputePSOs::Register(&m_RenderDevice);

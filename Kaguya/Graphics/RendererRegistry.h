@@ -147,14 +147,14 @@ struct Shaders
 		inline static RenderResourceHandle GenerateMips;
 	};
 
-	static void Register(RenderDevice* pRenderDevice);
+	static void Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath);
 };
 
 struct Libraries
 {
 	inline static RenderResourceHandle Raytrace;
 
-	static void Register(RenderDevice* pRenderDevice);
+	static void Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath);
 };
 
 struct RootSignatures

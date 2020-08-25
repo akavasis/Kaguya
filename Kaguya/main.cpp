@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
 		Application application;
 		Window window{ L"DXR" };
-		Renderer renderer{ window };
+		Renderer renderer{ application, window };
 
 		MaterialLoader materialLoader{ application.ExecutableFolderPath() };
 		ModelLoader modelLoader{ application.ExecutableFolderPath() };

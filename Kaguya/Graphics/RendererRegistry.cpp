@@ -1,29 +1,29 @@
 #include "pch.h"
 #include "RendererRegistry.h"
 
-void Shaders::Register(RenderDevice* pRenderDevice)
+void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
 {
 	// Load VS
-	VS::Default = pRenderDevice->CompileShader(Shader::Type::Vertex, L"../../Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"0" } });
-	VS::Quad = pRenderDevice->CompileShader(Shader::Type::Vertex, L"../../Shaders/VS_Quad.hlsl", L"main", {});
-	VS::Shadow = pRenderDevice->CompileShader(Shader::Type::Vertex, L"../../Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"1" } });
-	VS::Skybox = pRenderDevice->CompileShader(Shader::Type::Vertex, L"../../Shaders/VS_Sky.hlsl", L"main", {});
+	VS::Default = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"0" } });
+	VS::Quad = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Quad.hlsl", L"main", {});
+	VS::Shadow = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"1" } });
+	VS::Skybox = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Sky.hlsl", L"main", {});
 	// Load PS
-	PS::BRDFIntegration = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_BRDFIntegration.hlsl", L"main", {});
-	PS::ConvolutionIrradiance = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
-	PS::ConvolutionPrefilter = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
-	PS::PBR = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_PBR.hlsl", L"main", {});
-	PS::Skybox = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PS_Sky.hlsl", L"main", {});
+	PS::BRDFIntegration = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_BRDFIntegration.hlsl", L"main", {});
+	PS::ConvolutionIrradiance = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
+	PS::ConvolutionPrefilter = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
+	PS::PBR = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_PBR.hlsl", L"main", {});
+	PS::Skybox = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_Sky.hlsl", L"main", {});
 
-	PS::PostProcess_Tonemapping = pRenderDevice->CompileShader(Shader::Type::Pixel, L"../../Shaders/PostProcess/Tonemapping.hlsl", L"main", {});
+	PS::PostProcess_Tonemapping = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl", L"main", {});
 	// Load CS
-	CS::EquirectangularToCubemap = pRenderDevice->CompileShader(Shader::Type::Compute, L"../../Shaders/CS_EquirectangularToCubemap.hlsl", L"main", {});
-	CS::GenerateMips = pRenderDevice->CompileShader(Shader::Type::Compute, L"../../Shaders/CS_GenerateMips.hlsl", L"main", {});
+	CS::EquirectangularToCubemap = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/CS_EquirectangularToCubemap.hlsl", L"main", {});
+	CS::GenerateMips = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/CS_GenerateMips.hlsl", L"main", {});
 }
 
-void Libraries::Register(RenderDevice* pRenderDevice)
+void Libraries::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
 {
-	Raytrace = pRenderDevice->CompileLibrary(L"../../Shaders/Raytracing/Raytrace.hlsl");
+	Raytrace = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Raytrace.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)

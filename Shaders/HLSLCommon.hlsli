@@ -1,7 +1,7 @@
 #ifndef __HLSL_COMMON_HLSLI__
 #define __HLSL_COMMON_HLSLI__
-#include "../Kaguya/Graphics/Scene/Light.h"
-#include "../Kaguya/Graphics/Scene/SharedTypes.h"
+#include "Light.hlsli"
+#include "SharedTypes.hlsli"
 
 static const float s_PI = 3.141592654f;
 static const float s_2PI = 6.283185307f;
