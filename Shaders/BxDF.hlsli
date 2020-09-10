@@ -128,7 +128,7 @@ struct BSDF
 				      tangent.z * v.x + bitangent.z * v.y + normal.z * v.z);
     }
 	
-    float3 f(in float3 woW, in float3 wiW, in float3 Rd, in float3 Rs)
+    float3 f(in float3 woW, in float3 wiW)
     {
         float3 wo = WorldToLocal(woW), wi = WorldToLocal(wiW);
         if (wo.z == 0.0f)

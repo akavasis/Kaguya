@@ -1,6 +1,120 @@
 #include "Global.hlsli"
 #include "../BxDF.hlsli"
 
+Triangle GetTriangle(in uint geometryIndex)
+{
+	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
+
+	const uint primIndex = PrimitiveIndex();
+	const uint idx0 = IndexBuffer[primIndex * 3 + info.IndexOffset + 0];
+	const uint idx1 = IndexBuffer[primIndex * 3 + info.IndexOffset + 1];
+	const uint idx2 = IndexBuffer[primIndex * 3 + info.IndexOffset + 2];
+	
+	const Vertex vtx0 = VertexBuffer[idx0 + info.VertexOffset];
+	const Vertex vtx1 = VertexBuffer[idx1 + info.VertexOffset];
+	const Vertex vtx2 = VertexBuffer[idx2 + info.VertexOffset];
+	
+	Triangle t;
+	t.v0 = vtx0;
+	t.v1 = vtx1;
+	t.v2 = vtx2;
+	return t;
+}
+
+Vertex GetBERPedVertex(in HitAttributes attrib, in uint geometryIndex)
+{
+	float3 barycentrics =
+    float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
+
+	Triangle t = GetTriangle(geometryIndex);
+	return BERP(t, barycentrics);
+}
+
+MaterialTextureIndices GetMaterialIndices(in uint geometryIndex)
+{
+	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
+	return MaterialIndices[info.MaterialIndex];
+}
+
+MaterialTextureProperties GetMaterialProperties(in uint geometryIndex)
+{
+	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
+	return MaterialProperties[info.MaterialIndex];
+}
+
+struct SurfaceInteraction
+{
+	float2 uv;
+	BSDF bsdf;
+	MaterialTextureIndices materialIndices;
+	MaterialTextureProperties materialProperties;
+};
+
+SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryIndex)
+{
+	SurfaceInteraction si;
+	
+	Vertex hitSurface = GetBERPedVertex(attrib, geometryIndex);
+	MaterialTextureIndices materialIndices = GetMaterialIndices(geometryIndex);
+	MaterialTextureProperties materialProperties = GetMaterialProperties(geometryIndex);
+	float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
+	float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
+	float alpha = RoughnessToAlphaTrowbridgeReitzDistribution(materialProperties.Roughness);
+	
+	// Fetch albedo/diffuse data
+	if (materialIndices.AlbedoMapIndex != -1)
+	{
+		Texture2D albedoMap = Tex2DTable[materialIndices.AlbedoMapIndex];
+		float4 albedoMapSample = albedoMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		materialProperties.Albedo = albedoMapSample.rgb;
+	}
+	
+	// Fetch normal data
+	if (materialIndices.NormalMapIndex != -1)
+	{
+		float3x3 tbnMatrix = float3x3(hitSurface.Tangent, hitSurface.Bitangent, hitSurface.Normal);
+
+		Texture2D normalMap = Tex2DTable[materialIndices.NormalMapIndex];
+		float4 normalMapSample = normalMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		float3 normalT = normalize(2.0f * normalMapSample.rgb - 1.0f); // Uncompress each component from [0,1] to [-1,1].
+		hitSurface.Normal = normalize(mul(normalT, tbnMatrix)); // Transform from tangent space to world space.
+	}
+	
+	// Fetch roughness data
+	if (materialIndices.RoughnessMapIndex != -1)
+	{
+		Texture2D roughnessMap = Tex2DTable[materialIndices.RoughnessMapIndex];
+		float4 roughnessMapSample = roughnessMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		materialProperties.Roughness = roughnessMapSample.r;
+	}
+	
+	// Fetch metallic data
+	if (materialIndices.MetallicMapIndex != -1)
+	{
+		Texture2D metallicMap = Tex2DTable[materialIndices.MetallicMapIndex];
+		float4 metallicMapSample = metallicMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		materialProperties.Metallic = metallicMapSample.r;
+	}
+	
+	// Fetch emissive data
+	if (materialIndices.EmissiveMapIndex != -1)
+	{
+		Texture2D emissiveMap = Tex2DTable[materialIndices.EmissiveMapIndex];
+		float4 emissiveMapSample = emissiveMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
+		materialProperties.Emissive = emissiveMapSample.rgb;
+	}
+	
+	si.uv = hitSurface.Texture;
+	si.bsdf.tangent = hitSurface.Tangent;
+	si.bsdf.bitangent = hitSurface.Bitangent;
+	si.bsdf.normal = hitSurface.Normal;
+	si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f));
+	si.materialIndices = materialIndices;
+	si.materialProperties = materialProperties;
+	
+	return si;
+}
+
 struct HitInfo
 {
 	uint GeometryIndex;
@@ -56,134 +170,14 @@ void ShadowMiss(inout ShadowRayPayload payload)
 	payload.visibility = 1.0f;
 }
 
-Triangle GetTriangle(in uint geometryIndex)
-{
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-
-	const uint primIndex = PrimitiveIndex();
-	const uint idx0 = IndexBuffer[primIndex * 3 + info.IndexOffset + 0];
-	const uint idx1 = IndexBuffer[primIndex * 3 + info.IndexOffset + 1];
-	const uint idx2 = IndexBuffer[primIndex * 3 + info.IndexOffset + 2];
-	
-	const Vertex vtx0 = VertexBuffer[idx0 + info.VertexOffset];
-	const Vertex vtx1 = VertexBuffer[idx1 + info.VertexOffset];
-	const Vertex vtx2 = VertexBuffer[idx2 + info.VertexOffset];
-	
-	Triangle t;
-	t.v0 = vtx0;
-	t.v1 = vtx1;
-	t.v2 = vtx2;
-	return t;
-}
-
-Vertex GetBERPedVertex(in HitAttributes attrib, in uint geometryIndex)
-{
-	float3 barycentrics =
-    float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
-
-	Triangle t = GetTriangle(geometryIndex);
-	return BERP(t, barycentrics);
-}
-
-MaterialTextureIndices GetMaterialIndices(in uint geometryIndex)
-{
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-	return MaterialIndices[info.MaterialIndex];
-}
-
-MaterialTextureProperties GetMaterialProperties(in uint geometryIndex)
-{
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-	return MaterialProperties[info.MaterialIndex];
-}
-
 [shader("closesthit")]
 void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 {
-	Vertex hitSurface = GetBERPedVertex(attrib, HitGroupCB.GeometryIndex);
-	MaterialTextureIndices materialIndices = GetMaterialIndices(HitGroupCB.GeometryIndex);
-	MaterialTextureProperties materialProperties = GetMaterialProperties(HitGroupCB.GeometryIndex);
-
-	const float3 incomingRayOriginWS = WorldRayOrigin();
-	const float3 incomingRayDirWS = WorldRayDirection();
-
-	// Initialize the ray payload
-	ShadowRayPayload shadowRayPayload;
-	shadowRayPayload.visibility = 1.0f;
-
-	// Shoot a shadow ray
-	RayDesc ray;
-	ray.Origin = incomingRayOriginWS + incomingRayDirWS * RayTCurrent();
-	ray.Direction = -RenderPassDataCB.Sun.Direction;
-	ray.TMin = 0.001f;
-	ray.TMax = 100000.0f;
-
-	const uint flags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
-	const uint mask = 0xffffffff;
-	const uint hitGroupIndex = RayTypeShadow;
-	const uint hitGroupIndexMultiplier = NumRayTypes;
-	const uint missShaderIndex = RayTypeShadow;
-	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, shadowRayPayload);
-
-	// Fetch albedo/diffuse data
-	if (materialIndices.AlbedoMapIndex != -1)
-	{
-		Texture2D albedoMap = Tex2DTable[materialIndices.AlbedoMapIndex];
-		float4 albedoMapSample = albedoMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		materialProperties.Albedo = albedoMapSample.rgb;
-	}
+	SurfaceInteraction si = GetSurfaceInteraction(attrib, HitGroupCB.GeometryIndex);
 	
-	// Fetch normal data
-	if (materialIndices.NormalMapIndex != -1)
-	{
-		float3x3 tbnMatrix = float3x3(hitSurface.Tangent, hitSurface.Bitangent, hitSurface.Normal);
+	float3 color = si.materialProperties.Albedo;
 
-		Texture2D normalMap = Tex2DTable[materialIndices.NormalMapIndex];
-		float4 normalMapSample = normalMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		float3 normalT = normalize(2.0f * normalMapSample.rgb - 1.0f); // Uncompress each component from [0,1] to [-1,1].
-		hitSurface.Normal = normalize(mul(normalT, tbnMatrix)); // Transform from tangent space to world space.
-	}
-	
-	// Fetch roughness data
-	if (materialIndices.RoughnessMapIndex != -1)
-	{
-		Texture2D roughnessMap = Tex2DTable[materialIndices.RoughnessMapIndex];
-		float4 roughnessMapSample = roughnessMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		materialProperties.Roughness = roughnessMapSample.r;
-	}
-	
-	// Fetch metallic data
-	if (materialIndices.MetallicMapIndex != -1)
-	{
-		Texture2D metallicMap = Tex2DTable[materialIndices.MetallicMapIndex];
-		float4 metallicMapSample = metallicMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		materialProperties.Metallic = metallicMapSample.r;
-	}
-	
-	// Fetch emissive data
-	if (materialIndices.EmissiveMapIndex != -1)
-	{
-		Texture2D emissiveMap = Tex2DTable[materialIndices.EmissiveMapIndex];
-		float4 emissiveMapSample = emissiveMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		materialProperties.Emissive = emissiveMapSample.rgb;
-	}
-
-	float3 wo = normalize(RenderPassDataCB.EyePosition - hitSurface.Position);
-	float3 wi = -normalize(RenderPassDataCB.Sun.Direction);
-	float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
-	float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
-	float alpha = RoughnessToAlphaTrowbridgeReitzDistribution(materialProperties.Roughness);
-
-	BSDF bsdf;
-	bsdf.tangent = hitSurface.Tangent;
-	bsdf.bitangent = hitSurface.Bitangent;
-	bsdf.normal = hitSurface.Normal;
-	bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f));
-	
-    float3 f = bsdf.f(wo, wi, Rd, Rs);
-	
-	f *= shadowRayPayload.visibility;
-	payload.colorAndDistance = float4(f, RayTCurrent());
+	payload.colorAndDistance = float4(color, RayTCurrent());
 }
 
 [shader("closesthit")]
