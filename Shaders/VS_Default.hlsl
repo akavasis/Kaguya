@@ -19,6 +19,8 @@ struct OutputVertex
 	float3 positionW : POSITION;
 	float2 textureCoord : TEXCOORD;
 	float3 normalW : NORMAL;
+	float3 tangentW : TANGENT;
+	float3 bitangentW : BITANGENT;
 	float3x3 tbnMatrix : TBNBASIS;
 	float depth : DEPTH;
 };
@@ -40,6 +42,8 @@ OutputVertex main(InputVertex inputVertex)
 	float3 B = normalize(mul(inputVertex.bitangentL, (float3x3) ConstantDataCB.World));
 	
 	output.normalW = N;
+	output.tangentW = T;
+	output.bitangentW = B;
 	output.tbnMatrix = float3x3(T, B, N);
 	output.depth = output.positionH.w;
 #endif

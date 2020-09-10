@@ -15,6 +15,8 @@ struct OutputVertex
 	float3 positionW : POSITION;
 	float2 textureCoord : TEXCOORD;
 	float3 normalW : NORMAL;
+	float3 tangentW : TANGENT;
+	float3 bitangentW : BITANGENT;
 	float3x3 tbnMatrix : TBNBASIS;
 	float depth : DEPTH;
 };
@@ -89,7 +91,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 	}
 	float shadowFactor = CalcShadowRatio(inputPixel.positionW, cascadeIndex, RenderPassDataCB.Sun.Cascades, SamplerShadow, sunShadowMap);
 	float3 radiance = RenderPassDataCB.Sun.Strength * RenderPassDataCB.Sun.Intensity * shadowFactor;
-	color += PBR(materialProperties, inputPixel.normalW, viewDirection, -RenderPassDataCB.Sun.Direction, radiance);
+	color += CalcLighting(materialProperties, inputPixel.normalW, viewDirection, -RenderPassDataCB.Sun.Direction, radiance);
 	
 	// Ambient lighting (IBL)
 	{

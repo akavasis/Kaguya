@@ -98,7 +98,7 @@ void Renderer::UploadScene(Scene& Scene)
 	m_RenderPassConstantBufferHandle = m_RenderDevice.CreateBuffer([](BufferProxy& proxy)
 	{
 		// + 1 for forward pass render constants
-		if (Renderer::Settings::Rasterization)
+		if constexpr (Renderer::Settings::Rasterization)
 			proxy.SetSizeInBytes((NUM_CASCADES + 1) * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
 		else
 			proxy.SetSizeInBytes((1) * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
@@ -123,7 +123,7 @@ void Renderer::UploadScene(Scene& Scene)
 	m_RenderGraph.Setup();
 
 	// Create render target srvs
-	if (Renderer::Settings::Rasterization)
+	if constexpr (Renderer::Settings::Rasterization)
 	{
 		const std::size_t numSRVsToAllocate = 2;
 		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.GetDescriptorAllocator()->AllocateSRDescriptors(numSRVsToAllocate);
@@ -188,6 +188,7 @@ void Renderer::Render(Scene& Scene)
 	XMStoreFloat4x4(&renderPassCPU.InvProjection, XMMatrixTranspose(Scene.Camera.InverseProjectionMatrix()));
 	XMStoreFloat4x4(&renderPassCPU.ViewProjection, XMMatrixTranspose(Scene.Camera.ViewProjectionMatrix()));
 	renderPassCPU.EyePosition = Scene.Camera.GetTransform().Position;
+	renderPassCPU.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
 
 	renderPassCPU.Sun = Scene.Sun;
 	renderPassCPU.SunShadowMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex -

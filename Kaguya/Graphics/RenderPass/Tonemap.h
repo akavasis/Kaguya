@@ -23,13 +23,11 @@ void AddTonemapRenderPass(
 	UINT InitialSwapChainBufferIndex,
 	RenderGraph* pRenderGraph)
 {
-	constexpr bool useRasterization = Renderer::Settings::Rasterization;
-
 	pRenderGraph->AddRenderPass<TonemapRenderPassData>(
 		RenderPassType::Graphics,
 		[=](RenderPass<TonemapRenderPassData>& This, RenderDevice* pRenderDevice)
 	{
-		if (useRasterization)
+		if constexpr (Renderer::Settings::Rasterization)
 		{
 			auto pForwardRenderingRenderPass = pRenderGraph->GetRenderPass<ForwardRenderingRenderPassData>();
 			This.Data.pSource = pRenderDevice->GetTexture(pForwardRenderingRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget]);
@@ -77,7 +75,7 @@ void AddTonemapRenderPass(
 	},
 		[=](RenderPass<TonemapRenderPassData>& This, UINT Width, UINT Height, RenderDevice* pRenderDevice)
 	{
-		if (useRasterization)
+		if constexpr (Renderer::Settings::Rasterization)
 		{
 			auto pSkyboxRenderPass = pRenderGraph->GetRenderPass<ForwardRenderingRenderPassData>();
 			This.Data.pSource = pRenderDevice->GetTexture(pSkyboxRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget]);

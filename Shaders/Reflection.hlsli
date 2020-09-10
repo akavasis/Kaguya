@@ -23,31 +23,31 @@
 
 float CosTheta(in float3 w)
 {
-    return w.z;
+	return w.z;
 }
 float Cos2Theta(in float3 w)
 {
-    return w.z * w.z;
+	return w.z * w.z;
 }
 float AbsCosTheta(in float3 w)
 {
-    return abs(w.z);
+	return abs(w.z);
 }
 float Sin2Theta(in float3 w)
 {
-    return max(0.0f, 1.0f - Cos2Theta(w));
+	return max(0.0f, 1.0f - Cos2Theta(w));
 }
 float SinTheta(in float3 w)
 {
-    return sqrt(Sin2Theta(w));
+	return sqrt(Sin2Theta(w));
 }
 float TanTheta(in float3 w)
 {
-    return SinTheta(w) / CosTheta(w);
+	return SinTheta(w) / CosTheta(w);
 }
 float Tan2Theta(in float3 w)
 {
-    return Sin2Theta(w) / Cos2Theta(w);
+	return Sin2Theta(w) / Cos2Theta(w);
 }
 
 float CosPhi(in float3 w)

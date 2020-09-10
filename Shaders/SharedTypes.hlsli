@@ -18,7 +18,7 @@ struct RenderPassConstants
 	matrix InvProjection;
 	matrix ViewProjection;
 	float3 EyePosition;
-	float _padding;
+	unsigned int TotalFrameCount;
 
 	DirectionalLight Sun;
 	unsigned int SunShadowMapIndex;

@@ -1,4 +1,5 @@
 #include "Global.hlsli"
+#include "../BxDF.hlsli"
 
 struct HitInfo
 {
@@ -11,7 +12,7 @@ void RayGen()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions);
+	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions); // Convert from discrete to continuous
 	float2 ndcCoord = pixel * 2.0f - 1.0f; // Uncompress each component from [0,1] to [-1,1].
 	ndcCoord.y *= -1.0f;
   
@@ -46,7 +47,7 @@ void Miss(inout RayPayload payload)
 	TextureCube skybox = TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex];
 	float3 color = skybox.SampleLevel(SamplerLinearWrap, rayDir, 0.0f).xyz;
 
-	payload.colorAndDistance = float4(color, -1.0f);
+	payload.colorAndDistance = float4(color, 1.0f);
 }
 
 [shader("miss")]
@@ -55,23 +56,33 @@ void ShadowMiss(inout ShadowRayPayload payload)
 	payload.visibility = 1.0f;
 }
 
+Triangle GetTriangle(in uint geometryIndex)
+{
+	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
+
+	const uint primIndex = PrimitiveIndex();
+	const uint idx0 = IndexBuffer[primIndex * 3 + info.IndexOffset + 0];
+	const uint idx1 = IndexBuffer[primIndex * 3 + info.IndexOffset + 1];
+	const uint idx2 = IndexBuffer[primIndex * 3 + info.IndexOffset + 2];
+	
+	const Vertex vtx0 = VertexBuffer[idx0 + info.VertexOffset];
+	const Vertex vtx1 = VertexBuffer[idx1 + info.VertexOffset];
+	const Vertex vtx2 = VertexBuffer[idx2 + info.VertexOffset];
+	
+	Triangle t;
+	t.v0 = vtx0;
+	t.v1 = vtx1;
+	t.v2 = vtx2;
+	return t;
+}
+
 Vertex GetBERPedVertex(in HitAttributes attrib, in uint geometryIndex)
 {
 	float3 barycentrics =
     float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
 
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-
-	const uint primIndex = PrimitiveIndex();
-	const uint idx0 = IndexBuffer[primIndex * 3 + info.IndexOffset + 0];
-    const uint idx1 = IndexBuffer[primIndex * 3 + info.IndexOffset + 1];
-    const uint idx2 = IndexBuffer[primIndex * 3 + info.IndexOffset + 2];
-	
-	const Vertex vtx0 = VertexBuffer[idx0 + info.VertexOffset];
-    const Vertex vtx1 = VertexBuffer[idx1 + info.VertexOffset];
-    const Vertex vtx2 = VertexBuffer[idx2 + info.VertexOffset];
-
-	return BERP(vtx0, vtx1, vtx2, barycentrics);
+	Triangle t = GetTriangle(geometryIndex);
+	return BERP(t, barycentrics);
 }
 
 MaterialTextureIndices GetMaterialIndices(in uint geometryIndex)
@@ -94,7 +105,7 @@ void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 	MaterialTextureProperties materialProperties = GetMaterialProperties(HitGroupCB.GeometryIndex);
 
 	const float3 incomingRayOriginWS = WorldRayOrigin();
-    const float3 incomingRayDirWS = WorldRayDirection();
+	const float3 incomingRayDirWS = WorldRayDirection();
 
 	// Initialize the ray payload
 	ShadowRayPayload shadowRayPayload;
@@ -125,7 +136,7 @@ void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 	// Fetch normal data
 	if (materialIndices.NormalMapIndex != -1)
 	{
-		float3x3 tbnMatrix = float3x3(hitSurface.Tangent, hitSurface.Bitangent, hitSurface.Normal); 
+		float3x3 tbnMatrix = float3x3(hitSurface.Tangent, hitSurface.Bitangent, hitSurface.Normal);
 
 		Texture2D normalMap = Tex2DTable[materialIndices.NormalMapIndex];
 		float4 normalMapSample = normalMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
@@ -157,10 +168,22 @@ void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 		materialProperties.Emissive = emissiveMapSample.rgb;
 	}
 
-	float3 hitColor = materialProperties.Albedo;
+	float3 wo = normalize(RenderPassDataCB.EyePosition - hitSurface.Position);
+	float3 wi = -normalize(RenderPassDataCB.Sun.Direction);
+	float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
+	float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
+	float alpha = RoughnessToAlphaTrowbridgeReitzDistribution(materialProperties.Roughness);
 
-	hitColor *= shadowRayPayload.visibility;
-	payload.colorAndDistance = float4(hitColor, RayTCurrent());
+	BSDF bsdf;
+	bsdf.tangent = hitSurface.Tangent;
+	bsdf.bitangent = hitSurface.Bitangent;
+	bsdf.normal = hitSurface.Normal;
+	bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f));
+	
+    float3 f = bsdf.f(wo, wi, Rd, Rs);
+	
+	f *= shadowRayPayload.visibility;
+	payload.colorAndDistance = float4(f, RayTCurrent());
 }
 
 [shader("closesthit")]

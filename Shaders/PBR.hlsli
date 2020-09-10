@@ -1,6 +1,7 @@
 #ifndef __PBR_HLSLI__
 #define __PBR_HLSLI__
 #include "HLSLCommon.hlsli"
+#include "BxDF.hlsli"
 static const float3 Fdielectric = 0.04;
 
 // NDF: Normal distribution function
@@ -46,7 +47,7 @@ float3 Fresnel_SchlickRoughness(in float cosTheta, in float3 F0, in float roughn
 	return F0 + (max(1.0f - roughness, F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float3 PBR(in MaterialTextureProperties surface, in float3 N, in float3 V, in float3 L, in float3 radiance)
+float3 CalcLighting(in MaterialTextureProperties surface, in float3 N, in float3 V, in float3 L, in float3 radiance)
 {
 	float3 F0 = lerp(Fdielectric, surface.Albedo, surface.Metallic);
 	

@@ -2,13 +2,7 @@
 #define __HLSL_COMMON_HLSLI__
 #include "Light.hlsli"
 #include "SharedTypes.hlsli"
-
-static const float s_PI = 3.141592654f;
-static const float s_2PI = 6.283185307f;
-static const float s_1DIVPI = 0.318309886f;
-static const float s_1DIV2PI = 0.159154943f;
-static const float s_PIDIV2 = 1.570796327f;
-static const float s_PIDIV4 = 0.785398163f;
+#include "Constants.hlsli"
 
 half Luminance(half3 LinearColor)
 {
