@@ -23,6 +23,7 @@ public:
 		inline static DOUBLE TimeElapsed = 0.0;
 		inline static DOUBLE FPS = 0.0;
 		inline static DOUBLE FPMS = 0.0;
+		inline static UINT64 Accumulation = 0;
 	};
 
 	struct Settings

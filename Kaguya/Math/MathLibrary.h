@@ -80,7 +80,7 @@ namespace Math
 	}
 
 	template <typename T>
-	constexpr inline T DivideByMultiple(T Value, size_t Alignment)
+	constexpr inline T RoundUpAndDivide(T Value, size_t Alignment)
 	{
 		return (T)((Value + Alignment - 1) / Alignment);
 	}

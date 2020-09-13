@@ -58,13 +58,13 @@ UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, 
 
 	DirectX::XMVECTOR extents = (maxes - mins) * 0.5f;
 	DirectX::XMVECTOR center = mins + extents;
-	center = XMVector3TransformCoord(center, XMMatrixRotationQuaternion(XMLoadFloat4(&Camera.GetTransform().Orientation)));
-	center += XMLoadFloat3(&Camera.GetTransform().Position);
+	center = XMVector3TransformCoord(center, XMMatrixRotationQuaternion(XMLoadFloat4(&Camera.Transform.Orientation)));
+	center += XMLoadFloat3(&Camera.Transform.Position);
 
 	DirectX::BoundingOrientedBox obb;
 	XMStoreFloat3(&obb.Extents, extents);
 	XMStoreFloat3(&obb.Center, center);
-	obb.Orientation = Camera.GetTransform().Orientation;
+	obb.Orientation = Camera.Transform.Orientation;
 
 	UINT numVisible = 0;
 	for (auto iter = Models.begin(); iter != Models.end(); ++iter)
@@ -114,13 +114,13 @@ UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, 
 
 	DirectX::XMVECTOR extents = (maxes - mins) / 2.0f;
 	DirectX::XMVECTOR center = mins + extents;
-	center = XMVector3TransformCoord(center, XMMatrixRotationQuaternion(XMLoadFloat4(&Camera.GetTransform().Orientation)));
-	center += XMLoadFloat3(&Camera.GetTransform().Position);
+	center = XMVector3TransformCoord(center, XMMatrixRotationQuaternion(XMLoadFloat4(&Camera.Transform.Orientation)));
+	center += XMLoadFloat3(&Camera.Transform.Position);
 
 	DirectX::BoundingOrientedBox obb;
 	XMStoreFloat3(&obb.Extents, extents);
 	XMStoreFloat3(&obb.Center, center);
-	obb.Orientation = Camera.GetTransform().Orientation;
+	obb.Orientation = Camera.Transform.Orientation;
 
 	UINT numVisible = 0;
 	for (size_t i = 0, numMeshes = Meshes.size(); i < numMeshes; ++i)

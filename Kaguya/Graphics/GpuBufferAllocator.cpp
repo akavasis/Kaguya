@@ -237,7 +237,7 @@ void GpuBufferAllocator::CreateBottomLevelAS(Scene& Scene, CommandContext* pComm
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
 		UINT64 scratchSizeInBytes, resultSizeInBytes;
-		rtblas.BLAS.ComputeMemoryRequirements(pRenderDevice->GetDevice(), false, &scratchSizeInBytes, &resultSizeInBytes);
+		rtblas.BLAS.ComputeMemoryRequirements(&pRenderDevice->Device, false, &scratchSizeInBytes, &resultSizeInBytes);
 
 		// BLAS Scratch
 		rtblas.Handles.Scratch = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
@@ -291,7 +291,7 @@ void GpuBufferAllocator::CreateTopLevelAS(Scene& Scene, CommandContext* pCommand
 	}
 
 	UINT64 scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
-	m_RaytracingTopLevelAccelerationStructure.TLAS.ComputeMemoryRequirements(pRenderDevice->GetDevice(), true, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
+	m_RaytracingTopLevelAccelerationStructure.TLAS.ComputeMemoryRequirements(&pRenderDevice->Device, true, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
 
 	// TLAS Scratch
 	m_RaytracingTopLevelAccelerationStructure.Handles.Scratch = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)

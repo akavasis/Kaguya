@@ -72,8 +72,8 @@ void AddForwardRenderingRenderPass(
 		This.Outputs.push_back(renderTarget);
 		This.Outputs.push_back(depthStencil);
 
-		auto rtv = pRenderDevice->GetDescriptorAllocator()->AllocateRenderTargetDescriptors(1);
-		auto dsv = pRenderDevice->GetDescriptorAllocator()->AllocateDepthStencilDescriptors(1);
+		auto rtv = pRenderDevice->DescriptorAllocator.AllocateRenderTargetDescriptors(1);
+		auto dsv = pRenderDevice->DescriptorAllocator.AllocateDepthStencilDescriptors(1);
 
 		pRenderDevice->CreateRTV(renderTarget, rtv[0], {}, {}, {});
 		pRenderDevice->CreateDSV(depthStencil, dsv[0], {}, {}, {});
@@ -95,6 +95,7 @@ void AddForwardRenderingRenderPass(
 			}
 
 			PIXMarker(pCommandContext->GetD3DCommandList(), L"Forward Rendering");
+
 			auto pRenderTarget = RenderGraphRegistry.GetTexture(This.Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget]);
 			auto pDepthStencil = RenderGraphRegistry.GetTexture(This.Outputs[ForwardRenderingRenderPassData::Outputs::DepthStencil]);
 			const auto& RenderTargetView = This.ResourceViews[ForwardRenderingRenderPassData::Outputs::RenderTarget];

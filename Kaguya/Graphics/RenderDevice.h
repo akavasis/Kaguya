@@ -35,22 +35,16 @@ public:
 	RenderDevice(IDXGIAdapter4* pAdapter);
 	~RenderDevice();
 
-	[[nodiscard]] inline Device* GetDevice() { return &m_Device; }
-	[[nodiscard]] inline CommandQueue* GetGraphicsQueue() { return &m_GraphicsQueue; }
-	[[nodiscard]] inline CommandQueue* GetComputeQueue() { return &m_ComputeQueue; }
-	[[nodiscard]] inline CommandQueue* GetCopyQueue() { return &m_CopyQueue; }
-	[[nodiscard]] inline ResourceStateTracker* GetGlobalResourceStateTracker() { return &m_GlobalResourceStateTracker; }
-	[[nodiscard]] inline DescriptorAllocator* GetDescriptorAllocator() { return &m_DescriptorAllocator; }
 	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
 	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const;
 	auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const
 	{
-		return m_DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::ShaderResource).GPUHandle;
+		return DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::ShaderResource).GPUHandle;
 	}
 	auto GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart() const
 	{
-		return m_DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::UnorderedAccess).GPUHandle;
+		return DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::UnorderedAccess).GPUHandle;
 	}
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
@@ -92,16 +86,17 @@ public:
 	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle) { return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
+
+	Device Device;
+	ShaderCompiler ShaderCompiler;
+	CommandQueue GraphicsQueue;
+	CommandQueue ComputeQueue;
+	CommandQueue CopyQueue;
+	ResourceStateTracker GlobalResourceStateTracker;
+	DescriptorAllocator DescriptorAllocator;
 private:
 	void AppendStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
 
-	Device m_Device;
-	ShaderCompiler m_ShaderCompiler;
-	CommandQueue m_GraphicsQueue;
-	CommandQueue m_ComputeQueue;
-	CommandQueue m_CopyQueue;
-	ResourceStateTracker m_GlobalResourceStateTracker;
-	DescriptorAllocator m_DescriptorAllocator;
 	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[CommandContext::NumTypes];
 
 	enum DescriptorRanges

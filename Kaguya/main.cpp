@@ -22,6 +22,8 @@
 #include "Graphics/Scene/ModelLoader.h"
 #include "Graphics/Scene/Scene.h"
 
+using namespace DirectX;
+
 int main(int argc, char** argv)
 {
 	try
@@ -44,46 +46,56 @@ int main(int argc, char** argv)
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 		scene.Camera.SetPosition(0.0f, 5.0f, -10.0f);
 
-		auto& nullMaterial = scene.AddMaterial(materialLoader.LoadMaterial(
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr
-		));
-		nullMaterial.Properties.Albedo = { 1.0f, 0.0f, 0.0f };
-		nullMaterial.Properties.Roughness = 0.0f;
-		nullMaterial.Properties.Metallic = 1.0f;
+		auto& nullMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		nullMaterial.Properties.Albedo = { 0.7f, 0.7f, 0.7f };
 
-		auto& nullMaterial1 = scene.AddMaterial(materialLoader.LoadMaterial(
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr
-		));
-		nullMaterial1.Properties.Albedo = { 1.0f, 1.0f, 1.0f };
-		nullMaterial1.Properties.Roughness = 0.0f;
-		nullMaterial1.Properties.Metallic = 0.0f;
+		auto& leftwallMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		leftwallMaterial.Properties.Albedo = { 0.7f, 0.1f, 0.1f };
 
-		auto& cerberusMat = scene.AddMaterial(materialLoader.LoadMaterial(
-			"Assets/Models/Cerberus/Textures/Cerberus_Albedo.dds",
-			"Assets/Models/Cerberus/Textures/Cerberus_Normal.dds",
-			"Assets/Models/Cerberus/Textures/Cerberus_Roughness.dds",
-			"Assets/Models/Cerberus/Textures/Cerberus_Metallic.dds",
-			nullptr
-		));
+		auto& rightwallMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		rightwallMaterial.Properties.Albedo = { 0.1f, 0.7f, 0.1f };
 
-		auto& cerberus = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx", 0.05f));
-		cerberus.Meshes[0].MaterialIndex = 2;
-		cerberus.Translate(0.0f, 5.0f, -5.0f);
-		cerberus.Rotate(DirectX::XMConvertToRadians(90.0f), DirectX::XMConvertToRadians(90.0f), 0.0f);
+		auto& lightMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		lightMaterial.Properties.Albedo = { 0.0f, 0.0f, 0.0f };
+		XMStoreFloat3(&lightMaterial.Properties.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
 
-		auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+		// Walls
+		{
+			auto& floor = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+			floor.Meshes[0].MaterialIndex = 0;
 
-		auto& grid = scene.AddModel(CreateGrid(100.0f, 100.0f, 10, 10));
-		grid.Translate(0.0f, -10.0f, 0.0f);
-		grid.Meshes[0].MaterialIndex = 1;
+			auto& ceiling = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+			ceiling.Translate(0.0f, 10.0f, 0.0f);
+			ceiling.Meshes[0].MaterialIndex = 0;
+
+			auto& backwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+			backwall.Translate(0.0f, 5.0f, 5.0f);
+			backwall.Rotate(DirectX::XM_PIDIV2, 0.0f, 0.0f);
+			backwall.Meshes[0].MaterialIndex = 0;
+
+			auto& leftwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+			leftwall.Translate(-5.0f, 5.0f, 0.0f);
+			leftwall.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
+			leftwall.Meshes[0].MaterialIndex = 1;
+
+			auto& rightwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+			rightwall.Translate(+5.0f, 5.0f, 0.0f);
+			rightwall.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
+			rightwall.Meshes[0].MaterialIndex = 2;
+		}
+
+		// Light
+		{
+			auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
+			light.Translate(0.0f, 9.9f, 0.0f);
+			light.Meshes[0].MaterialIndex = 3;
+		}
+
+		// Spheres
+		{
+			auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+			sphere.Translate(0.0f, 5.0f, 0.0f);
+		}
 
 		renderer.UploadScene(scene);
 

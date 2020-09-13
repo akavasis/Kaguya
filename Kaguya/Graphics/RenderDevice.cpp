@@ -2,11 +2,11 @@
 #include "RenderDevice.h"
 
 RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
-	: m_Device(pAdapter),
-	m_GraphicsQueue(GetDevice(), D3D12_COMMAND_LIST_TYPE_DIRECT),
-	m_ComputeQueue(GetDevice(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
-	m_CopyQueue(GetDevice(), D3D12_COMMAND_LIST_TYPE_COPY),
-	m_DescriptorAllocator(GetDevice())
+	: Device(pAdapter),
+	GraphicsQueue(&Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
+	ComputeQueue(&Device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
+	CopyQueue(&Device, D3D12_COMMAND_LIST_TYPE_COPY),
+	DescriptorAllocator(&Device)
 {
 	for (std::size_t i = 0; i < DescriptorRanges::NumDescriptorRanges; ++i)
 	{
@@ -28,18 +28,18 @@ CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
 	CommandQueue* pCommandQueue = nullptr;
 	switch (Type)
 	{
-	case CommandContext::Type::Direct: pCommandQueue = &m_GraphicsQueue; break;
-	case CommandContext::Type::Compute: pCommandQueue = &m_ComputeQueue; break;
-	case CommandContext::Type::Copy: pCommandQueue = &m_CopyQueue; break;
+	case CommandContext::Type::Direct: pCommandQueue = &GraphicsQueue; break;
+	case CommandContext::Type::Compute: pCommandQueue = &ComputeQueue; break;
+	case CommandContext::Type::Copy: pCommandQueue = &CopyQueue; break;
 	default: throw std::logic_error("Unsupported command list type"); break;
 	}
-	m_RenderCommandContexts[Type].push_back(std::make_unique<CommandContext>(&m_Device, pCommandQueue, Type));
+	m_RenderCommandContexts[Type].push_back(std::make_unique<CommandContext>(&Device, pCommandQueue, Type));
 	return m_RenderCommandContexts[Type].back().get();
 }
 
 void RenderDevice::BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const
 {
-	pCommandContext->SetDescriptorHeaps(m_DescriptorAllocator.GetUniversalGpuDescriptorHeap(), nullptr);
+	pCommandContext->SetDescriptorHeaps(DescriptorAllocator.GetUniversalGpuDescriptorHeap(), nullptr);
 }
 
 void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[])
@@ -49,33 +49,33 @@ void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, Command
 	for (UINT i = 0; i < NumCommandContexts; ++i)
 	{
 		CommandContext* pCommandContext = ppCommandContexts[i];
-		if (pCommandContext->Close(m_GlobalResourceStateTracker))
+		if (pCommandContext->Close(GlobalResourceStateTracker))
 		{
 			commandlistsToBeExecuted.push_back(pCommandContext->m_pPendingCommandList.Get());
 		}
 		commandlistsToBeExecuted.push_back(pCommandContext->m_pCommandList.Get());
 	}
 
-	m_GraphicsQueue.GetD3DCommandQueue()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
-	UINT64 fenceValue = m_GraphicsQueue.Signal();
+	GraphicsQueue.GetD3DCommandQueue()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
+	UINT64 fenceValue = GraphicsQueue.Signal();
 	for (UINT i = 0; i < NumCommandContexts; ++i)
 	{
 		CommandContext* pCommandContext = ppCommandContexts[i];
 		pCommandContext->RequestNewAllocator(fenceValue);
 		pCommandContext->Reset();
 	}
-	m_GraphicsQueue.Flush();
+	GraphicsQueue.Flush();
 }
 
 RenderResourceHandle RenderDevice::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
-	auto [handle, shader] = m_Shaders.CreateResource(m_ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines));
+	auto [handle, shader] = m_Shaders.CreateResource(ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines));
 	return handle;
 }
 
 RenderResourceHandle RenderDevice::CompileLibrary(const std::filesystem::path& Path)
 {
-	auto [handle, library] = m_Libraries.CreateResource(m_ShaderCompiler.CompileLibrary(Path.c_str()));
+	auto [handle, library] = m_Libraries.CreateResource(ShaderCompiler.CompileLibrary(Path.c_str()));
 	return handle;
 }
 
@@ -84,11 +84,11 @@ RenderResourceHandle RenderDevice::CreateBuffer(Delegate<void(BufferProxy&)> Con
 	BufferProxy proxy;
 	Configurator(proxy);
 
-	auto [handle, buffer] = m_Buffers.CreateResource(&m_Device, proxy);
+	auto [handle, buffer] = m_Buffers.CreateResource(&Device, proxy);
 
 	// No need to track resources that have preinitialized states
 	if (buffer->GetCpuAccess() == Buffer::CpuAccess::None)
-		m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
+		GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
@@ -98,15 +98,15 @@ RenderResourceHandle RenderDevice::CreateBuffer(RenderResourceHandle HeapHandle,
 	Configurator(proxy);
 
 	const auto pHeap = this->GetHeap(HeapHandle);
-	auto [handle, buffer] = m_Buffers.CreateResource(&m_Device, pHeap, HeapOffset, proxy);
-	m_GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
+	auto [handle, buffer] = m_Buffers.CreateResource(&Device, pHeap, HeapOffset, proxy);
+	GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
 RenderResourceHandle RenderDevice::CreateTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState)
 {
 	auto [handle, texture] = m_Textures.CreateResource(ExistingResource);
-	m_GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3DResourceStates(InitialState));
+	GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3DResourceStates(InitialState));
 	return handle;
 }
 
@@ -115,8 +115,8 @@ RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, Delegate<v
 	TextureProxy proxy(Type);
 	Configurator(proxy);
 
-	auto [handle, texture] = m_Textures.CreateResource(&m_Device, proxy);
-	m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
+	auto [handle, texture] = m_Textures.CreateResource(&Device, proxy);
+	GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
@@ -129,8 +129,8 @@ RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, RenderReso
 	assert(pHeap->GetType() != Heap::Type::Upload && "Heap cannot be type upload");
 	assert(pHeap->GetType() != Heap::Type::Readback && "Heap cannot be type readback");
 
-	auto [handle, texture] = m_Textures.CreateResource(&m_Device, pHeap, HeapOffset, proxy);
-	m_GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
+	auto [handle, texture] = m_Textures.CreateResource(&Device, pHeap, HeapOffset, proxy);
+	GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
@@ -139,7 +139,7 @@ RenderResourceHandle RenderDevice::CreateHeap(Delegate<void(HeapProxy&)> Configu
 	HeapProxy proxy;
 	Configurator(proxy);
 
-	auto [handle, heap] = m_Heaps.CreateResource(&m_Device, proxy);
+	auto [handle, heap] = m_Heaps.CreateResource(&Device, proxy);
 	return handle;
 }
 
@@ -150,7 +150,7 @@ RenderResourceHandle RenderDevice::CreateRootSignature(StandardShaderLayoutOptio
 	if (pOptions)
 		AppendStandardShaderLayoutRootParameter(pOptions, proxy);
 
-	auto [handle, rootSignature] = m_RootSignatures.CreateResource(&m_Device, proxy);
+	auto [handle, rootSignature] = m_RootSignatures.CreateResource(&Device, proxy);
 	return handle;
 }
 
@@ -159,7 +159,7 @@ RenderResourceHandle RenderDevice::CreateGraphicsPipelineState(Delegate<void(Gra
 	GraphicsPipelineStateProxy proxy;
 	Configurator(proxy);
 
-	auto [handle, graphicsPSO] = m_GraphicsPipelineStates.CreateResource(&m_Device, proxy);
+	auto [handle, graphicsPSO] = m_GraphicsPipelineStates.CreateResource(&Device, proxy);
 	return handle;
 }
 
@@ -168,7 +168,7 @@ RenderResourceHandle RenderDevice::CreateComputePipelineState(Delegate<void(Comp
 	ComputePipelineStateProxy proxy;
 	Configurator(proxy);
 
-	auto [handle, computePSO] = m_ComputePipelineStates.CreateResource(&m_Device, proxy);
+	auto [handle, computePSO] = m_ComputePipelineStates.CreateResource(&Device, proxy);
 	return handle;
 }
 
@@ -177,7 +177,7 @@ RenderResourceHandle RenderDevice::CreateRaytracingPipelineState(Delegate<void(R
 	RaytracingPipelineStateProxy proxy;
 	Configurator(proxy);
 
-	auto [handle, raytracingPSO] = m_RaytracingPipelineStates.CreateResource(&m_Device, proxy);
+	auto [handle, raytracingPSO] = m_RaytracingPipelineStates.CreateResource(&Device, proxy);
 	return handle;
 }
 
@@ -208,7 +208,7 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 		auto buffer = m_Buffers.GetResource(*pRenderResourceHandle);
 		if (buffer)
 		{
-			m_GlobalResourceStateTracker.RemoveResourceState(buffer->GetD3DResource());
+			GlobalResourceStateTracker.RemoveResourceState(buffer->GetD3DResource());
 		}
 		m_Buffers.Destroy(pRenderResourceHandle);
 	}
@@ -218,7 +218,7 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 		auto texture = m_Textures.GetResource(*pRenderResourceHandle);
 		if (texture)
 		{
-			m_GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
+			GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
 		}
 		m_Textures.Destroy(pRenderResourceHandle);
 	}
@@ -250,7 +250,7 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 			desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
 			desc.RaytracingAccelerationStructure.Location = pBuffer->GetGpuVirtualAddress();
 
-			m_Device.GetD3DDevice()->CreateShaderResourceView(nullptr, &desc, DestDescriptor.CPUHandle);
+			Device.GetD3DDevice()->CreateShaderResourceView(nullptr, &desc, DestDescriptor.CPUHandle);
 		}
 		else
 		{
@@ -262,7 +262,7 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 			desc.Buffer.StructureByteStride = pBuffer->GetStride();
 			desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-			m_Device.GetD3DDevice()->CreateShaderResourceView(pBuffer->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+			Device.GetD3DDevice()->CreateShaderResourceView(pBuffer->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 		}
 	}
 	break;
@@ -330,7 +330,7 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 		break;
 		}
 
-		m_Device.GetD3DDevice()->CreateShaderResourceView(pTexture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+		Device.GetD3DDevice()->CreateShaderResourceView(pTexture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 	}
 	break;
 
@@ -403,7 +403,7 @@ void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, Descript
 	break;
 	}
 
-	m_Device.GetD3DDevice()->CreateUnorderedAccessView(texture->GetD3DResource(), nullptr, &desc, DestDescriptor.CPUHandle);
+	Device.GetD3DDevice()->CreateUnorderedAccessView(texture->GetD3DResource(), nullptr, &desc, DestDescriptor.CPUHandle);
 }
 
 void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
@@ -471,7 +471,7 @@ void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, Descript
 	break;
 	}
 
-	m_Device.GetD3DDevice()->CreateRenderTargetView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+	Device.GetD3DDevice()->CreateRenderTargetView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 }
 
 void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
@@ -546,7 +546,7 @@ void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descript
 	break;
 	}
 
-	m_Device.GetD3DDevice()->CreateDepthStencilView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+	Device.GetD3DDevice()->CreateDepthStencilView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 }
 
 void RenderDevice::AppendStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy)

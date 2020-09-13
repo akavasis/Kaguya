@@ -7,8 +7,8 @@ public:
 	Camera();
 	Camera(float NearZ, float FarZ);
 
-	float NearZ() const;
-	float FarZ() const;
+	inline float NearZ() const { return m_NearZ; }
+	inline float FarZ() const { return m_FarZ; }
 	DirectX::XMMATRIX WorldMatrix() const;
 	DirectX::XMMATRIX ViewMatrix() const;
 	DirectX::XMMATRIX ProjectionMatrix() const;
@@ -19,9 +19,6 @@ public:
 	DirectX::XMVECTOR WorldPositionVector() const;
 	DirectX::XMVECTOR LocalPositionVector() const;
 
-	Transform& GetTransform();
-	const Transform& GetTransform() const;
-
 	void SetLookAt(DirectX::XMVECTOR EyePosition, DirectX::XMVECTOR FocusPosition, DirectX::XMVECTOR UpDirection);
 	void SetProjection(DirectX::XMMATRIX M);
 
@@ -29,15 +26,15 @@ public:
 
 	void Translate(float DeltaX, float DeltaY, float DeltaZ);
 	void Rotate(float AngleX, float AngleY);
+
+	Transform Transform;
 protected:
 	static constexpr float s_TranslateSpeed = 15.0f;
 	static constexpr float s_RotationSpeed = 15.0f;
 
+	DirectX::XMFLOAT4X4 m_Projection;
 	float m_NearZ;
 	float m_FarZ;
-
-	Transform m_Transform;
-	DirectX::XMFLOAT4X4 m_Projection;
 
 	virtual void UpdateProjectionMatrix() = 0;
 };

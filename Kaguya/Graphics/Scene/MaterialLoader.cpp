@@ -13,7 +13,7 @@ Material MaterialLoader::LoadMaterial(
 	const char* pMetallicMapPath,
 	const char* pEmissiveMapPath)
 {
-	Material material{};
+	Material material = {};
 
 	if (pAlbedoMapPath)
 	{
@@ -49,6 +49,8 @@ Material MaterialLoader::LoadMaterial(
 		material.Textures[TextureTypes::Emissive].Flag = TextureFlags::Disk;
 		assert(std::filesystem::exists(material.Textures[TextureTypes::Emissive].Path));
 	}
+
+	material.Properties.IndexOfRefraction = 1.0f;
 
 	return material;
 }

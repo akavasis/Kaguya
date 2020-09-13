@@ -26,6 +26,8 @@ struct RenderPassConstants
 	unsigned int RadianceCubemapIndex;
 	unsigned int IrradianceCubemapIndex;
 	unsigned int PrefilteredRadianceCubemapIndex;
+
+	unsigned int MaxDepth;
 };
 
 struct MaterialTextureProperties
@@ -34,6 +36,8 @@ struct MaterialTextureProperties
 	float Roughness;
 	float Metallic;
 	float3 Emissive;
+	float IndexOfRefraction;
+	unsigned int ShadingModel;
 };
 
 struct MaterialTextureIndices

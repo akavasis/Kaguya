@@ -49,7 +49,7 @@ void AddRaytracingRenderPass(
 
 		This.Outputs.push_back(raytracingOutput);
 
-		auto srv = pRenderDevice->GetDescriptorAllocator()->AllocateSRDescriptors(6);
+		auto srv = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(6);
 		pRenderDevice->CreateSRV(pGpuBufferAllocator->GetRTTLASResourceHandle(), srv[0]);
 		pRenderDevice->CreateSRV(pGpuBufferAllocator->GetVertexBufferHandle(), srv[1]);
 		pRenderDevice->CreateSRV(pGpuBufferAllocator->GetIndexBufferHandle(), srv[2]);
@@ -57,7 +57,7 @@ void AddRaytracingRenderPass(
 		pRenderDevice->CreateSRV(pGpuTextureAllocator->GetMaterialTextureIndicesBufferHandle(), srv[4]);
 		pRenderDevice->CreateSRV(pGpuTextureAllocator->GetMaterialTexturePropertiesBufferHandle(), srv[5]);
 
-		auto uav = pRenderDevice->GetDescriptorAllocator()->AllocateUADescriptors(1);
+		auto uav = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(1);
 		pRenderDevice->CreateUAV(raytracingOutput, uav[0], {}, {});
 
 		This.ResourceViews.push_back(std::move(srv));
@@ -66,6 +66,7 @@ void AddRaytracingRenderPass(
 		This.Data.pGpuBufferAllocator = pGpuBufferAllocator;
 		This.Data.pGpuTextureAllocator = pGpuTextureAllocator;
 		This.Data.pRenderPassConstantBuffer = pRenderPassConstantBuffer;
+
 		return [](const RenderPass<RaytracingRenderPassData>& This, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
 			PIXMarker(pCommandContext->GetD3DCommandList(), L"Raytracing");
@@ -75,8 +76,6 @@ void AddRaytracingRenderPass(
 			auto pHitGroupShaderTable = RenderGraphRegistry.GetBuffer(This.Data.pGpuBufferAllocator->GetHitGroupShaderTableHandle());
 
 			auto pRaytracingPipelineState = RenderGraphRegistry.GetRaytracingPSO(RaytracingPSOs::Raytracing);
-
-			pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
 			pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Global));
 			
@@ -109,8 +108,8 @@ void AddRaytracingRenderPass(
 
 			pCommandContext->SetRaytracingPipelineState(pRaytracingPipelineState);
 			pCommandContext->DispatchRays(&desc);
+
 			pCommandContext->UAVBarrier(pOutput);
-			pCommandContext->TransitionBarrier(pOutput, Resource::State::PixelShaderResource);
 		};
 	},
 		[](RenderPass<RaytracingRenderPassData>& This, UINT Width, UINT Height, RenderDevice* pRenderDevice)
@@ -131,7 +130,7 @@ void AddRaytracingRenderPass(
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 
-		const auto& uav = This.ResourceViews[1];
+		const auto& uav = This.ResourceViews[RaytracingRenderPassData::ResourceViews::RenderTarget];
 		pRenderDevice->CreateUAV(This.Outputs[RaytracingRenderPassData::Outputs::RenderTarget], uav[0], {}, {});
 	});
 }

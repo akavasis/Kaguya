@@ -14,3 +14,5 @@ RWTexture2D<float4> RenderTarget                                : register(u0, s
 
 #define RenderPassDataType RenderPassConstants
 #include "../ShaderLayout.hlsli"
+
+static const uint MaxTraceRecursionDepth = 8;

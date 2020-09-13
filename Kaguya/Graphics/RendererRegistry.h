@@ -51,6 +51,11 @@ struct TonemapData
 	unsigned int InputMapIndex;
 };
 
+struct AccumulationData
+{
+	unsigned int AccumulationCount = 0;
+};
+
 struct RendererFormats
 {
 	static constexpr DXGI_FORMAT SwapChainBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -118,6 +123,15 @@ struct RootParameters
 			NumRootParameters
 		};
 	};
+	struct Accumulation
+	{
+		enum
+		{
+			AccumulationCBuffer,
+			Input,
+			Output
+		};
+	};
 };
 
 struct Shaders
@@ -138,13 +152,15 @@ struct Shaders
 		inline static RenderResourceHandle PBR;
 		inline static RenderResourceHandle Skybox;
 
-		inline static RenderResourceHandle PostProcess_Tonemapping;
+		inline static RenderResourceHandle PostProcess_Tonemap;
 	};
 
 	struct CS
 	{
 		inline static RenderResourceHandle EquirectangularToCubemap;
 		inline static RenderResourceHandle GenerateMips;
+
+		inline static RenderResourceHandle Accumulation;
 	};
 
 	static void Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath);
@@ -169,13 +185,15 @@ struct RootSignatures
 	inline static RenderResourceHandle Shadow;
 	inline static RenderResourceHandle Skybox;
 
-	inline static RenderResourceHandle PostProcess_Tonemapping;
+	inline static RenderResourceHandle PostProcess_Tonemap;
 
 	struct Raytracing
 	{
 		inline static RenderResourceHandle Global;
 		inline static RenderResourceHandle EmptyLocal;
 		inline static RenderResourceHandle HitGroup;
+
+		inline static RenderResourceHandle Accumulation;
 	};
 
 	static void Register(RenderDevice* pRenderDevice);
@@ -191,7 +209,7 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle Shadow;
 	inline static RenderResourceHandle Skybox;
 
-	inline static RenderResourceHandle PostProcess_Tonemapping;
+	inline static RenderResourceHandle PostProcess_Tonemap;
 
 	static void Register(RenderDevice* pRenderDevice);
 };
@@ -200,6 +218,8 @@ struct ComputePSOs
 {
 	inline static RenderResourceHandle GenerateMips;
 	inline static RenderResourceHandle EquirectangularToCubemap;
+
+	inline static RenderResourceHandle Accumulation;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

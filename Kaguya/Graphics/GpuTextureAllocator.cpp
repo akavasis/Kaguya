@@ -44,9 +44,9 @@ std::pair<RenderResourceHandle, size_t> GpuTextureAllocator::TextureStorage::Get
 
 GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t NumMaterials)
 	: pRenderDevice(pRenderDevice),
-	m_CBSRUADescriptorHeap(pRenderDevice->GetDevice(), NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true)
+	m_CBSRUADescriptorHeap(&pRenderDevice->Device, NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true)
 {
-	m_RTV = pRenderDevice->GetDescriptorAllocator()->AllocateRenderTargetDescriptors(1);
+	m_RTV = pRenderDevice->DescriptorAllocator.AllocateRenderTargetDescriptors(1);
 
 	// Create BRDF LUT
 	AssetTextures[BRDFLUT] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
@@ -155,7 +155,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t Num
 		D3D12_FEATURE_DATA_FORMAT_SUPPORT featureDataFormatSupport;
 		featureDataFormatSupport.Format = optionalFormats[i];
 
-		ThrowCOMIfFailed(pRenderDevice->GetDevice()->GetD3DDevice()->CheckFeatureSupport(
+		ThrowCOMIfFailed(pRenderDevice->Device.GetD3DDevice()->CheckFeatureSupport(
 			D3D12_FEATURE_FORMAT_SUPPORT,
 			&featureDataFormatSupport,
 			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
@@ -259,7 +259,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		});
 
 		UINT numDescriptorsToAllocate = numMips * 6;
-		DescriptorAllocation tempCubemapRTVs = pRenderDevice->GetDescriptorAllocator()->AllocateRenderTargetDescriptors(numDescriptorsToAllocate);
+		DescriptorAllocation tempCubemapRTVs = pRenderDevice->DescriptorAllocator.AllocateRenderTargetDescriptors(numDescriptorsToAllocate);
 
 		// Generate cube map
 		pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -362,8 +362,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 void GpuTextureAllocator::Update(Scene& Scene)
 {
 	std::size_t i = 0;
-	MaterialTextureIndices materialTextureIndices;
-	MaterialTextureProperties materialTextureProperties;
+	MaterialTextureIndices materialTextureIndices = {};
 	for (auto& material : Scene.Materials)
 	{
 		materialTextureIndices.AlbedoMapIndex = material.TextureIndices[TextureTypes::Albedo];
@@ -374,11 +373,7 @@ void GpuTextureAllocator::Update(Scene& Scene)
 		materialTextureIndices.IsMasked = material.IsMasked;
 		m_pMaterialTextureIndicesStructuredBuffer->Update<MaterialTextureIndices>(i, materialTextureIndices);
 
-		materialTextureProperties.Albedo = material.Properties.Albedo;
-		materialTextureProperties.Roughness = material.Properties.Roughness;
-		materialTextureProperties.Metallic = material.Properties.Metallic;
-		materialTextureProperties.Emissive = material.Properties.Emissive;
-		m_pMaterialTexturePropertiesStructuredBuffer->Update<MaterialTextureProperties>(i, materialTextureProperties);
+		m_pMaterialTexturePropertiesStructuredBuffer->Update<MaterialTextureProperties>(i, material.Properties);
 		i++;
 	}
 }
@@ -518,7 +513,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	std::vector<UINT64> rowSizeInBytes(NumSubresources);
 	UINT64 totalBytes = 0;
 
-	auto pD3DDevice = pRenderDevice->GetDevice()->GetD3DDevice();
+	auto pD3DDevice = pRenderDevice->Device.GetD3DDevice();
 	pD3DDevice->GetCopyableFootprints(&pTexture->GetD3DResource()->GetDesc(), 0, NumSubresources, 0,
 		placedSubresourceLayouts.data(), numRows.data(), rowSizeInBytes.data(), &totalBytes);
 
@@ -711,7 +706,7 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 				}
 			};
 
-			pRenderDevice->GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
+			pRenderDevice->Device.GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
 		}
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
@@ -723,8 +718,8 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 		pCommandContext->FlushResourceBarriers();
 		pCommandContext->SetComputeRootDescriptorTable(RootParameters::GenerateMips::OutMips, tempUAVs.GetStartDescriptor().GPUHandle);
 
-		UINT threadGroupCountX = Math::DivideByMultiple(dstWidth, 8);
-		UINT threadGroupCountY = Math::DivideByMultiple(dstHeight, 8);
+		UINT threadGroupCountX = Math::RoundUpAndDivide(dstWidth, 8);
+		UINT threadGroupCountY = Math::RoundUpAndDivide(dstHeight, 8);
 		pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
 
 		pCommandContext->UAVBarrier(pTexture);
@@ -822,7 +817,7 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 					.PlaneSlice = 0,
 				}
 			};
-			pRenderDevice->GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
+			pRenderDevice->Device.GetD3DDevice()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, tempUAVs[i].CPUHandle);
 		}
 
 		for (uint32_t mip = 0; mip < numMips; ++mip)
@@ -833,7 +828,7 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 		}
 		pCommandContext->SetComputeRootDescriptorTable(RootParameters::EquirectangularToCubemap::OutMips, tempUAVs.GetStartDescriptor().GPUHandle);
 
-		UINT threadGroupCount = Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16);
+		UINT threadGroupCount = Math::RoundUpAndDivide(panoToCubemapCB.CubemapSize, 16);
 		pCommandContext->Dispatch(threadGroupCount, threadGroupCount, 6);
 
 		pCommandContext->UAVBarrier(pCubemap);

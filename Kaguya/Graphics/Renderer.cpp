@@ -10,6 +10,7 @@
 #include "RenderPass/Tonemap.h"
 
 #include "RenderPass/Raytracing.h"
+#include "RenderPass/Accumulation.h"
 
 Renderer::Renderer(const Application& Application, Window& Window)
 	: pWindow(&Window),
@@ -41,11 +42,11 @@ Renderer::Renderer(const Application& Application, Window& Window)
 	RaytracingPSOs::Register(&m_RenderDevice);
 
 	// Create swap chain after command objects have been created
-	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue(), Window, RendererFormats::SwapChainBufferFormat, NumSwapChainBuffers);
+	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), Window, RendererFormats::SwapChainBufferFormat, NumSwapChainBuffers);
 	m_FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 
 	// Initialize Non-transient resources
-	m_SwapChainRTVs = m_RenderDevice.GetDescriptorAllocator()->AllocateRenderTargetDescriptors(NumSwapChainBuffers);
+	m_SwapChainRTVs = m_RenderDevice.DescriptorAllocator.AllocateRenderTargetDescriptors(NumSwapChainBuffers);
 	for (UINT i = 0; i < NumSwapChainBuffers; ++i)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
@@ -64,9 +65,9 @@ Renderer::Renderer(const Application& Application, Window& Window)
 
 Renderer::~Renderer()
 {
-	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
-	m_RenderDevice.GetCopyQueue()->WaitForIdle();
-	m_RenderDevice.GetComputeQueue()->WaitForIdle();
+	m_RenderDevice.GraphicsQueue.WaitForIdle();
+	m_RenderDevice.CopyQueue.WaitForIdle();
+	m_RenderDevice.ComputeQueue.WaitForIdle();
 }
 
 void Renderer::UploadScene(Scene& Scene)
@@ -81,7 +82,7 @@ void Renderer::UploadScene(Scene& Scene)
 		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
 
 		const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures();
-		m_GpuDescriptorIndices.TextureShaderResourceViews = m_RenderDevice.GetDescriptorAllocator()->GetUniversalGpuDescriptorHeap()->AllocateSRDescriptors(numSRVsToAllocate);
+		m_GpuDescriptorIndices.TextureShaderResourceViews = m_RenderDevice.DescriptorAllocator.AllocateSRDescriptors(numSRVsToAllocate);
 
 		for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
 		{
@@ -117,8 +118,9 @@ void Renderer::UploadScene(Scene& Scene)
 	else
 	{
 		AddRaytracingRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
+		AddAccumulationRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_RenderGraph);
 	}
-	AddTonemapRenderPass(m_FrameIndex, &m_RenderGraph);
+	AddTonemapRenderPass(&m_RenderGraph);
 
 	m_RenderGraph.Setup();
 
@@ -126,7 +128,7 @@ void Renderer::UploadScene(Scene& Scene)
 	if constexpr (Renderer::Settings::Rasterization)
 	{
 		const std::size_t numSRVsToAllocate = 2;
-		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.GetDescriptorAllocator()->AllocateSRDescriptors(numSRVsToAllocate);
+		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.DescriptorAllocator.AllocateSRDescriptors(numSRVsToAllocate);
 
 		auto pCSMRenderPass = m_RenderGraph.GetRenderPass<CSMRenderPassData>();
 		auto pForwardRenderingRenderPass = m_RenderGraph.GetRenderPass<ForwardRenderingRenderPassData>();
@@ -141,13 +143,14 @@ void Renderer::UploadScene(Scene& Scene)
 	else
 	{
 		const std::size_t numSRVsToAllocate = 1;
-		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.GetDescriptorAllocator()->AllocateSRDescriptors(numSRVsToAllocate);
+		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.DescriptorAllocator.AllocateSRDescriptors(numSRVsToAllocate);
 
-		auto pRaytracingRenderPass = m_RenderGraph.GetRenderPass<RaytracingRenderPassData>();
+		auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<AccumulationRenderPassData>();
 		auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
 
-		m_RenderDevice.CreateSRV(pRaytracingRenderPass->Outputs[RaytracingRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
+		m_RenderDevice.CreateSRV(pAccumulationRenderPass->Outputs[AccumulationRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
 
+		pAccumulationRenderPass->Data.LastCameraTransform = Scene.Camera.Transform;
 		pTonemapRenderPass->Data.TonemapData.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex -
 			m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
 	}
@@ -170,7 +173,18 @@ void Renderer::Update(const Time& Time)
 
 void Renderer::Render(Scene& Scene)
 {
+	PIXCapture();
+
+	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<AccumulationRenderPassData>();
 	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
+
+	// If the camera has moved
+	if (Scene.Camera.Transform != pAccumulationRenderPass->Data.LastCameraTransform)
+	{
+		Renderer::Statistics::Accumulation = 0;
+		pAccumulationRenderPass->Data.LastCameraTransform = Scene.Camera.Transform;
+	}
+	pAccumulationRenderPass->Data.AccumulationData.AccumulationCount = Renderer::Statistics::Accumulation++;
 
 	pTonemapRenderPass->Data.pDestination = m_pSwapChainTextures[m_FrameIndex];
 	pTonemapRenderPass->Data.DestinationRTV = m_SwapChainRTVs[m_FrameIndex];
@@ -187,16 +201,17 @@ void Renderer::Render(Scene& Scene)
 	XMStoreFloat4x4(&renderPassCPU.InvView, XMMatrixTranspose(Scene.Camera.InverseViewMatrix()));
 	XMStoreFloat4x4(&renderPassCPU.InvProjection, XMMatrixTranspose(Scene.Camera.InverseProjectionMatrix()));
 	XMStoreFloat4x4(&renderPassCPU.ViewProjection, XMMatrixTranspose(Scene.Camera.ViewProjectionMatrix()));
-	renderPassCPU.EyePosition = Scene.Camera.GetTransform().Position;
+	renderPassCPU.EyePosition = Scene.Camera.Transform.Position;
 	renderPassCPU.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
 
 	renderPassCPU.Sun = Scene.Sun;
-	renderPassCPU.SunShadowMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex -
-		m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
+	renderPassCPU.SunShadowMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex - m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
 	renderPassCPU.BRDFLUTMapIndex = GpuTextureAllocator::AssetTextures::BRDFLUT;
 	renderPassCPU.RadianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxCubemap;
 	renderPassCPU.IrradianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxIrradianceCubemap;
 	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxPrefilteredCubemap;
+
+	renderPassCPU.MaxDepth = 7;
 
 	// Update shadow render pass cbuffer
 	if constexpr (Renderer::Settings::Rasterization)
@@ -230,7 +245,7 @@ void Renderer::Render(Scene& Scene)
 	{
 		CORE_ERROR("DXGI_ERROR_DEVICE_REMOVED");
 		Microsoft::WRL::ComPtr<ID3D12DeviceRemovedExtendedData> pDred;
-		ThrowCOMIfFailed(m_RenderDevice.GetDevice()->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&pDred)));
+		ThrowCOMIfFailed(m_RenderDevice.Device.GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&pDred)));
 		D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT DredAutoBreadcrumbsOutput;
 		D3D12_DRED_PAGE_FAULT_OUTPUT DredPageFaultOutput;
 		ThrowCOMIfFailed(pDred->GetAutoBreadcrumbsOutput(&DredAutoBreadcrumbsOutput));
@@ -240,7 +255,7 @@ void Renderer::Render(Scene& Scene)
 
 void Renderer::Resize(UINT Width, UINT Height)
 {
-	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
+	m_RenderDevice.GraphicsQueue.WaitForIdle();
 	{
 		m_AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
 
@@ -255,7 +270,7 @@ void Renderer::Resize(UINT Width, UINT Height)
 		for (UINT i = 0; i < NumSwapChainBuffers; ++i)
 		{
 			nodes[i] = NodeMask;
-			commandQueues[i] = m_RenderDevice.GetGraphicsQueue()->GetD3DCommandQueue();
+			commandQueues[i] = m_RenderDevice.GraphicsQueue.GetD3DCommandQueue();
 		}
 		UINT swapChainFlags = m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(NumSwapChainBuffers, Width, Height, RendererFormats::SwapChainBufferFormat, swapChainFlags, nodes, commandQueues));
@@ -286,9 +301,9 @@ void Renderer::Resize(UINT Width, UINT Height)
 		}
 		else
 		{
-			auto pRaytracingRenderPass = m_RenderGraph.GetRenderPass<RaytracingRenderPassData>();
-			m_RenderDevice.CreateSRV(pRaytracingRenderPass->Outputs[RaytracingRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
+			auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<AccumulationRenderPassData>();
+			m_RenderDevice.CreateSRV(pAccumulationRenderPass->Outputs[AccumulationRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
 		}
 	}
-	m_RenderDevice.GetGraphicsQueue()->WaitForIdle();
+	m_RenderDevice.GraphicsQueue.WaitForIdle();
 }

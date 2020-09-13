@@ -1,4 +1,5 @@
 #include "Global.hlsli"
+#include "../Random.hlsli"
 #include "../BxDF.hlsli"
 
 Triangle GetTriangle(in uint geometryIndex)
@@ -44,6 +45,7 @@ MaterialTextureProperties GetMaterialProperties(in uint geometryIndex)
 
 struct SurfaceInteraction
 {
+	float3 position;
 	float2 uv;
 	BSDF bsdf;
 	MaterialTextureIndices materialIndices;
@@ -57,9 +59,6 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 	Vertex hitSurface = GetBERPedVertex(attrib, geometryIndex);
 	MaterialTextureIndices materialIndices = GetMaterialIndices(geometryIndex);
 	MaterialTextureProperties materialProperties = GetMaterialProperties(geometryIndex);
-	float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
-	float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
-	float alpha = RoughnessToAlphaTrowbridgeReitzDistribution(materialProperties.Roughness);
 	
 	// Fetch albedo/diffuse data
 	if (materialIndices.AlbedoMapIndex != -1)
@@ -104,6 +103,11 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 		materialProperties.Emissive = emissiveMapSample.rgb;
 	}
 	
+	float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
+	float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
+	float alpha = RoughnessToAlphaTrowbridgeReitzDistribution(materialProperties.Roughness);
+	
+	si.position = WorldRayOrigin() + (WorldRayDirection() * RayTCurrent());
 	si.uv = hitSurface.Texture;
 	si.bsdf.tangent = hitSurface.Tangent;
 	si.bsdf.bitangent = hitSurface.Bitangent;
@@ -113,6 +117,20 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 	si.materialProperties = materialProperties;
 	
 	return si;
+}
+
+void PathTrace(in RayDesc ray, inout RayPayload payload)
+{
+	if (payload.Depth <= RenderPassDataCB.MaxDepth)
+	{
+		// Trace the ray
+		const uint flags = RAY_FLAG_NONE;
+		const uint mask = 0xffffffff;
+		const uint hitGroupIndex = RayTypePrimary;
+		const uint hitGroupIndexMultiplier = NumRayTypes;
+		const uint missShaderIndex = RayTypePrimary;
+		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, payload);
+	}
 }
 
 struct HitInfo
@@ -129,45 +147,31 @@ void RayGen()
 	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions); // Convert from discrete to continuous
 	float2 ndcCoord = pixel * 2.0f - 1.0f; // Uncompress each component from [0,1] to [-1,1].
 	ndcCoord.y *= -1.0f;
+	
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
   
-  	// Initialize the ray payload
-	RayPayload payload;
-	payload.colorAndDistance = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    
-  	// Transform from screen space to projection space
-	RayDesc ray;
-	ray.Origin = mul(float4(0.0f, 0.0f, 0.0f, 1.0f), RenderPassDataCB.InvView).xyz;
+	float3 origin = mul(float4(0.0f, 0.0f, 0.0f, 1.0f), RenderPassDataCB.InvView).xyz;
 	float4 target = mul(float4(ndcCoord, 1.0f, 1.0f), RenderPassDataCB.InvProjection);
-	ray.Direction = mul(float4(target.xyz, 0.0f), RenderPassDataCB.InvView).xyz;
-	ray.TMin = 0.001f;
-	ray.TMax = 100000.0f;
-    
-  	// Trace the ray
-	const uint flags = RAY_FLAG_NONE;
-	const uint mask = 0xffffffff;
-	const uint hitGroupIndex = RayTypePrimary;
-	const uint hitGroupIndexMultiplier = NumRayTypes;
-	const uint missShaderIndex = RayTypePrimary;
-	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, payload);
+	float3 direction = mul(float4(target.xyz, 0.0f), RenderPassDataCB.InvView).xyz;
+	
+	RayDesc ray = { origin, 0.001f, direction, 100000.0f };
+	RayPayload payload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
+	
+	PathTrace(ray, payload);
 
-	RenderTarget[launchIndex] = float4(payload.colorAndDistance.rgb, 1.0f);
+	RenderTarget[launchIndex] = float4(payload.Radiance, 1.0f);
 }
 
 [shader("miss")]
 void Miss(inout RayPayload payload)
 {
-	const float3 rayDir = WorldRayDirection();
-
-	TextureCube skybox = TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex];
-	float3 color = skybox.SampleLevel(SamplerLinearWrap, rayDir, 0.0f).xyz;
-
-	payload.colorAndDistance = float4(color, 1.0f);
+	payload.Radiance = TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb;
 }
 
 [shader("miss")]
 void ShadowMiss(inout ShadowRayPayload payload)
 {
-	payload.visibility = 1.0f;
+	payload.Visibility = 1.0f;
 }
 
 [shader("closesthit")]
@@ -175,13 +179,18 @@ void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
 {
 	SurfaceInteraction si = GetSurfaceInteraction(attrib, HitGroupCB.GeometryIndex);
 	
-	float3 color = si.materialProperties.Albedo;
-
-	payload.colorAndDistance = float4(color, RayTCurrent());
+	payload.Radiance += si.materialProperties.Emissive * payload.Throughput;
+	payload.Throughput *= si.materialProperties.Albedo;
+	payload.Depth++;
+	
+	float3 position = si.position + si.bsdf.normal * 0.01f;
+	float3 direction = normalize(si.bsdf.normal + RandomUnitVector(payload.Seed));
+	RayDesc ray = { position, 0.001f, direction, 100000.0f };
+	PathTrace(ray, payload);
 }
 
 [shader("closesthit")]
 void ShadowClosestHit(inout ShadowRayPayload payload, in HitAttributes attrib)
 {
-	payload.visibility = 0.0f;
+	payload.Visibility = 0.0f;
 }

@@ -15,19 +15,9 @@ Camera::Camera(float NearZ, float FarZ)
 	m_Projection = Math::Identity();
 }
 
-float Camera::NearZ() const
-{
-	return m_NearZ;
-}
-
-float Camera::FarZ() const
-{
-	return m_FarZ;
-}
-
 XMMATRIX Camera::WorldMatrix() const
 {
-	return m_Transform.Matrix();
+	return Transform.Matrix();
 }
 
 XMMATRIX Camera::ViewMatrix() const
@@ -70,20 +60,10 @@ XMVECTOR Camera::LocalPositionVector() const
 	return ViewMatrix().r[3];
 }
 
-Transform& Camera::GetTransform()
-{
-	return m_Transform;
-}
-
-const Transform& Camera::GetTransform() const
-{
-	return m_Transform;
-}
-
 void Camera::SetLookAt(DirectX::XMVECTOR EyePosition, DirectX::XMVECTOR FocusPosition, DirectX::XMVECTOR UpDirection)
 {
 	XMMATRIX view = XMMatrixLookAtLH(EyePosition, FocusPosition, UpDirection);
-	m_Transform.SetTransform(XMMatrixInverse(nullptr, view));
+	Transform.SetTransform(XMMatrixInverse(nullptr, view));
 }
 
 void Camera::SetProjection(DirectX::XMMATRIX M)
@@ -93,7 +73,7 @@ void Camera::SetProjection(DirectX::XMMATRIX M)
 
 void Camera::SetPosition(float x, float y, float z)
 {
-	m_Transform.Position = XMFLOAT3(x, y, z);
+	Transform.Position = XMFLOAT3(x, y, z);
 }
 
 void Camera::Translate(float DeltaX, float DeltaY, float DeltaZ)
@@ -101,14 +81,14 @@ void Camera::Translate(float DeltaX, float DeltaY, float DeltaZ)
 	DeltaX *= s_TranslateSpeed;
 	DeltaY *= s_TranslateSpeed;
 	DeltaZ *= s_TranslateSpeed;
-	m_Transform.Translate(DeltaX, DeltaY, DeltaZ);
+	Transform.Translate(DeltaX, DeltaY, DeltaZ);
 }
 
 void Camera::Rotate(float AngleX, float AngleY)
 {
 	AngleX = XMConvertToRadians(AngleX * s_RotationSpeed);
 	AngleY = XMConvertToRadians(AngleY * s_RotationSpeed);
-	m_Transform.Rotate(AngleX, AngleY, 0.0f);
+	Transform.Rotate(AngleX, AngleY, 0.0f);
 }
 
 OrthographicCamera::OrthographicCamera()

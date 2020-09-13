@@ -75,3 +75,16 @@ DirectX::XMVECTOR Transform::Forward() const
 {
 	return XMVector3Rotate(Math::Forward, XMLoadFloat4(&Orientation));
 }
+
+bool Transform::operator==(const Transform& Transform) const
+{
+	return
+		XMVector3Equal(XMLoadFloat3(&Position), XMLoadFloat3(&Transform.Position)) &&
+		XMVector3Equal(XMLoadFloat3(&Scale), XMLoadFloat3(&Transform.Scale)) &&
+		XMVector4Equal(XMLoadFloat4(&Orientation), XMLoadFloat4(&Transform.Orientation));
+}
+
+bool Transform::operator!=(const Transform& Transform) const
+{
+	return !(*this == Transform);
+}

@@ -20,4 +20,7 @@ struct Transform
 	DirectX::XMVECTOR Up() const;
 	DirectX::XMVECTOR Right() const;
 	DirectX::XMVECTOR Forward() const;
+
+	bool operator==(const Transform& Transform) const;
+	bool operator!=(const Transform& Transform) const;
 };

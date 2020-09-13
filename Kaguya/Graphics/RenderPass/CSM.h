@@ -52,7 +52,7 @@ void AddCSMRenderPass(
 			proxy.InitialState = Resource::State::DepthWrite;
 		});
 
-		auto resourceView = pRenderDevice->GetDescriptorAllocator()->AllocateDepthStencilDescriptors(NUM_CASCADES);
+		auto resourceView = pRenderDevice->DescriptorAllocator.AllocateDepthStencilDescriptors(NUM_CASCADES);
 		for (UINT i = 0; i < NUM_CASCADES; ++i)
 		{
 			Descriptor descriptor = resourceView[i];
