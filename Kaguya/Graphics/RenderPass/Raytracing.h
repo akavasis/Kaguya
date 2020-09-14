@@ -89,16 +89,13 @@ void AddRaytracingRenderPass(
 
 			D3D12_DISPATCH_RAYS_DESC desc = {};
 
-			// The ray generation shaders are always at the beginning of the ST. 
 			desc.RayGenerationShaderRecord.StartAddress = pRayGenerationShaderTable->GetGpuVirtualAddress();
 			desc.RayGenerationShaderRecord.SizeInBytes = pRayGenerationShaderTable->GetMemoryRequested();
 
-			// The miss shaders are in the second SB section, right after ray generation record
 			desc.MissShaderTable.StartAddress = pMissShaderTable->GetGpuVirtualAddress();
 			desc.MissShaderTable.SizeInBytes = pMissShaderTable->GetMemoryRequested();
 			desc.MissShaderTable.StrideInBytes = pMissShaderTable->GetStride();
 
-			// The hit groups section start after the miss shaders
 			desc.HitGroupTable.StartAddress = pHitGroupShaderTable->GetGpuVirtualAddress();
 			desc.HitGroupTable.SizeInBytes = pHitGroupShaderTable->GetMemoryRequested();
 			desc.HitGroupTable.StrideInBytes = pHitGroupShaderTable->GetStride();

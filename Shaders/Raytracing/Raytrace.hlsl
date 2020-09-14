@@ -130,12 +130,15 @@ void RayGen()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions); // Convert from discrete to continuous
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
+	
+	// calculate subpixel camera jitter for anti aliasing
+	const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
+	const float2 pixel = (float2(launchIndex) + 0.5f + jitter) / float2(launchDimensions); // Convert from discrete to continuous
+	
 	float2 ndcCoord = pixel * 2.0f - 1.0f; // Uncompress each component from [0,1] to [-1,1].
 	ndcCoord.y *= -1.0f; // Flip y
 	
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
-  
 	float3 origin = mul(float4(0.0f, 0.0f, 0.0f, 1.0f), RenderPassDataCB.InvView).xyz;
 	float4 target = mul(float4(ndcCoord, 1.0f, 1.0f), RenderPassDataCB.InvProjection);
 	float3 direction = mul(float4(target.xyz, 0.0f), RenderPassDataCB.InvView).xyz;
@@ -178,9 +181,10 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	// Path trace
 	if (rayPayload.Depth + 1 < RenderPassDataCB.MaxDepth)
 	{
-		RayPayload newPayload = { float3(0.0f, 0.0f, 0.0f), rayPayload.Throughput, rayPayload.Seed, rayPayload.Depth + 1 };
+		//RayPayload newPayload = { float3(0.0f, 0.0f, 0.0f), rayPayload.Throughput, rayPayload.Seed, rayPayload.Depth + 1 };
+		rayPayload.Depth = rayPayload.Depth + 1;
 		float3 origin = si.position;
-		float3 direction = normalize(si.bsdf.normal + RandomUnitVector(newPayload.Seed));
+		float3 direction = normalize(si.bsdf.normal + RandomUnitVector(rayPayload.Seed));
 		RayDesc ray = { origin, 0.00001f, direction, 100000.0f };
 		
 		const uint flags = RAY_FLAG_NONE;
@@ -188,9 +192,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		const uint hitGroupIndex = RayTypePrimary;
 		const uint hitGroupIndexMultiplier = NumRayTypes;
 		const uint missShaderIndex = RayTypePrimary;
-		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, newPayload);
-		
-		rayPayload.Radiance += newPayload.Radiance * rayPayload.Throughput;
+		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 	}
 }
 

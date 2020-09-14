@@ -186,6 +186,7 @@ void Renderer::Render(Scene& Scene)
 	}
 	pAccumulationRenderPass->Data.AccumulationData.AccumulationCount = Renderer::Statistics::Accumulation++;
 
+	pTonemapRenderPass->Data.TonemapData.Exposure = 0.5f;
 	pTonemapRenderPass->Data.pDestination = m_pSwapChainTextures[m_FrameIndex];
 	pTonemapRenderPass->Data.DestinationRTV = m_SwapChainRTVs[m_FrameIndex];
 

@@ -59,6 +59,10 @@ struct VSInput
 float4 main(VSInput pixel) : SV_TARGET
 {
 	float3 color = Tex2DTable[ConstantDataCB.InputMapIndex].SampleLevel(SamplerLinearClamp, pixel.Texture, 0.0f).rgb;
+	
+	// apply exposure (how long the shutter is open)
+	color *= ConstantDataCB.Exposure;
+	
 	// convert unbounded HDR color range to SDR color range
 	color = ACESFilm(color);
 	

@@ -362,9 +362,9 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 void GpuTextureAllocator::Update(Scene& Scene)
 {
 	std::size_t i = 0;
-	MaterialTextureIndices materialTextureIndices = {};
 	for (auto& material : Scene.Materials)
 	{
+		MaterialTextureIndices materialTextureIndices = {};
 		materialTextureIndices.AlbedoMapIndex = material.TextureIndices[TextureTypes::Albedo];
 		materialTextureIndices.NormalMapIndex = material.TextureIndices[TextureTypes::Normal];
 		materialTextureIndices.RoughnessMapIndex = material.TextureIndices[TextureTypes::Roughness];
