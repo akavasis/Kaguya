@@ -36,6 +36,8 @@ Material MaterialLoader::LoadMaterial(
 	material.Properties.Metallic = 0.0f;
 	material.Properties.Emissive = { 0.0f, 0.0f, 0.0f };
 	material.Properties.IndexOfRefraction = 1.0f;
+	material.Properties.PercentSpecular = 0.0f;
+	material.Properties.Specular = { 0.0f, 0.0f, 0.0f };
 	material.Properties.ShadingModel = 0;
 
 	return material;

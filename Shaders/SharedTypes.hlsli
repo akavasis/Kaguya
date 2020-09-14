@@ -41,6 +41,8 @@ struct MaterialTextureProperties
 	float Metallic;
 	float3 Emissive;
 	float IndexOfRefraction;
+	float PercentSpecular;
+	float3 Specular;
 	unsigned int ShadingModel;
 };
 

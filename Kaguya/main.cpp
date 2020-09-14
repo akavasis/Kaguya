@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 #endif
 
 		Application application;
-		Window window{ L"DXR" };
+		Window window{ L"Path Tracer" };
 		Renderer renderer{ application, window };
 
 		MaterialLoader materialLoader{ application.ExecutableFolderPath() };
@@ -46,27 +46,52 @@ int main(int argc, char** argv)
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 		scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
 
-		auto& nullMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		nullMaterial.Properties.Albedo = { 0.7f, 0.7f, 0.7f };
+		// Materials
+		{
+			auto& nullMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+			nullMaterial.Properties.Albedo = { 0.7f, 0.7f, 0.7f };
 
-		auto& leftwallMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		leftwallMaterial.Properties.Albedo = { 0.7f, 0.1f, 0.1f };
+			auto& leftwallMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+			leftwallMaterial.Properties.Albedo = { 0.7f, 0.1f, 0.1f };
 
-		auto& rightwallMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		rightwallMaterial.Properties.Albedo = { 0.1f, 0.7f, 0.1f };
+			auto& rightwallMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+			rightwallMaterial.Properties.Albedo = { 0.1f, 0.7f, 0.1f };
 
-		auto& lightMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		lightMaterial.Properties.Albedo = { 0.0f, 0.0f, 0.0f };
-		XMStoreFloat3(&lightMaterial.Properties.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
+			auto& lightMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+			lightMaterial.Properties.Albedo = { 0.0f, 0.0f, 0.0f };
+			XMStoreFloat3(&lightMaterial.Properties.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
 
-		auto& leftsphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		leftsphereMaterial.Properties.Albedo = { 0.9f, 0.9f, 0.5f };
+			auto& leftsphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+			leftsphereMaterial.Properties.Albedo = { 0.9f, 0.9f, 0.5f };
+			leftsphereMaterial.Properties.PercentSpecular = 0.1f;
+			leftsphereMaterial.Properties.Roughness = 0.2f;
+			leftsphereMaterial.Properties.Specular = { 0.9f, 0.9f, 0.9f };
 
-		auto& middlesphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		middlesphereMaterial.Properties.Albedo = { 0.9f, 0.5f, 0.9f };
+			auto& middlesphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+			middlesphereMaterial.Properties.Albedo = { 0.9f, 0.5f, 0.9f };
+			middlesphereMaterial.Properties.PercentSpecular = 0.3f;
+			middlesphereMaterial.Properties.Roughness = 0.2f;
+			middlesphereMaterial.Properties.Specular = { 0.9f, 0.9f, 0.9f };
 
-		auto& rightsphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		rightsphereMaterial.Properties.Albedo = { 0.5f, 0.9f, 0.9f };
+			// a ball which has blue diffuse but red specular. an example of a "bad material".
+			// a better lighting model wouldn't let you do this sort of thing
+			auto& rightsphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+			rightsphereMaterial.Properties.Albedo = { 0.0f, 0.0f, 1.0f };
+			rightsphereMaterial.Properties.PercentSpecular = 0.5f;
+			rightsphereMaterial.Properties.Roughness = 0.4f;
+			rightsphereMaterial.Properties.Specular = { 1.0f, 0.0f, 0.0f };
+
+			float variousRoughness[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
+			for (int i = 0; i < 5; ++i)
+			{
+				auto& greenMat = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+				greenMat.Properties.Albedo = { 1.0f, 1.0f, 1.0f };
+				greenMat.Properties.Emissive = { 0.0f, 0.0f, 0.0f };
+				greenMat.Properties.PercentSpecular = 1.0f;
+				greenMat.Properties.Roughness = variousRoughness[i];
+				greenMat.Properties.Specular = { 0.3f, 1.0f, 0.3f };
+			}
+		}
 
 		// Walls
 		{
@@ -97,6 +122,7 @@ int main(int argc, char** argv)
 		{
 			auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
 			light.Translate(0.0f, 9.9f, 1.0f);
+			light.Rotate(0.0f, 0.0f, XM_PI);
 			light.Meshes[0].MaterialIndex = 3;
 		}
 
@@ -113,6 +139,16 @@ int main(int argc, char** argv)
 			auto& right = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 			right.Translate(4.0f, 1.0f, 0.0f);
 			right.Meshes[0].MaterialIndex = 6;
+
+			// Shiny green spheres of varying roughnesses
+			for (int i = 0; i < 5; ++i)
+			{
+				float dx = i * 2.0f - 4.0f;
+
+				auto& greenSphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 0.75f));
+				greenSphere.Translate(dx, 5.0f, 4.0f);
+				greenSphere.Meshes[0].MaterialIndex = i + 7;
+			}
 		}
 
 		renderer.UploadScene(scene);

@@ -174,17 +174,26 @@ void ShadowMiss(inout ShadowRayPayload rayPayload)
 void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 {
 	SurfaceInteraction si = GetSurfaceInteraction(attrib, HitGroupCB.GeometryIndex);
+	float doSpecular = (RandomFloat01(rayPayload.Seed) <= si.materialProperties.PercentSpecular) ? 1.0f : 0.0f;
 	
 	rayPayload.Radiance += si.materialProperties.Emissive * rayPayload.Throughput;
-	rayPayload.Throughput *= si.materialProperties.Albedo;
+	rayPayload.Throughput *= lerp(si.materialProperties.Albedo, si.materialProperties.Specular, doSpecular);
 	
 	// Path trace
 	if (rayPayload.Depth + 1 < RenderPassDataCB.MaxDepth)
 	{
-		//RayPayload newPayload = { float3(0.0f, 0.0f, 0.0f), rayPayload.Throughput, rayPayload.Seed, rayPayload.Depth + 1 };
 		rayPayload.Depth = rayPayload.Depth + 1;
+		
+		// Diffuse uses a normal oriented cosine weighted hemisphere sample.
+		// Perfectly smooth specular uses the reflection ray.
+		// Rough (glossy) specular lerps from the smooth specular to the rough diffuse by the material roughness squared
+		// Squaring the roughness is just a convention to make roughness feel more linear perceptually.
+		float3 diffuseRayDirection = normalize(si.bsdf.normal + RandomUnitVector(rayPayload.Seed));
+		float3 specularRayDirection = reflect(WorldRayDirection(), si.bsdf.normal);
+		specularRayDirection = normalize(lerp(specularRayDirection, diffuseRayDirection, si.materialProperties.Roughness * si.materialProperties.Roughness));
+		
 		float3 origin = si.position;
-		float3 direction = normalize(si.bsdf.normal + RandomUnitVector(rayPayload.Seed));
+		float3 direction = lerp(diffuseRayDirection, specularRayDirection, doSpecular);
 		RayDesc ray = { origin, 0.00001f, direction, 100000.0f };
 		
 		const uint flags = RAY_FLAG_NONE;
