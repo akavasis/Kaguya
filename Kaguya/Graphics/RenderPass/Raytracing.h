@@ -70,6 +70,7 @@ void AddRaytracingRenderPass(
 		return [](const RenderPass<RaytracingRenderPassData>& This, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 		{
 			PIXMarker(pCommandContext->GetD3DCommandList(), L"Raytracing");
+
 			auto pOutput = RenderGraphRegistry.GetTexture(This.Outputs[RaytracingRenderPassData::Outputs::RenderTarget]);
 			auto pRayGenerationShaderTable = RenderGraphRegistry.GetBuffer(This.Data.pGpuBufferAllocator->GetRayGenerationShaderTableHandle());
 			auto pMissShaderTable = RenderGraphRegistry.GetBuffer(This.Data.pGpuBufferAllocator->GetMissShaderTableHandle());

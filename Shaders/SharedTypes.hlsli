@@ -3,6 +3,10 @@
 #include "SharedDefines.hlsli"
 #include "Light.hlsli"
 
+#define SHADING_MODEL_LAMBERTIAN 0
+#define SHADING_MODEL_METAL 1
+#define SHADING_MODEL_DIELECTRIC 2
+
 struct ObjectConstants
 {
 	matrix World;

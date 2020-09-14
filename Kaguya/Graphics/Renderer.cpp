@@ -211,7 +211,7 @@ void Renderer::Render(Scene& Scene)
 	renderPassCPU.IrradianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxIrradianceCubemap;
 	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxPrefilteredCubemap;
 
-	renderPassCPU.MaxDepth = 7;
+	renderPassCPU.MaxDepth = 4;
 
 	// Update shadow render pass cbuffer
 	if constexpr (Renderer::Settings::Rasterization)

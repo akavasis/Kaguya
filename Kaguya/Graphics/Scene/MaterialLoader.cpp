@@ -15,42 +15,28 @@ Material MaterialLoader::LoadMaterial(
 {
 	Material material = {};
 
-	if (pAlbedoMapPath)
+	auto InitTexture = [&](TextureTypes Type, const char* pPath)
 	{
-		material.Textures[TextureTypes::Albedo].Path = m_ExecutableFolderPath / pAlbedoMapPath;
-		material.Textures[TextureTypes::Albedo].Flag = TextureFlags::Disk;
-		assert(std::filesystem::exists(material.Textures[TextureTypes::Albedo].Path));
-	}
+		if (pPath)
+		{
+			material.Textures[Type].Path = m_ExecutableFolderPath / pPath;
+			material.Textures[Type].Flag = TextureFlags::Disk;
+			assert(std::filesystem::exists(material.Textures[Type].Path));
+		}
+	};
 
-	if (pNormalMapPath)
-	{
-		material.Textures[TextureTypes::Normal].Path = m_ExecutableFolderPath / pNormalMapPath;
-		material.Textures[TextureTypes::Normal].Flag = TextureFlags::Disk;
-		assert(std::filesystem::exists(material.Textures[TextureTypes::Normal].Path));
-	}
+	InitTexture(TextureTypes::Albedo, pAlbedoMapPath);
+	InitTexture(TextureTypes::Normal, pNormalMapPath);
+	InitTexture(TextureTypes::Roughness, pRoughnessMapPath);
+	InitTexture(TextureTypes::Metallic, pMetallicMapPath);
+	InitTexture(TextureTypes::Emissive, pEmissiveMapPath);
 
-	if (pRoughnessMapPath)
-	{
-		material.Textures[TextureTypes::Roughness].Path = m_ExecutableFolderPath / pRoughnessMapPath;
-		material.Textures[TextureTypes::Roughness].Flag = TextureFlags::Disk;
-		assert(std::filesystem::exists(material.Textures[TextureTypes::Roughness].Path));
-	}
-
-	if (pMetallicMapPath)
-	{
-		material.Textures[TextureTypes::Metallic].Path = m_ExecutableFolderPath / pMetallicMapPath;
-		material.Textures[TextureTypes::Metallic].Flag = TextureFlags::Disk;
-		assert(std::filesystem::exists(material.Textures[TextureTypes::Metallic].Path));
-	}
-
-	if (pEmissiveMapPath)
-	{
-		material.Textures[TextureTypes::Emissive].Path = m_ExecutableFolderPath / pEmissiveMapPath;
-		material.Textures[TextureTypes::Emissive].Flag = TextureFlags::Disk;
-		assert(std::filesystem::exists(material.Textures[TextureTypes::Emissive].Path));
-	}
-
+	material.Properties.Albedo = { 0.0f, 0.0f, 0.0f };
+	material.Properties.Roughness = 0.0f;
+	material.Properties.Metallic = 0.0f;
+	material.Properties.Emissive = { 0.0f, 0.0f, 0.0f };
 	material.Properties.IndexOfRefraction = 1.0f;
+	material.Properties.ShadingModel = 0;
 
 	return material;
 }

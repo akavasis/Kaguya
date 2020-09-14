@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
 
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
-		scene.Camera.SetPosition(0.0f, 5.0f, -10.0f);
+		scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
 
 		auto& nullMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		nullMaterial.Properties.Albedo = { 0.7f, 0.7f, 0.7f };
@@ -58,6 +58,15 @@ int main(int argc, char** argv)
 		auto& lightMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		lightMaterial.Properties.Albedo = { 0.0f, 0.0f, 0.0f };
 		XMStoreFloat3(&lightMaterial.Properties.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
+
+		auto& leftsphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		leftsphereMaterial.Properties.Albedo = { 0.9f, 0.9f, 0.5f };
+
+		auto& middlesphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		middlesphereMaterial.Properties.Albedo = { 0.9f, 0.5f, 0.9f };
+
+		auto& rightsphereMaterial = scene.AddMaterial(materialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		rightsphereMaterial.Properties.Albedo = { 0.5f, 0.9f, 0.9f };
 
 		// Walls
 		{
@@ -87,14 +96,23 @@ int main(int argc, char** argv)
 		// Light
 		{
 			auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
-			light.Translate(0.0f, 9.9f, 0.0f);
+			light.Translate(0.0f, 9.9f, 1.0f);
 			light.Meshes[0].MaterialIndex = 3;
 		}
 
 		// Spheres
 		{
-			auto& sphere = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-			sphere.Translate(0.0f, 5.0f, 0.0f);
+			auto& left = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+			left.Translate(-4.0f, 1.0f, 0.0f);
+			left.Meshes[0].MaterialIndex = 4;
+
+			auto& middle = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+			middle.Translate(0.0f, 1.0f, 0.0f);
+			middle.Meshes[0].MaterialIndex = 5;
+
+			auto& right = scene.AddModel(modelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+			right.Translate(4.0f, 1.0f, 0.0f);
+			right.Meshes[0].MaterialIndex = 6;
 		}
 
 		renderer.UploadScene(scene);

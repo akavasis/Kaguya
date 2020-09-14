@@ -9,42 +9,46 @@ struct TonemapData
 #define ConstantDataType TonemapData
 #include "../ShaderLayout.hlsli"
 
-// From http://filmicworlds.com/blog/filmic-tonemapping-operators/
-float3 Uncharted2Tonemap(float3 color)
+// ACES tone mapping curve fit to go from HDR to LDR
+//https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+float3 ACESFilm(float3 x)
 {
-	float A = 0.15f;
-	float B = 0.50f;
-	float C = 0.10f;
-	float D = 0.20f;
-	float E = 0.02f;
-	float F = 0.30f;
-	float W = 11.2f;
-	return ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - E / F;
+	float a = 2.51f;
+	float b = 0.03f;
+	float c = 2.43f;
+	float d = 0.59f;
+	float e = 0.14f;
+	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
 }
 
-float4 tonemap(float4 color)
+float3 LessThan(float3 f, float value)
 {
-	float3 outcol = Uncharted2Tonemap(color.rgb * ConstantDataCB.Exposure);
-	outcol = outcol * (1.0f / Uncharted2Tonemap(float3(11.2f, 11.2f, 11.2f)));
-	float invGamma = 1.0f / ConstantDataCB.Gamma;
-	return float4(pow(outcol, float3(invGamma, invGamma, invGamma)), color.a);
+	return float3(
+        (f.x < value) ? 1.0f : 0.0f,
+        (f.y < value) ? 1.0f : 0.0f,
+        (f.z < value) ? 1.0f : 0.0f);
 }
 
-#define MANUAL_SRGB 1
-
-float4 SRGBtoLINEAR(float4 srgbIn)
+float3 LinearToSRGB(float3 rgb)
 {
-#ifdef MANUAL_SRGB
-#ifdef SRGB_FAST_APPROXIMATION
-	float3 linOut = pow(srgbIn.xyz,float3(2.2));
-#else //SRGB_FAST_APPROXIMATION
-	float3 bLess = step(float3(0.04045f, 0.04045f, 0.04045f), srgbIn.xyz);
-	float3 linOut = lerp(srgbIn.xyz / float3(12.92f, 12.92f, 12.92f), pow((srgbIn.xyz + float3(0.055f, 0.055f, 0.055f)) / float3(1.055f, 1.055f, 1.055f), float3(2.4f, 2.4f, 2.4f)), bLess);
-#endif //SRGB_FAST_APPROXIMATION
-	return float4(linOut, srgbIn.w);
-#else //MANUAL_SRGB
-	return srgbIn;
-#endif //MANUAL_SRGB
+	rgb = clamp(rgb, 0.0f, 1.0f);
+     
+	return lerp(
+        pow(rgb, float3(1.0f / 2.4f, 1.0f / 2.4f, 1.0f / 2.4f)) * 1.055f - 0.055f,
+        rgb * 12.92f,
+        LessThan(rgb, 0.0031308f)
+    );
+}
+ 
+float3 SRGBToLinear(float3 rgb)
+{
+	rgb = clamp(rgb, 0.0f, 1.0f);
+     
+	return lerp(
+        pow(((rgb + 0.055f) / 1.055f), float3(2.4f, 2.4f, 2.4f)),
+        rgb / 12.92f,
+        LessThan(rgb, 0.04045f)
+    );
 }
 
 struct VSInput
@@ -54,7 +58,11 @@ struct VSInput
 };
 float4 main(VSInput pixel) : SV_TARGET
 {
-	float4 sampledInputMapPixel = Tex2DTable[ConstantDataCB.InputMapIndex].SampleLevel(SamplerLinearClamp, pixel.Texture, 0.0f);
+	float3 color = Tex2DTable[ConstantDataCB.InputMapIndex].SampleLevel(SamplerLinearClamp, pixel.Texture, 0.0f).rgb;
+	// convert unbounded HDR color range to SDR color range
+	color = ACESFilm(color);
 	
-	return SRGBtoLINEAR(tonemap(sampledInputMapPixel));
+	// convert from linear to sRGB for display
+	color = LinearToSRGB(color);
+	return float4(color, 1.0f);
 }

@@ -119,20 +119,6 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 	return si;
 }
 
-void PathTrace(in RayDesc ray, inout RayPayload payload)
-{
-	if (payload.Depth <= RenderPassDataCB.MaxDepth)
-	{
-		// Trace the ray
-		const uint flags = RAY_FLAG_NONE;
-		const uint mask = 0xffffffff;
-		const uint hitGroupIndex = RayTypePrimary;
-		const uint hitGroupIndexMultiplier = NumRayTypes;
-		const uint missShaderIndex = RayTypePrimary;
-		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, payload);
-	}
-}
-
 struct HitInfo
 {
 	uint GeometryIndex;
@@ -146,7 +132,7 @@ void RayGen()
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
 	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions); // Convert from discrete to continuous
 	float2 ndcCoord = pixel * 2.0f - 1.0f; // Uncompress each component from [0,1] to [-1,1].
-	ndcCoord.y *= -1.0f;
+	ndcCoord.y *= -1.0f; // Flip y
 	
 	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
   
@@ -154,43 +140,62 @@ void RayGen()
 	float4 target = mul(float4(ndcCoord, 1.0f, 1.0f), RenderPassDataCB.InvProjection);
 	float3 direction = mul(float4(target.xyz, 0.0f), RenderPassDataCB.InvView).xyz;
 	
-	RayDesc ray = { origin, 0.001f, direction, 100000.0f };
-	RayPayload payload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
+	// Initialize ray
+	RayDesc ray = { origin, 0.00001f, direction, 100000.0f };
+	// Initialize payload
+	RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
+	// Trace the ray
+	const uint flags = RAY_FLAG_NONE;
+	const uint mask = 0xffffffff;
+	const uint hitGroupIndex = RayTypePrimary;
+	const uint hitGroupIndexMultiplier = NumRayTypes;
+	const uint missShaderIndex = RayTypePrimary;
+	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 	
-	PathTrace(ray, payload);
-
-	RenderTarget[launchIndex] = float4(payload.Radiance, 1.0f);
+	RenderTarget[launchIndex] = float4(rayPayload.Radiance, 1.0f);
 }
 
 [shader("miss")]
-void Miss(inout RayPayload payload)
+void Miss(inout RayPayload rayPayload)
 {
-	payload.Radiance = TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb;
+	rayPayload.Radiance += TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
 }
 
 [shader("miss")]
-void ShadowMiss(inout ShadowRayPayload payload)
+void ShadowMiss(inout ShadowRayPayload rayPayload)
 {
-	payload.Visibility = 1.0f;
+	rayPayload.Visibility = 1.0f;
 }
 
 [shader("closesthit")]
-void ClosestHit(inout RayPayload payload, in HitAttributes attrib)
+void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 {
 	SurfaceInteraction si = GetSurfaceInteraction(attrib, HitGroupCB.GeometryIndex);
 	
-	payload.Radiance += si.materialProperties.Emissive * payload.Throughput;
-	payload.Throughput *= si.materialProperties.Albedo;
-	payload.Depth++;
+	rayPayload.Radiance += si.materialProperties.Emissive * rayPayload.Throughput;
+	rayPayload.Throughput *= si.materialProperties.Albedo;
 	
-	float3 position = si.position + si.bsdf.normal * 0.01f;
-	float3 direction = normalize(si.bsdf.normal + RandomUnitVector(payload.Seed));
-	RayDesc ray = { position, 0.001f, direction, 100000.0f };
-	PathTrace(ray, payload);
+	// Path trace
+	if (rayPayload.Depth + 1 < RenderPassDataCB.MaxDepth)
+	{
+		RayPayload newPayload = { float3(0.0f, 0.0f, 0.0f), rayPayload.Throughput, rayPayload.Seed, rayPayload.Depth + 1 };
+		float3 origin = si.position;
+		float3 direction = normalize(si.bsdf.normal + RandomUnitVector(newPayload.Seed));
+		RayDesc ray = { origin, 0.00001f, direction, 100000.0f };
+		
+		const uint flags = RAY_FLAG_NONE;
+		const uint mask = 0xffffffff;
+		const uint hitGroupIndex = RayTypePrimary;
+		const uint hitGroupIndexMultiplier = NumRayTypes;
+		const uint missShaderIndex = RayTypePrimary;
+		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, newPayload);
+		
+		rayPayload.Radiance += newPayload.Radiance * rayPayload.Throughput;
+	}
 }
 
 [shader("closesthit")]
-void ShadowClosestHit(inout ShadowRayPayload payload, in HitAttributes attrib)
+void ShadowClosestHit(inout ShadowRayPayload rayPayload, in HitAttributes attrib)
 {
-	payload.Visibility = 0.0f;
+	rayPayload.Visibility = 0.0f;
 }
