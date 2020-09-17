@@ -13,6 +13,15 @@ struct ObjectConstants
 
 struct RenderPassConstants
 {
+	float3 CameraU;
+	float _padding;
+
+	float3 CameraV;
+	float _padding1;
+
+	float3 CameraW;
+	float _padding2;
+
 	matrix View;
 	matrix Projection;
 	matrix InvView;
@@ -29,6 +38,8 @@ struct RenderPassConstants
 	uint PrefilteredRadianceCubemapIndex;
 
 	uint MaxDepth;
+	float FocalLength;
+	float LensRadius;
 };
 
 struct GeometryInfo

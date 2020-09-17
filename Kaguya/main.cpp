@@ -21,6 +21,100 @@
 
 using namespace DirectX;
 
+Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
+{
+	Scene scene;
+
+	// Materials
+	{
+		// 0
+		auto& nullMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		nullMaterial.Albedo = { 0.7f, 0.7f, 0.7f };
+		nullMaterial.Model = MATERIAL_MODEL_LAMBERTIAN;
+	}
+
+	int matIdx = 1;
+	// Models
+	{
+		auto& floor = scene.AddModel(CreateGrid(500.0f, 500.0f, 10, 10));
+		floor.Meshes[0].MaterialIndex = 0;
+
+		for (int a = -11; a < 11; a++)
+		{
+			for (int b = -11; b < 11; b++)
+			{
+				auto choose_mat = Math::RandF();
+				XMFLOAT3 center0(a + 0.9f * Math::RandF(), 0.2f, b + 0.9f * Math::RandF());
+				XMVECTOR centerVector = XMLoadFloat3(&center0);
+				if (XMVectorGetX(XMVector3Length(centerVector - XMVectorSet(4.0f, 0.2f, 0.0f, 1.0f))) > 0.9f)
+				{
+					auto& mat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+					auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 0.2f));
+					sphere.Translate(center0.x, center0.y, center0.z);
+					sphere.Meshes[0].MaterialIndex = matIdx++;
+
+					if (choose_mat < 0.8f)
+					{
+						XMVECTOR albedo = Math::RandomVector() * Math::RandomVector();
+						XMStoreFloat3(&mat.Albedo, albedo);
+						mat.Model = MATERIAL_MODEL_LAMBERTIAN;
+					}
+					else if (choose_mat < 0.95f)
+					{
+						XMVECTOR albedo = Math::RandomVector(0.5, 1);
+						float fuzz = Math::RandF(0, 0.5);
+
+						XMStoreFloat3(&mat.Albedo, albedo);
+						mat.Fuzziness = fuzz;
+						mat.Model = MATERIAL_MODEL_METAL;
+					}
+					else
+					{
+						mat.IndexOfRefraction = 1.5f;
+						mat.Model = MATERIAL_MODEL_DIELECTRIC;
+					}
+				}
+			}
+		}
+	}
+
+	// Sphere 1
+	{
+		auto& material1 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		material1.IndexOfRefraction = 1.5f;
+		material1.Model = MATERIAL_MODEL_DIELECTRIC;
+
+		auto& sphere1 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+		sphere1.Translate(0.0f, 1.0f, 0.0f);
+		sphere1.Meshes[0].MaterialIndex = matIdx++;
+	}
+
+	// Sphere 2
+	{
+		auto& material2 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		material2.Albedo = { 0.4f, 0.2f, 0.1f };
+		material2.Model = MATERIAL_MODEL_LAMBERTIAN;
+
+		auto& sphere2 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+		sphere2.Translate(-4.0f, 1.0f, 0.0f);
+		sphere2.Meshes[0].MaterialIndex = matIdx++;
+	}
+
+	// Sphere 3
+	{
+		auto& material3 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		material3.Albedo = { 0.7f, 0.6f, 0.5f };
+		material3.Fuzziness = 0.0f;
+		material3.Model = MATERIAL_MODEL_METAL;
+
+		auto& sphere3 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+		sphere3.Translate(4.0f, 1.0f, 0.0f);
+		sphere3.Meshes[0].MaterialIndex = matIdx++;
+	}
+
+	return scene;
+}
+
 Scene CornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
 {
 	Scene scene;
@@ -207,7 +301,6 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 		defaultMat.Model = MATERIAL_MODEL_LAMBERTIAN;
 
 		auto& light = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		light.Albedo = { 0.0f, 0.0f, 0.0f };
 		XMStoreFloat3(&light.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
 		light.Model = MATERIAL_MODEL_LAMBERTIAN;
 
@@ -234,11 +327,11 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 
 		auto& ceiling = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
 		ceiling.Translate(0.0f, 10.0f, 0.0f);
+		ceiling.Rotate(0.0f, 0.0f, XM_PI);
 		ceiling.Meshes[0].MaterialIndex = 0;
 
 		auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
 		light.Translate(0.0f, 9.9f, 1.0f);
-		light.Rotate(0.0f, 0.0f, XM_PI);
 		light.Meshes[0].MaterialIndex = 1;
 
 		for (int i = 0; i < c_numSpheres; ++i)
@@ -269,7 +362,7 @@ int main(int argc, char** argv)
 
 		MaterialLoader materialLoader{ application.ExecutableFolderPath() };
 		ModelLoader modelLoader{ application.ExecutableFolderPath() };
-		Scene scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
+		Scene scene = TransparentSpheresOfIncreasingIoR(materialLoader, modelLoader);
 		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
 
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);

@@ -65,6 +65,9 @@ public:
 
 	float FoVY() const;
 	float AspectRatio() const;
+	DirectX::XMVECTOR GetUVector() const;
+	DirectX::XMVECTOR GetVVector() const;
+	DirectX::XMVECTOR GetWVector() const;
 
 	// Radians
 	void SetFoVY(float FoVY);
@@ -72,6 +75,9 @@ public:
 	void SetNearZ(float NearZ);
 	void SetFarZ(float FarZ);
 	void SetLens(float FoVY, float AspectRatio, float NearZ, float FarZ);
+
+	float Aperture;
+	float FocalLength;
 protected:
 	void UpdateProjectionMatrix() override;
 private:

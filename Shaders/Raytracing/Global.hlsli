@@ -1,6 +1,5 @@
 // This file defines global root signature for raytracing shaders
 #include "../HLSLCommon.hlsli"
-#include "../PBR.hlsli"
 #include "Common.hlsli"
 
 RaytracingAccelerationStructure SceneBVH                        : register(t0, space0);

@@ -1,5 +1,6 @@
 #ifndef __HLSL_COMMON_HLSLI__
 #define __HLSL_COMMON_HLSLI__
+#include "Material.hlsli"
 #include "Light.hlsli"
 #include "SharedTypes.hlsli"
 #include "Constants.hlsli"

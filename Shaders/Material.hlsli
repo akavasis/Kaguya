@@ -25,6 +25,7 @@ struct Material
 	float	SpecularChance;			// Percentage chance of doing a specular reflection
 	float	SpecularRoughness;		// How rough the specular reflections are
 	float3	SpecularColor;			// The color tint of specular reflections
+	float	Fuzziness;
 	float	IndexOfRefraction;		// Index of refraction. used by fresnel and refraction.
 	float	RefractionRoughness;	// How rough the refractive transmissions are
 	float3	RefractionColor;		// Absorption for beer's law

@@ -49,10 +49,6 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 	hitSurface.Bitangent = mul(float4(hitSurface.Bitangent, 0.0f), info.World).xyz;
 	hitSurface.Normal = mul(float4(hitSurface.Normal, 0.0f), info.World).xyz;
 	
-	//float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
-	//float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
-	//float alpha = RoughnessToAlphaTrowbridgeReitzDistribution(materialProperties.Roughness);
-	
 	si.frontFace = dot(WorldRayDirection(), hitSurface.Normal) < 0.0f;
 	si.position = WorldRayOrigin() + (WorldRayDirection() * RayTCurrent());
 	si.uv = hitSurface.Texture;
@@ -126,6 +122,7 @@ struct Dielectric
 	
 	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
 	{
+		attenuation = float3(1.0f, 1.0f, 1.0f);
 		RayDesc ray = { si.position, 0.00001f, float3(0.0f, 0.0f, 0.0f), 100000.0f };
 		
 		float etaI_Over_etaT = si.frontFace ? (1.0f / IndexOfRefraction) : IndexOfRefraction;
@@ -153,7 +150,6 @@ struct Dielectric
 			attenuation *= exp(-si.material.RefractionColor * RayTCurrent());
 		}
 		
-		attenuation = float3(1.0f, 1.0f, 1.0f);
 		scatteredRay = ray;
 	}
 };
@@ -189,15 +185,24 @@ void RayGen()
 	const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
 	const float2 pixel = (float2(launchIndex) + 0.5f + jitter) / float2(launchDimensions); // Convert from discrete to continuous
 	
-	float2 ndcCoord = pixel * 2.0f - 1.0f; // Uncompress each component from [0,1] to [-1,1].
-	ndcCoord.y *= -1.0f; // Flip y
+	float2 ndc = pixel * 2.0f - 1.0f; // Uncompress each component from [0,1] to [-1,1].
+	ndc.y *= -1.0f; // Flip y
 	
-	float3 origin = mul(float4(0.0f, 0.0f, 0.0f, 1.0f), RenderPassDataCB.InvView).xyz;
-	float4 target = mul(float4(ndcCoord, 1.0f, 1.0f), RenderPassDataCB.InvProjection);
-	float3 direction = mul(float4(target.xyz, 0.0f), RenderPassDataCB.InvView).xyz;
+	float3 direction = ndc.x * RenderPassDataCB.CameraU + ndc.y * RenderPassDataCB.CameraV + RenderPassDataCB.CameraW;
+	
+	// Find the focal point for this pixel
+	direction /= length(RenderPassDataCB.CameraW); // Make ray have length 1 along the camera's w-axis.
+	float3 focalPoint = RenderPassDataCB.EyePosition + RenderPassDataCB.FocalLength * direction; // Select point on ray a distance FocalLength along the w-axis
+	
+	// Get random numbers (in polar coordinates), convert to random cartesian uv on the lens
+	float2 rnd = float2(s_2PI * RandomFloat01(seed), RenderPassDataCB.LensRadius * RandomFloat01(seed));
+	float2 uv = float2(cos(rnd.x) * rnd.y, sin(rnd.x) * rnd.y);
+
+	// Use uv coordinate to compute a random origin on the camera lens
+	float3 origin = RenderPassDataCB.EyePosition + uv.x * normalize(RenderPassDataCB.CameraU) + uv.y * normalize(RenderPassDataCB.CameraV);
 	
 	// Initialize ray
-	RayDesc ray = { origin, 0.00001f, direction, 100000.0f };
+	RayDesc ray = { origin, 0.0f, direction, 1e+38f };
 	// Initialize payload
 	RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
 	// Trace the ray
@@ -248,7 +253,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		
 		case MATERIAL_MODEL_METAL:
 		{
-			Metal metal = { si.material.Albedo, 0.0f };
+			Metal metal = { si.material.Albedo, si.material.Fuzziness };
 			metal.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
@@ -269,7 +274,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		
 		default:
 		{
-			rayPayload.Radiance = float3(0.0f, 0.0f, 0.0f);
+			rayPayload.Radiance = float3(5000.0f, 0.0f, 0.0f);
 			return;
 		}
 		break;

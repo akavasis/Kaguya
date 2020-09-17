@@ -20,6 +20,7 @@ Material MaterialLoader::LoadMaterial(
 	material.SpecularChance = 0.0f;
 	material.SpecularRoughness = 0.0f;
 	material.SpecularColor = { 0.0f, 0.0f, 0.0f };
+	material.Fuzziness = 0.0f;
 	material.IndexOfRefraction = 1.0f;
 	material.RefractionRoughness = 0.0f;
 	material.RefractionColor = { 0.0f, 0.0f, 0.0f };

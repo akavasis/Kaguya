@@ -132,6 +132,7 @@ PerspectiveCamera::PerspectiveCamera()
 PerspectiveCamera::PerspectiveCamera(float NearZ, float FarZ)
 	: Camera(NearZ, FarZ)
 {
+	FocalLength = 1.0f;
 	m_FoVY = m_AspectRatio = 0.0f;
 }
 
@@ -143,6 +144,21 @@ float PerspectiveCamera::FoVY() const
 float PerspectiveCamera::AspectRatio() const
 {
 	return m_AspectRatio;
+}
+
+DirectX::XMVECTOR PerspectiveCamera::GetUVector() const
+{
+	return Transform.Right() * FocalLength * tanf(m_FoVY * 0.5f) * m_AspectRatio;
+}
+
+DirectX::XMVECTOR PerspectiveCamera::GetVVector() const
+{
+	return Transform.Up() * FocalLength * tanf(m_FoVY * 0.5f);
+}
+
+DirectX::XMVECTOR PerspectiveCamera::GetWVector() const
+{
+	return Transform.Forward() * FocalLength;
 }
 
 void PerspectiveCamera::SetFoVY(float FoVY)

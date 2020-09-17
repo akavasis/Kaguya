@@ -13,8 +13,8 @@ Renderer::Renderer(const Application& Application, Window& Window)
 	: pWindow(&Window),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(&m_RenderDevice),
-	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB),
-	m_GpuTextureAllocator(&m_RenderDevice, 100)
+	m_GpuBufferAllocator(&m_RenderDevice, 200_MiB, 200_MiB, 64_KiB),
+	m_GpuTextureAllocator(&m_RenderDevice, 1000)
 {
 	m_EventReceiver.Register(Window, [&](const Event& event)
 	{
@@ -161,8 +161,14 @@ void Renderer::Render(Scene& Scene)
 	Scene.Camera.SetAspectRatio(m_AspectRatio);
 	Scene.CascadeCameras = Scene.Sun.GenerateCascades(Scene.Camera, Resolutions::SunShadowMapResolution);
 
+	Scene.Camera.Aperture = 0.0f;
+	Scene.Camera.FocalLength = 10.0f;
+
 	// Update render pass cbuffer
 	RenderPassConstants renderPassCPU;
+	XMStoreFloat3(&renderPassCPU.CameraU, Scene.Camera.GetUVector());
+	XMStoreFloat3(&renderPassCPU.CameraV, Scene.Camera.GetVVector());
+	XMStoreFloat3(&renderPassCPU.CameraW, Scene.Camera.GetWVector());
 	XMStoreFloat4x4(&renderPassCPU.View, XMMatrixTranspose(Scene.Camera.ViewMatrix()));
 	XMStoreFloat4x4(&renderPassCPU.Projection, XMMatrixTranspose(Scene.Camera.ProjectionMatrix()));
 	XMStoreFloat4x4(&renderPassCPU.InvView, XMMatrixTranspose(Scene.Camera.InverseViewMatrix()));
@@ -179,6 +185,8 @@ void Renderer::Render(Scene& Scene)
 	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxPrefilteredCubemap;
 
 	renderPassCPU.MaxDepth = 4;
+	renderPassCPU.FocalLength = Scene.Camera.FocalLength;
+	renderPassCPU.LensRadius = Scene.Camera.Aperture;
 
 	const INT raytracingRenderPassConstantsIndex = 0; // 0
 	m_pRenderPassConstantBuffer->Update<RenderPassConstants>(raytracingRenderPassConstantsIndex, renderPassCPU);
