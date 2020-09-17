@@ -52,29 +52,7 @@ Vertex BERP(in Triangle t, in float3 barycentric)
     return BERP(t.v0, t.v1, t.v2, barycentric);
 }
 
-inline bool srefract(in float3 v, in float3 n, in float ni_over_nt, out float3 refracted)
-{
-	float dt = dot(v, n);
-	float discriminant = 1.0f - ni_over_nt * ni_over_nt * (1 - dt * dt);
-
-	if (discriminant > 0)
-	{
-		refracted = ni_over_nt * (v - n * dt) - n * sqrt(discriminant);
-		return true;
-	}
-
-	return false;
-}
-
-inline float schlick(in float cosine, in float index_of_refraction)
-{
-	float r0 = (1 - index_of_refraction) / (1 + index_of_refraction);
-	r0 = r0 * r0;
-	return r0 + (1 - r0) * pow((1 - cosine), 5);
-}
-
 // Hit information, aka ray payload
-// This sample only carries a shading color and hit distance.
 // Note that the payload should be kept as small as possible,
 // and that its size must be declared in the corresponding
 // D3D12_RAYTRACING_SHADER_CONFIG pipeline subobjet.

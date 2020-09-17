@@ -1,60 +1,29 @@
 #pragma once
 #include "Graphics/Scene/Scene.h"
+#include "Graphics/GpuScene.h"
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
-#include "Graphics/Renderer.h"
 
-struct TonemapRenderPassData
+class Tonemap : public IRenderPass
 {
-	TonemapData TonemapData;
+public:
+	struct SSettings
+	{
+		float Exposure = 0.5f;
+		float Gamma = 2.2f;
+		unsigned int InputMapIndex = 0;
+	};
 
+	Tonemap();
+	virtual ~Tonemap() override;
+
+	virtual void Setup(RenderDevice* pRenderDevice) override;
+	virtual void Update() override;
+	virtual void RenderGui() override;
+	virtual void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
+	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
+
+	SSettings Settings;
 	Texture* pDestination;		// Set in Renderer::Render
 	Descriptor DestinationRTV;	// Set in Renderer::Render
 };
-
-void AddTonemapRenderPass(
-	RenderGraph* pRenderGraph)
-{
-	pRenderGraph->AddRenderPass<TonemapRenderPassData>(
-		RenderPassType::Graphics,
-		[=](RenderPass<TonemapRenderPassData>& This, RenderDevice* pRenderDevice)
-	{
-		return [](const RenderPass<TonemapRenderPassData>& This, const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
-		{
-			PIXMarker(pCommandContext->GetD3DCommandList(), L"Tonemap");
-			auto pOutput = This.Data.pDestination;
-
-			pCommandContext->TransitionBarrier(pOutput, Resource::State::RenderTarget);
-
-			pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemap));
-			pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemap));
-
-			pCommandContext->SetGraphicsRoot32BitConstants(RootParameters::StandardShaderLayout::ConstantDataCB, sizeof(This.Data.TonemapData) / 4, &This.Data.TonemapData, 0);
-			pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
-
-			D3D12_VIEWPORT vp;
-			vp.TopLeftX = vp.TopLeftY = 0.0f;
-			vp.MinDepth = 0.0f;
-			vp.MaxDepth = 1.0f;
-			vp.Width = pOutput->GetWidth();
-			vp.Height = pOutput->GetHeight();
-
-			D3D12_RECT sr;
-			sr.left = sr.top = 0;
-			sr.right = pOutput->GetWidth();
-			sr.bottom = pOutput->GetHeight();
-
-			pCommandContext->SetViewports(1, &vp);
-			pCommandContext->SetScissorRects(1, &sr);
-
-			pCommandContext->SetRenderTargets(1, This.Data.DestinationRTV, TRUE, Descriptor());
-			pCommandContext->DrawInstanced(3, 1, 0, 0);
-
-			pCommandContext->TransitionBarrier(This.Data.pDestination, Resource::State::Present);
-		};
-	},
-		[=](RenderPass<TonemapRenderPassData>& This, UINT Width, UINT Height, RenderDevice* pRenderDevice)
-	{
-	});
-}

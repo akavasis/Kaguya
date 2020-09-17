@@ -11,7 +11,7 @@ Material MaterialLoader::LoadMaterial(
 	const char* pNormalMapPath,
 	const char* pRoughnessMapPath,
 	const char* pMetallicMapPath,
-	const char* pEmissiveMapPath)
+	const char* pEmissiveMapPath) const
 {
 	Material material = {};
 
@@ -32,13 +32,15 @@ Material MaterialLoader::LoadMaterial(
 	InitTexture(TextureTypes::Emissive, pEmissiveMapPath);
 
 	material.Properties.Albedo = { 0.0f, 0.0f, 0.0f };
-	material.Properties.Roughness = 0.0f;
-	material.Properties.Metallic = 0.0f;
 	material.Properties.Emissive = { 0.0f, 0.0f, 0.0f };
+	material.Properties.SpecularChance = 0.0f;
+	material.Properties.SpecularRoughness = 0.0f;
+	material.Properties.SpecularColor = { 0.0f, 0.0f, 0.0f };
 	material.Properties.IndexOfRefraction = 1.0f;
-	material.Properties.PercentSpecular = 0.0f;
-	material.Properties.Specular = { 0.0f, 0.0f, 0.0f };
-	material.Properties.ShadingModel = 0;
+	material.Properties.RefractionChance = 0.0f;
+	material.Properties.RefractionRoughness = 0.0f;
+	material.Properties.RefractionColor = { 0.0f, 0.0f, 0.0f };
+	material.Properties.Model = 0;
 
 	return material;
 }

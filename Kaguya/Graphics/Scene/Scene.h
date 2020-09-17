@@ -4,6 +4,8 @@
 #include "Camera.h"
 #include "Light.h"
 #include "Model.h"
+#include "MaterialLoader.h"
+#include "ModelLoader.h"
 
 struct Scene
 {

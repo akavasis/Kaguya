@@ -14,5 +14,7 @@
 #define int4 DirectX::XMINT4
 #define int3 DirectX::XMINT3
 #define int2 DirectX::XMINT2
+
+#define uint unsigned int
 #endif
 #endif

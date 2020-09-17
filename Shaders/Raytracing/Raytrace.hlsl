@@ -15,10 +15,7 @@ Triangle GetTriangle(in uint geometryIndex)
 	const Vertex vtx1 = VertexBuffer[idx1 + info.VertexOffset];
 	const Vertex vtx2 = VertexBuffer[idx2 + info.VertexOffset];
 	
-	Triangle t;
-	t.v0 = vtx0;
-	t.v1 = vtx1;
-	t.v2 = vtx2;
+	Triangle t = { vtx0, vtx1, vtx2 };
 	return t;
 }
 
@@ -45,6 +42,7 @@ MaterialTextureProperties GetMaterialProperties(in uint geometryIndex)
 
 struct SurfaceInteraction
 {
+	bool frontFace;
 	float3 position;
 	float2 uv;
 	BSDF bsdf;
@@ -60,64 +58,106 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 	MaterialTextureIndices materialIndices = GetMaterialIndices(geometryIndex);
 	MaterialTextureProperties materialProperties = GetMaterialProperties(geometryIndex);
 	
-	// Fetch albedo/diffuse data
-	if (materialIndices.AlbedoMapIndex != -1)
-	{
-		Texture2D albedoMap = Tex2DTable[materialIndices.AlbedoMapIndex];
-		float4 albedoMapSample = albedoMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		materialProperties.Albedo = albedoMapSample.rgb;
-	}
+	//float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
+	//float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
+	//float alpha = RoughnessToAlphaTrowbridgeReitzDistribution(materialProperties.Roughness);
 	
-	// Fetch normal data
-	if (materialIndices.NormalMapIndex != -1)
-	{
-		float3x3 tbnMatrix = float3x3(hitSurface.Tangent, hitSurface.Bitangent, hitSurface.Normal);
-
-		Texture2D normalMap = Tex2DTable[materialIndices.NormalMapIndex];
-		float4 normalMapSample = normalMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		float3 normalT = normalize(2.0f * normalMapSample.rgb - 1.0f); // Uncompress each component from [0,1] to [-1,1].
-		hitSurface.Normal = normalize(mul(normalT, tbnMatrix)); // Transform from tangent space to world space.
-	}
-	
-	// Fetch roughness data
-	if (materialIndices.RoughnessMapIndex != -1)
-	{
-		Texture2D roughnessMap = Tex2DTable[materialIndices.RoughnessMapIndex];
-		float4 roughnessMapSample = roughnessMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		materialProperties.Roughness = roughnessMapSample.r;
-	}
-	
-	// Fetch metallic data
-	if (materialIndices.MetallicMapIndex != -1)
-	{
-		Texture2D metallicMap = Tex2DTable[materialIndices.MetallicMapIndex];
-		float4 metallicMapSample = metallicMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		materialProperties.Metallic = metallicMapSample.r;
-	}
-	
-	// Fetch emissive data
-	if (materialIndices.EmissiveMapIndex != -1)
-	{
-		Texture2D emissiveMap = Tex2DTable[materialIndices.EmissiveMapIndex];
-		float4 emissiveMapSample = emissiveMap.SampleLevel(SamplerAnisotropicWrap, hitSurface.Texture, 0.0f);
-		materialProperties.Emissive = emissiveMapSample.rgb;
-	}
-	
-	float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
-	float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
-	float alpha = RoughnessToAlphaTrowbridgeReitzDistribution(materialProperties.Roughness);
-	
+	si.frontFace = dot(WorldRayDirection(), hitSurface.Normal) < 0.0f;
 	si.position = WorldRayOrigin() + (WorldRayDirection() * RayTCurrent());
 	si.uv = hitSurface.Texture;
 	si.bsdf.tangent = hitSurface.Tangent;
 	si.bsdf.bitangent = hitSurface.Bitangent;
 	si.bsdf.normal = hitSurface.Normal;
-	si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f));
+	//si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f)); // Not used yet, still reading Physically Based Rendering
+	// Perhaps i should merge these 2 structs into 1 unified Material struct...
 	si.materialIndices = materialIndices;
 	si.materialProperties = materialProperties;
 	
 	return si;
 }
+
+struct Lambertian
+{
+	float3 Albedo;
+	
+	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
+	{
+		float3 direction = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
+		RayDesc ray = { si.position, 0.00001f, direction, 100000.0f };
+		
+		attenuation = Albedo;
+		scatteredRay = ray;
+	}
+};
+
+struct Metal
+{
+	float3 Albedo;
+	float Fuzziness;
+	
+	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
+	{
+		Fuzziness = Fuzziness < 1.0f ? Fuzziness : 1.0f;
+		
+		float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal) + Fuzziness * RandomInUnitSphere(rayPayload.Seed);
+		RayDesc ray = { si.position, 0.00001f, reflected, 100000.0f };
+		
+		attenuation = Albedo;
+		scatteredRay = ray;
+	}
+};
+
+struct Dielectric
+{
+	float IndexOfRefraction;
+	
+	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
+	{
+		attenuation = float3(1.0f, 1.0f, 1.0f);
+		RayDesc ray = { si.position, 0.00001f, float3(0.0f, 0.0f, 0.0f), 100000.0f };
+		
+		float etaI_Over_etaT = si.frontFace ? (1.0f / IndexOfRefraction) : IndexOfRefraction;
+	
+		float cosTheta = min(dot(-WorldRayDirection(), si.bsdf.normal), 1.0f);
+		float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+	
+		// Total internal reflection
+		if ((etaI_Over_etaT * sinTheta) > 1.0f ||
+			RandomFloat01(rayPayload.Seed) < Fresnel_Schlick(etaI_Over_etaT, cosTheta))
+		{
+			float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal);
+			ray.Direction = reflected;
+			attenuation = si.materialProperties.SpecularColor;
+		}
+		else
+		{
+			float3 refracted = refract(WorldRayDirection(), si.bsdf.normal, etaI_Over_etaT);
+			ray.Direction = refracted;
+		}
+		
+		// do absorption if we are hitting from inside the object
+		if (!si.frontFace)
+		{
+			attenuation *= exp(-si.materialProperties.RefractionColor * RayTCurrent());
+		}
+		
+		scatteredRay = ray;
+	}
+};
+
+struct DiffuseLight
+{
+	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
+	{
+		si.bsdf.normal = si.frontFace ? si.bsdf.normal : -si.bsdf.normal;
+		
+		float3 direction = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
+		RayDesc ray = { si.position, 0.00001f, direction, 100000.0f };
+		
+		attenuation = float3(0.0f, 0.0f, 0.0f);
+		scatteredRay = ray;
+	}
+};
 
 struct HitInfo
 {
@@ -161,7 +201,7 @@ void RayGen()
 [shader("miss")]
 void Miss(inout RayPayload rayPayload)
 {
-	rayPayload.Radiance += TexCubeTable[RenderPassDataCB.IrradianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
+	rayPayload.Radiance += TexCubeTable[RenderPassDataCB.RadianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
 }
 
 [shader("miss")]
@@ -174,27 +214,54 @@ void ShadowMiss(inout ShadowRayPayload rayPayload)
 void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 {
 	SurfaceInteraction si = GetSurfaceInteraction(attrib, HitGroupCB.GeometryIndex);
-	float doSpecular = (RandomFloat01(rayPayload.Seed) <= si.materialProperties.PercentSpecular) ? 1.0f : 0.0f;
+	
+	float3 attentuation;
+	RayDesc ray;
+	switch (si.materialProperties.Model)
+	{
+		case MATERIAL_MODEL_LAMBERTIAN:
+		{
+			Lambertian lambertian = { si.materialProperties.Albedo };
+			lambertian.Scatter(si, rayPayload, attentuation, ray);
+		}
+		break;
+		
+		case MATERIAL_MODEL_METAL:
+		{
+			Metal metal = { si.materialProperties.Albedo, 0.0f };
+			metal.Scatter(si, rayPayload, attentuation, ray);
+		}
+		break;
+		
+		case MATERIAL_MODEL_DIELECTRIC:
+		{
+			Dielectric dielectric = { si.materialProperties.IndexOfRefraction };
+			dielectric.Scatter(si, rayPayload, attentuation, ray);
+		}
+		break;
+		
+		case MATERIAL_MODEL_DIFFUSE_LIGHT:
+		{
+			DiffuseLight diffuseLight;
+			diffuseLight.Scatter(si, rayPayload, attentuation, ray);
+		}
+		break;
+		
+		default:
+		{
+			rayPayload.Radiance = float3(0.0f, 0.0f, 0.0f);
+			return;
+		}
+		break;
+	}
 	
 	rayPayload.Radiance += si.materialProperties.Emissive * rayPayload.Throughput;
-	rayPayload.Throughput *= lerp(si.materialProperties.Albedo, si.materialProperties.Specular, doSpecular);
+	rayPayload.Throughput *= attentuation;
 	
 	// Path trace
 	if (rayPayload.Depth + 1 < RenderPassDataCB.MaxDepth)
 	{
 		rayPayload.Depth = rayPayload.Depth + 1;
-		
-		// Diffuse uses a normal oriented cosine weighted hemisphere sample.
-		// Perfectly smooth specular uses the reflection ray.
-		// Rough (glossy) specular lerps from the smooth specular to the rough diffuse by the material roughness squared
-		// Squaring the roughness is just a convention to make roughness feel more linear perceptually.
-		float3 diffuseRayDirection = normalize(si.bsdf.normal + RandomUnitVector(rayPayload.Seed));
-		float3 specularRayDirection = reflect(WorldRayDirection(), si.bsdf.normal);
-		specularRayDirection = normalize(lerp(specularRayDirection, diffuseRayDirection, si.materialProperties.Roughness * si.materialProperties.Roughness));
-		
-		float3 origin = si.position;
-		float3 direction = lerp(diffuseRayDirection, specularRayDirection, doSpecular);
-		RayDesc ray = { origin, 0.00001f, direction, 100000.0f };
 		
 		const uint flags = RAY_FLAG_NONE;
 		const uint mask = 0xffffffff;

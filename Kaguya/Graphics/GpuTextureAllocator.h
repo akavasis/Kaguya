@@ -43,7 +43,7 @@ public:
 	inline auto GetNumTextures() const { return m_NumTextures; }
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
-	void Update(Scene& Scene);
+	void Update(const Scene& Scene);
 	void Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, std::optional<UINT> MaterialTexturePropertiesRootParameterIndex, CommandContext* pCommandContext) const;
 private:
 	struct Status

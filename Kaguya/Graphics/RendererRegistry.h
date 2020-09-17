@@ -44,18 +44,6 @@ struct EquirectangularToCubemapData
 	UINT NumMips;					// The number of mips to generate.
 };
 
-struct TonemapData
-{
-	float Exposure = 4.5f;
-	float Gamma = 2.2f;
-	unsigned int InputMapIndex;
-};
-
-struct AccumulationData
-{
-	unsigned int AccumulationCount = 0;
-};
-
 struct RendererFormats
 {
 	static constexpr DXGI_FORMAT SwapChainBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -105,15 +93,6 @@ struct RootParameters
 			OutMips
 		};
 	};
-	struct PBR
-	{
-		enum
-		{
-			MaterialTextureIndicesSBuffer,
-			MaterialTexturePropertiesSBuffer,
-			NumRootParameters
-		};
-	};
 	struct Raytracing
 	{
 		enum
@@ -138,9 +117,7 @@ struct Shaders
 {
 	struct VS
 	{
-		inline static RenderResourceHandle Default;
 		inline static RenderResourceHandle Quad;
-		inline static RenderResourceHandle Shadow;
 		inline static RenderResourceHandle Skybox;
 	};
 
@@ -149,8 +126,6 @@ struct Shaders
 		inline static RenderResourceHandle BRDFIntegration;
 		inline static RenderResourceHandle ConvolutionIrradiance;
 		inline static RenderResourceHandle ConvolutionPrefilter;
-		inline static RenderResourceHandle PBR;
-		inline static RenderResourceHandle Skybox;
 
 		inline static RenderResourceHandle PostProcess_Tonemap;
 	};
@@ -181,8 +156,6 @@ struct RootSignatures
 	inline static RenderResourceHandle GenerateMips;
 	inline static RenderResourceHandle EquirectangularToCubemap;
 
-	inline static RenderResourceHandle PBR;
-	inline static RenderResourceHandle Shadow;
 	inline static RenderResourceHandle Skybox;
 
 	inline static RenderResourceHandle PostProcess_Tonemap;
@@ -204,10 +177,6 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle BRDFIntegration;
 	inline static RenderResourceHandle ConvolutionIrradiace;
 	inline static RenderResourceHandle ConvolutionPrefilter;
-
-	inline static RenderResourceHandle PBR;
-	inline static RenderResourceHandle Shadow;
-	inline static RenderResourceHandle Skybox;
 
 	inline static RenderResourceHandle PostProcess_Tonemap;
 

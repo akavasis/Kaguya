@@ -11,7 +11,7 @@ ModelLoader::ModelLoader(std::filesystem::path ExecutableFolderPath)
 {
 }
 
-Model ModelLoader::LoadFromFile(const char* pPath, float Scale)
+Model ModelLoader::LoadFromFile(const char* pPath, float Scale) const
 {
 	std::filesystem::path filePath = m_ExecutableFolderPath / pPath;
 	if (!std::filesystem::exists(filePath))

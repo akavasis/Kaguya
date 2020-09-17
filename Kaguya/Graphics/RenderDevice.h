@@ -88,7 +88,6 @@ public:
 	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle) { return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
 
 	Device Device;
-	ShaderCompiler ShaderCompiler;
 	CommandQueue GraphicsQueue;
 	CommandQueue ComputeQueue;
 	CommandQueue CopyQueue;
@@ -97,6 +96,7 @@ public:
 private:
 	void AppendStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
 
+	ShaderCompiler m_ShaderCompiler;
 	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[CommandContext::NumTypes];
 
 	enum DescriptorRanges

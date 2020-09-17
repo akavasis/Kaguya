@@ -2,32 +2,28 @@
 #include "GpuBufferAllocator.h"
 #include "RendererRegistry.h"
 
-GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize, size_t GeometryInfoBufferByteSize)
+GpuBufferAllocator::GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t GeometryInfoBufferByteSize)
 	: pRenderDevice(pRenderDevice),
 	m_Buffers{
 	{ VertexBufferByteSize },
 	{ IndexBufferByteSize },
-	{ Math::AlignUp<UINT64>(ConstantBufferByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)},
 	{ GeometryInfoBufferByteSize } }
 {
-	UINT strides[NumInternalBufferTypes] = { sizeof(Vertex), sizeof(unsigned int), Math::AlignUp<UINT>(sizeof(ObjectConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT), sizeof(GeometryInfo) };
+	UINT strides[NumInternalBufferTypes] = { sizeof(Vertex), sizeof(unsigned int), sizeof(GeometryInfo) };
 
 	for (size_t i = 0; i < NumInternalBufferTypes; ++i)
 	{
 		size_t bufferByteSize = m_Buffers[i].Allocator.GetSize();
 		RenderResourceHandle bufferHandle, uploadBufferHandle;
 
-		if (i != ConstantBuffer)
+		bufferHandle = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 		{
-			bufferHandle = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
-			{
-				proxy.SetSizeInBytes(bufferByteSize);
-				proxy.SetStride(strides[i]);
-				proxy.InitialState = Resource::State::CopyDest;
-			});
-			m_Buffers[i].BufferHandle = bufferHandle;
-			m_Buffers[i].pBuffer = pRenderDevice->GetBuffer(bufferHandle);
-		}
+			proxy.SetSizeInBytes(bufferByteSize);
+			proxy.SetStride(strides[i]);
+			proxy.InitialState = Resource::State::CopyDest;
+		});
+		m_Buffers[i].BufferHandle = bufferHandle;
+		m_Buffers[i].pBuffer = pRenderDevice->GetBuffer(bufferHandle);
 
 		uploadBufferHandle = pRenderDevice->CreateBuffer([=](BufferProxy& proxy)
 		{
@@ -87,26 +83,6 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 
 	for (auto& model : Scene.Models)
 	{
-		UINT64 totalConstantBufferBytes = model.Meshes.size() * m_Buffers[ConstantBuffer].pUploadBuffer->GetStride();
-		auto pair = m_Buffers[ConstantBuffer].Allocate(totalConstantBufferBytes);
-		if (!pair.has_value())
-		{
-			CORE_WARN("{} : Unable to allocate constant buffer data, consider increasing memory", __FUNCTION__);
-			assert(false);
-		}
-		auto [constantBufferByteOffset, constantBufferByteSize] = pair.value();
-
-		std::size_t constantBufferIndexOffset = constantBufferByteOffset / m_Buffers[ConstantBuffer].pUploadBuffer->GetStride();
-		std::size_t constantBufferIndex = 0;
-		for (auto& mesh : model.Meshes)
-		{
-			mesh.ObjectConstantsIndex = constantBufferIndex + constantBufferIndexOffset;
-			constantBufferIndex++;
-		}
-	}
-
-	for (auto& model : Scene.Models)
-	{
 		UINT64 totalGeometryInfoBytes = model.Meshes.size() * m_Buffers[GeometryInfoBuffer].pUploadBuffer->GetStride();
 		auto pair = m_Buffers[GeometryInfoBuffer].Allocate(totalGeometryInfoBytes);
 		if (!pair)
@@ -123,6 +99,7 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 			info.VertexOffset = mesh.BaseVertexLocation;
 			info.IndexOffset = mesh.StartIndexLocation;
 			info.MaterialIndex = mesh.MaterialIndex;
+			XMStoreFloat4x4(&info.World, XMMatrixTranspose(mesh.Transform.Matrix()));
 
 			infos.push_back(info);
 		}
@@ -135,6 +112,7 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 
 	pCommandContext->TransitionBarrier(m_Buffers[VertexBuffer].pBuffer, Resource::State::VertexBuffer | Resource::State::NonPixelShaderResource);
 	pCommandContext->TransitionBarrier(m_Buffers[IndexBuffer].pBuffer, Resource::State::IndexBuffer | Resource::State::NonPixelShaderResource);
+	pCommandContext->TransitionBarrier(m_Buffers[GeometryInfoBuffer].pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 	pCommandContext->FlushResourceBarriers();
 
 	CreateBottomLevelAS(Scene, pCommandContext);
@@ -142,16 +120,22 @@ void GpuBufferAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 	CreateShaderTableBuffers(Scene);
 }
 
-void GpuBufferAllocator::Update(Scene& Scene)
+void GpuBufferAllocator::Update(const Scene& Scene)
 {
-	for (auto& model : Scene.Models)
+	size_t i = 0;
+	for (const auto& model : Scene.Models)
 	{
+		std::vector<GeometryInfo> infos;
+
 		for (auto& mesh : model.Meshes)
 		{
-			ObjectConstants ObjectCPU;
-			DirectX::XMStoreFloat4x4(&ObjectCPU.World, DirectX::XMMatrixTranspose(mesh.Transform.Matrix()));
-			ObjectCPU.MaterialIndex = mesh.MaterialIndex;
-			m_Buffers[ConstantBuffer].pUploadBuffer->Update<ObjectConstants>(mesh.ObjectConstantsIndex, ObjectCPU);
+			GeometryInfo info;
+			info.VertexOffset = mesh.BaseVertexLocation;
+			info.IndexOffset = mesh.StartIndexLocation;
+			info.MaterialIndex = mesh.MaterialIndex;
+			XMStoreFloat4x4(&info.World, XMMatrixTranspose(mesh.Transform.Matrix()));
+
+			m_Buffers[GeometryInfoBuffer].pUploadBuffer->Update<GeometryInfo>(i++, info);
 		}
 	}
 }
@@ -169,6 +153,10 @@ void GpuBufferAllocator::Bind(CommandContext* pCommandContext) const
 	indexBufferView.SizeInBytes = m_Buffers[IndexBuffer].Allocator.GetCurrentSize();
 	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	pCommandContext->SetIndexBuffer(&indexBufferView);
+
+	pCommandContext->CopyBufferRegion(m_Buffers[GeometryInfoBuffer].pBuffer, 0, m_Buffers[GeometryInfoBuffer].pUploadBuffer, 0, m_Buffers[GeometryInfoBuffer].pBuffer->GetMemoryRequested());
+	pCommandContext->TransitionBarrier(m_Buffers[GeometryInfoBuffer].pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+	pCommandContext->FlushResourceBarriers();
 }
 
 size_t GpuBufferAllocator::StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext)
@@ -374,7 +362,7 @@ void GpuBufferAllocator::CreateShaderTableBuffers(Scene& Scene)
 	{
 		struct HitGroupShaderRootArguments
 		{
-			unsigned int GeometryIndex; // Constants
+			uint GeometryIndex; // Constants
 		};
 
 		ShaderTable<HitGroupShaderRootArguments> shaderTable;

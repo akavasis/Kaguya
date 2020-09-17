@@ -5,18 +5,15 @@
 #include "Core/Time.h"
 
 // Render passes
-#include "RenderPass/CSM.h"
-#include "RenderPass/ForwardRendering.h"
-#include "RenderPass/Tonemap.h"
-
 #include "RenderPass/Raytracing.h"
 #include "RenderPass/Accumulation.h"
+#include "RenderPass/Tonemap.h"
 
 Renderer::Renderer(const Application& Application, Window& Window)
 	: pWindow(&Window),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_RenderGraph(&m_RenderDevice),
-	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB, 64_KiB),
+	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB),
 	m_GpuTextureAllocator(&m_RenderDevice, 100)
 {
 	m_EventReceiver.Register(Window, [&](const Event& event)
@@ -98,11 +95,7 @@ void Renderer::UploadScene(Scene& Scene)
 
 	m_RenderPassConstantBufferHandle = m_RenderDevice.CreateBuffer([](BufferProxy& proxy)
 	{
-		// + 1 for forward pass render constants
-		if constexpr (Renderer::Settings::Rasterization)
-			proxy.SetSizeInBytes((NUM_CASCADES + 1) * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-		else
-			proxy.SetSizeInBytes((1) * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+		proxy.SetSizeInBytes((1) * Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
 
 		proxy.SetStride(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
@@ -110,50 +103,24 @@ void Renderer::UploadScene(Scene& Scene)
 	m_pRenderPassConstantBuffer = m_RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
 	m_pRenderPassConstantBuffer->Map();
 
-	if constexpr (Settings::Rasterization)
-	{
-		AddCSMRenderPass(&m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
-		AddForwardRenderingRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
-	}
-	else
-	{
-		AddRaytracingRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer, &m_RenderGraph);
-		AddAccumulationRenderPass(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_RenderGraph);
-	}
-	AddTonemapRenderPass(&m_RenderGraph);
+	m_RenderGraph.AddRenderPass(new Raytracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer));
+	m_RenderGraph.AddRenderPass(new Accumulation(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
+	m_RenderGraph.AddRenderPass(new Tonemap());
 
 	m_RenderGraph.Setup();
 
 	// Create render target srvs
-	if constexpr (Renderer::Settings::Rasterization)
-	{
-		const std::size_t numSRVsToAllocate = 2;
-		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.DescriptorAllocator.AllocateSRDescriptors(numSRVsToAllocate);
+	const std::size_t numSRVsToAllocate = 1;
+	m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.DescriptorAllocator.AllocateSRDescriptors(numSRVsToAllocate);
 
-		auto pCSMRenderPass = m_RenderGraph.GetRenderPass<CSMRenderPassData>();
-		auto pForwardRenderingRenderPass = m_RenderGraph.GetRenderPass<ForwardRenderingRenderPassData>();
-		auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
+	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();
+	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<Tonemap>();
 
-		m_RenderDevice.CreateSRV(pCSMRenderPass->Outputs[CSMRenderPassData::Outputs::DepthBuffer], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
-		m_RenderDevice.CreateSRV(pForwardRenderingRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[1]);
+	m_RenderDevice.CreateSRV(pAccumulationRenderPass->Outputs[Accumulation::EOutputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
 
-		pTonemapRenderPass->Data.TonemapData.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[1].HeapIndex -
-			m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
-	}
-	else
-	{
-		const std::size_t numSRVsToAllocate = 1;
-		m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.DescriptorAllocator.AllocateSRDescriptors(numSRVsToAllocate);
-
-		auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<AccumulationRenderPassData>();
-		auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
-
-		m_RenderDevice.CreateSRV(pAccumulationRenderPass->Outputs[AccumulationRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
-
-		pAccumulationRenderPass->Data.LastCameraTransform = Scene.Camera.Transform;
-		pTonemapRenderPass->Data.TonemapData.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex -
-			m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
-	}
+	pAccumulationRenderPass->LastCameraTransform = Scene.Camera.Transform;
+	pTonemapRenderPass->Settings.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews.GetStartDescriptor().HeapIndex -
+		m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
 }
 
 void Renderer::Update(const Time& Time)
@@ -175,20 +142,19 @@ void Renderer::Render(Scene& Scene)
 {
 	PIXCapture();
 
-	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<AccumulationRenderPassData>();
-	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<TonemapRenderPassData>();
+	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();
+	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<Tonemap>();
 
 	// If the camera has moved
-	if (Scene.Camera.Transform != pAccumulationRenderPass->Data.LastCameraTransform)
+	if (Scene.Camera.Transform != pAccumulationRenderPass->LastCameraTransform)
 	{
 		Renderer::Statistics::Accumulation = 0;
-		pAccumulationRenderPass->Data.LastCameraTransform = Scene.Camera.Transform;
+		pAccumulationRenderPass->LastCameraTransform = Scene.Camera.Transform;
 	}
-	pAccumulationRenderPass->Data.AccumulationData.AccumulationCount = Renderer::Statistics::Accumulation++;
+	pAccumulationRenderPass->Settings.AccumulationCount = Renderer::Statistics::Accumulation++;
 
-	pTonemapRenderPass->Data.TonemapData.Exposure = 0.5f;
-	pTonemapRenderPass->Data.pDestination = m_pSwapChainTextures[m_FrameIndex];
-	pTonemapRenderPass->Data.DestinationRTV = m_SwapChainRTVs[m_FrameIndex];
+	pTonemapRenderPass->pDestination = m_pSwapChainTextures[m_FrameIndex];
+	pTonemapRenderPass->DestinationRTV = m_SwapChainRTVs[m_FrameIndex];
 
 	m_GpuBufferAllocator.Update(Scene);
 	m_GpuTextureAllocator.Update(Scene);
@@ -214,26 +180,11 @@ void Renderer::Render(Scene& Scene)
 
 	renderPassCPU.MaxDepth = 4;
 
-	// Update shadow render pass cbuffer
-	if constexpr (Renderer::Settings::Rasterization)
-	{
-		for (UINT cascadeIndex = 0; cascadeIndex < NUM_CASCADES; ++cascadeIndex)
-		{
-			RenderPassConstants cascadeShadowPass;
-			DirectX::XMStoreFloat4x4(&cascadeShadowPass.ViewProjection, DirectX::XMMatrixTranspose(Scene.CascadeCameras[cascadeIndex].ViewProjectionMatrix()));
+	const INT raytracingRenderPassConstantsIndex = 0; // 0
+	m_pRenderPassConstantBuffer->Update<RenderPassConstants>(raytracingRenderPassConstantsIndex, renderPassCPU);
 
-			m_pRenderPassConstantBuffer->Update<RenderPassConstants>(cascadeIndex, cascadeShadowPass);
-		}
-
-		const INT forwardRenderPassConstantsIndex = NUM_CASCADES; // 0 - NUM_CASCADES reserved for shadow map data
-		m_pRenderPassConstantBuffer->Update<RenderPassConstants>(forwardRenderPassConstantsIndex, renderPassCPU);
-	}
-	else
-	{
-		const INT raytracingRenderPassConstantsIndex = 0; // 0
-		m_pRenderPassConstantBuffer->Update<RenderPassConstants>(raytracingRenderPassConstantsIndex, renderPassCPU);
-	}
-
+	m_RenderGraph.Update();
+	m_RenderGraph.RenderGui();
 	m_RenderGraph.Execute(m_FrameIndex, Scene);
 	m_RenderGraph.ThreadBarrier();
 	m_RenderGraph.ExecuteCommandContexts();
@@ -295,16 +246,8 @@ void Renderer::Resize(UINT Width, UINT Height)
 		m_RenderGraph.Resize(Width, Height);
 
 		// Recreate SRV for render targets
-		if constexpr (Renderer::Settings::Rasterization)
-		{
-			auto pForwardRenderingRenderPass = m_RenderGraph.GetRenderPass<ForwardRenderingRenderPassData>();
-			m_RenderDevice.CreateSRV(pForwardRenderingRenderPass->Outputs[ForwardRenderingRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[1]);
-		}
-		else
-		{
-			auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<AccumulationRenderPassData>();
-			m_RenderDevice.CreateSRV(pAccumulationRenderPass->Outputs[AccumulationRenderPassData::Outputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
-		}
+		auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();
+		m_RenderDevice.CreateSRV(pAccumulationRenderPass->Outputs[Accumulation::EOutputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
 	}
 	m_RenderDevice.GraphicsQueue.WaitForIdle();
 }

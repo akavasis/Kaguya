@@ -9,7 +9,7 @@
 
 // Forward decl
 class RenderGraphRegistry;
-class RenderPassBase;
+class IRenderPass;
 class RenderGraph;
 
 enum class RenderPassType
@@ -19,46 +19,30 @@ enum class RenderPassType
 	Copy
 };
 
-class RenderPassBase
+struct RenderTargetProperties
+{
+	UINT Width = 0;
+	UINT Height = 0;
+	DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
+};
+
+class IRenderPass
 {
 public:
-	RenderPassBase(RenderPassType Type);
-	virtual ~RenderPassBase() = default;
+	IRenderPass(RenderPassType Type, RenderTargetProperties Properties);
+	virtual ~IRenderPass() = default;
 
-	virtual void Setup(RenderDevice*) = 0;
-	virtual void Execute(const Scene&, RenderGraphRegistry&, CommandContext*) = 0;
-	virtual void Resize(UINT, UINT, RenderDevice*) = 0;
+	virtual void Setup(RenderDevice* pRenderDevice) = 0;
+	virtual void Update() = 0;
+	virtual void RenderGui() = 0;
+	virtual void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) = 0;
+	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) = 0;
 
 	bool Enabled;
 	const RenderPassType Type;
+	const RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Outputs;
 	std::vector<DescriptorAllocation> ResourceViews;
-};
-
-struct VoidRenderPassData {};
-
-template<typename Data>
-class RenderPass : public RenderPassBase
-{
-public:
-	using ExecuteCallback = Delegate<void(const RenderPass<Data>&, const Scene&, RenderGraphRegistry&, CommandContext*)>;
-	using SetupCallback = Delegate<ExecuteCallback(RenderPass<Data>&, RenderDevice*)>;
-	using ResizeCallback = Delegate<void(RenderPass<Data>&, UINT, UINT, RenderDevice*)>;
-
-	RenderPass(RenderPassType Type, SetupCallback&& RenderPassSetupCallback, ResizeCallback&& RenderPassResizeCallback);
-	~RenderPass() override = default;
-
-	void Setup(RenderDevice* pRenderDevice) override;
-	void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
-	void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
-
-	Data Data;
-private:
-	friend class RenderGraph;
-
-	SetupCallback m_SetupCallback;
-	ExecuteCallback m_ExecuteCallback;
-	ResizeCallback m_ResizeCallback;
 };
 
 // TODO: Add a RenderGraphScheduler to indicate reads/writes to a particular resource so we can
@@ -82,8 +66,8 @@ public:
 	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const { return pRenderDevice->GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart(); }
 	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart() const { return pRenderDevice->GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart(); }
 
-	template<typename Data>
-	[[nodiscard]] inline RenderPass<Data>* GetRenderPass() { return pRenderGraph->GetRenderPass<Data>(); }
+	template<typename RenderPass>
+	[[nodiscard]] inline RenderPass* GetRenderPass() { return pRenderGraph->GetRenderPass<RenderPass>(); }
 private:
 	RenderDevice* pRenderDevice;
 	RenderGraph* pRenderGraph;
@@ -131,16 +115,17 @@ public:
 		return false;
 	}
 
-	template<typename Data>
-	RenderPass<Data>* GetRenderPass();
+	template<typename RenderPass>
+	RenderPass* GetRenderPass();
 
-	template<typename Data, typename SetupCallback = RenderPass<Data>::SetupCallback, typename ResizeCallback = RenderPass<Data>::ResizeCallback>
-	RenderPass<Data>* AddRenderPass(RenderPassType Type, typename SetupCallback&& RenderPassSetupCallback, typename ResizeCallback&& RenderPassResizeCallback);
+	void AddRenderPass(IRenderPass* pIRenderPass);
 
 	// Only call once
 	void Setup();
 
 	// Call every frame
+	void Update();
+	void RenderGui();
 	void Execute(UINT FrameIndex, Scene& Scene);
 	void ExecuteCommandContexts();
 
@@ -153,7 +138,7 @@ private:
 	std::vector<std::future<void>> m_Futures;
 
 	UINT m_NumRenderPasses;
-	std::vector<std::unique_ptr<RenderPassBase>> m_RenderPasses;
+	std::vector<std::unique_ptr<IRenderPass>> m_RenderPasses;
 	std::vector<std::reference_wrapper<const std::type_info>> m_RenderPassDataIDs;
 	std::vector<CommandContext*> m_CommandContexts;
 

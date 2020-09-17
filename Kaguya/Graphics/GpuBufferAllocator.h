@@ -14,11 +14,10 @@ struct RaytracingAccelerationStructureHandles
 class GpuBufferAllocator
 {
 public:
-	GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t ConstantBufferByteSize, size_t GeometryInfoBufferByteSize);
+	GpuBufferAllocator(RenderDevice* pRenderDevice, size_t VertexBufferByteSize, size_t IndexBufferByteSize, size_t GeometryInfoBufferByteSize);
 
 	inline auto GetVertexBuffer() const { return m_Buffers[VertexBuffer].pBuffer; }
 	inline auto GetIndexBuffer() const { return m_Buffers[IndexBuffer].pBuffer; }
-	inline auto GetConstantBuffer() const { return m_Buffers[ConstantBuffer].pUploadBuffer; }
 	inline auto GetGeometryInfoBuffer() const { return m_Buffers[GeometryInfoBuffer].pBuffer; }
 
 	inline auto GetVertexBufferHandle() const { return m_Buffers[VertexBuffer].BufferHandle; }
@@ -30,7 +29,7 @@ public:
 	inline auto GetHitGroupShaderTableHandle() const { return m_HitGroupShaderTable; }
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
-	void Update(Scene& Scene);
+	void Update(const Scene& Scene);
 	void Bind(CommandContext* pCommandContext) const;
 private:
 	size_t StageVertex(const void* pData, size_t ByteSize, CommandContext* pCommandContext);
@@ -43,7 +42,6 @@ private:
 	{
 		VertexBuffer,
 		IndexBuffer,
-		ConstantBuffer,
 		GeometryInfoBuffer,
 		NumInternalBufferTypes
 	};

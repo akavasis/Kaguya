@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "RenderGraph.h"
 
-RenderPassBase::RenderPassBase(RenderPassType Type)
+IRenderPass::IRenderPass(RenderPassType Type, RenderTargetProperties Properties)
 	: Enabled(true),
-	Type(Type)
+	Type(Type),
+	Properties(Properties)
 {
 }
 
@@ -11,6 +12,19 @@ RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice),
 	m_NumRenderPasses(0)
 {
+}
+
+void RenderGraph::AddRenderPass(IRenderPass* pIRenderPass)
+{
+	m_RenderPasses.emplace_back(std::unique_ptr<IRenderPass>(pIRenderPass));
+	switch (pIRenderPass->Type)
+	{
+	case RenderPassType::Graphics: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); break;
+	case RenderPassType::Compute: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Compute)); break;
+	case RenderPassType::Copy: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Copy)); break;
+	}
+	m_RenderPassDataIDs.emplace_back(typeid(*pIRenderPass));
+	m_NumRenderPasses++;
 }
 
 void RenderGraph::Setup()
@@ -21,6 +35,28 @@ void RenderGraph::Setup()
 	}
 	m_ThreadPool = std::make_unique<ThreadPool>(m_NumRenderPasses);
 	m_Futures.resize(m_NumRenderPasses);
+}
+
+void RenderGraph::Update()
+{
+	for (auto& renderPass : m_RenderPasses)
+	{
+		if (!renderPass->Enabled)
+			continue;
+
+		renderPass->Update();
+	}
+}
+
+void RenderGraph::RenderGui()
+{
+	for (auto& renderPass : m_RenderPasses)
+	{
+		if (!renderPass->Enabled)
+			continue;
+
+		renderPass->RenderGui();
+	}
 }
 
 void RenderGraph::Execute(UINT FrameIndex, Scene& Scene)
@@ -65,8 +101,8 @@ void RenderGraph::ThreadBarrier()
 
 void RenderGraph::Resize(UINT Width, UINT Height)
 {
-	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
+	for (auto& renderPass : m_RenderPasses)
 	{
-		m_RenderPasses[i]->Resize(Width, Height, pRenderDevice);
+		renderPass->Resize(Width, Height, pRenderDevice);
 	}
 }

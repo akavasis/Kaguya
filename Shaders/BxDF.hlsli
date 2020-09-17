@@ -10,6 +10,7 @@ struct FresnelDielectric
 	float3 Evaluate(in float cosThetaI)
 	{
 		cosThetaI = clamp(cosThetaI, -1.0f, 1.0f);
+		// Potentially swap indices of refraction
 		bool entering = cosThetaI > 0.0f;
 		if (!entering)
 		{
@@ -44,7 +45,7 @@ struct FresnelConductor
 {
 	float etaI;
 	float etaT;
-	float k; // Represents absorbton coefficient
+	float k; // Represents absorption coefficient
 	
 	float3 Evaluate(in float cosThetaI)
 	{
@@ -78,9 +79,11 @@ FresnelConductor InitFresnelConductor(float etaI, float etaT, float k)
 	return fresnel;
 }
 
-float3 Fresnel_Schlick(in float3 Rs, in float cosTheta)
+float Fresnel_Schlick(in float IndexOfRefraction, in float cosTheta)
 {
-	return Rs + pow(1.0f - cosTheta, 5.0f) * (1.0f - Rs);
+	float r0 = (1.0f - IndexOfRefraction) / (1.0f + IndexOfRefraction);
+	r0 = r0 * r0;
+	return r0 + (1.0f - r0) * pow((1.0f - cosTheta), 5);
 }
 
 struct MicrofacetBRDF
@@ -103,7 +106,7 @@ struct MicrofacetBRDF
 
 MicrofacetBRDF InitMicrofacetBRDF(float3 R, TrowbridgeReitzDistribution distribution, FresnelDielectric fresnel)
 {
-	MicrofacetBRDF brdf = { R, distribution, fresnel};
+	MicrofacetBRDF brdf = { R, distribution, fresnel };
 	return brdf;
 }
 
@@ -111,28 +114,28 @@ MicrofacetBRDF InitMicrofacetBRDF(float3 R, TrowbridgeReitzDistribution distribu
 // in here, we represent them using tangent, bitangent, and normal
 struct BSDF
 {
-    float3 tangent;
-    float3 bitangent;
-    float3 normal;
+	float3 tangent;
+	float3 bitangent;
+	float3 normal;
 	MicrofacetBRDF brdf;
     
-    float3 WorldToLocal(in float3 v)
-    {
-        return float3(dot(v, tangent), dot(v, bitangent), dot(v, normal));
-    }
+	float3 WorldToLocal(in float3 v)
+	{
+		return float3(dot(v, tangent), dot(v, bitangent), dot(v, normal));
+	}
     
-    float3 LocalToWorld(in float3 v)
-    {
-        return float3(tangent.x * v.x + bitangent.x * v.y + normal.x * v.z,
+	float3 LocalToWorld(in float3 v)
+	{
+		return float3(tangent.x * v.x + bitangent.x * v.y + normal.x * v.z,
 				      tangent.y * v.x + bitangent.y * v.y + normal.y * v.z,
 				      tangent.z * v.x + bitangent.z * v.y + normal.z * v.z);
-    }
+	}
 	
-    float3 f(in float3 woW, in float3 wiW)
-    {
-        float3 wo = WorldToLocal(woW), wi = WorldToLocal(wiW);
-        if (wo.z == 0.0f)
-            return 0.0f;
+	float3 f(in float3 woW, in float3 wiW)
+	{
+		float3 wo = WorldToLocal(woW), wi = WorldToLocal(wiW);
+		if (wo.z == 0.0f)
+			return 0.0f;
 		return brdf.f(wo, wi);
 	}
 	

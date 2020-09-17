@@ -1,13 +1,15 @@
 #include "pch.h"
 #include "RendererRegistry.h"
 
+#include "RenderPass/Raytracing.h"
+#include "RenderPass/Accumulation.h"
+#include "RenderPass/Tonemap.h"
+
 void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
 {
 	// Load VS
 	{
-		VS::Default = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"0" } });
 		VS::Quad = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Quad.hlsl", L"main", {});
-		VS::Shadow = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Default.hlsl", L"main", { { L"RENDER_SHADOWS", L"1" } });
 		VS::Skybox = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Sky.hlsl", L"main", {});
 	}
 
@@ -16,8 +18,6 @@ void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path Execut
 		PS::BRDFIntegration = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_BRDFIntegration.hlsl", L"main", {});
 		PS::ConvolutionIrradiance = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
 		PS::ConvolutionPrefilter = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
-		PS::PBR = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_PBR.hlsl", L"main", {});
-		PS::Skybox = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_Sky.hlsl", L"main", {});
 
 		PS::PostProcess_Tonemap = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemap.hlsl", L"main", {});
 	}
@@ -117,19 +117,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	// Shadow RS
 	StandardShaderLayoutOptions options = {};
-	RootSignatures::Shadow = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
-	{
-		proxy.AllowInputLayout();
-	});
-
-	// PBR RS
-	RootSignatures::PBR = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootSRVParameter(0, 0, {}, D3D12_SHADER_VISIBILITY_PIXEL);
-		proxy.AddRootSRVParameter(0, 1, {}, D3D12_SHADER_VISIBILITY_PIXEL);
-
-		proxy.AllowInputLayout();
-	});
 
 	// Skybox RS
 	RootSignatures::Skybox = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
@@ -141,7 +128,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	// Tonemap RS
 	options.InitConstantDataTypeAsRootConstants = TRUE;
-	options.Num32BitValues = sizeof(TonemapData) / 4;
+	options.Num32BitValues = sizeof(Tonemap::SSettings) / 4;
 	RootSignatures::PostProcess_Tonemap = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
 	{
 		proxy.AllowInputLayout();
@@ -182,7 +169,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
 		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter<AccumulationData>(0, 0);
+		proxy.AddRootConstantsParameter<Accumulation::SSettings>(0, 0);
 		proxy.AddRootDescriptorTableParameter({ input });
 		proxy.AddRootDescriptorTableParameter({ output });
 
@@ -240,58 +227,6 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 		case Prefilter: GraphicsPSOs::ConvolutionPrefilter = handle; break;
 		}
 	}
-
-	// Shadow PSO
-	GraphicsPSOs::Shadow = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
-	{
-		proxy = inputLayoutProxy;
-
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Shadow);
-		proxy.pVS = pRenderDevice->GetShader(Shaders::VS::Shadow);
-
-		proxy.RasterizerState.SetDepthClipEnable(false);
-		proxy.RasterizerState.SetDepthBias(100000);
-		proxy.RasterizerState.SetDepthBiasClamp(0.0f);
-		proxy.RasterizerState.SetSlopeScaledDepthBias(1.0f);
-
-		proxy.DepthStencilState.SetDepthFunc(ComparisonFunc::LessEqual);
-
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-		proxy.AddRenderTargetFormat(RendererFormats::BRDFLUTFormat);
-		proxy.SetDepthStencilFormat(DXGI_FORMAT_D32_FLOAT);
-	});
-
-	// PBR PSO
-	GraphicsPSOs::PBR = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
-	{
-		proxy = inputLayoutProxy;
-
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PBR);
-		proxy.pVS = pRenderDevice->GetShader(Shaders::VS::Default);
-		proxy.pPS = pRenderDevice->GetShader(Shaders::PS::PBR);
-
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-		proxy.AddRenderTargetFormat(RendererFormats::HDRBufferFormat);
-		proxy.SetDepthStencilFormat(RendererFormats::DepthStencilFormat);
-	});
-
-	// Skybox PSO
-	GraphicsPSOs::Skybox = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
-	{
-		proxy = inputLayoutProxy;
-
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Skybox);
-		proxy.pVS = pRenderDevice->GetShader(Shaders::VS::Skybox);
-		proxy.pPS = pRenderDevice->GetShader(Shaders::PS::Skybox);
-
-		proxy.RasterizerState.SetCullMode(RasterizerState::CullMode::None);
-
-		proxy.DepthStencilState.SetDepthFunc(ComparisonFunc::LessEqual);
-
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-		proxy.AddRenderTargetFormat(RendererFormats::HDRBufferFormat);
-		proxy.SetDepthStencilFormat(RendererFormats::DepthStencilFormat);
-	});
 
 	// Tonemap PSO
 	GraphicsPSOs::PostProcess_Tonemap = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)

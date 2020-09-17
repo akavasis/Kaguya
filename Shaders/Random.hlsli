@@ -27,4 +27,26 @@ float3 RandomUnitVector(inout uint seed)
 	return float3(x, y, z);
 }
 
+float3 RandomInUnitDisk(inout uint seed)
+{
+	while (true)
+	{
+		float3 p = float3(RandomFloat01(seed) * 2.0f - 1.0f, RandomFloat01(seed) * 2.0f - 1.0f, 0.0f);
+		if (length(p) >= 1.0f)
+			continue;
+		return p;
+	}
+}
+
+float3 RandomInUnitSphere(inout uint seed)
+{
+	while (true)
+	{
+		float3 p = float3(RandomFloat01(seed) * 2.0f - 1.0f, RandomFloat01(seed) * 2.0f - 1.0f, RandomFloat01(seed) * 2.0f - 1.0f);
+		if (length(p) >= 1.0f)
+			continue;
+		return p;
+	}
+}
+
 #endif
