@@ -26,13 +26,12 @@ void Raytracing::Setup(RenderDevice* pRenderDevice)
 
 	Outputs.push_back(raytracingOutput);
 
-	auto srv = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(6);
+	auto srv = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(5);
 	pRenderDevice->CreateSRV(pGpuBufferAllocator->GetRTTLASResourceHandle(), srv[0]);
 	pRenderDevice->CreateSRV(pGpuBufferAllocator->GetVertexBufferHandle(), srv[1]);
 	pRenderDevice->CreateSRV(pGpuBufferAllocator->GetIndexBufferHandle(), srv[2]);
 	pRenderDevice->CreateSRV(pGpuBufferAllocator->GetGeometryInfoBufferHandle(), srv[3]);
-	pRenderDevice->CreateSRV(pGpuTextureAllocator->GetMaterialTextureIndicesBufferHandle(), srv[4]);
-	pRenderDevice->CreateSRV(pGpuTextureAllocator->GetMaterialTexturePropertiesBufferHandle(), srv[5]);
+	pRenderDevice->CreateSRV(pGpuTextureAllocator->GetMaterialBufferHandle(), srv[4]);
 
 	auto uav = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(1);
 	pRenderDevice->CreateUAV(raytracingOutput, uav[0], {}, {});

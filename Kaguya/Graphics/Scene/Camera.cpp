@@ -15,14 +15,9 @@ Camera::Camera(float NearZ, float FarZ)
 	m_Projection = Math::Identity();
 }
 
-XMMATRIX Camera::WorldMatrix() const
-{
-	return Transform.Matrix();
-}
-
 XMMATRIX Camera::ViewMatrix() const
 {
-	return XMMatrixInverse(nullptr, WorldMatrix());
+	return XMMatrixInverse(nullptr, Transform.Matrix());
 }
 
 XMMATRIX Camera::ProjectionMatrix() const
@@ -48,16 +43,6 @@ XMMATRIX Camera::ViewProjectionMatrix() const
 XMMATRIX Camera::InverseViewProjectionMatrix() const
 {
 	return XMMatrixInverse(nullptr, ViewProjectionMatrix());
-}
-
-XMVECTOR Camera::WorldPositionVector() const
-{
-	return WorldMatrix().r[3];
-}
-
-XMVECTOR Camera::LocalPositionVector() const
-{
-	return ViewMatrix().r[3];
 }
 
 void Camera::SetLookAt(DirectX::XMVECTOR EyePosition, DirectX::XMVECTOR FocusPosition, DirectX::XMVECTOR UpDirection)

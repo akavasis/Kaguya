@@ -142,7 +142,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	options.Num32BitValues = 0;
 	RootSignatures::Raytracing::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 6, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
 		CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable

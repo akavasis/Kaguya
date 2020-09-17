@@ -13,10 +13,9 @@
 class GpuTextureAllocator
 {
 public:
-	inline auto GetMaterialTextureIndicesBufferHandle() const { return m_MaterialTextureIndicesStructuredBufferHandle; }
-	inline auto GetMaterialTexturePropertiesBufferHandle() const { return m_MaterialTexturePropertiesStructuredBufferHandle; }
+	inline auto GetMaterialBufferHandle() const { return m_MaterialStructuredBufferHandle; }
 
-	enum AssetTextures
+	enum RendererReseveredTextures
 	{
 		BRDFLUT,
 		SkyboxEquirectangularMap,
@@ -25,7 +24,7 @@ public:
 		SkyboxPrefilteredCubemap,
 		NumAssetTextures
 	};
-	RenderResourceHandle AssetTextures[NumAssetTextures];
+	RenderResourceHandle RendererReseveredTextures[NumAssetTextures];
 
 	struct TextureStorage
 	{
@@ -44,7 +43,7 @@ public:
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
 	void Update(const Scene& Scene);
-	void Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, std::optional<UINT> MaterialTexturePropertiesRootParameterIndex, CommandContext* pCommandContext) const;
+	void Bind(std::optional<UINT> MaterialRootParameterIndex, CommandContext* pCommandContext) const;
 private:
 	struct Status
 	{
@@ -94,8 +93,6 @@ private:
 
 	size_t m_NumTextures;
 
-	RenderResourceHandle m_MaterialTextureIndicesStructuredBufferHandle;
-	Buffer* m_pMaterialTextureIndicesStructuredBuffer;
-	RenderResourceHandle m_MaterialTexturePropertiesStructuredBufferHandle;
-	Buffer* m_pMaterialTexturePropertiesStructuredBuffer;
+	RenderResourceHandle m_MaterialStructuredBufferHandle;
+	Buffer* m_pMaterialStructuredBuffer;
 };

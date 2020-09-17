@@ -1,17 +1,6 @@
-#ifndef __MATERIAL_H__
-#define __MATERIAL_H__
-#include "SharedDefines.h"
-
-#ifdef __cplusplus
-#include <filesystem>
-
-enum class TextureFlags
-{
-	Unknown,
-	Disk,
-	Embedded
-};
-#endif
+#ifndef __MATERIAL_HLSLI__
+#define __MATERIAL_HLSLI__
+#include "SharedDefines.hlsli"
 
 enum TextureTypes
 {
@@ -36,26 +25,8 @@ struct Material
 	float	RefractionRoughness;	// how rough the refractive transmissions are
 	float3	RefractionColor;		// absorption for beer's law
 	uint	Model;					// describes the material model
-
+	
 	int TextureIndices[NumTextureTypes];
-
-#ifdef __cplusplus
-	struct Texture
-	{
-		std::filesystem::path Path;
-		std::size_t EmbeddedIndex;
-		TextureFlags Flag;
-	};
-	Texture Textures[NumTextureTypes];
-
-	Material()
-	{
-		for (int i = 0; i < NumTextureTypes; ++i)
-		{
-			Textures[i] = {};
-			TextureIndices[i] = -1;
-		}
-	}
-#endif
 };
+
 #endif

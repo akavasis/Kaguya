@@ -3,9 +3,12 @@
 #include "Skybox.h"
 #include "Camera.h"
 #include "Light.h"
+#include "Material.h"
 #include "Model.h"
 #include "MaterialLoader.h"
 #include "ModelLoader.h"
+
+#include "SharedTypes.h"
 
 struct Scene
 {

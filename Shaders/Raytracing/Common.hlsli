@@ -58,10 +58,10 @@ Vertex BERP(in Triangle t, in float3 barycentric)
 // D3D12_RAYTRACING_SHADER_CONFIG pipeline subobjet.
 struct RayPayload
 {
-    float3 Radiance;
-	float3 Throughput;
-	uint Seed;
-	uint Depth;
+    float3  Radiance;
+	float3  Throughput;
+	uint    Seed;
+	uint    Depth;
 };
 
 struct ShadowRayPayload
@@ -76,6 +76,6 @@ typedef BuiltInTriangleIntersectionAttributes HitAttributes;
 enum RayType
 {
     RayTypePrimary,
-  RayTypeShadow,
-  NumRayTypes
+    RayTypeShadow,
+    NumRayTypes
 };

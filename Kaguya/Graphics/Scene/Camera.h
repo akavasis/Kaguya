@@ -9,15 +9,12 @@ public:
 
 	inline float NearZ() const { return m_NearZ; }
 	inline float FarZ() const { return m_FarZ; }
-	DirectX::XMMATRIX WorldMatrix() const;
 	DirectX::XMMATRIX ViewMatrix() const;
 	DirectX::XMMATRIX ProjectionMatrix() const;
 	DirectX::XMMATRIX InverseViewMatrix() const;
 	DirectX::XMMATRIX InverseProjectionMatrix() const;
 	DirectX::XMMATRIX ViewProjectionMatrix() const;
 	DirectX::XMMATRIX InverseViewProjectionMatrix() const;
-	DirectX::XMVECTOR WorldPositionVector() const;
-	DirectX::XMVECTOR LocalPositionVector() const;
 
 	void SetLookAt(DirectX::XMVECTOR EyePosition, DirectX::XMVECTOR FocusPosition, DirectX::XMVECTOR UpDirection);
 	void SetProjection(DirectX::XMMATRIX M);

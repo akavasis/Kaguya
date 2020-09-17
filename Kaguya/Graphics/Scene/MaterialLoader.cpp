@@ -15,6 +15,17 @@ Material MaterialLoader::LoadMaterial(
 {
 	Material material = {};
 
+	material.Albedo = { 0.0f, 0.0f, 0.0f };
+	material.Emissive = { 0.0f, 0.0f, 0.0f };
+	material.SpecularChance = 0.0f;
+	material.SpecularRoughness = 0.0f;
+	material.SpecularColor = { 0.0f, 0.0f, 0.0f };
+	material.IndexOfRefraction = 1.0f;
+	material.RefractionChance = 0.0f;
+	material.RefractionRoughness = 0.0f;
+	material.RefractionColor = { 0.0f, 0.0f, 0.0f };
+	material.Model = 0;
+
 	auto InitTexture = [&](TextureTypes Type, const char* pPath)
 	{
 		if (pPath)
@@ -25,22 +36,11 @@ Material MaterialLoader::LoadMaterial(
 		}
 	};
 
-	InitTexture(TextureTypes::Albedo, pAlbedoMapPath);
-	InitTexture(TextureTypes::Normal, pNormalMapPath);
-	InitTexture(TextureTypes::Roughness, pRoughnessMapPath);
-	InitTexture(TextureTypes::Metallic, pMetallicMapPath);
-	InitTexture(TextureTypes::Emissive, pEmissiveMapPath);
-
-	material.Properties.Albedo = { 0.0f, 0.0f, 0.0f };
-	material.Properties.Emissive = { 0.0f, 0.0f, 0.0f };
-	material.Properties.SpecularChance = 0.0f;
-	material.Properties.SpecularRoughness = 0.0f;
-	material.Properties.SpecularColor = { 0.0f, 0.0f, 0.0f };
-	material.Properties.IndexOfRefraction = 1.0f;
-	material.Properties.RefractionChance = 0.0f;
-	material.Properties.RefractionRoughness = 0.0f;
-	material.Properties.RefractionColor = { 0.0f, 0.0f, 0.0f };
-	material.Properties.Model = 0;
+	InitTexture(TextureTypes::AlbedoIdx, pAlbedoMapPath);
+	InitTexture(TextureTypes::NormalIdx, pNormalMapPath);
+	InitTexture(TextureTypes::RoughnessIdx, pRoughnessMapPath);
+	InitTexture(TextureTypes::MetallicIdx, pMetallicMapPath);
+	InitTexture(TextureTypes::EmissiveIdx, pEmissiveMapPath);
 
 	return material;
 }

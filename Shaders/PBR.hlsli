@@ -47,9 +47,9 @@ float3 Fresnel_SchlickRoughness(in float cosTheta, in float3 F0, in float roughn
 	return F0 + (max(1.0f - roughness, F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float3 CalcLighting(in MaterialTextureProperties surface, in float3 N, in float3 V, in float3 L, in float3 radiance)
+float3 CalcLighting(in Material material, in float3 N, in float3 V, in float3 L, in float3 radiance)
 {
-	float3 F0 = lerp(Fdielectric, surface.Albedo, surface.SpecularChance);
+	float3 F0 = lerp(Fdielectric, material.Albedo, material.SpecularChance);
 	
 	float3 H = normalize(L + V);
 	
@@ -58,30 +58,30 @@ float3 CalcLighting(in MaterialTextureProperties surface, in float3 N, in float3
 	float cosLh = max(0.0f, dot(N, H)); // cosTheta for half vector
 	
 	// CookTorrance BRDF
-	float NDF = NDF_TrowbridgeReitzGGX(cosLh, surface.SpecularRoughness);
+	float NDF = NDF_TrowbridgeReitzGGX(cosLh, material.SpecularRoughness);
 	float3 F = Fresnel_Schlick(max(0.0f, dot(H, V)), F0);
-	float GF = GF_Smith(cosLo, cosLi, surface.SpecularRoughness);
+	float GF = GF_Smith(cosLo, cosLi, material.SpecularRoughness);
 	
 	// Diffuse scattering happens due to light being refracted multiple times by a dielectric medium.
 	// Metals on the other hand either reflect or absorb energy, so diffuse contribution is always zero.
 	// To be energy conserving we must scale diffuse BRDF contribution based on Fresnel factor & metalness.
-	float3 kD = lerp(1.0f - F, 0.0f, surface.SpecularChance);
+	float3 kD = lerp(1.0f - F, 0.0f, material.SpecularChance);
 	
 	// We don't scale by 1/PI for lighting & material units to be more convenient.
 	// See: https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
-	float3 diffuse = kD * surface.Albedo/* / s_PI*/;
+	float3 diffuse = kD * material.Albedo/* / s_PI*/;
 	float3 specular = (NDF * F * GF) / max(0.00001f, 4.0 * cosLi * cosLo); // specular, aka cook torrance brdf
 	return (diffuse + specular) * radiance * cosLi;
 }
 
-float3 IBL(in MaterialTextureProperties surface, in float cosLo, in float3 irradiance, in float3 prefiltered, in float2 BRDFIntegration)
+float3 IBL(in Material material, in float cosLo, in float3 irradiance, in float3 prefiltered, in float2 BRDFIntegration)
 {
-	float3 F0 = lerp(Fdielectric, surface.Albedo, surface.SpecularChance);
+	float3 F0 = lerp(Fdielectric, material.Albedo, material.SpecularChance);
 	
-	float3 F = Fresnel_SchlickRoughness(cosLo, F0, surface.SpecularRoughness);
-	float3 kD = lerp(1.0f - F, 0.0f, surface.SpecularChance);
+	float3 F = Fresnel_SchlickRoughness(cosLo, F0, material.SpecularRoughness);
+	float3 kD = lerp(1.0f - F, 0.0f, material.SpecularChance);
 
-	float3 diffuse = kD * surface.Albedo * irradiance;
+	float3 diffuse = kD * material.Albedo * irradiance;
 	float3 specular = (F * BRDFIntegration.x + BRDFIntegration.y) * prefiltered;
 	
 	return diffuse + specular;

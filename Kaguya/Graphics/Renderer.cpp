@@ -83,7 +83,7 @@ void Renderer::UploadScene(Scene& Scene)
 
 		for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
 		{
-			auto handle = m_GpuTextureAllocator.AssetTextures[i];
+			auto handle = m_GpuTextureAllocator.RendererReseveredTextures[i];
 			m_RenderDevice.CreateSRV(handle, m_GpuDescriptorIndices.TextureShaderResourceViews[i]);
 		}
 
@@ -173,10 +173,10 @@ void Renderer::Render(Scene& Scene)
 
 	renderPassCPU.Sun = Scene.Sun;
 	renderPassCPU.SunShadowMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex - m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
-	renderPassCPU.BRDFLUTMapIndex = GpuTextureAllocator::AssetTextures::BRDFLUT;
-	renderPassCPU.RadianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxCubemap;
-	renderPassCPU.IrradianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxIrradianceCubemap;
-	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::AssetTextures::SkyboxPrefilteredCubemap;
+	renderPassCPU.BRDFLUTMapIndex = GpuTextureAllocator::RendererReseveredTextures::BRDFLUT;
+	renderPassCPU.RadianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxCubemap;
+	renderPassCPU.IrradianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxIrradianceCubemap;
+	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxPrefilteredCubemap;
 
 	renderPassCPU.MaxDepth = 4;
 

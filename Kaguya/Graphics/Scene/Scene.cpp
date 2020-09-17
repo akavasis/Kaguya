@@ -28,7 +28,7 @@ Model& Scene::AddModel(Model&& Model)
 UINT CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vector<const Model*>& Indices)
 {
 	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
-	frustum.Transform(frustum, pCamera->WorldMatrix());
+	frustum.Transform(frustum, pCamera->Transform.Matrix());
 
 	UINT numVisible = 0;
 	for (auto iter = Models.begin(); iter != Models.end(); ++iter)
@@ -84,7 +84,7 @@ UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, 
 UINT CullMeshes(const Camera* pCamera, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices)
 {
 	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
-	frustum.Transform(frustum, pCamera->WorldMatrix());
+	frustum.Transform(frustum, pCamera->Transform.Matrix());
 
 	UINT numVisible = 0;
 	for (size_t i = 0, numMeshes = Meshes.size(); i < numMeshes; ++i)

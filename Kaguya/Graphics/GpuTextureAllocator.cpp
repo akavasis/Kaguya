@@ -2,6 +2,23 @@
 #include "GpuTextureAllocator.h"
 #include "RendererRegistry.h"
 
+struct HLSLMaterial
+{
+	// Note: diffuse chance is 1.0f - (specularChance+refractionChance)
+	float3	Albedo;					// the color used for diffuse lighting
+	float3	Emissive;				// how much the surface glows
+	float	SpecularChance;			// percentage chance of doing a specular reflection
+	float	SpecularRoughness;		// how rough the specular reflections are
+	float3	SpecularColor;			// the color tint of specular reflections
+	float	IndexOfRefraction;		// index of refraction. used by fresnel and refraction.
+	float	RefractionChance;		// percent chance of doing a refractive transmission
+	float	RefractionRoughness;	// how rough the refractive transmissions are
+	float3	RefractionColor;		// absorption for beer's law
+	uint	Model;					// describes the material model
+
+	int TextureIndices[NumTextureTypes];
+};
+
 size_t GpuTextureAllocator::TextureStorage::Size() const
 {
 	// Size should be same, but this is a insanity check
@@ -49,7 +66,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t Num
 	m_RTV = pRenderDevice->DescriptorAllocator.AllocateRenderTargetDescriptors(1);
 
 	// Create BRDF LUT
-	AssetTextures[BRDFLUT] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	RendererReseveredTextures[BRDFLUT] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(RendererFormats::BRDFLUTFormat);
 		proxy.SetWidth(Resolutions::BRDFLUT);
@@ -103,23 +120,14 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t Num
 		pCubemapCameras->Update<RenderPassConstants>(i, rpcCPU);
 	}
 
-	m_MaterialTextureIndicesStructuredBufferHandle = pRenderDevice->CreateBuffer([NumMaterials](BufferProxy& proxy)
+	m_MaterialStructuredBufferHandle = pRenderDevice->CreateBuffer([NumMaterials](BufferProxy& proxy)
 	{
-		proxy.SetSizeInBytes(NumMaterials * sizeof(MaterialTextureIndices));
-		proxy.SetStride(sizeof(MaterialTextureIndices));
+		proxy.SetSizeInBytes(NumMaterials * sizeof(HLSLMaterial));
+		proxy.SetStride(sizeof(HLSLMaterial));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
-	m_pMaterialTextureIndicesStructuredBuffer = pRenderDevice->GetBuffer(m_MaterialTextureIndicesStructuredBufferHandle);
-	m_pMaterialTextureIndicesStructuredBuffer->Map();
-
-	m_MaterialTexturePropertiesStructuredBufferHandle = pRenderDevice->CreateBuffer([NumMaterials](BufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(NumMaterials * sizeof(MaterialTextureProperties));
-		proxy.SetStride(sizeof(MaterialTextureProperties));
-		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-	});
-	m_pMaterialTexturePropertiesStructuredBuffer = pRenderDevice->GetBuffer(m_MaterialTexturePropertiesStructuredBufferHandle);
-	m_pMaterialTexturePropertiesStructuredBuffer->Map();
+	m_pMaterialStructuredBuffer = pRenderDevice->GetBuffer(m_MaterialStructuredBufferHandle);
+	m_pMaterialStructuredBuffer->Map();
 
 	DXGI_FORMAT optionalFormats[] =
 	{
@@ -199,31 +207,31 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		sr.left = sr.top = 0;
 		sr.right = sr.bottom = Resolutions::BRDFLUT;
 
-		pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(AssetTextures[BRDFLUT]), Resource::State::RenderTarget);
+		pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), Resource::State::RenderTarget);
 
 		pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		pCommandContext->SetPipelineState(pRenderDevice->GetGraphicsPSO(GraphicsPSOs::BRDFIntegration));
 		pCommandContext->SetGraphicsRootSignature(pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration));
 
-		pRenderDevice->CreateRTV(AssetTextures[BRDFLUT], m_RTV[0], {}, {}, {});
+		pRenderDevice->CreateRTV(RendererReseveredTextures[BRDFLUT], m_RTV[0], {}, {}, {});
 
 		pCommandContext->SetRenderTargets(1, m_RTV[0], TRUE, Descriptor());
 		pCommandContext->SetViewports(1, &vp);
 		pCommandContext->SetScissorRects(1, &sr);
 		pCommandContext->DrawInstanced(3, 1, 0, 0);
-		pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(AssetTextures[BRDFLUT]), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+		pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 	}
 
 	pCommandContext->SetDescriptorHeaps(&m_CBSRUADescriptorHeap, nullptr);
 
 	// Generate skybox first
-	AssetTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
-	auto& stagingTexture = m_UnstagedTextures[AssetTextures[SkyboxEquirectangularMap]];
-	StageTexture(AssetTextures[SkyboxEquirectangularMap], stagingTexture, pCommandContext);
+	RendererReseveredTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
+	auto& stagingTexture = m_UnstagedTextures[RendererReseveredTextures[SkyboxEquirectangularMap]];
+	StageTexture(RendererReseveredTextures[SkyboxEquirectangularMap], stagingTexture, pCommandContext);
 
 	// Generate cubemap for equirectangular map
-	Texture* pEquirectangularMap = pRenderDevice->GetTexture(AssetTextures[SkyboxEquirectangularMap]);
-	AssetTextures[SkyboxCubemap] = pRenderDevice->CreateTexture(Resource::Type::TextureCube, [&](TextureProxy& proxy)
+	Texture* pEquirectangularMap = pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxEquirectangularMap]);
+	RendererReseveredTextures[SkyboxCubemap] = pRenderDevice->CreateTexture(Resource::Type::TextureCube, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(pEquirectangularMap->GetFormat());
 		proxy.SetWidth(1024);
@@ -233,12 +241,12 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		proxy.InitialState = Resource::State::Common;
 	});
 
-	EquirectangularToCubemap(AssetTextures[SkyboxEquirectangularMap], AssetTextures[SkyboxCubemap], pCommandContext);
+	EquirectangularToCubemap(RendererReseveredTextures[SkyboxEquirectangularMap], RendererReseveredTextures[SkyboxCubemap], pCommandContext);
 
 	// Create temporary srv for the cubemap and generate convolutions
 	DescriptorAllocation tempSkyboxSRV = m_CBSRUADescriptorHeap.AllocateSRDescriptors(1);
-	pRenderDevice->CreateSRV(AssetTextures[SkyboxCubemap], tempSkyboxSRV[0]);
-	pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(AssetTextures[SkyboxCubemap]), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+	pRenderDevice->CreateSRV(RendererReseveredTextures[SkyboxCubemap], tempSkyboxSRV[0]);
+	pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxCubemap]), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 
 	// Generate cubemap convolutions
 	for (int i = 0; i < CubemapConvolution::CubemapConvolution_Count; ++i)
@@ -313,8 +321,8 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		// Set cubemap
 		switch (i)
 		{
-		case Irradiance: AssetTextures[SkyboxIrradianceCubemap] = cubemap; break;
-		case Prefilter: AssetTextures[SkyboxPrefilteredCubemap] = cubemap; break;
+		case Irradiance: RendererReseveredTextures[SkyboxIrradianceCubemap] = cubemap; break;
+		case Prefilter: RendererReseveredTextures[SkyboxPrefilteredCubemap] = cubemap; break;
 		}
 
 		// Push back the allocations
@@ -333,7 +341,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
 	{
 		// Skybox is already staged, dont need to stage again
-		if (handle == AssetTextures[SkyboxEquirectangularMap])
+		if (handle == RendererReseveredTextures[SkyboxEquirectangularMap])
 			continue;
 
 		StageTexture(handle, stagingTexture, pCommandContext);
@@ -350,10 +358,11 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 				material.TextureIndices[i] = textureIndexIter->second;
 			}
 		}
-		if (!material.Textures[Albedo].Path.empty())
+		if (!material.Textures[AlbedoIdx].Path.empty())
 		{
-			auto textureHandleIter = TextureStorage.TextureHandles.find(material.Textures[Albedo].Path.generic_string());
-			material.IsMasked = m_UnstagedTextures[textureHandleIter->second].isMasked;
+			auto textureHandleIter = TextureStorage.TextureHandles.find(material.Textures[AlbedoIdx].Path.generic_string());
+			// TODO: idk if this should be used for raytracing shaders
+			//material.IsMasked = m_UnstagedTextures[textureHandleIter->second].isMasked;
 		}
 	}
 
@@ -364,36 +373,21 @@ void GpuTextureAllocator::Update(const Scene& Scene)
 	std::size_t i = 0;
 	for (const auto& material : Scene.Materials)
 	{
-		MaterialTextureIndices materialTextureIndices = {};
-		materialTextureIndices.AlbedoMapIndex = material.TextureIndices[TextureTypes::Albedo];
-		materialTextureIndices.NormalMapIndex = material.TextureIndices[TextureTypes::Normal];
-		materialTextureIndices.RoughnessMapIndex = material.TextureIndices[TextureTypes::Roughness];
-		materialTextureIndices.MetallicMapIndex = material.TextureIndices[TextureTypes::Metallic];
-		materialTextureIndices.EmissiveMapIndex = material.TextureIndices[TextureTypes::Emissive];
-		materialTextureIndices.IsMasked = material.IsMasked;
-		m_pMaterialTextureIndicesStructuredBuffer->Update<MaterialTextureIndices>(i, materialTextureIndices);
+		HLSLMaterial hlslMaterial = {};
+		memcpy(&hlslMaterial, &material, sizeof(hlslMaterial));
 
-		m_pMaterialTexturePropertiesStructuredBuffer->Update<MaterialTextureProperties>(i, material.Properties);
-		i++;
+		m_pMaterialStructuredBuffer->Update<HLSLMaterial>(i++, hlslMaterial);
 	}
 }
 
-void GpuTextureAllocator::Bind(std::optional<UINT> MaterialTextureIndicesRootParameterIndex, std::optional<UINT> MaterialTexturePropertiesRootParameterIndex, CommandContext* pCommandContext) const
+void GpuTextureAllocator::Bind(std::optional<UINT> MaterialRootParameterIndex, CommandContext* pCommandContext) const
 {
-	if (MaterialTextureIndicesRootParameterIndex.has_value())
+	if (MaterialRootParameterIndex.has_value())
 	{
 		if (pCommandContext->GetType() == CommandContext::Type::Direct)
-			pCommandContext->SetGraphicsRootShaderResourceView(MaterialTextureIndicesRootParameterIndex.value(), m_pMaterialTextureIndicesStructuredBuffer->GetGpuVirtualAddress());
+			pCommandContext->SetGraphicsRootShaderResourceView(MaterialRootParameterIndex.value(), m_pMaterialStructuredBuffer->GetGpuVirtualAddress());
 		else if (pCommandContext->GetType() == CommandContext::Type::Compute)
-			pCommandContext->SetComputeRootShaderResourceView(MaterialTextureIndicesRootParameterIndex.value(), m_pMaterialTextureIndicesStructuredBuffer->GetGpuVirtualAddress());
-	}
-
-	if (MaterialTexturePropertiesRootParameterIndex.has_value())
-	{
-		if (pCommandContext->GetType() == CommandContext::Type::Direct)
-			pCommandContext->SetGraphicsRootShaderResourceView(MaterialTexturePropertiesRootParameterIndex.value(), m_pMaterialTexturePropertiesStructuredBuffer->GetGpuVirtualAddress());
-		else if (pCommandContext->GetType() == CommandContext::Type::Compute)
-			pCommandContext->SetComputeRootShaderResourceView(MaterialTexturePropertiesRootParameterIndex.value(), m_pMaterialTexturePropertiesStructuredBuffer->GetGpuVirtualAddress());
+			pCommandContext->SetComputeRootShaderResourceView(MaterialRootParameterIndex.value(), m_pMaterialStructuredBuffer->GetGpuVirtualAddress());
 	}
 }
 
@@ -571,7 +565,7 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 		{
 		case TextureFlags::Disk:
 		{
-			bool srgb = i == Albedo || i == Emissive;
+			bool srgb = i == AlbedoIdx || i == EmissiveIdx;
 
 			if (!Material.Textures[i].Path.empty())
 			{

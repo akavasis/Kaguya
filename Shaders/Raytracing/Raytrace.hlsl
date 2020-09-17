@@ -28,35 +28,26 @@ Vertex GetBERPedVertex(in HitAttributes attrib, in uint geometryIndex)
 	return BERP(t, barycentrics);
 }
 
-MaterialTextureIndices GetMaterialIndices(in uint geometryIndex)
-{
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-	return MaterialIndices[info.MaterialIndex];
-}
-
-MaterialTextureProperties GetMaterialProperties(in uint geometryIndex)
-{
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-	return MaterialProperties[info.MaterialIndex];
-}
-
 struct SurfaceInteraction
 {
 	bool frontFace;
 	float3 position;
 	float2 uv;
 	BSDF bsdf;
-	MaterialTextureIndices materialIndices;
-	MaterialTextureProperties materialProperties;
+	Material material;
 };
 
 SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryIndex)
 {
 	SurfaceInteraction si;
 	
+	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
 	Vertex hitSurface = GetBERPedVertex(attrib, geometryIndex);
-	MaterialTextureIndices materialIndices = GetMaterialIndices(geometryIndex);
-	MaterialTextureProperties materialProperties = GetMaterialProperties(geometryIndex);
+	Material material = Materials[info.MaterialIndex];
+	
+	hitSurface.Tangent = mul(float4(hitSurface.Tangent, 0.0f), info.World).xyz;
+	hitSurface.Bitangent = mul(float4(hitSurface.Bitangent, 0.0f), info.World).xyz;
+	hitSurface.Normal = mul(float4(hitSurface.Normal, 0.0f), info.World).xyz;
 	
 	//float3 Rd = lerp(materialProperties.Albedo, 0.0.xxx, materialProperties.Metallic);
 	//float3 Rs = lerp(0.03f, materialProperties.Albedo, materialProperties.Metallic);
@@ -70,8 +61,7 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 	si.bsdf.normal = hitSurface.Normal;
 	//si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f)); // Not used yet, still reading Physically Based Rendering
 	// Perhaps i should merge these 2 structs into 1 unified Material struct...
-	si.materialIndices = materialIndices;
-	si.materialProperties = materialProperties;
+	si.material = material;
 	
 	return si;
 }
@@ -127,7 +117,7 @@ struct Dielectric
 		{
 			float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal);
 			ray.Direction = reflected;
-			attenuation = si.materialProperties.SpecularColor;
+			attenuation = si.material.SpecularColor;
 		}
 		else
 		{
@@ -138,7 +128,7 @@ struct Dielectric
 		// do absorption if we are hitting from inside the object
 		if (!si.frontFace)
 		{
-			attenuation *= exp(-si.materialProperties.RefractionColor * RayTCurrent());
+			attenuation *= exp(-si.material.RefractionColor * RayTCurrent());
 		}
 		
 		scatteredRay = ray;
@@ -172,7 +162,7 @@ void RayGen()
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
 	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
 	
-	// calculate subpixel camera jitter for anti aliasing
+	// Calculate subpixel camera jitter for anti aliasing
 	const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
 	const float2 pixel = (float2(launchIndex) + 0.5f + jitter) / float2(launchDimensions); // Convert from discrete to continuous
 	
@@ -217,25 +207,25 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	
 	float3 attentuation;
 	RayDesc ray;
-	switch (si.materialProperties.Model)
+	switch (si.material.Model)
 	{
 		case MATERIAL_MODEL_LAMBERTIAN:
 		{
-			Lambertian lambertian = { si.materialProperties.Albedo };
+			Lambertian lambertian = { si.material.Albedo };
 			lambertian.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
 		
 		case MATERIAL_MODEL_METAL:
 		{
-			Metal metal = { si.materialProperties.Albedo, 0.0f };
+			Metal metal = { si.material.Albedo, 0.0f };
 			metal.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
 		
 		case MATERIAL_MODEL_DIELECTRIC:
 		{
-			Dielectric dielectric = { si.materialProperties.IndexOfRefraction };
+			Dielectric dielectric = { si.material.IndexOfRefraction };
 			dielectric.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
@@ -255,7 +245,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		break;
 	}
 	
-	rayPayload.Radiance += si.materialProperties.Emissive * rayPayload.Throughput;
+	rayPayload.Radiance += si.material.Emissive * rayPayload.Throughput;
 	rayPayload.Throughput *= attentuation;
 	
 	// Path trace

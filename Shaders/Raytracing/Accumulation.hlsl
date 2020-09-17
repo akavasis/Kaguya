@@ -1,4 +1,4 @@
-cbuffer AccumulationSetting : register(b0)
+cbuffer Settings : register(b0)
 {
 	unsigned int AccumulationCount;
 };
