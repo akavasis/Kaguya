@@ -30,7 +30,7 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		// 0
 		auto& nullMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		nullMaterial.Albedo = { 0.7f, 0.7f, 0.7f };
-		nullMaterial.Model = MATERIAL_MODEL_LAMBERTIAN;
+		nullMaterial.Model = LambertianModel;
 	}
 
 	int matIdx = 1;
@@ -57,7 +57,7 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 					{
 						XMVECTOR albedo = Math::RandomVector() * Math::RandomVector();
 						XMStoreFloat3(&mat.Albedo, albedo);
-						mat.Model = MATERIAL_MODEL_LAMBERTIAN;
+						mat.Model = LambertianModel;
 					}
 					else if (choose_mat < 0.95f)
 					{
@@ -66,12 +66,12 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 
 						XMStoreFloat3(&mat.Albedo, albedo);
 						mat.Fuzziness = fuzz;
-						mat.Model = MATERIAL_MODEL_METAL;
+						mat.Model = MetalModel;
 					}
 					else
 					{
 						mat.IndexOfRefraction = 1.5f;
-						mat.Model = MATERIAL_MODEL_DIELECTRIC;
+						mat.Model = DielectricModel;
 					}
 				}
 			}
@@ -82,7 +82,7 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 	{
 		auto& material1 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		material1.IndexOfRefraction = 1.5f;
-		material1.Model = MATERIAL_MODEL_DIELECTRIC;
+		material1.Model = DielectricModel;
 
 		auto& sphere1 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 		sphere1.Translate(0.0f, 1.0f, 0.0f);
@@ -93,7 +93,7 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 	{
 		auto& material2 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		material2.Albedo = { 0.4f, 0.2f, 0.1f };
-		material2.Model = MATERIAL_MODEL_LAMBERTIAN;
+		material2.Model = LambertianModel;
 
 		auto& sphere2 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 		sphere2.Translate(-4.0f, 1.0f, 0.0f);
@@ -105,7 +105,7 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		auto& material3 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		material3.Albedo = { 0.7f, 0.6f, 0.5f };
 		material3.Fuzziness = 0.0f;
-		material3.Model = MATERIAL_MODEL_METAL;
+		material3.Model = MetalModel;
 
 		auto& sphere3 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 		sphere3.Translate(4.0f, 1.0f, 0.0f);
@@ -124,23 +124,23 @@ Scene CornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelL
 		// 0
 		auto& nullMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		nullMaterial.Albedo = { 0.7f, 0.7f, 0.7f };
-		nullMaterial.Model = MATERIAL_MODEL_LAMBERTIAN;
+		nullMaterial.Model = LambertianModel;
 
 		// 1
 		auto& leftwallMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		leftwallMaterial.Albedo = { 0.7f, 0.1f, 0.1f };
-		leftwallMaterial.Model = MATERIAL_MODEL_LAMBERTIAN;
+		leftwallMaterial.Model = LambertianModel;
 
 		// 2
 		auto& rightwallMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		rightwallMaterial.Albedo = { 0.1f, 0.7f, 0.1f };
-		rightwallMaterial.Model = MATERIAL_MODEL_LAMBERTIAN;
+		rightwallMaterial.Model = LambertianModel;
 
 		// 3
 		auto& lightMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		lightMaterial.Albedo = { 0.0f, 0.0f, 0.0f };
 		XMStoreFloat3(&lightMaterial.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
-		lightMaterial.Model = MATERIAL_MODEL_DIFFUSE_LIGHT;
+		lightMaterial.Model = DiffuseLightModel;
 	}
 
 	// Models
@@ -185,17 +185,17 @@ Scene LambertianSpheresInCornellBox(const MaterialLoader& MaterialLoader, const 
 		// 4
 		auto& leftsphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		leftsphereMaterial.Albedo = { 0.9f, 0.9f, 0.5f };
-		leftsphereMaterial.Model = MATERIAL_MODEL_LAMBERTIAN;
+		leftsphereMaterial.Model = LambertianModel;
 
 		// 5
 		auto& middlesphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		middlesphereMaterial.Albedo = { 0.9f, 0.5f, 0.9f };
-		middlesphereMaterial.Model = MATERIAL_MODEL_LAMBERTIAN;
+		middlesphereMaterial.Model = LambertianModel;
 
 		// 6
 		auto& rightsphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		rightsphereMaterial.Albedo = { 0.5f, 0.9f, 0.9f };
-		rightsphereMaterial.Model = MATERIAL_MODEL_LAMBERTIAN;
+		rightsphereMaterial.Model = LambertianModel;
 	}
 
 	// Spheres
@@ -228,7 +228,7 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 		leftsphereMaterial.SpecularChance = 0.1f;
 		leftsphereMaterial.SpecularRoughness = 0.2f;
 		leftsphereMaterial.SpecularColor = { 0.9f, 0.9f, 0.9f };
-		leftsphereMaterial.Model = MATERIAL_MODEL_GLOSSY;
+		leftsphereMaterial.Model = GlossyModel;
 
 		// 5
 		auto& middlesphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
@@ -236,7 +236,7 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 		middlesphereMaterial.SpecularChance = 0.3f;
 		middlesphereMaterial.SpecularRoughness = 0.2f;
 		middlesphereMaterial.SpecularColor = { 0.9f, 0.9f, 0.9f };
-		middlesphereMaterial.Model = MATERIAL_MODEL_GLOSSY;
+		middlesphereMaterial.Model = GlossyModel;
 
 		// 6
 		// a ball which has blue diffuse but red specular. an example of a "bad material".
@@ -246,7 +246,7 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 		rightsphereMaterial.SpecularChance = 0.5f;
 		rightsphereMaterial.SpecularRoughness = 0.4f;
 		rightsphereMaterial.SpecularColor = { 1.0f, 0.0f, 0.0f };
-		rightsphereMaterial.Model = MATERIAL_MODEL_GLOSSY;
+		rightsphereMaterial.Model = GlossyModel;
 
 		// 7 + i
 		float variousRoughness[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
@@ -257,7 +257,7 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 			greenMat.SpecularChance = 1.0f;
 			greenMat.SpecularRoughness = variousRoughness[i];
 			greenMat.SpecularColor = { 0.3f, 1.0f, 0.3f };
-			greenMat.Model = MATERIAL_MODEL_GLOSSY;
+			greenMat.Model = GlossyModel;
 		}
 	}
 
@@ -298,11 +298,11 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 	{
 		auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
-		defaultMat.Model = MATERIAL_MODEL_LAMBERTIAN;
+		defaultMat.Model = LambertianModel;
 
 		auto& light = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		XMStoreFloat3(&light.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
-		light.Model = MATERIAL_MODEL_LAMBERTIAN;
+		light.Model = LambertianModel;
 
 		for (int sphereIndex = 0; sphereIndex < c_numSpheres; ++sphereIndex)
 		{
@@ -316,7 +316,7 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 			sphere.SpecularColor = { 0.8f, 0.8f, 0.8f };
 			sphere.IndexOfRefraction = indexOfRefraction;
 			sphere.RefractionRoughness = 0.0f;
-			sphere.Model = MATERIAL_MODEL_DIELECTRIC;
+			sphere.Model = DielectricModel;
 		}
 	}
 

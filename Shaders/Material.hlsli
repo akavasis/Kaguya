@@ -2,11 +2,14 @@
 #define __MATERIAL_HLSLI__
 #include "SharedDefines.hlsli"
 
-#define MATERIAL_MODEL_LAMBERTIAN 0
-#define MATERIAL_MODEL_GLOSSY 1
-#define MATERIAL_MODEL_METAL 2
-#define MATERIAL_MODEL_DIELECTRIC 3
-#define MATERIAL_MODEL_DIFFUSE_LIGHT 4
+enum MaterialModel
+{
+	LambertianModel,
+	GlossyModel,
+	MetalModel,
+	DielectricModel,
+	DiffuseLightModel
+};
 
 enum TextureTypes
 {

@@ -54,7 +54,7 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 	si.uv = hitSurface.Texture;
 	si.bsdf.tangent = hitSurface.Tangent;
 	si.bsdf.bitangent = hitSurface.Bitangent;
-	si.bsdf.normal = hitSurface.Normal;
+	si.bsdf.normal = si.frontFace ? hitSurface.Normal : -hitSurface.Normal;
 	//si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f)); // Not used yet, still reading Physically Based Rendering
 	// Perhaps i should merge these 2 structs into 1 unified Material struct...
 	si.material = material;
@@ -142,12 +142,11 @@ struct Dielectric
 		{
 			float3 refracted = refract(WorldRayDirection(), si.bsdf.normal, etaI_Over_etaT);
 			ray.Direction = refracted;
-		}
-		
-		// do absorption if we are hitting from inside the object
-		if (!si.frontFace)
-		{
-			attenuation *= exp(-si.material.RefractionColor * RayTCurrent());
+			// do absorption if we are hitting from inside the object
+			if (!si.frontFace)
+			{
+				attenuation *= exp(-si.material.RefractionColor * RayTCurrent());
+			}
 		}
 		
 		scatteredRay = ray;
@@ -237,35 +236,35 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	RayDesc ray;
 	switch (si.material.Model)
 	{
-		case MATERIAL_MODEL_LAMBERTIAN:
+		case LambertianModel:
 		{
 			Lambertian lambertian = { si.material.Albedo };
 			lambertian.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
 		
-		case MATERIAL_MODEL_GLOSSY:
+		case GlossyModel:
 		{
 			Glossy glossy = { si.material.Albedo, si.material.SpecularChance, si.material.SpecularRoughness, si.material.SpecularColor };
 			glossy.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
 		
-		case MATERIAL_MODEL_METAL:
+		case MetalModel:
 		{
 			Metal metal = { si.material.Albedo, si.material.Fuzziness };
 			metal.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
 		
-		case MATERIAL_MODEL_DIELECTRIC:
+		case DielectricModel:
 		{
 			Dielectric dielectric = { si.material.IndexOfRefraction };
 			dielectric.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
 		
-		case MATERIAL_MODEL_DIFFUSE_LIGHT:
+		case DiffuseLightModel:
 		{
 			DiffuseLight diffuseLight;
 			diffuseLight.Scatter(si, rayPayload, attentuation, ray);
