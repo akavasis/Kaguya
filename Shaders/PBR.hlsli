@@ -49,7 +49,7 @@ float3 Fresnel_SchlickRoughness(in float cosTheta, in float3 F0, in float roughn
 
 float3 CalcLighting(in Material material, in float3 N, in float3 V, in float3 L, in float3 radiance)
 {
-	float3 F0 = lerp(Fdielectric, material.Albedo, material.SpecularChance);
+	float3 F0 = lerp(Fdielectric, material.Albedo, material.SpecularRoughness);
 	
 	float3 H = normalize(L + V);
 	
@@ -65,7 +65,7 @@ float3 CalcLighting(in Material material, in float3 N, in float3 V, in float3 L,
 	// Diffuse scattering happens due to light being refracted multiple times by a dielectric medium.
 	// Metals on the other hand either reflect or absorb energy, so diffuse contribution is always zero.
 	// To be energy conserving we must scale diffuse BRDF contribution based on Fresnel factor & metalness.
-	float3 kD = lerp(1.0f - F, 0.0f, material.SpecularChance);
+	float3 kD = lerp(1.0f - F, 0.0f, material.SpecularRoughness);
 	
 	// We don't scale by 1/PI for lighting & material units to be more convenient.
 	// See: https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
@@ -76,10 +76,10 @@ float3 CalcLighting(in Material material, in float3 N, in float3 V, in float3 L,
 
 float3 IBL(in Material material, in float cosLo, in float3 irradiance, in float3 prefiltered, in float2 BRDFIntegration)
 {
-	float3 F0 = lerp(Fdielectric, material.Albedo, material.SpecularChance);
+	float3 F0 = lerp(Fdielectric, material.Albedo, material.SpecularRoughness);
 	
 	float3 F = Fresnel_SchlickRoughness(cosLo, F0, material.SpecularRoughness);
-	float3 kD = lerp(1.0f - F, 0.0f, material.SpecularChance);
+	float3 kD = lerp(1.0f - F, 0.0f, material.SpecularRoughness);
 
 	float3 diffuse = kD * material.Albedo * irradiance;
 	float3 specular = (F * BRDFIntegration.x + BRDFIntegration.y) * prefiltered;

@@ -21,7 +21,6 @@ Material MaterialLoader::LoadMaterial(
 	material.SpecularRoughness = 0.0f;
 	material.SpecularColor = { 0.0f, 0.0f, 0.0f };
 	material.IndexOfRefraction = 1.0f;
-	material.RefractionChance = 0.0f;
 	material.RefractionRoughness = 0.0f;
 	material.RefractionColor = { 0.0f, 0.0f, 0.0f };
 	material.Model = 0;

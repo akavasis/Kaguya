@@ -78,22 +78,25 @@ include_directories("../External/WinPixEventRuntime/include")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/WinPixEventRuntime/bin/x64/WinPixEventRuntime.lib)
 
 add_custom_command(
-TARGET ${PROJECTNAME} POST_BUILD
+TARGET ${PROJECTNAME} PRE_BUILD
 COMMAND ${CMAKE_COMMAND} -E copy 
 	${CMAKE_SOURCE_DIR}/External/assimp/bin/release/assimp-vc142-mt.dll
 	${CMAKE_SOURCE_DIR}/External/dxc/dxcompiler.dll
 	${CMAKE_SOURCE_DIR}/External/dxc/dxil.dll
 	${CMAKE_SOURCE_DIR}/External/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll
-	$<TARGET_FILE_DIR:${PROJECTNAME}>)
+	$<TARGET_FILE_DIR:${PROJECTNAME}>
+DEPENDS ${PROJECTNAME})
 
 add_custom_command(
-TARGET ${PROJECTNAME} POST_BUILD
+TARGET ${PROJECTNAME} PRE_BUILD
 COMMAND ${CMAKE_COMMAND} -E copy_directory
 	${CMAKE_SOURCE_DIR}/Assets
-	$<TARGET_FILE_DIR:${PROJECTNAME}>/Assets)
+	$<TARGET_FILE_DIR:${PROJECTNAME}>/Assets
+DEPENDS ${PROJECTNAME})
 
 add_custom_command(
-TARGET ${PROJECTNAME} POST_BUILD
+TARGET ${PROJECTNAME} PRE_BUILD
 COMMAND ${CMAKE_COMMAND} -E copy_directory
 	${CMAKE_SOURCE_DIR}/Shaders
-	$<TARGET_FILE_DIR:${PROJECTNAME}>/Shaders)
+	$<TARGET_FILE_DIR:${PROJECTNAME}>/Shaders
+DEPENDS ${PROJECTNAME})

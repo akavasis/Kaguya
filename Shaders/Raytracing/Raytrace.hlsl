@@ -80,6 +80,29 @@ struct Lambertian
 	}
 };
 
+struct Glossy
+{
+	float3 Albedo;
+	float SpecularChance;
+	float SpecularRoughness;
+	float3 SpecularColor;
+	
+	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
+	{
+		float doSpecular = RandomFloat01(rayPayload.Seed) < SpecularChance ? 1.0f : 0.0f;
+		
+		float3 diffuse = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
+		float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal);
+		reflected = normalize(lerp(reflected, diffuse, SpecularRoughness * SpecularRoughness));
+		
+		float3 direction = lerp(diffuse, reflected, doSpecular);
+		RayDesc ray = { si.position, 0.00001f, direction, 100000.0f };
+		
+		attenuation = lerp(Albedo, SpecularColor, doSpecular);
+		scatteredRay = ray;
+	}
+};
+
 struct Metal
 {
 	float3 Albedo;
@@ -103,7 +126,6 @@ struct Dielectric
 	
 	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
 	{
-		attenuation = float3(1.0f, 1.0f, 1.0f);
 		RayDesc ray = { si.position, 0.00001f, float3(0.0f, 0.0f, 0.0f), 100000.0f };
 		
 		float etaI_Over_etaT = si.frontFace ? (1.0f / IndexOfRefraction) : IndexOfRefraction;
@@ -131,6 +153,7 @@ struct Dielectric
 			attenuation *= exp(-si.material.RefractionColor * RayTCurrent());
 		}
 		
+		attenuation = float3(1.0f, 1.0f, 1.0f);
 		scatteredRay = ray;
 	}
 };
@@ -213,6 +236,13 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		{
 			Lambertian lambertian = { si.material.Albedo };
 			lambertian.Scatter(si, rayPayload, attentuation, ray);
+		}
+		break;
+		
+		case MATERIAL_MODEL_GLOSSY:
+		{
+			Glossy glossy = { si.material.Albedo, si.material.SpecularChance, si.material.SpecularRoughness, si.material.SpecularColor };
+			glossy.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
 		

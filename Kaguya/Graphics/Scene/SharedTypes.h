@@ -4,11 +4,6 @@
 #include "Light.h"
 #include "Material.h"
 
-#define MATERIAL_MODEL_LAMBERTIAN 0
-#define MATERIAL_MODEL_METAL 1
-#define MATERIAL_MODEL_DIELECTRIC 2
-#define MATERIAL_MODEL_DIFFUSE_LIGHT 3
-
 struct ObjectConstants
 {
 	matrix World;

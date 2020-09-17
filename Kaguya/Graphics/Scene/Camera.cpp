@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Camera.h"
-#include "../../Math/MathLibrary.h"
 using namespace DirectX;
 
 Camera::Camera()
