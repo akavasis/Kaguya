@@ -38,5 +38,7 @@ public:
 	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
 
 	SSettings Settings; // Set in Renderer
+	float LastAperture;
+	float LastFocalLength;
 	Transform LastCameraTransform;
 };

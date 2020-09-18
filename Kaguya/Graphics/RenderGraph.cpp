@@ -35,6 +35,7 @@ void RenderGraph::Setup()
 	}
 	m_ThreadPool = std::make_unique<ThreadPool>(m_NumRenderPasses);
 	m_Futures.resize(m_NumRenderPasses);
+	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); // This command context is for Gui
 }
 
 void RenderGraph::Update()
@@ -52,9 +53,6 @@ void RenderGraph::RenderGui()
 {
 	for (auto& renderPass : m_RenderPasses)
 	{
-		if (!renderPass->Enabled)
-			continue;
-
 		renderPass->RenderGui();
 	}
 }
@@ -85,8 +83,9 @@ void RenderGraph::Execute(UINT FrameIndex, Scene& Scene)
 	}
 }
 
-void RenderGraph::ExecuteCommandContexts()
+void RenderGraph::ExecuteCommandContexts(Texture* pDestination, Descriptor DestinationRTV, Gui* pGui)
 {
+	pGui->EndFrame(pDestination, DestinationRTV, m_CommandContexts.back());
 	pRenderDevice->ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
 }
 

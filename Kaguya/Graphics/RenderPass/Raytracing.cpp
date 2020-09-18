@@ -113,6 +113,7 @@ void Raytracing::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 
+	// Recreate resource views
 	const auto& uav = ResourceViews[EResourceViews::RenderTarget];
 	pRenderDevice->CreateUAV(Outputs[EOutputs::RenderTarget], uav[0], {}, {});
 }

@@ -53,13 +53,28 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 					sphere.Translate(center0.x, center0.y, center0.z);
 					sphere.Meshes[0].MaterialIndex = matIdx++;
 
-					if (choose_mat < 0.8f)
+					if (choose_mat < 0.25f && choose_mat >= 0.0f)
 					{
 						XMVECTOR albedo = Math::RandomVector() * Math::RandomVector();
 						XMStoreFloat3(&mat.Albedo, albedo);
 						mat.Model = LambertianModel;
 					}
-					else if (choose_mat < 0.95f)
+					else if (choose_mat < 0.5f && choose_mat >= 0.25f)
+					{
+						XMVECTOR albedo = Math::RandomVector();
+						XMStoreFloat3(&mat.Albedo, albedo);
+						mat.SpecularChance = Math::RandF();
+						mat.SpecularRoughness = Math::RandF();
+						XMVECTOR specularColor = Math::RandomVector();
+						XMStoreFloat3(&mat.Albedo, specularColor);
+						mat.Model = GlossyModel;
+					}
+					else if (choose_mat < 0.75f && choose_mat >= 0.5f)
+					{
+						mat.IndexOfRefraction = 1.5f;
+						mat.Model = DielectricModel;
+					}
+					else
 					{
 						XMVECTOR albedo = Math::RandomVector(0.5, 1);
 						float fuzz = Math::RandF(0, 0.5);
@@ -68,11 +83,6 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 						mat.Fuzziness = fuzz;
 						mat.Model = MetalModel;
 					}
-					else
-					{
-						mat.IndexOfRefraction = 1.5f;
-						mat.Model = DielectricModel;
-					}
 				}
 			}
 		}
@@ -80,36 +90,50 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 
 	// Sphere 1
 	{
-		auto& material1 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		material1.IndexOfRefraction = 1.5f;
-		material1.Model = DielectricModel;
+		auto& material = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		material.Albedo = { 0.4f, 0.2f, 0.1f };
+		material.Model = LambertianModel;
 
-		auto& sphere1 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		sphere1.Translate(0.0f, 1.0f, 0.0f);
-		sphere1.Meshes[0].MaterialIndex = matIdx++;
+		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+		sphere.Translate(-3.0f, 1.0f, 0.0f);
+		sphere.Meshes[0].MaterialIndex = matIdx++;
 	}
 
 	// Sphere 2
 	{
-		auto& material2 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		material2.Albedo = { 0.4f, 0.2f, 0.1f };
-		material2.Model = LambertianModel;
+		auto& material = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		material.Albedo = { 0.9f, 0.9f, 0.5f };
+		material.SpecularChance = 0.3f;
+		material.SpecularRoughness = 0.2f;
+		material.SpecularColor = { 0.9f, 0.9f, 0.9f };
+		material.Model = GlossyModel;
 
-		auto& sphere2 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		sphere2.Translate(-4.0f, 1.0f, 0.0f);
-		sphere2.Meshes[0].MaterialIndex = matIdx++;
+		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+		sphere.Translate(-1.0f, 1.0f, 0.0f);
+		sphere.Meshes[0].MaterialIndex = matIdx++;
 	}
 
 	// Sphere 3
 	{
-		auto& material3 = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		material3.Albedo = { 0.7f, 0.6f, 0.5f };
-		material3.Fuzziness = 0.0f;
-		material3.Model = MetalModel;
+		auto& material = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		material.Albedo = { 0.7f, 0.6f, 0.5f };
+		material.Fuzziness = 0.0f;
+		material.Model = MetalModel;
 
-		auto& sphere3 = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		sphere3.Translate(4.0f, 1.0f, 0.0f);
-		sphere3.Meshes[0].MaterialIndex = matIdx++;
+		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+		sphere.Translate(1.0f, 1.0f, 0.0f);
+		sphere.Meshes[0].MaterialIndex = matIdx++;
+	}
+
+	// Sphere 4
+	{
+		auto& material = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		material.IndexOfRefraction = 1.5f;
+		material.Model = DielectricModel;
+
+		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+		sphere.Translate(3.0f, 1.0f, 0.0f);
+		sphere.Meshes[0].MaterialIndex = matIdx++;
 	}
 
 	return scene;
@@ -368,7 +392,7 @@ int main(int argc, char** argv)
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 		scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
 
-		renderer.UploadScene(scene);
+		renderer.UploadScene(&scene);
 
 		Time time;
 		time.Restart();
@@ -429,7 +453,8 @@ int main(int argc, char** argv)
 			msg += L"   FPMS: " + std::to_wstring(Renderer::Statistics::FPMS);
 			window.AppendToTitle(msg);
 			renderer.Update(time);
-			renderer.Render(scene);
+			renderer.RenderUI(&scene);
+			renderer.Render(&scene);
 		});
 	}
 	catch (std::exception& e)

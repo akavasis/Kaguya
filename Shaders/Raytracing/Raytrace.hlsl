@@ -54,7 +54,7 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryI
 	si.uv = hitSurface.Texture;
 	si.bsdf.tangent = hitSurface.Tangent;
 	si.bsdf.bitangent = hitSurface.Bitangent;
-	si.bsdf.normal = si.frontFace ? hitSurface.Normal : -hitSurface.Normal;
+	si.bsdf.normal = hitSurface.Normal;
 	//si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f)); // Not used yet, still reading Physically Based Rendering
 	// Perhaps i should merge these 2 structs into 1 unified Material struct...
 	si.material = material;
@@ -125,6 +125,7 @@ struct Dielectric
 		attenuation = float3(1.0f, 1.0f, 1.0f);
 		RayDesc ray = { si.position, 0.00001f, float3(0.0f, 0.0f, 0.0f), 100000.0f };
 		
+		si.bsdf.normal = si.frontFace ? si.bsdf.normal : -si.bsdf.normal;
 		float etaI_Over_etaT = si.frontFace ? (1.0f / IndexOfRefraction) : IndexOfRefraction;
 	
 		float cosTheta = min(dot(-WorldRayDirection(), si.bsdf.normal), 1.0f);
@@ -199,6 +200,7 @@ void RayGen()
 
 	// Use uv coordinate to compute a random origin on the camera lens
 	float3 origin = RenderPassDataCB.EyePosition + uv.x * normalize(RenderPassDataCB.CameraU) + uv.y * normalize(RenderPassDataCB.CameraV);
+	direction = normalize(focalPoint - origin);
 	
 	// Initialize ray
 	RayDesc ray = { origin, 0.0f, direction, 1e+38f };

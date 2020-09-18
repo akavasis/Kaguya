@@ -12,6 +12,7 @@
 Renderer::Renderer(const Application& Application, Window& Window)
 	: pWindow(&Window),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
+	m_Gui(&m_RenderDevice),
 	m_RenderGraph(&m_RenderDevice),
 	m_GpuBufferAllocator(&m_RenderDevice, 200_MiB, 200_MiB, 64_KiB),
 	m_GpuTextureAllocator(&m_RenderDevice, 1000)
@@ -67,15 +68,15 @@ Renderer::~Renderer()
 	m_RenderDevice.ComputeQueue.WaitForIdle();
 }
 
-void Renderer::UploadScene(Scene& Scene)
+void Renderer::UploadScene(Scene* Scene)
 {
 	PIXCapture();
 
 	// Create texture srvs
 	{
-		m_GpuBufferAllocator.Stage(Scene, m_pUploadCommandContext);
+		m_GpuBufferAllocator.Stage(*Scene, m_pUploadCommandContext);
 		m_GpuBufferAllocator.Bind(m_pUploadCommandContext);
-		m_GpuTextureAllocator.Stage(Scene, m_pUploadCommandContext);
+		m_GpuTextureAllocator.Stage(*Scene, m_pUploadCommandContext);
 		m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
 
 		const std::size_t numSRVsToAllocate = m_GpuTextureAllocator.GetNumTextures();
@@ -118,27 +119,62 @@ void Renderer::UploadScene(Scene& Scene)
 
 	m_RenderDevice.CreateSRV(pAccumulationRenderPass->Outputs[Accumulation::EOutputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
 
-	pAccumulationRenderPass->LastCameraTransform = Scene.Camera.Transform;
+	pAccumulationRenderPass->LastCameraTransform = Scene->Camera.Transform;
 	pTonemapRenderPass->Settings.InputMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews.GetStartDescriptor().HeapIndex -
 		m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
 }
 
 void Renderer::Update(const Time& Time)
 {
-	Renderer::Statistics::TotalFrameCount++;
-	Renderer::Statistics::FrameCount++;
-	if (Time.TotalTime() - Renderer::Statistics::TimeElapsed >= 1.0)
+	Statistics::TotalFrameCount++;
+	Statistics::FrameCount++;
+	if (Time.TotalTime() - Statistics::TimeElapsed >= 1.0)
 	{
-		Renderer::Statistics::FPS = static_cast<DOUBLE>(Renderer::Statistics::FrameCount);
-		Renderer::Statistics::FPMS = 1000.0 / Renderer::Statistics::FPS;
-		Renderer::Statistics::FrameCount = 0;
-		Renderer::Statistics::TimeElapsed += 1.0;
+		Statistics::FPS = static_cast<DOUBLE>(Statistics::FrameCount);
+		Statistics::FPMS = 1000.0 / Statistics::FPS;
+		Statistics::FrameCount = 0;
+		Statistics::TimeElapsed += 1.0;
 	}
 
 	m_FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 }
 
-void Renderer::Render(Scene& Scene)
+void Renderer::RenderUI(Scene* Scene)
+{
+	m_Gui.BeginFrame(); // End frame will be called at the end of the Render method by RenderGraph
+
+	if (ImGui::Begin("Renderer"))
+	{
+		ImGui::Text("Statistics");
+		ImGui::Text("Total Frame Count: %d", Statistics::TotalFrameCount);
+		ImGui::Text("FPS: %f", Statistics::FPS);
+		ImGui::Text("FPMS: %f", Statistics::FPMS);
+		ImGui::Text("Accumulation: %f", Statistics::Accumulation);
+
+		if (ImGui::TreeNode("Setting"))
+		{
+			ImGui::Checkbox("V-Sync", &Settings::VSync);
+			ImGui::TreePop();
+		}
+
+		m_RenderGraph.RenderGui();
+	}
+	ImGui::End();
+
+	if (ImGui::Begin("Scene"))
+	{
+		if (ImGui::TreeNode("Camera"))
+		{
+			ImGui::DragFloat("Aperture", &Scene->Camera.Aperture, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat("Focal Length", &Scene->Camera.FocalLength, 0.01f, 0.01f, FLT_MAX);
+			ImGui::TreePop();
+		}
+	}
+
+	ImGui::End();
+}
+
+void Renderer::Render(Scene* Scene)
 {
 	PIXCapture();
 
@@ -146,38 +182,38 @@ void Renderer::Render(Scene& Scene)
 	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<Tonemap>();
 
 	// If the camera has moved
-	if (Scene.Camera.Transform != pAccumulationRenderPass->LastCameraTransform)
+	if (Scene->Camera.Aperture != pAccumulationRenderPass->LastAperture ||
+		Scene->Camera.FocalLength != pAccumulationRenderPass->LastFocalLength ||
+		Scene->Camera.Transform != pAccumulationRenderPass->LastCameraTransform)
 	{
 		Renderer::Statistics::Accumulation = 0;
-		pAccumulationRenderPass->LastCameraTransform = Scene.Camera.Transform;
+		pAccumulationRenderPass->LastAperture = Scene->Camera.Aperture;
+		pAccumulationRenderPass->LastFocalLength = Scene->Camera.FocalLength;
+		pAccumulationRenderPass->LastCameraTransform = Scene->Camera.Transform;
 	}
 	pAccumulationRenderPass->Settings.AccumulationCount = Renderer::Statistics::Accumulation++;
 
 	pTonemapRenderPass->pDestination = m_pSwapChainTextures[m_FrameIndex];
 	pTonemapRenderPass->DestinationRTV = m_SwapChainRTVs[m_FrameIndex];
 
-	m_GpuBufferAllocator.Update(Scene);
-	m_GpuTextureAllocator.Update(Scene);
-	Scene.Camera.SetAspectRatio(m_AspectRatio);
-	Scene.CascadeCameras = Scene.Sun.GenerateCascades(Scene.Camera, Resolutions::SunShadowMapResolution);
-
-	Scene.Camera.Aperture = 0.0f;
-	Scene.Camera.FocalLength = 10.0f;
+	m_GpuBufferAllocator.Update(*Scene);
+	m_GpuTextureAllocator.Update(*Scene);
+	Scene->Camera.SetAspectRatio(m_AspectRatio);
 
 	// Update render pass cbuffer
 	RenderPassConstants renderPassCPU;
-	XMStoreFloat3(&renderPassCPU.CameraU, Scene.Camera.GetUVector());
-	XMStoreFloat3(&renderPassCPU.CameraV, Scene.Camera.GetVVector());
-	XMStoreFloat3(&renderPassCPU.CameraW, Scene.Camera.GetWVector());
-	XMStoreFloat4x4(&renderPassCPU.View, XMMatrixTranspose(Scene.Camera.ViewMatrix()));
-	XMStoreFloat4x4(&renderPassCPU.Projection, XMMatrixTranspose(Scene.Camera.ProjectionMatrix()));
-	XMStoreFloat4x4(&renderPassCPU.InvView, XMMatrixTranspose(Scene.Camera.InverseViewMatrix()));
-	XMStoreFloat4x4(&renderPassCPU.InvProjection, XMMatrixTranspose(Scene.Camera.InverseProjectionMatrix()));
-	XMStoreFloat4x4(&renderPassCPU.ViewProjection, XMMatrixTranspose(Scene.Camera.ViewProjectionMatrix()));
-	renderPassCPU.EyePosition = Scene.Camera.Transform.Position;
+	XMStoreFloat3(&renderPassCPU.CameraU, Scene->Camera.GetUVector());
+	XMStoreFloat3(&renderPassCPU.CameraV, Scene->Camera.GetVVector());
+	XMStoreFloat3(&renderPassCPU.CameraW, Scene->Camera.GetWVector());
+	XMStoreFloat4x4(&renderPassCPU.View, XMMatrixTranspose(Scene->Camera.ViewMatrix()));
+	XMStoreFloat4x4(&renderPassCPU.Projection, XMMatrixTranspose(Scene->Camera.ProjectionMatrix()));
+	XMStoreFloat4x4(&renderPassCPU.InvView, XMMatrixTranspose(Scene->Camera.InverseViewMatrix()));
+	XMStoreFloat4x4(&renderPassCPU.InvProjection, XMMatrixTranspose(Scene->Camera.InverseProjectionMatrix()));
+	XMStoreFloat4x4(&renderPassCPU.ViewProjection, XMMatrixTranspose(Scene->Camera.ViewProjectionMatrix()));
+	renderPassCPU.EyePosition = Scene->Camera.Transform.Position;
 	renderPassCPU.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
 
-	renderPassCPU.Sun = Scene.Sun;
+	renderPassCPU.Sun = Scene->Sun;
 	renderPassCPU.SunShadowMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex - m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;
 	renderPassCPU.BRDFLUTMapIndex = GpuTextureAllocator::RendererReseveredTextures::BRDFLUT;
 	renderPassCPU.RadianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxCubemap;
@@ -185,17 +221,16 @@ void Renderer::Render(Scene& Scene)
 	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxPrefilteredCubemap;
 
 	renderPassCPU.MaxDepth = 4;
-	renderPassCPU.FocalLength = Scene.Camera.FocalLength;
-	renderPassCPU.LensRadius = Scene.Camera.Aperture;
+	renderPassCPU.FocalLength = Scene->Camera.FocalLength;
+	renderPassCPU.LensRadius = Scene->Camera.Aperture;
 
 	const INT raytracingRenderPassConstantsIndex = 0; // 0
 	m_pRenderPassConstantBuffer->Update<RenderPassConstants>(raytracingRenderPassConstantsIndex, renderPassCPU);
 
 	m_RenderGraph.Update();
-	m_RenderGraph.RenderGui();
-	m_RenderGraph.Execute(m_FrameIndex, Scene);
+	m_RenderGraph.Execute(m_FrameIndex, *Scene);
 	m_RenderGraph.ThreadBarrier();
-	m_RenderGraph.ExecuteCommandContexts();
+	m_RenderGraph.ExecuteCommandContexts(m_pSwapChainTextures[m_FrameIndex], m_SwapChainRTVs[m_FrameIndex], &m_Gui);
 
 	UINT syncInterval = Renderer::Settings::VSync ? 1u : 0u;
 	UINT presentFlags = (m_DXGIManager.TearingSupport() && !Renderer::Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;

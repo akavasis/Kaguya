@@ -19,7 +19,6 @@ struct Scene
 
 	Skybox Skybox;
 	PerspectiveCamera Camera;
-	std::array<OrthographicCamera, NUM_CASCADES> CascadeCameras;
 	DirectionalLight Sun;
 	PointLightList PointLights;
 	SpotLightList SpotLights;

@@ -24,12 +24,18 @@ void Tonemap::Update()
 
 void Tonemap::RenderGui()
 {
-
+	if (ImGui::TreeNode("Tonemap"))
+	{
+		ImGui::SliderFloat("Exposure", &Settings.Exposure, 0.1f, 10.0f);
+		//ImGui::SliderFloat("Gamma", &Settings.Gamma, 0.1f, 4.0f);
+		ImGui::TreePop();
+	}
 }
 
 void Tonemap::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Tonemap");
+
 	auto pOutput = pDestination;
 
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::RenderTarget);

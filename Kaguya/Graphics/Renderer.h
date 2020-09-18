@@ -4,6 +4,7 @@
 #include "DXGIManager.h"
 #include "Scene/Scene.h"
 #include "RenderDevice.h"
+#include "Gui.h"
 #include "RenderGraph.h"
 #include "RendererRegistry.h"
 #include "GpuBufferAllocator.h"
@@ -34,10 +35,11 @@ public:
 	Renderer(const Application& Application, Window& Window);
 	~Renderer();
 
-	void UploadScene(Scene& Scene);
+	void UploadScene(Scene* Scene);
 
 	void Update(const Time& Time);
-	void Render(Scene& Scene);
+	void RenderUI(Scene* Scene);
+	void Render(Scene* Scene);
 private:
 	void Resize(UINT Width, UINT Height);
 
@@ -61,6 +63,7 @@ private:
 	DXGIManager m_DXGIManager;
 
 	RenderDevice m_RenderDevice;
+	Gui m_Gui;
 	CommandContext* m_pUploadCommandContext;
 	RenderGraph m_RenderGraph;
 	GpuBufferAllocator m_GpuBufferAllocator;

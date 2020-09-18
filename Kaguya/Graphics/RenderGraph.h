@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include "Core/ThreadPool.h"
 #include "RenderDevice.h"
+#include "Gui.h"
 #include "Scene/Scene.h"
 
 // Forward decl
@@ -127,7 +128,7 @@ public:
 	void Update();
 	void RenderGui();
 	void Execute(UINT FrameIndex, Scene& Scene);
-	void ExecuteCommandContexts();
+	void ExecuteCommandContexts(Texture* pDestination, Descriptor DestinationRTV, Gui* pGui);
 
 	void ThreadBarrier();
 

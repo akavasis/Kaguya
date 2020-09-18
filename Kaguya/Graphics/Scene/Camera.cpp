@@ -127,12 +127,13 @@ void OrthographicCamera::UpdateProjectionMatrix()
 PerspectiveCamera::PerspectiveCamera()
 {
 	m_FoVY = m_AspectRatio = 0.0f;
+	Aperture = 0.0f;
+	FocalLength = 10.0f;
 }
 
 PerspectiveCamera::PerspectiveCamera(float NearZ, float FarZ)
 	: Camera(NearZ, FarZ)
 {
-	FocalLength = 1.0f;
 	m_FoVY = m_AspectRatio = 0.0f;
 }
 
