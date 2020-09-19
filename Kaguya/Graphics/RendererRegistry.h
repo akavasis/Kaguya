@@ -5,7 +5,7 @@ enum CubemapConvolution
 {
 	Irradiance,
 	Prefilter,
-	CubemapConvolution_Count
+	NumCubemapConvolutions
 };
 
 struct Resolutions
@@ -13,7 +13,6 @@ struct Resolutions
 	static constexpr UINT64 BRDFLUT = 512;
 	static constexpr UINT64 Irradiance = 64;
 	static constexpr UINT64 Prefilter = 512;
-	static constexpr UINT64 SunShadowMapResolution = 2048;
 };
 
 struct ConvolutionIrradianceSetting
@@ -127,7 +126,7 @@ struct Shaders
 		inline static RenderResourceHandle ConvolutionIrradiance;
 		inline static RenderResourceHandle ConvolutionPrefilter;
 
-		inline static RenderResourceHandle PostProcess_Tonemap;
+		inline static RenderResourceHandle PostProcess_Tonemapping;
 	};
 
 	struct CS
@@ -143,7 +142,8 @@ struct Shaders
 
 struct Libraries
 {
-	inline static RenderResourceHandle Raytrace;
+	inline static RenderResourceHandle Pathtracing;
+	inline static RenderResourceHandle RaytraceGBuffer;
 
 	static void Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath);
 };
@@ -158,15 +158,25 @@ struct RootSignatures
 
 	inline static RenderResourceHandle Skybox;
 
-	inline static RenderResourceHandle PostProcess_Tonemap;
+	inline static RenderResourceHandle PostProcess_Tonemapping;
 
 	struct Raytracing
 	{
-		inline static RenderResourceHandle Global;
-		inline static RenderResourceHandle EmptyLocal;
-		inline static RenderResourceHandle HitGroup;
-
 		inline static RenderResourceHandle Accumulation;
+
+		struct Pathtracing
+		{
+			inline static RenderResourceHandle Global;
+			inline static RenderResourceHandle EmptyLocal;
+			inline static RenderResourceHandle HitGroup;
+		};
+
+		struct AmbientOcclusion
+		{
+			inline static RenderResourceHandle Global;
+			inline static RenderResourceHandle EmptyLocal;
+			inline static RenderResourceHandle HitGroup;
+		};
 	};
 
 	static void Register(RenderDevice* pRenderDevice);
@@ -178,7 +188,7 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle ConvolutionIrradiace;
 	inline static RenderResourceHandle ConvolutionPrefilter;
 
-	inline static RenderResourceHandle PostProcess_Tonemap;
+	inline static RenderResourceHandle PostProcess_Tonemapping;
 
 	static void Register(RenderDevice* pRenderDevice);
 };
@@ -195,7 +205,8 @@ struct ComputePSOs
 
 struct RaytracingPSOs
 {
-	inline static RenderResourceHandle Raytracing;
+	inline static RenderResourceHandle Pathtracing;
+	inline static RenderResourceHandle AmbientOcclusion;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

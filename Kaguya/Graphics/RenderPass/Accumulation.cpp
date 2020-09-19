@@ -1,12 +1,14 @@
 #include "pch.h"
 #include "Accumulation.h"
 
-#include "Raytracing.h"
+#include "Pathtracing.h"
 
 Accumulation::Accumulation(UINT Width, UINT Height)
 	: IRenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat })
 {
-
+	LastAperture = 0.0f;
+	LastFocalLength = 0.0f;
+	LastCameraTransform = {};
 }
 
 Accumulation::~Accumulation()
@@ -47,7 +49,7 @@ void Accumulation::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphR
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Accumulation");
 
-	auto pRaytracingRenderPass = RenderGraphRegistry.GetRenderPass<Raytracing>();
+	auto pRaytracingRenderPass = RenderGraphRegistry.GetRenderPass<Pathtracing>();
 
 	auto pOutput = RenderGraphRegistry.GetTexture(Outputs[EOutputs::RenderTarget]);
 
@@ -62,7 +64,7 @@ void Accumulation::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphR
 
 	// Bind Resources
 	pCommandContext->SetComputeRoot32BitConstants(RootParameters::Accumulation::AccumulationCBuffer, sizeof(Settings) / 4, &Settings, 0);
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Input, pRaytracingRenderPass->ResourceViews[Raytracing::EResourceViews::RenderTarget].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Input, pRaytracingRenderPass->ResourceViews[Pathtracing::EResourceViews::RenderTarget].GetStartDescriptor().GPUHandle);
 	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Output, ResourceViews[EResourceViews::RenderTarget].GetStartDescriptor().GPUHandle);
 
 	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 16);

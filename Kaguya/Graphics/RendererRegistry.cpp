@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "RendererRegistry.h"
 
-#include "RenderPass/Raytracing.h"
+#include "RenderPass/Pathtracing.h"
 #include "RenderPass/Accumulation.h"
-#include "RenderPass/Tonemap.h"
+#include "RenderPass/Tonemapping.h"
 
 void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
 {
@@ -19,7 +19,7 @@ void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path Execut
 		PS::ConvolutionIrradiance = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
 		PS::ConvolutionPrefilter = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
 
-		PS::PostProcess_Tonemap = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemap.hlsl", L"main", {});
+		PS::PostProcess_Tonemapping = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl", L"main", {});
 	}
 
 	// Load CS
@@ -33,7 +33,8 @@ void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path Execut
 
 void Libraries::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
 {
-	Raytrace = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Raytrace.hlsl");
+	Pathtracing = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
+	RaytraceGBuffer = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/RaytraceGBuffer.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
@@ -47,7 +48,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	});
 
 	// Cubemap convolutions RS
-	for (int i = 0; i < CubemapConvolution::CubemapConvolution_Count; ++i)
+	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
 		RenderResourceHandle rootSignatureHandle = pRenderDevice->CreateRootSignature(nullptr, [i](RootSignatureProxy& proxy)
 		{
@@ -128,8 +129,8 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	// Tonemap RS
 	options.InitConstantDataTypeAsRootConstants = TRUE;
-	options.Num32BitValues = sizeof(Tonemap::SSettings) / 4;
-	RootSignatures::PostProcess_Tonemap = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
+	options.Num32BitValues = sizeof(Tonemapping::SSettings) / 4;
+	RootSignatures::PostProcess_Tonemapping = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
 	{
 		proxy.AllowInputLayout();
 		proxy.DenyTessellationShaderAccess();
@@ -137,45 +138,50 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	});
 
 	// Raytracing RSs
-	// Global RS
-	options.InitConstantDataTypeAsRootConstants = FALSE;
-	options.Num32BitValues = 0;
-	RootSignatures::Raytracing::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
-		CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		// Accumulation RS
+		RootSignatures::Raytracing::Accumulation = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+		{
+			D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
+			CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
+			CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0, volatileFlag);
 
-		proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
-		proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
-	});
+			proxy.AddRootConstantsParameter<Accumulation::SSettings>(0, 0);
+			proxy.AddRootDescriptorTableParameter({ input });
+			proxy.AddRootDescriptorTableParameter({ output });
 
-	// Empty Local RS
-	RootSignatures::Raytracing::EmptyLocal = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
-	{
-		proxy.SetAsLocalRootSignature();
-	});
+			proxy.DenyTessellationShaderAccess();
+			proxy.DenyGSAccess();
+		});
 
-	RootSignatures::Raytracing::HitGroup = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootConstantsParameter(0, 0, 1);
+		// Path
+		{
+			// Global RS
+			options.InitConstantDataTypeAsRootConstants = FALSE;
+			options.Num32BitValues = 0;
+			RootSignatures::Raytracing::Pathtracing::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
+			{
+				CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
+				CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		proxy.SetAsLocalRootSignature();
-	});
+				proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
+				proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
+			});
 
-	// Accumulation RS
-	RootSignatures::Raytracing::Accumulation = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
-	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0, volatileFlag);
+			// Empty Local RS
+			RootSignatures::Raytracing::Pathtracing::EmptyLocal = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+			{
+				proxy.SetAsLocalRootSignature();
+			});
 
-		proxy.AddRootConstantsParameter<Accumulation::SSettings>(0, 0);
-		proxy.AddRootDescriptorTableParameter({ input });
-		proxy.AddRootDescriptorTableParameter({ output });
+			RootSignatures::Raytracing::Pathtracing::HitGroup = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+			{
+				proxy.AddRootConstantsParameter(0, 0, 1);
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
+				proxy.SetAsLocalRootSignature();
+			});
+		}
+	}
 }
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
@@ -198,7 +204,7 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 	});
 
 	// Cubemap convolutions PSO
-	for (int i = 0; i < CubemapConvolution::CubemapConvolution_Count; ++i)
+	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
 		const RootSignature* pRS = i == CubemapConvolution::Irradiance ? pRenderDevice->GetRootSignature(RootSignatures::ConvolutionIrradiace)
 			: pRenderDevice->GetRootSignature(RootSignatures::ConvolutionPrefilter);
@@ -229,11 +235,11 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 	}
 
 	// Tonemap PSO
-	GraphicsPSOs::PostProcess_Tonemap = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
+	GraphicsPSOs::PostProcess_Tonemapping = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemap);
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemapping);
 		proxy.pVS = pRenderDevice->GetShader(Shaders::VS::Quad);
-		proxy.pPS = pRenderDevice->GetShader(Shaders::PS::PostProcess_Tonemap);
+		proxy.pPS = pRenderDevice->GetShader(Shaders::PS::PostProcess_Tonemapping);
 
 		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 		proxy.AddRenderTargetFormat(RendererFormats::SwapChainBufferFormat);
@@ -267,43 +273,44 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 {
 #define ENUM_TO_LSTR(Enum) L#Enum
-	enum Symbols
-	{
-		RayGen,
-		Miss,
-		ShadowMiss,
-		ClosestHit,
-		ShadowClosestHit,
-		NumSymbols
-	};
 
-	const LPCWSTR symbols[NumSymbols] =
+	Pathtracing = pRenderDevice->CreateRaytracingPipelineState([=](RaytracingPipelineStateProxy& proxy)
 	{
-		ENUM_TO_LSTR(RayGen),
-		ENUM_TO_LSTR(Miss), ENUM_TO_LSTR(ShadowMiss),
-		ENUM_TO_LSTR(ClosestHit), ENUM_TO_LSTR(ShadowClosestHit),
-	};
+		enum Symbols
+		{
+			RayGeneration,
+			Miss,
+			ShadowMiss,
+			ClosestHit,
+			ShadowClosestHit,
+			NumSymbols
+		};
 
-	enum HitGroups
-	{
-		Default,
-		Shadow,
-		NumHitGroups
-	};
+		const LPCWSTR symbols[NumSymbols] =
+		{
+			ENUM_TO_LSTR(RayGeneration),
+			ENUM_TO_LSTR(Miss), ENUM_TO_LSTR(ShadowMiss),
+			ENUM_TO_LSTR(ClosestHit), ENUM_TO_LSTR(ShadowClosestHit)
+		};
 
-	const LPCWSTR hitGroups[NumHitGroups] =
-	{
-		ENUM_TO_LSTR(Default),
-		ENUM_TO_LSTR(Shadow)
-	};
+		enum HitGroups
+		{
+			Default,
+			Shadow,
+			NumHitGroups
+		};
 
-	Raytracing = pRenderDevice->CreateRaytracingPipelineState([=](RaytracingPipelineStateProxy& proxy)
-	{
-		const Library* pRaytraceLibrary = pRenderDevice->GetLibrary(Libraries::Raytrace);
+		const LPCWSTR hitGroups[NumHitGroups] =
+		{
+			ENUM_TO_LSTR(Default),
+			ENUM_TO_LSTR(Shadow)
+		};
+
+		const Library* pRaytraceLibrary = pRenderDevice->GetLibrary(Libraries::Pathtracing);
 
 		proxy.AddLibrary(pRaytraceLibrary,
 			{
-				symbols[RayGen],
+				symbols[RayGeneration],
 				symbols[Miss], symbols[ShadowMiss],
 				symbols[ClosestHit], symbols[ShadowClosestHit]
 			});
@@ -311,9 +318,9 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
 		proxy.AddHitGroup(hitGroups[Shadow], nullptr, symbols[ShadowClosestHit], nullptr);
 
-		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
-		RootSignature* pHitGroupRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::HitGroup);
+		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Pathtracing::Global);
+		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Pathtracing::EmptyLocal);
+		RootSignature* pHitGroupRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Pathtracing::HitGroup);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
@@ -322,7 +329,7 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		// closest-hit shaders share the same root signature.
 		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
 			{
-				symbols[RayGen], symbols[Miss], symbols[ShadowMiss]
+				symbols[RayGeneration], symbols[Miss], symbols[ShadowMiss]
 			});
 
 		proxy.AddRootSignatureAssociation(pHitGroupRootSignature,

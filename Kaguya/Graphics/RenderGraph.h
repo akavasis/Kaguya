@@ -37,11 +37,15 @@ public:
 	virtual void Update() = 0;
 	virtual void RenderGui() = 0;
 	virtual void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) = 0;
-	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) = 0;
+	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
+	{
+		Properties.Width = Width;
+		Properties.Height = Height;
+	}
 
 	bool Enabled;
-	const RenderPassType Type;
-	const RenderTargetProperties Properties;
+	RenderPassType Type;
+	RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Outputs;
 	std::vector<DescriptorAllocation> ResourceViews;
 };

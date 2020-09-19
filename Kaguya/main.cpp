@@ -64,7 +64,7 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 						XMVECTOR albedo = Math::RandomVector();
 						XMStoreFloat3(&mat.Albedo, albedo);
 						mat.SpecularChance = Math::RandF();
-						mat.SpecularRoughness = Math::RandF();
+						mat.Roughness = Math::RandF();
 						XMVECTOR specularColor = Math::RandomVector();
 						XMStoreFloat3(&mat.Albedo, specularColor);
 						mat.Model = GlossyModel;
@@ -104,8 +104,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		auto& material = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		material.Albedo = { 0.9f, 0.9f, 0.5f };
 		material.SpecularChance = 0.3f;
-		material.SpecularRoughness = 0.2f;
-		material.SpecularColor = { 0.9f, 0.9f, 0.9f };
+		material.Roughness = 0.2f;
+		material.Specular = { 0.9f, 0.9f, 0.9f };
 		material.Model = GlossyModel;
 
 		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
@@ -250,16 +250,16 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 		auto& leftsphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		leftsphereMaterial.Albedo = { 0.9f, 0.9f, 0.5f };
 		leftsphereMaterial.SpecularChance = 0.1f;
-		leftsphereMaterial.SpecularRoughness = 0.2f;
-		leftsphereMaterial.SpecularColor = { 0.9f, 0.9f, 0.9f };
+		leftsphereMaterial.Roughness = 0.2f;
+		leftsphereMaterial.Specular = { 0.9f, 0.9f, 0.9f };
 		leftsphereMaterial.Model = GlossyModel;
 
 		// 5
 		auto& middlesphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		middlesphereMaterial.Albedo = { 0.9f, 0.5f, 0.9f };
 		middlesphereMaterial.SpecularChance = 0.3f;
-		middlesphereMaterial.SpecularRoughness = 0.2f;
-		middlesphereMaterial.SpecularColor = { 0.9f, 0.9f, 0.9f };
+		middlesphereMaterial.Roughness = 0.2f;
+		middlesphereMaterial.Specular = { 0.9f, 0.9f, 0.9f };
 		middlesphereMaterial.Model = GlossyModel;
 
 		// 6
@@ -268,8 +268,8 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 		auto& rightsphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		rightsphereMaterial.Albedo = { 0.0f, 0.0f, 1.0f };
 		rightsphereMaterial.SpecularChance = 0.5f;
-		rightsphereMaterial.SpecularRoughness = 0.4f;
-		rightsphereMaterial.SpecularColor = { 1.0f, 0.0f, 0.0f };
+		rightsphereMaterial.Roughness = 0.4f;
+		rightsphereMaterial.Specular = { 1.0f, 0.0f, 0.0f };
 		rightsphereMaterial.Model = GlossyModel;
 
 		// 7 + i
@@ -279,8 +279,8 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 			auto& greenMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 			greenMat.Albedo = { 1.0f, 1.0f, 1.0f };
 			greenMat.SpecularChance = 1.0f;
-			greenMat.SpecularRoughness = variousRoughness[i];
-			greenMat.SpecularColor = { 0.3f, 1.0f, 0.3f };
+			greenMat.Roughness = variousRoughness[i];
+			greenMat.Specular = { 0.3f, 1.0f, 0.3f };
 			greenMat.Model = GlossyModel;
 		}
 	}
@@ -336,10 +336,9 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 
 			sphere.Albedo = { 0.9f, 0.25f, 0.25f };
 			sphere.Emissive = { 0.0f, 0.0f, 0.0f };
-			sphere.SpecularRoughness = 0.0f;
-			sphere.SpecularColor = { 0.8f, 0.8f, 0.8f };
+			sphere.Roughness = 0.0f;
+			sphere.Specular = { 0.8f, 0.8f, 0.8f };
 			sphere.IndexOfRefraction = indexOfRefraction;
-			sphere.RefractionRoughness = 0.0f;
 			sphere.Model = DielectricModel;
 		}
 	}
@@ -449,9 +448,6 @@ int main(int argc, char** argv)
 			}
 
 			time.Signal();
-			std::wstring msg = L"   FPS: " + std::to_wstring(Renderer::Statistics::FPS);
-			msg += L"   FPMS: " + std::to_wstring(Renderer::Statistics::FPMS);
-			window.AppendToTitle(msg);
 			renderer.Update(time);
 			renderer.RenderUI(&scene);
 			renderer.Render(&scene);

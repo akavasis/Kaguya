@@ -1,38 +1,42 @@
 #include "pch.h"
-#include "Tonemap.h"
+#include "Tonemapping.h"
 
-Tonemap::Tonemap()
+Tonemapping::Tonemapping()
 	: IRenderPass(RenderPassType::Graphics, {})
 {
 
 }
 
-Tonemap::~Tonemap()
+Tonemapping::~Tonemapping()
 {
 
 }
 
-void Tonemap::Setup(RenderDevice* pRenderDevice)
+void Tonemapping::Setup(RenderDevice* pRenderDevice)
 {
 
 }
 
-void Tonemap::Update()
+void Tonemapping::Update()
 {
 
 }
 
-void Tonemap::RenderGui()
+void Tonemapping::RenderGui()
 {
 	if (ImGui::TreeNode("Tonemap"))
 	{
+		if (ImGui::Button("Restore Defaults"))
+		{
+			Settings.Exposure = 0.5f;
+		}
 		ImGui::SliderFloat("Exposure", &Settings.Exposure, 0.1f, 10.0f);
 		//ImGui::SliderFloat("Gamma", &Settings.Gamma, 0.1f, 4.0f);
 		ImGui::TreePop();
 	}
 }
 
-void Tonemap::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void Tonemapping::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Tonemap");
 
@@ -41,8 +45,8 @@ void Tonemap::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegist
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::RenderTarget);
 
 	pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemap));
-	pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemap));
+	pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
+	pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
 
 	pCommandContext->SetGraphicsRoot32BitConstants(RootParameters::StandardShaderLayout::ConstantDataCB, sizeof(Settings) / 4, &Settings, 0);
 	pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
@@ -68,7 +72,7 @@ void Tonemap::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegist
 	pCommandContext->TransitionBarrier(pDestination, Resource::State::Present);
 }
 
-void Tonemap::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
+void Tonemapping::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
 {
 
 }

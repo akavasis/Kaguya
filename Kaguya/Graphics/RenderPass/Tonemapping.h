@@ -4,28 +4,18 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
-class Raytracing : public IRenderPass
+class Tonemapping : public IRenderPass
 {
 public:
-	struct EOutputs
+	struct SSettings
 	{
-		enum
-		{
-			RenderTarget,
-		};
+		float Exposure = 0.5f;
+		float Gamma = 2.2f;
+		unsigned int InputMapIndex = 0;
 	};
 
-	struct EResourceViews
-	{
-		enum
-		{
-			GeometryTable,
-			RenderTarget
-		};
-	};
-
-	Raytracing(UINT Width, UINT Height, GpuBufferAllocator* pGpuBufferAllocator, GpuTextureAllocator* pGpuTextureAllocator, Buffer* pRenderPassConstantBuffer);
-	virtual ~Raytracing() override;
+	Tonemapping();
+	virtual ~Tonemapping() override;
 
 	virtual void Setup(RenderDevice* pRenderDevice) override;
 	virtual void Update() override;
@@ -33,8 +23,7 @@ public:
 	virtual void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
 	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
 
-private:
-	GpuBufferAllocator* pGpuBufferAllocator;
-	GpuTextureAllocator* pGpuTextureAllocator;
-	Buffer* pRenderPassConstantBuffer;
+	SSettings Settings;
+	Texture* pDestination;		// Set in Renderer::Render
+	Descriptor DestinationRTV;	// Set in Renderer::Render
 };

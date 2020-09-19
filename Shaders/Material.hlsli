@@ -23,16 +23,15 @@ enum TextureTypes
 
 struct Material
 {
-	float3	Albedo;					// The color used for diffuse lighting
-	float3	Emissive;				// How much the surface glows
-	float	SpecularChance;			// Percentage chance of doing a specular reflection
-	float	SpecularRoughness;		// How rough the specular reflections are
-	float3	SpecularColor;			// The color tint of specular reflections
+	float3	Albedo;
+	float3	Emissive;
+	float3	Specular;
+	float3	Refraction;
+	float	SpecularChance;
+	float	Roughness;
 	float	Fuzziness;
-	float	IndexOfRefraction;		// Index of refraction. used by fresnel and refraction.
-	float	RefractionRoughness;	// How rough the refractive transmissions are
-	float3	RefractionColor;		// Absorption for beer's law
-	uint	Model;					// Describes the material model
+	float	IndexOfRefraction;
+	uint	Model;			
 	
 	int TextureIndices[NumTextureTypes];
 };

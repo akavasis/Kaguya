@@ -4,18 +4,28 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
-class Tonemap : public IRenderPass
+class Pathtracing : public IRenderPass
 {
 public:
-	struct SSettings
+	struct EOutputs
 	{
-		float Exposure = 0.5f;
-		float Gamma = 2.2f;
-		unsigned int InputMapIndex = 0;
+		enum
+		{
+			RenderTarget,
+		};
 	};
 
-	Tonemap();
-	virtual ~Tonemap() override;
+	struct EResourceViews
+	{
+		enum
+		{
+			GeometryTable,
+			RenderTarget
+		};
+	};
+
+	Pathtracing(UINT Width, UINT Height, GpuBufferAllocator* pGpuBufferAllocator, GpuTextureAllocator* pGpuTextureAllocator, Buffer* pRenderPassConstantBuffer);
+	virtual ~Pathtracing() override;
 
 	virtual void Setup(RenderDevice* pRenderDevice) override;
 	virtual void Update() override;
@@ -23,7 +33,8 @@ public:
 	virtual void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
 	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
 
-	SSettings Settings;
-	Texture* pDestination;		// Set in Renderer::Render
-	Descriptor DestinationRTV;	// Set in Renderer::Render
+private:
+	GpuBufferAllocator* pGpuBufferAllocator;
+	GpuTextureAllocator* pGpuTextureAllocator;
+	Buffer* pRenderPassConstantBuffer;
 };

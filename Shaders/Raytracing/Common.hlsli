@@ -52,6 +52,10 @@ Vertex BERP(in Triangle t, in float3 barycentric)
     return BERP(t.v0, t.v1, t.v2, barycentric);
 }
 
+// Attributes output by the raytracing when hitting a surface,
+// here the barycentric coordinates, using hlsl predefined struct
+typedef BuiltInTriangleIntersectionAttributes HitAttributes;
+
 // Hit information, aka ray payload
 // Note that the payload should be kept as small as possible,
 // and that its size must be declared in the corresponding
@@ -69,13 +73,15 @@ struct ShadowRayPayload
     float Visibility;
 };
 
-// Attributes output by the raytracing when hitting a surface,
-// here the barycentric coordinates, using hlsl predefined struct
-typedef BuiltInTriangleIntersectionAttributes HitAttributes;
+struct AORayPayload
+{
+	float Visibility;
+};
 
 enum RayType
 {
     RayTypePrimary,
     RayTypeShadow,
+    RayTypeAO,
     NumRayTypes
 };

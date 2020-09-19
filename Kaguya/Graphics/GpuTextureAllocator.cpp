@@ -4,16 +4,15 @@
 
 struct HLSLMaterial
 {
-	float3	Albedo;					// The color used for diffuse lighting
-	float3	Emissive;				// How much the surface glows
-	float	SpecularChance;			// Percentage chance of doing a specular reflection
-	float	SpecularRoughness;		// How rough the specular reflections are
-	float3	SpecularColor;			// The color tint of specular reflections
+	float3	Albedo;
+	float3	Emissive;
+	float3	Specular;
+	float3	Refraction;
+	float	SpecularChance;
+	float	Roughness;
 	float	Fuzziness;
-	float	IndexOfRefraction;		// Index of refraction. used by fresnel and refraction.
-	float	RefractionRoughness;	// How rough the refractive transmissions are
-	float3	RefractionColor;		// Absorption for beer's law
-	uint	Model;					// Describes the material model
+	float	IndexOfRefraction;
+	uint	Model;
 
 	int TextureIndices[NumTextureTypes];
 };
@@ -248,7 +247,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 	pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxCubemap]), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 
 	// Generate cubemap convolutions
-	for (int i = 0; i < CubemapConvolution::CubemapConvolution_Count; ++i)
+	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
 		const DXGI_FORMAT format = i == CubemapConvolution::Irradiance ? RendererFormats::IrradianceFormat : RendererFormats::PrefilterFormat;
 		const UINT64 resolution = i == CubemapConvolution::Irradiance ? Resolutions::Irradiance : Resolutions::Prefilter;

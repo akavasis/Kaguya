@@ -17,13 +17,12 @@ Material MaterialLoader::LoadMaterial(
 
 	material.Albedo = { 0.0f, 0.0f, 0.0f };
 	material.Emissive = { 0.0f, 0.0f, 0.0f };
+	material.Specular = { 0.0f, 0.0f, 0.0f };
+	material.Refraction = { 0.0f, 0.0f, 0.0f };
 	material.SpecularChance = 0.0f;
-	material.SpecularRoughness = 0.0f;
-	material.SpecularColor = { 0.0f, 0.0f, 0.0f };
+	material.Roughness = 0.0f;
 	material.Fuzziness = 0.0f;
 	material.IndexOfRefraction = 1.0f;
-	material.RefractionRoughness = 0.0f;
-	material.RefractionColor = { 0.0f, 0.0f, 0.0f };
 	material.Model = 0;
 
 	auto InitTexture = [&](TextureTypes Type, const char* pPath)

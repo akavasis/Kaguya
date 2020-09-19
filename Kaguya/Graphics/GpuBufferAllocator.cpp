@@ -315,12 +315,12 @@ void GpuBufferAllocator::CreateTopLevelAS(Scene& Scene, CommandContext* pCommand
 
 void GpuBufferAllocator::CreateShaderTableBuffers(Scene& Scene)
 {
-	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::Raytracing);
+	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::Pathtracing);
 
 	// Ray Generation Shader Table
 	{
 		ShaderTable<void> shaderTable;
-		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"RayGen"));
+		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"RayGeneration"));
 
 		UINT64 shaderTableSizeInBytes; UINT stride;
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);

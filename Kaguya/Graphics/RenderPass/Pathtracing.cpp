@@ -1,19 +1,19 @@
 #include "pch.h"
-#include "Raytracing.h"
+#include "Pathtracing.h"
 
-Raytracing::Raytracing(UINT Width, UINT Height, GpuBufferAllocator* pGpuBufferAllocator, GpuTextureAllocator* pGpuTextureAllocator, Buffer* pRenderPassConstantBuffer)
+Pathtracing::Pathtracing(UINT Width, UINT Height, GpuBufferAllocator* pGpuBufferAllocator, GpuTextureAllocator* pGpuTextureAllocator, Buffer* pRenderPassConstantBuffer)
 	: IRenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat }),
 	pGpuBufferAllocator(pGpuBufferAllocator), pGpuTextureAllocator(pGpuTextureAllocator), pRenderPassConstantBuffer(pRenderPassConstantBuffer)
 {
 
 }
 
-Raytracing::~Raytracing()
+Pathtracing::~Pathtracing()
 {
 
 }
 
-void Raytracing::Setup(RenderDevice* pRenderDevice)
+void Pathtracing::Setup(RenderDevice* pRenderDevice)
 {
 	auto raytracingOutput = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
@@ -40,30 +40,30 @@ void Raytracing::Setup(RenderDevice* pRenderDevice)
 	ResourceViews.push_back(std::move(uav));
 }
 
-void Raytracing::Update()
+void Pathtracing::Update()
 {
 
 }
 
-void Raytracing::RenderGui()
+void Pathtracing::RenderGui()
 {
 
 }
 
-void Raytracing::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void Pathtracing::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
-	PIXMarker(pCommandContext->GetD3DCommandList(), L"Raytracing");
+	PIXMarker(pCommandContext->GetD3DCommandList(), L"Pathtrace");
 
 	auto pOutput = RenderGraphRegistry.GetTexture(Outputs[EOutputs::RenderTarget]);
 	auto pRayGenerationShaderTable = RenderGraphRegistry.GetBuffer(pGpuBufferAllocator->GetRayGenerationShaderTableHandle());
 	auto pMissShaderTable = RenderGraphRegistry.GetBuffer(pGpuBufferAllocator->GetMissShaderTableHandle());
 	auto pHitGroupShaderTable = RenderGraphRegistry.GetBuffer(pGpuBufferAllocator->GetHitGroupShaderTableHandle());
 
-	auto pRaytracingPipelineState = RenderGraphRegistry.GetRaytracingPSO(RaytracingPSOs::Raytracing);
+	auto pRaytracingPipelineState = RenderGraphRegistry.GetRaytracingPSO(RaytracingPSOs::Pathtracing);
 
 	pGpuBufferAllocator->Bind(pCommandContext);
 
-	pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Global));
+	pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Pathtracing::Global));
 
 	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, ResourceViews[EResourceViews::GeometryTable].GetStartDescriptor().GPUHandle);
 	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, ResourceViews[EResourceViews::RenderTarget].GetStartDescriptor().GPUHandle);
@@ -85,8 +85,8 @@ void Raytracing::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphReg
 	desc.HitGroupTable.SizeInBytes = pHitGroupShaderTable->GetMemoryRequested();
 	desc.HitGroupTable.StrideInBytes = pHitGroupShaderTable->GetStride();
 
-	desc.Width = pOutput->GetWidth();
-	desc.Height = pOutput->GetHeight();
+	desc.Width = Properties.Width;
+	desc.Height = Properties.Height;
 	desc.Depth = 1;
 
 	pCommandContext->SetRaytracingPipelineState(pRaytracingPipelineState);
@@ -95,8 +95,10 @@ void Raytracing::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphReg
 	pCommandContext->UAVBarrier(pOutput);
 }
 
-void Raytracing::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
+void Pathtracing::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
 {
+	IRenderPass::Resize(Width, Height, pRenderDevice);
+
 	// Destroy render target
 	for (auto& output : Outputs)
 	{

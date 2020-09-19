@@ -5,16 +5,16 @@
 #include "Core/Time.h"
 
 // Render passes
-#include "RenderPass/Raytracing.h"
+#include "RenderPass/Pathtracing.h"
 #include "RenderPass/Accumulation.h"
-#include "RenderPass/Tonemap.h"
+#include "RenderPass/Tonemapping.h"
 
 Renderer::Renderer(const Application& Application, Window& Window)
 	: pWindow(&Window),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_Gui(&m_RenderDevice),
 	m_RenderGraph(&m_RenderDevice),
-	m_GpuBufferAllocator(&m_RenderDevice, 200_MiB, 200_MiB, 64_KiB),
+	m_GpuBufferAllocator(&m_RenderDevice, 50_MiB, 50_MiB, 64_KiB),
 	m_GpuTextureAllocator(&m_RenderDevice, 1000)
 {
 	m_EventReceiver.Register(Window, [&](const Event& event)
@@ -104,9 +104,9 @@ void Renderer::UploadScene(Scene* Scene)
 	m_pRenderPassConstantBuffer = m_RenderDevice.GetBuffer(m_RenderPassConstantBufferHandle);
 	m_pRenderPassConstantBuffer->Map();
 
-	m_RenderGraph.AddRenderPass(new Raytracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer));
+	m_RenderGraph.AddRenderPass(new Pathtracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight(), &m_GpuBufferAllocator, &m_GpuTextureAllocator, m_pRenderPassConstantBuffer));
 	m_RenderGraph.AddRenderPass(new Accumulation(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
-	m_RenderGraph.AddRenderPass(new Tonemap());
+	m_RenderGraph.AddRenderPass(new Tonemapping());
 
 	m_RenderGraph.Setup();
 
@@ -115,7 +115,7 @@ void Renderer::UploadScene(Scene* Scene)
 	m_GpuDescriptorIndices.RenderTargetShaderResourceViews = m_RenderDevice.DescriptorAllocator.AllocateSRDescriptors(numSRVsToAllocate);
 
 	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();
-	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<Tonemap>();
+	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<Tonemapping>();
 
 	m_RenderDevice.CreateSRV(pAccumulationRenderPass->Outputs[Accumulation::EOutputs::RenderTarget], m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0]);
 
@@ -149,10 +149,14 @@ void Renderer::RenderUI(Scene* Scene)
 		ImGui::Text("Total Frame Count: %d", Statistics::TotalFrameCount);
 		ImGui::Text("FPS: %f", Statistics::FPS);
 		ImGui::Text("FPMS: %f", Statistics::FPMS);
-		ImGui::Text("Accumulation: %f", Statistics::Accumulation);
+		ImGui::Text("Accumulation: %d", Statistics::Accumulation);
 
 		if (ImGui::TreeNode("Setting"))
 		{
+			if (ImGui::Button("Restore Defaults"))
+			{
+				Settings::VSync = false;
+			}
 			ImGui::Checkbox("V-Sync", &Settings::VSync);
 			ImGui::TreePop();
 		}
@@ -165,12 +169,16 @@ void Renderer::RenderUI(Scene* Scene)
 	{
 		if (ImGui::TreeNode("Camera"))
 		{
+			if (ImGui::Button("Restore Defaults"))
+			{
+				Scene->Camera.Aperture = 0.0f;
+				Scene->Camera.FocalLength = 10.0f;
+			}
 			ImGui::DragFloat("Aperture", &Scene->Camera.Aperture, 0.01f, 0.0f, 1.0f);
 			ImGui::DragFloat("Focal Length", &Scene->Camera.FocalLength, 0.01f, 0.01f, FLT_MAX);
 			ImGui::TreePop();
 		}
 	}
-
 	ImGui::End();
 }
 
@@ -179,19 +187,19 @@ void Renderer::Render(Scene* Scene)
 	PIXCapture();
 
 	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();
-	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<Tonemap>();
+	auto pTonemapRenderPass = m_RenderGraph.GetRenderPass<Tonemapping>();
 
 	// If the camera has moved
 	if (Scene->Camera.Aperture != pAccumulationRenderPass->LastAperture ||
 		Scene->Camera.FocalLength != pAccumulationRenderPass->LastFocalLength ||
 		Scene->Camera.Transform != pAccumulationRenderPass->LastCameraTransform)
 	{
-		Renderer::Statistics::Accumulation = 0;
+		Statistics::Accumulation = 0;
 		pAccumulationRenderPass->LastAperture = Scene->Camera.Aperture;
 		pAccumulationRenderPass->LastFocalLength = Scene->Camera.FocalLength;
 		pAccumulationRenderPass->LastCameraTransform = Scene->Camera.Transform;
 	}
-	pAccumulationRenderPass->Settings.AccumulationCount = Renderer::Statistics::Accumulation++;
+	pAccumulationRenderPass->Settings.AccumulationCount = Statistics::Accumulation++;
 
 	pTonemapRenderPass->pDestination = m_pSwapChainTextures[m_FrameIndex];
 	pTonemapRenderPass->DestinationRTV = m_SwapChainRTVs[m_FrameIndex];
@@ -211,7 +219,7 @@ void Renderer::Render(Scene* Scene)
 	XMStoreFloat4x4(&renderPassCPU.InvProjection, XMMatrixTranspose(Scene->Camera.InverseProjectionMatrix()));
 	XMStoreFloat4x4(&renderPassCPU.ViewProjection, XMMatrixTranspose(Scene->Camera.ViewProjectionMatrix()));
 	renderPassCPU.EyePosition = Scene->Camera.Transform.Position;
-	renderPassCPU.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
+	renderPassCPU.TotalFrameCount = static_cast<unsigned int>(Statistics::TotalFrameCount);
 
 	renderPassCPU.Sun = Scene->Sun;
 	renderPassCPU.SunShadowMapIndex = m_GpuDescriptorIndices.RenderTargetShaderResourceViews[0].HeapIndex - m_GpuDescriptorIndices.TextureShaderResourceViews.GetStartDescriptor().HeapIndex;

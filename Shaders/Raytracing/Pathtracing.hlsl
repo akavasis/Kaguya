@@ -1,66 +1,4 @@
 #include "Global.hlsli"
-#include "../Random.hlsli"
-#include "../BxDF.hlsli"
-
-Triangle GetTriangle(in uint geometryIndex)
-{
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-
-	const uint primIndex = PrimitiveIndex();
-	const uint idx0 = IndexBuffer[primIndex * 3 + info.IndexOffset + 0];
-	const uint idx1 = IndexBuffer[primIndex * 3 + info.IndexOffset + 1];
-	const uint idx2 = IndexBuffer[primIndex * 3 + info.IndexOffset + 2];
-	
-	const Vertex vtx0 = VertexBuffer[idx0 + info.VertexOffset];
-	const Vertex vtx1 = VertexBuffer[idx1 + info.VertexOffset];
-	const Vertex vtx2 = VertexBuffer[idx2 + info.VertexOffset];
-	
-	Triangle t = { vtx0, vtx1, vtx2 };
-	return t;
-}
-
-Vertex GetBERPedVertex(in HitAttributes attrib, in uint geometryIndex)
-{
-	float3 barycentrics =
-    float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
-
-	Triangle t = GetTriangle(geometryIndex);
-	return BERP(t, barycentrics);
-}
-
-struct SurfaceInteraction
-{
-	bool frontFace;
-	float3 position;
-	float2 uv;
-	BSDF bsdf;
-	Material material;
-};
-
-SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryIndex)
-{
-	SurfaceInteraction si;
-	
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-	Vertex hitSurface = GetBERPedVertex(attrib, geometryIndex);
-	Material material = Materials[info.MaterialIndex];
-	
-	hitSurface.Tangent = mul(float4(hitSurface.Tangent, 0.0f), info.World).xyz;
-	hitSurface.Bitangent = mul(float4(hitSurface.Bitangent, 0.0f), info.World).xyz;
-	hitSurface.Normal = mul(float4(hitSurface.Normal, 0.0f), info.World).xyz;
-	
-	si.frontFace = dot(WorldRayDirection(), hitSurface.Normal) < 0.0f;
-	si.position = WorldRayOrigin() + (WorldRayDirection() * RayTCurrent());
-	si.uv = hitSurface.Texture;
-	si.bsdf.tangent = hitSurface.Tangent;
-	si.bsdf.bitangent = hitSurface.Bitangent;
-	si.bsdf.normal = hitSurface.Normal;
-	//si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f)); // Not used yet, still reading Physically Based Rendering
-	// Perhaps i should merge these 2 structs into 1 unified Material struct...
-	si.material = material;
-	
-	return si;
-}
 
 struct Lambertian
 {
@@ -80,8 +18,8 @@ struct Glossy
 {
 	float3 Albedo;
 	float SpecularChance;
-	float SpecularRoughness;
-	float3 SpecularColor;
+	float Roughness;
+	float3 Specular;
 	
 	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
 	{
@@ -89,12 +27,12 @@ struct Glossy
 		
 		float3 diffuse = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
 		float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal);
-		reflected = normalize(lerp(reflected, diffuse, SpecularRoughness * SpecularRoughness));
+		reflected = normalize(lerp(reflected, diffuse, Roughness * Roughness));
 		
 		float3 direction = lerp(diffuse, reflected, doSpecular);
 		RayDesc ray = { si.position, 0.00001f, direction, 100000.0f };
 		
-		attenuation = lerp(Albedo, SpecularColor, doSpecular);
+		attenuation = lerp(Albedo, Specular, doSpecular);
 		scatteredRay = ray;
 	}
 };
@@ -119,6 +57,8 @@ struct Metal
 struct Dielectric
 {
 	float IndexOfRefraction;
+	float3 Specular;
+	float3 Refraction;
 	
 	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
 	{
@@ -137,7 +77,7 @@ struct Dielectric
 		{
 			float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal);
 			ray.Direction = reflected;
-			attenuation = si.material.SpecularColor;
+			attenuation = Specular;
 		}
 		else
 		{
@@ -146,7 +86,7 @@ struct Dielectric
 			// do absorption if we are hitting from inside the object
 			if (!si.frontFace)
 			{
-				attenuation *= exp(-si.material.RefractionColor * RayTCurrent());
+				attenuation *= exp(-Refraction * RayTCurrent());
 			}
 		}
 		
@@ -168,14 +108,10 @@ struct DiffuseLight
 	}
 };
 
-struct HitInfo
-{
-	uint GeometryIndex;
-};
-ConstantBuffer<HitInfo> HitGroupCB : register(b0, space0);
+RWTexture2D<float4> RenderTarget : register(u0, space0);
 
 [shader("raygeneration")]
-void RayGen()
+void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
@@ -185,8 +121,7 @@ void RayGen()
 	const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
 	const float2 pixel = (float2(launchIndex) + 0.5f + jitter) / float2(launchDimensions); // Convert from discrete to continuous
 	
-	float2 ndc = pixel * 2.0f - 1.0f; // Uncompress each component from [0,1] to [-1,1].
-	ndc.y *= -1.0f; // Flip y
+	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 	
 	float3 direction = ndc.x * RenderPassDataCB.CameraU + ndc.y * RenderPassDataCB.CameraV + RenderPassDataCB.CameraW;
 	
@@ -229,6 +164,12 @@ void ShadowMiss(inout ShadowRayPayload rayPayload)
 	rayPayload.Visibility = 1.0f;
 }
 
+struct HitInfo
+{
+	uint GeometryIndex;
+};
+ConstantBuffer<HitInfo> HitGroupCB : register(b0, space0);
+
 [shader("closesthit")]
 void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 {
@@ -247,7 +188,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		
 		case GlossyModel:
 		{
-			Glossy glossy = { si.material.Albedo, si.material.SpecularChance, si.material.SpecularRoughness, si.material.SpecularColor };
+			Glossy glossy = { si.material.Albedo, si.material.SpecularChance, si.material.Roughness, si.material.Specular };
 			glossy.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
@@ -261,7 +202,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		
 		case DielectricModel:
 		{
-			Dielectric dielectric = { si.material.IndexOfRefraction };
+			Dielectric dielectric = { si.material.IndexOfRefraction, si.material.Specular, si.material.Refraction };
 			dielectric.Scatter(si, rayPayload, attentuation, ray);
 		}
 		break;
