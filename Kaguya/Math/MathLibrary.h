@@ -2,6 +2,7 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include <cmath>
+#include <limits>
 
 namespace Math
 {

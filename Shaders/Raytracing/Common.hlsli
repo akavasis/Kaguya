@@ -15,41 +15,41 @@ struct Triangle
 };
 
 // BERP: Short for barycentric interpolation
-float BERP(in float v0, in float v1, in float v2, in float3 barycentric)
+float BarycentricInterpolation(in float v0, in float v1, in float v2, in float3 barycentric)
 {
     return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;
 }
 
-float2 BERP(in float2 v0, in float2 v1, in float2 v2, in float3 barycentric)
+float2 BarycentricInterpolation(in float2 v0, in float2 v1, in float2 v2, in float3 barycentric)
 {
     return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;
 }
 
-float3 BERP(in float3 v0, in float3 v1, in float3 v2, in float3 barycentric)
+float3 BarycentricInterpolation(in float3 v0, in float3 v1, in float3 v2, in float3 barycentric)
 {
     return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;
 }
 
-float4 BERP(in float4 v0, in float4 v1, in float4 v2, in float3 barycentric)
+float4 BarycentricInterpolation(in float4 v0, in float4 v1, in float4 v2, in float3 barycentric)
 {
     return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;
 }
 
-Vertex BERP(in Vertex v0, in Vertex v1, in Vertex v2, in float3 barycentric)
+Vertex BarycentricInterpolation(in Vertex v0, in Vertex v1, in Vertex v2, in float3 barycentric)
 {
     Vertex vertex;
-    vertex.Position     = BERP(v0.Position, v1.Position, v2.Position, barycentric);
-    vertex.Texture      = BERP(v0.Texture, v1.Texture, v2.Texture, barycentric);
-    vertex.Normal       = BERP(v0.Normal, v1.Normal, v2.Normal, barycentric);
-    vertex.Tangent      = BERP(v0.Tangent, v1.Tangent, v2.Tangent, barycentric);
-    vertex.Bitangent    = BERP(v0.Bitangent, v1.Bitangent, v2.Bitangent, barycentric);
+    vertex.Position     = BarycentricInterpolation(v0.Position, v1.Position, v2.Position, barycentric);
+    vertex.Texture      = BarycentricInterpolation(v0.Texture, v1.Texture, v2.Texture, barycentric);
+    vertex.Normal       = BarycentricInterpolation(v0.Normal, v1.Normal, v2.Normal, barycentric);
+    vertex.Tangent      = BarycentricInterpolation(v0.Tangent, v1.Tangent, v2.Tangent, barycentric);
+	vertex.Bitangent    = BarycentricInterpolation(v0.Bitangent, v1.Bitangent, v2.Bitangent, barycentric);
 
     return vertex;
 }
 
-Vertex BERP(in Triangle t, in float3 barycentric)
+Vertex BarycentricInterpolation(in Triangle t, in float3 barycentric)
 {
-    return BERP(t.v0, t.v1, t.v2, barycentric);
+	return BarycentricInterpolation(t.v0, t.v1, t.v2, barycentric);
 }
 
 // Attributes output by the raytracing when hitting a surface,
@@ -82,6 +82,5 @@ enum RayType
 {
     RayTypePrimary,
     RayTypeShadow,
-    RayTypeAO,
     NumRayTypes
 };

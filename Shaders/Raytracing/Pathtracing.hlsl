@@ -164,16 +164,10 @@ void ShadowMiss(inout ShadowRayPayload rayPayload)
 	rayPayload.Visibility = 1.0f;
 }
 
-struct HitInfo
-{
-	uint GeometryIndex;
-};
-ConstantBuffer<HitInfo> HitGroupCB : register(b0, space0);
-
 [shader("closesthit")]
 void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 {
-	SurfaceInteraction si = GetSurfaceInteraction(attrib, HitGroupCB.GeometryIndex);
+	SurfaceInteraction si = GetSurfaceInteraction(attrib);
 	
 	float3 attentuation;
 	RayDesc ray;

@@ -7,6 +7,7 @@
 #include "AL/D3D12/DescriptorAllocator.h"
 #include "AL/D3D12/CommandQueue.h"
 #include "AL/D3D12/CommandContext.h"
+#include "AL/D3D12/RaytracingAccelerationStructure.h"
 
 #include "AL/Proxy/BufferProxy.h"
 #include "AL/Proxy/TextureProxy.h"
@@ -24,6 +25,13 @@ struct StandardShaderLayoutOptions
 	UINT Num32BitValues;
 };
 
+struct RaytracingAccelerationStructureHandles
+{
+	RenderResourceHandle Scratch;
+	RenderResourceHandle Result;
+	RenderResourceHandle InstanceDescs;
+};
+
 /*
 	Abstraction of underlying GPU Device, its able to create gpu resources
 	and contains underlying gpu resources as well, resources are referred by using
@@ -32,6 +40,11 @@ struct StandardShaderLayoutOptions
 class RenderDevice
 {
 public:
+	enum 
+	{ 
+		NumSwapChainBuffers = 3 
+	};
+
 	RenderDevice(IDXGIAdapter4* pAdapter);
 	~RenderDevice();
 
@@ -93,6 +106,13 @@ public:
 	CommandQueue CopyQueue;
 	ResourceStateTracker GlobalResourceStateTracker;
 	DescriptorAllocator DescriptorAllocator;
+	UINT FrameIndex;
+	RenderResourceHandle SwapChainTextures[NumSwapChainBuffers];
+	DescriptorAllocation SwapChainRenderTargetViews;
+
+	DescriptorAllocation TextureShaderResourceViews;
+
+	CommandContext* pUploadCommandContext;
 private:
 	void AppendStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
 

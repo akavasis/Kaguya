@@ -1,13 +1,10 @@
-struct TonemapData
+cbuffer Settings : register(b0)
 {
 	float Exposure;
 	float Gamma;
-	unsigned int InputMapIndex;
 };
 
-// Shader layout define and include
-#define ConstantDataType TonemapData
-#include "../ShaderLayout.hlsli"
+Texture2D Input : register(t0);
 
 // ACES tone mapping curve fit to go from HDR to LDR
 //https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
@@ -56,12 +53,14 @@ struct VSInput
 	float4 Position : SV_Position;
 	float2 Texture : TEXCOORD0;
 };
-float4 main(VSInput pixel) : SV_TARGET
+float4 main(VSInput VSInput) : SV_TARGET
 {
-	float3 color = Tex2DTable[ConstantDataCB.InputMapIndex].SampleLevel(SamplerLinearClamp, pixel.Texture, 0.0f).rgb;
+	uint2 pixel = uint2(VSInput.Position.xy + 0.5f);
+	
+	float3 color = Input[pixel].rgb;
 	
 	// apply exposure (how long the shutter is open)
-	color *= ConstantDataCB.Exposure;
+	color *= Exposure;
 	
 	// convert unbounded HDR color range to SDR color range
 	color = ACESFilm(color);

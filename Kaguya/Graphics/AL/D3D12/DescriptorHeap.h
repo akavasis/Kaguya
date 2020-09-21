@@ -14,6 +14,7 @@ struct Descriptor
 	D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle = { NULL };
 	D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle = { NULL };
 	UINT HeapIndex = 0;
+	UINT PartitionHeapIndex = 0;
 };
 
 class DescriptorAllocation
@@ -50,7 +51,7 @@ private:
 	Descriptor StartDescriptor;
 	UINT NumDescriptors;
 	UINT IncrementSize;
-	INT PartitonIndex;
+	INT PartitionIndex;
 	DescriptorHeap* pOwningHeap = nullptr;
 };
 

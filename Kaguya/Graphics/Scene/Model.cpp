@@ -2,33 +2,6 @@
 #include "Model.h"
 using namespace DirectX;
 
-void Model::SetTransform(DirectX::FXMMATRIX M)
-{
-	Transform.SetTransform(M);
-	for (auto& mesh : Meshes)
-	{
-		mesh.Transform.SetTransform(M);
-	}
-}
-
-void Model::Translate(float DeltaX, float DeltaY, float DeltaZ)
-{
-	Transform.Translate(DeltaX, DeltaY, DeltaZ);
-	for (auto& mesh : Meshes)
-	{
-		mesh.Transform.Translate(DeltaX, DeltaY, DeltaZ);
-	}
-}
-
-void Model::Rotate(float AngleX, float AngleY, float AngleZ)
-{
-	Transform.Rotate(AngleX, AngleY, AngleZ);
-	for (auto& mesh : Meshes)
-	{
-		mesh.Transform.Rotate(AngleX, AngleY, AngleZ);
-	}
-}
-
 struct MeshData
 {
 	std::vector<Vertex> Vertices;
@@ -134,7 +107,6 @@ Model CreateFromMeshData(MeshData& meshData)
 	// Create mesh
 	Mesh mesh{};
 	mesh.BoundingBox = model.BoundingBox;
-	mesh.MaterialIndex = 0;
 	mesh.IndexCount = model.Indices.size();
 	mesh.StartIndexLocation = 0;
 	mesh.VertexCount = model.Vertices.size();

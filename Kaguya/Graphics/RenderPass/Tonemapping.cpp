@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "Tonemapping.h"
 
-Tonemapping::Tonemapping()
-	: IRenderPass(RenderPassType::Graphics, {})
+Tonemapping::Tonemapping(Descriptor Input)
+	: IRenderPass(RenderPassType::Graphics, {}),
+	Input(Input)
 {
 
 }
@@ -12,14 +13,17 @@ Tonemapping::~Tonemapping()
 
 }
 
-void Tonemapping::Setup(RenderDevice* pRenderDevice)
+bool Tonemapping::Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
-
+	pDestination = pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[pRenderDevice->FrameIndex]);
+	DestinationRTV = pRenderDevice->SwapChainRenderTargetViews[pRenderDevice->FrameIndex];
+	return true;
 }
 
-void Tonemapping::Update()
+void Tonemapping::Update(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
-
+	pDestination = pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[pRenderDevice->FrameIndex]);
+	DestinationRTV = pRenderDevice->SwapChainRenderTargetViews[pRenderDevice->FrameIndex];
 }
 
 void Tonemapping::RenderGui()
@@ -36,7 +40,7 @@ void Tonemapping::RenderGui()
 	}
 }
 
-void Tonemapping::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void Tonemapping::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Tonemap");
 
@@ -48,8 +52,8 @@ void Tonemapping::Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRe
 	pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
 	pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
 
-	pCommandContext->SetGraphicsRoot32BitConstants(RootParameters::StandardShaderLayout::ConstantDataCB, sizeof(Settings) / 4, &Settings, 0);
-	pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables, RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+	pCommandContext->SetGraphicsRoot32BitConstants(RootParameters::Tonemapping::Settings, sizeof(Settings) / 4, &Settings, 0);
+	pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::Tonemapping::Input, Input.GPUHandle);
 
 	D3D12_VIEWPORT vp;
 	vp.TopLeftX = vp.TopLeftY = 0.0f;

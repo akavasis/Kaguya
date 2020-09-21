@@ -17,6 +17,11 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 		m_StandardShaderLayoutDescriptorRanges[i].OffsetInDescriptorsFromTableStart = 0;
 		m_StandardShaderLayoutDescriptorRanges[i].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 	}
+	FrameIndex = 0;
+	SwapChainRenderTargetViews = DescriptorAllocator.AllocateRenderTargetDescriptors(NumSwapChainBuffers);
+
+	// Allocate upload context
+	pUploadCommandContext = AllocateContext(CommandContext::Direct);
 }
 
 RenderDevice::~RenderDevice()

@@ -37,7 +37,7 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 	// Models
 	{
 		auto& floor = scene.AddModel(CreateGrid(500.0f, 500.0f, 10, 10));
-		floor.Meshes[0].MaterialIndex = 0;
+		//floor.Meshes[0].MaterialIndex = 0;
 
 		for (int a = -11; a < 11; a++)
 		{
@@ -50,8 +50,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 				{
 					auto& mat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 					auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 0.2f));
-					sphere.Translate(center0.x, center0.y, center0.z);
-					sphere.Meshes[0].MaterialIndex = matIdx++;
+					//sphere.Translate(center0.x, center0.y, center0.z);
+					//sphere.Meshes[0].MaterialIndex = matIdx++;
 
 					if (choose_mat < 0.25f && choose_mat >= 0.0f)
 					{
@@ -95,8 +95,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		material.Model = LambertianModel;
 
 		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		sphere.Translate(-3.0f, 1.0f, 0.0f);
-		sphere.Meshes[0].MaterialIndex = matIdx++;
+		//sphere.Translate(-3.0f, 1.0f, 0.0f);
+		//sphere.Meshes[0].MaterialIndex = matIdx++;
 	}
 
 	// Sphere 2
@@ -109,8 +109,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		material.Model = GlossyModel;
 
 		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		sphere.Translate(-1.0f, 1.0f, 0.0f);
-		sphere.Meshes[0].MaterialIndex = matIdx++;
+		//sphere.Translate(-1.0f, 1.0f, 0.0f);
+		//sphere.Meshes[0].MaterialIndex = matIdx++;
 	}
 
 	// Sphere 3
@@ -121,8 +121,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		material.Model = MetalModel;
 
 		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		sphere.Translate(1.0f, 1.0f, 0.0f);
-		sphere.Meshes[0].MaterialIndex = matIdx++;
+		//sphere.Translate(1.0f, 1.0f, 0.0f);
+		//sphere.Meshes[0].MaterialIndex = matIdx++;
 	}
 
 	// Sphere 4
@@ -132,8 +132,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		material.Model = DielectricModel;
 
 		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		sphere.Translate(3.0f, 1.0f, 0.0f);
-		sphere.Meshes[0].MaterialIndex = matIdx++;
+		//sphere.Translate(3.0f, 1.0f, 0.0f);
+		//sphere.Meshes[0].MaterialIndex = matIdx++;
 	}
 
 	return scene;
@@ -170,31 +170,31 @@ Scene CornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelL
 	// Models
 	{
 		auto& floor = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		floor.Meshes[0].MaterialIndex = 0;
+		//floor.Meshes[0].MaterialIndex = 0;
 
 		auto& ceiling = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		ceiling.Translate(0.0f, 10.0f, 0.0f);
-		ceiling.Rotate(0.0f, 0.0f, XM_PI);
-		ceiling.Meshes[0].MaterialIndex = 0;
+		//ceiling.Translate(0.0f, 10.0f, 0.0f);
+		//ceiling.Rotate(0.0f, 0.0f, XM_PI);
+		//ceiling.Meshes[0].MaterialIndex = 0;
 
 		auto& backwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		backwall.Translate(0.0f, 5.0f, 5.0f);
-		backwall.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
-		backwall.Meshes[0].MaterialIndex = 0;
+		//backwall.Translate(0.0f, 5.0f, 5.0f);
+		//backwall.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
+		//backwall.Meshes[0].MaterialIndex = 0;
 
 		auto& leftwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		leftwall.Translate(-5.0f, 5.0f, 0.0f);
-		leftwall.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
-		leftwall.Meshes[0].MaterialIndex = 1;
+		//leftwall.Translate(-5.0f, 5.0f, 0.0f);
+		//leftwall.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
+		//leftwall.Meshes[0].MaterialIndex = 1;
 
 		auto& rightwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		rightwall.Translate(+5.0f, 5.0f, 0.0f);
-		rightwall.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
-		rightwall.Meshes[0].MaterialIndex = 2;
+		//rightwall.Translate(+5.0f, 5.0f, 0.0f);
+		//rightwall.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
+		//rightwall.Meshes[0].MaterialIndex = 2;
 
 		auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
-		light.Translate(0.0f, 9.9f, 1.0f);
-		light.Meshes[0].MaterialIndex = 3;
+		//light.Translate(0.0f, 9.9f, 1.0f);
+		//light.Meshes[0].MaterialIndex = 3;
 	}
 
 	return scene;
@@ -225,16 +225,16 @@ Scene LambertianSpheresInCornellBox(const MaterialLoader& MaterialLoader, const 
 	// Spheres
 	{
 		auto& left = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		left.Translate(-4.0f, 1.0f, 0.0f);
-		left.Meshes[0].MaterialIndex = 4;
+		//left.Translate(-4.0f, 1.0f, 0.0f);
+		//left.Meshes[0].MaterialIndex = 4;
 
 		auto& middle = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		middle.Translate(0.0f, 1.0f, 0.0f);
-		middle.Meshes[0].MaterialIndex = 5;
+		//middle.Translate(0.0f, 1.0f, 0.0f);
+		//middle.Meshes[0].MaterialIndex = 5;
 
 		auto& right = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		right.Translate(4.0f, 1.0f, 0.0f);
-		right.Meshes[0].MaterialIndex = 6;
+		//right.Translate(4.0f, 1.0f, 0.0f);
+		//right.Meshes[0].MaterialIndex = 6;
 	}
 
 	return scene;
@@ -288,16 +288,16 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 	// Spheres
 	{
 		auto& left = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 1.25f));
-		left.Translate(-3.25f, 1.25f, 0.0f);
-		left.Meshes[0].MaterialIndex = 4;
+		//left.Translate(-3.25f, 1.25f, 0.0f);
+		//left.Meshes[0].MaterialIndex = 4;
 
 		auto& middle = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 1.25f));
-		middle.Translate(0.0f, 1.25f, 0.0f);
-		middle.Meshes[0].MaterialIndex = 5;
+		//middle.Translate(0.0f, 1.25f, 0.0f);
+		//middle.Meshes[0].MaterialIndex = 5;
 
 		auto& right = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 1.25f));
-		right.Translate(3.25f, 1.25f, 0.0f);
-		right.Meshes[0].MaterialIndex = 6;
+		//right.Translate(3.25f, 1.25f, 0.0f);
+		//right.Meshes[0].MaterialIndex = 6;
 
 		// Shiny green spheres of varying roughnesses
 		for (int i = 0; i < 5; ++i)
@@ -305,8 +305,8 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 			float dx = i * 2.0f - 4.0f;
 
 			auto& greenSphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 0.75f));
-			greenSphere.Translate(dx, 5.0f, 4.0f);
-			greenSphere.Meshes[0].MaterialIndex = i + 7;
+			//greenSphere.Translate(dx, 5.0f, 4.0f);
+			//greenSphere.Meshes[0].MaterialIndex = i + 7;
 		}
 	}
 
@@ -316,55 +316,53 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
 {
 	Scene scene;
-	const int c_numSpheres = 7;
+	constexpr int NumSpheres = 7;
 
 	// Materials
+	auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
+	defaultMat.Model = LambertianModel;
+
+	auto& lightMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	XMStoreFloat3(&lightMat.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
+	lightMat.Model = LambertianModel;
+
+	Material* sphereMats[NumSpheres];
+	for (int i = 0; i < NumSpheres; ++i)
 	{
-		auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
-		defaultMat.Model = LambertianModel;
+		float indexOfRefraction = 1.0f + 0.5f * float(i) / float(NumSpheres - 1);
 
-		auto& light = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		XMStoreFloat3(&light.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
-		light.Model = LambertianModel;
+		sphereMats[i] = &scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 
-		for (int sphereIndex = 0; sphereIndex < c_numSpheres; ++sphereIndex)
-		{
-			float indexOfRefraction = 1.0f + 0.5f * float(sphereIndex) / float(c_numSpheres - 1);
-
-			auto& sphere = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-
-			sphere.Albedo = { 0.9f, 0.25f, 0.25f };
-			sphere.Emissive = { 0.0f, 0.0f, 0.0f };
-			sphere.Roughness = 0.0f;
-			sphere.Specular = { 0.8f, 0.8f, 0.8f };
-			sphere.IndexOfRefraction = indexOfRefraction;
-			sphere.Model = DielectricModel;
-		}
+		sphereMats[i]->Albedo = { 0.9f, 0.25f, 0.25f };
+		sphereMats[i]->Emissive = { 0.0f, 0.0f, 0.0f };
+		sphereMats[i]->Roughness = 0.0f;
+		sphereMats[i]->Specular = { 0.8f, 0.8f, 0.8f };
+		sphereMats[i]->IndexOfRefraction = indexOfRefraction;
+		sphereMats[i]->Model = DielectricModel;
 	}
 
 	// Models
+	auto& floor = scene.AddModel(CreateGrid(30.0f, 10.0f, 10, 10));
+	auto& ceiling = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+	auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
+	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+
+	// Model instances
+	auto& floorInstance = scene.AddModelInstance({ &floor, &defaultMat });
+	auto& ceilingInstance = scene.AddModelInstance({ &ceiling, &defaultMat });
+	ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
+	ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
+
+	auto& lightInstance = scene.AddModelInstance({ &light, &lightMat });
+	lightInstance.Translate(0.0f, 9.9f, 1.0f);
+
+	for (int i = 0; i < NumSpheres; ++i)
 	{
-		auto& floor = scene.AddModel(CreateGrid(30.0f, 10.0f, 10, 10));
-		floor.Meshes[0].MaterialIndex = 0;
+		float dx = i * 4.0f - 12.0f;
 
-		auto& ceiling = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		ceiling.Translate(0.0f, 10.0f, 0.0f);
-		ceiling.Rotate(0.0f, 0.0f, XM_PI);
-		ceiling.Meshes[0].MaterialIndex = 0;
-
-		auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
-		light.Translate(0.0f, 9.9f, 1.0f);
-		light.Meshes[0].MaterialIndex = 1;
-
-		for (int i = 0; i < c_numSpheres; ++i)
-		{
-			float dx = i * 4.0f - 12.0f;
-
-			auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-			sphere.Translate(dx, 2.0f, 0.0f);
-			sphere.Meshes[0].MaterialIndex = i + 2;
-		}
+		auto& sphereInstance = scene.AddModelInstance({ &sphere, sphereMats[i] });
+		sphereInstance.Translate(dx, 2.0f, 0.0f);
 	}
 
 	return scene;
@@ -391,7 +389,7 @@ int main(int argc, char** argv)
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 		scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
 
-		renderer.UploadScene(&scene);
+		renderer.SetScene(&scene);
 
 		Time time;
 		time.Restart();
@@ -449,7 +447,7 @@ int main(int argc, char** argv)
 
 			time.Signal();
 			renderer.Update(time);
-			renderer.RenderUI(&scene);
+			renderer.RenderGui(&scene);
 			renderer.Render(&scene);
 		});
 	}

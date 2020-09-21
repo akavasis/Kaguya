@@ -11,19 +11,19 @@ public:
 	{
 		float Exposure = 0.5f;
 		float Gamma = 2.2f;
-		unsigned int InputMapIndex = 0;
 	};
 
-	Tonemapping();
+	Tonemapping(Descriptor Input);
 	virtual ~Tonemapping() override;
-
-	virtual void Setup(RenderDevice* pRenderDevice) override;
-	virtual void Update() override;
+protected:
+	virtual bool Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
+	virtual void Update(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
 	virtual void RenderGui() override;
-	virtual void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
+	virtual void Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
 	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
-
+private:
 	SSettings Settings;
+	Descriptor Input;
 	Texture* pDestination;		// Set in Renderer::Render
 	Descriptor DestinationRTV;	// Set in Renderer::Render
 };

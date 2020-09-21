@@ -25,13 +25,19 @@ Model& Scene::AddModel(Model&& Model)
 	return Models.back();
 }
 
-UINT CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vector<const Model*>& Indices)
+ModelInstance& Scene::AddModelInstance(ModelInstance&& ModelInstance)
+{
+	ModelInstances.push_back(std::move(ModelInstance));
+	return ModelInstances.back();
+}
+
+UINT CullModels(const Camera* pCamera, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices)
 {
 	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
 	frustum.Transform(frustum, pCamera->Transform.Matrix());
 
 	UINT numVisible = 0;
-	for (auto iter = Models.begin(); iter != Models.end(); ++iter)
+	for (auto iter = ModelInstances.begin(); iter != ModelInstances.end(); ++iter)
 	{
 		auto& model = (*iter);
 		DirectX::BoundingBox aabb;
@@ -45,7 +51,7 @@ UINT CullModels(const Camera* pCamera, const Scene::ModelList& Models, std::vect
 	return numVisible;
 }
 
-UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelList& Models, std::vector<const Model*>& Indices)
+UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices)
 {
 	using namespace DirectX;
 
@@ -67,7 +73,7 @@ UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, 
 	obb.Orientation = Camera.Transform.Orientation;
 
 	UINT numVisible = 0;
-	for (auto iter = Models.begin(); iter != Models.end(); ++iter)
+	for (auto iter = ModelInstances.begin(); iter != ModelInstances.end(); ++iter)
 	{
 		auto& model = (*iter);
 		DirectX::BoundingBox aabb;
@@ -81,15 +87,15 @@ UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, 
 	return numVisible;
 }
 
-UINT CullMeshes(const Camera* pCamera, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices)
+UINT CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& MeshInstances, std::vector<UINT>& Indices)
 {
 	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
 	frustum.Transform(frustum, pCamera->Transform.Matrix());
 
 	UINT numVisible = 0;
-	for (size_t i = 0, numMeshes = Meshes.size(); i < numMeshes; ++i)
+	for (size_t i = 0, numMeshes = MeshInstances.size(); i < numMeshes; ++i)
 	{
-		auto& mesh = Meshes[i];
+		auto& mesh = MeshInstances[i];
 		DirectX::BoundingBox aabb;
 		mesh.BoundingBox.Transform(aabb, mesh.Transform.Matrix());
 		if (frustum.Contains(aabb) != DirectX::ContainmentType::DISJOINT)
@@ -101,7 +107,7 @@ UINT CullMeshes(const Camera* pCamera, const std::vector<Mesh>& Meshes, std::vec
 	return numVisible;
 }
 
-UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<Mesh>& Meshes, std::vector<UINT>& Indices)
+UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<MeshInstance>& MeshInstances, std::vector<UINT>& Indices)
 {
 	using namespace DirectX;
 
@@ -123,9 +129,9 @@ UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, 
 	obb.Orientation = Camera.Transform.Orientation;
 
 	UINT numVisible = 0;
-	for (size_t i = 0, numMeshes = Meshes.size(); i < numMeshes; ++i)
+	for (size_t i = 0, numMeshes = MeshInstances.size(); i < numMeshes; ++i)
 	{
-		auto& mesh = Meshes[i];
+		auto& mesh = MeshInstances[i];
 		DirectX::BoundingBox aabb;
 		mesh.BoundingBox.Transform(aabb, mesh.Transform.Matrix());
 		if (obb.Contains(aabb) != DirectX::ContainmentType::DISJOINT)

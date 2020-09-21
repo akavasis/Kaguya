@@ -1,20 +1,70 @@
 #pragma once
+#include <vector>
 #include "Scene/Scene.h"
-#include "GpuBufferAllocator.h"
 #include "GpuTextureAllocator.h"
 #include "RenderDevice.h"
 
 class GpuScene
 {
 public:
+	enum EResource
+	{
+		MaterialTable,
+		VertexBuffer,
+		IndexBuffer,
+		GeometryInfoTable,
+		NumResources
+	};
+
 	GpuScene(RenderDevice* pRenderDevice);
 
-	void SetScene(const Scene* pScene);
-	void Reset();
+	void UploadMaterials();
+	void UploadModels();
+	void UploadModelInstances();
+	void Commit(CommandContext* pCommandContext);
 
-	void Upload(CommandContext* pCommandContext);
+	void Update();
+
+	inline auto GetMaterialTableHandle() const { return ResourceTables[MaterialTable]; }
+	inline auto GetVertexBufferHandle() const { return ResourceTables[VertexBuffer]; }
+	inline auto GetIndexBufferHandle() const { return ResourceTables[IndexBuffer]; }
+	inline auto GetGeometryInfoTableHandle() const { return ResourceTables[GeometryInfoTable]; }
+	inline auto GetRTTLASResourceHandle() const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
+	inline auto GetRayGenerationShaderTableHandle() const { return m_RayGenerationShaderTable; }
+	inline auto GetMissShaderTableHandle() const { return m_MissShaderTable; }
+	inline auto GetHitGroupShaderTableHandle() const { return m_HitGroupShaderTable; }
+
+	Scene* pScene;
+	GpuTextureAllocator GpuTextureAllocator;
 private:
-	const Scene* m_pScene;
-	GpuBufferAllocator m_GpuBufferAllocator;
-	GpuTextureAllocator m_GpuTextureAllocator;
+	size_t Stage(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer);
+	void CreateBottomLevelAS(CommandContext* pCommandContext);
+	void CreateTopLevelAS(CommandContext* pCommandContext);
+	void CreateShaderTableBuffers();
+
+	struct RTBLAS
+	{
+		RaytracingAccelerationStructureHandles Handles;
+		BottomLevelAccelerationStructure BLAS;
+	};
+
+	struct RTTLAS
+	{
+		RaytracingAccelerationStructureHandles Handles;
+		TopLevelAccelerationStructure TLAS;
+	};
+
+	RenderDevice* pRenderDevice;
+
+
+	RenderResourceHandle UploadResourceTables[NumResources];
+	RenderResourceHandle ResourceTables[NumResources];
+	VariableSizedAllocator Allocators[NumResources];
+
+	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
+	RTTLAS m_RaytracingTopLevelAccelerationStructure;
+
+	RenderResourceHandle m_RayGenerationShaderTable;
+	RenderResourceHandle m_MissShaderTable;
+	RenderResourceHandle m_HitGroupShaderTable;
 };

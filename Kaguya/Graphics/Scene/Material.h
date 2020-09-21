@@ -54,6 +54,7 @@ struct Material
 		TextureFlags Flag;
 	};
 	Texture Textures[NumTextureTypes];
+	size_t GpuMaterialIndex;
 
 	Material()
 	{

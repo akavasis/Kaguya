@@ -31,7 +31,6 @@ struct RenderPassConstants
 	uint TotalFrameCount;
 
 	DirectionalLight Sun;
-	uint SunShadowMapIndex;
 	uint BRDFLUTMapIndex;
 	uint RadianceCubemapIndex;
 	uint IrradianceCubemapIndex;

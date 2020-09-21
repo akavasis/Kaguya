@@ -7,6 +7,7 @@
 #include "RenderDevice.h"
 #include "Gui.h"
 #include "Scene/Scene.h"
+#include "GpuScene.h"
 
 // Forward decl
 class RenderGraphRegistry;
@@ -33,21 +34,30 @@ public:
 	IRenderPass(RenderPassType Type, RenderTargetProperties Properties);
 	virtual ~IRenderPass() = default;
 
-	virtual void Setup(RenderDevice* pRenderDevice) = 0;
-	virtual void Update() = 0;
+	bool OnInitialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return Initialize(pGpuScene, pRenderDevice); }
+	void OnUpdate(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return Update(pGpuScene, pRenderDevice); }
+	void OnRenderGui() { return RenderGui(); }
+	void OnExecute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) { return Execute(RenderGraphRegistry, pCommandContext); }
+	void OnResize(UINT Width, UINT Height, RenderDevice* pRenderDevice) { return Resize(Width, Height, pRenderDevice); }
+
+	virtual bool RequiresScene() { return false; }
+	virtual bool UseRaytracing() { return false; }
+
+	bool Enabled;
+	RenderPassType Type;
+	RenderTargetProperties Properties;
+	std::vector<RenderResourceHandle> Resources;
+	std::vector<DescriptorAllocation> ResourceViews;
+protected:
+	virtual bool Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
+	virtual void Update(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
 	virtual void RenderGui() = 0;
-	virtual void Execute(const Scene& Scene, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) = 0;
+	virtual void Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) = 0;
 	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
 	{
 		Properties.Width = Width;
 		Properties.Height = Height;
 	}
-
-	bool Enabled;
-	RenderPassType Type;
-	RenderTargetProperties Properties;
-	std::vector<RenderResourceHandle> Outputs;
-	std::vector<DescriptorAllocation> ResourceViews;
 };
 
 // TODO: Add a RenderGraphScheduler to indicate reads/writes to a particular resource so we can
@@ -86,9 +96,7 @@ public:
 		static constexpr bool MultiThreaded = true;
 	};
 
-	RenderGraph(RenderDevice* pRenderDevice);
-
-	inline auto GetFrameIndex() const { return m_FrameIndex; }
+	RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene);
 
 	RenderResourceHandle GetNonTransientResource(const std::string& Name)
 	{
@@ -126,19 +134,21 @@ public:
 	void AddRenderPass(IRenderPass* pIRenderPass);
 
 	// Only call once
-	void Setup();
+	void Initialize();
 
 	// Call every frame
 	void Update();
 	void RenderGui();
-	void Execute(UINT FrameIndex, Scene& Scene);
-	void ExecuteCommandContexts(Texture* pDestination, Descriptor DestinationRTV, Gui* pGui);
+	void Execute();
+	void ExecuteCommandContexts(Gui* pGui);
 
 	void ThreadBarrier();
 
 	void Resize(UINT Width, UINT Height);
 private:
 	RenderDevice* pRenderDevice;
+	GpuScene* pGpuScene;
+
 	std::unique_ptr<ThreadPool> m_ThreadPool;
 	std::vector<std::future<void>> m_Futures;
 
@@ -148,7 +158,6 @@ private:
 	std::vector<CommandContext*> m_CommandContexts;
 
 	std::unordered_map<std::string, RenderResourceHandle> m_NonTransientResources;
-	UINT m_FrameIndex;
 };
 
 #include "RenderGraph.inl"

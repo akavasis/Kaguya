@@ -116,7 +116,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	});
 #pragma endregion
 
-	// Shadow RS
 	StandardShaderLayoutOptions options = {};
 
 	// Skybox RS
@@ -128,10 +127,14 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	});
 
 	// Tonemap RS
-	options.InitConstantDataTypeAsRootConstants = TRUE;
-	options.Num32BitValues = sizeof(Tonemapping::SSettings) / 4;
-	RootSignatures::PostProcess_Tonemapping = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
+	RootSignatures::PostProcess_Tonemapping = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
+		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
+		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
+
+		proxy.AddRootConstantsParameter<Tonemapping::SSettings>(0, 0);
+		proxy.AddRootDescriptorTableParameter({ input });
+
 		proxy.AllowInputLayout();
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();

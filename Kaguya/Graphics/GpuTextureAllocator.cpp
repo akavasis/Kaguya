@@ -2,21 +2,6 @@
 #include "GpuTextureAllocator.h"
 #include "RendererRegistry.h"
 
-struct HLSLMaterial
-{
-	float3	Albedo;
-	float3	Emissive;
-	float3	Specular;
-	float3	Refraction;
-	float	SpecularChance;
-	float	Roughness;
-	float	Fuzziness;
-	float	IndexOfRefraction;
-	uint	Model;
-
-	int TextureIndices[NumTextureTypes];
-};
-
 size_t GpuTextureAllocator::TextureStorage::Size() const
 {
 	// Size should be same, but this is a insanity check
@@ -57,7 +42,7 @@ std::pair<RenderResourceHandle, size_t> GpuTextureAllocator::TextureStorage::Get
 	return { renderResourceHandle, textureIndex };
 }
 
-GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t NumMaterials)
+GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice),
 	m_CBSRUADescriptorHeap(&pRenderDevice->Device, NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true)
 {
@@ -82,6 +67,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t Num
 	Buffer* pCubemapCameras = pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
 	pCubemapCameras->Map();
 
+	// TODO: MOVE THIS INTO CONSTANTS IN HLSL CODE
 	// Create 6 cameras for cube map
 	PerspectiveCamera cameras[6];
 
@@ -117,15 +103,6 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice, size_t Num
 		XMStoreFloat4x4(&rpcCPU.ViewProjection, XMMatrixTranspose(cameras[i].ViewProjectionMatrix()));
 		pCubemapCameras->Update<RenderPassConstants>(i, rpcCPU);
 	}
-
-	m_MaterialStructuredBufferHandle = pRenderDevice->CreateBuffer([NumMaterials](BufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(NumMaterials * sizeof(HLSLMaterial));
-		proxy.SetStride(sizeof(HLSLMaterial));
-		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-	});
-	m_pMaterialStructuredBuffer = pRenderDevice->GetBuffer(m_MaterialStructuredBufferHandle);
-	m_pMaterialStructuredBuffer->Map();
 
 	DXGI_FORMAT optionalFormats[] =
 	{
@@ -364,29 +341,6 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		}
 	}
 
-}
-
-void GpuTextureAllocator::Update(const Scene& Scene)
-{
-	std::size_t i = 0;
-	for (const auto& material : Scene.Materials)
-	{
-		HLSLMaterial hlslMaterial = {};
-		memcpy(&hlslMaterial, &material, sizeof(hlslMaterial));
-
-		m_pMaterialStructuredBuffer->Update<HLSLMaterial>(i++, hlslMaterial);
-	}
-}
-
-void GpuTextureAllocator::Bind(std::optional<UINT> MaterialRootParameterIndex, CommandContext* pCommandContext) const
-{
-	if (MaterialRootParameterIndex.has_value())
-	{
-		if (pCommandContext->GetType() == CommandContext::Type::Direct)
-			pCommandContext->SetGraphicsRootShaderResourceView(MaterialRootParameterIndex.value(), m_pMaterialStructuredBuffer->GetGpuVirtualAddress());
-		else if (pCommandContext->GetType() == CommandContext::Type::Compute)
-			pCommandContext->SetComputeRootShaderResourceView(MaterialRootParameterIndex.value(), m_pMaterialStructuredBuffer->GetGpuVirtualAddress());
-	}
 }
 
 RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips)

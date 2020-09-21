@@ -8,15 +8,22 @@ IRenderPass::IRenderPass(RenderPassType Type, RenderTargetProperties Properties)
 {
 }
 
-RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
+RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
 	: pRenderDevice(pRenderDevice),
+	pGpuScene(pGpuScene),
 	m_NumRenderPasses(0)
 {
 }
 
 void RenderGraph::AddRenderPass(IRenderPass* pIRenderPass)
 {
-	m_RenderPasses.emplace_back(std::unique_ptr<IRenderPass>(pIRenderPass));
+	auto pRenderPass = std::unique_ptr<IRenderPass>(pIRenderPass);
+	if (!pRenderPass->OnInitialize(pGpuScene, pRenderDevice))
+	{
+		throw std::logic_error("Failed to initialize render pass");
+	}
+
+	m_RenderPasses.emplace_back(std::move(pRenderPass));
 	switch (pIRenderPass->Type)
 	{
 	case RenderPassType::Graphics: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); break;
@@ -27,12 +34,8 @@ void RenderGraph::AddRenderPass(IRenderPass* pIRenderPass)
 	m_NumRenderPasses++;
 }
 
-void RenderGraph::Setup()
+void RenderGraph::Initialize()
 {
-	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
-	{
-		m_RenderPasses[i]->Setup(pRenderDevice);
-	}
 	m_ThreadPool = std::make_unique<ThreadPool>(m_NumRenderPasses);
 	m_Futures.resize(m_NumRenderPasses);
 	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); // This command context is for Gui
@@ -45,7 +48,7 @@ void RenderGraph::Update()
 		if (!renderPass->Enabled)
 			continue;
 
-		renderPass->Update();
+		renderPass->OnUpdate(pGpuScene, pRenderDevice);
 	}
 }
 
@@ -53,13 +56,12 @@ void RenderGraph::RenderGui()
 {
 	for (auto& renderPass : m_RenderPasses)
 	{
-		renderPass->RenderGui();
+		renderPass->OnRenderGui();
 	}
 }
 
-void RenderGraph::Execute(UINT FrameIndex, Scene& Scene)
+void RenderGraph::Execute()
 {
-	m_FrameIndex = FrameIndex;
 	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
 	{
 		if (!m_RenderPasses[i]->Enabled)
@@ -67,25 +69,29 @@ void RenderGraph::Execute(UINT FrameIndex, Scene& Scene)
 
 		if constexpr (RenderGraph::Settings::MultiThreaded)
 		{
-			m_Futures[i] = m_ThreadPool->AddWork([this, i, &Scene = Scene]()
+			m_Futures[i] = m_ThreadPool->AddWork([this, i]()
 			{
 				RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
 				pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
-				m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
+				m_RenderPasses[i]->OnExecute(renderGraphRegistry, m_CommandContexts[i]);
 			});
 		}
 		else
 		{
 			RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
 			pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
-			m_RenderPasses[i]->Execute(Scene, renderGraphRegistry, m_CommandContexts[i]);
+			m_RenderPasses[i]->OnExecute(renderGraphRegistry, m_CommandContexts[i]);
 		}
 	}
 }
 
-void RenderGraph::ExecuteCommandContexts(Texture* pDestination, Descriptor DestinationRTV, Gui* pGui)
+void RenderGraph::ExecuteCommandContexts(Gui* pGui)
 {
-	pGui->EndFrame(pDestination, DestinationRTV, m_CommandContexts.back());
+	auto frameIndex = pRenderDevice->FrameIndex;
+	auto pDestination = pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[frameIndex]);
+	auto destination = pRenderDevice->SwapChainRenderTargetViews[frameIndex];
+
+	pGui->EndFrame(pDestination, destination, m_CommandContexts.back());
 	pRenderDevice->ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
 }
 
@@ -102,6 +108,6 @@ void RenderGraph::Resize(UINT Width, UINT Height)
 {
 	for (auto& renderPass : m_RenderPasses)
 	{
-		renderPass->Resize(Width, Height, pRenderDevice);
+		renderPass->OnResize(Width, Height, pRenderDevice);
 	}
 }

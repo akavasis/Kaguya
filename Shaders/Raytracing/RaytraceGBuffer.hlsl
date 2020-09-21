@@ -53,17 +53,11 @@ void Miss(inout RayPayload rayPayload)
 	RenderTargets[MaterialExtra][launchIndex] = float4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-struct HitInfo
-{
-	uint GeometryIndex;
-};
-ConstantBuffer<HitInfo> HitGroupCB : register(b0, space0);
-
 [shader("closesthit")]
 void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
-	SurfaceInteraction si = GetSurfaceInteraction(attrib, HitGroupCB.GeometryIndex);
+	SurfaceInteraction si = GetSurfaceInteraction(attrib);
 	
 	RenderTargets[WorldPosition][launchIndex] = float4(si.position, 1.0f);
 	RenderTargets[WorldNormal][launchIndex] = float4(si.bsdf.normal, 0.0f);

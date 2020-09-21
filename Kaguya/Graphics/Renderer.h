@@ -3,11 +3,11 @@
 #include "Core/EventReceiver.h"
 #include "DXGIManager.h"
 #include "Scene/Scene.h"
+#include "GpuScene.h"
 #include "RenderDevice.h"
 #include "Gui.h"
 #include "RenderGraph.h"
 #include "RendererRegistry.h"
-#include "GpuBufferAllocator.h"
 #include "GpuTextureAllocator.h"
 
 class Application;
@@ -24,7 +24,6 @@ public:
 		inline static DOUBLE TimeElapsed = 0.0;
 		inline static DOUBLE FPS = 0.0;
 		inline static DOUBLE FPMS = 0.0;
-		inline static UINT64 Accumulation = 0;
 	};
 
 	struct Settings
@@ -35,28 +34,19 @@ public:
 	Renderer(const Application& Application, Window& Window);
 	~Renderer();
 
-	void UploadScene(Scene* Scene);
+	void SetScene(Scene* pScene);
 
 	void Update(const Time& Time);
-	void RenderUI(Scene* Scene);
-	void Render(Scene* Scene);
+	void RenderGui(Scene* pScene);
+	void Render(Scene* pScene);
 private:
 	void Resize(UINT Width, UINT Height);
-
-	struct GpuDescriptorIndices
-	{
-		DescriptorAllocation RenderTargetShaderResourceViews;
-		DescriptorAllocation TextureShaderResourceViews;
-	};
 
 	const Window* pWindow;
 	EventReceiver m_EventReceiver;
 
-	enum { NumSwapChainBuffers = 3 };
-
 	// Swapchain resources
 	static constexpr DXGI_FORMAT SwapChainBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	UINT m_FrameIndex;
 	float m_AspectRatio;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 
@@ -64,17 +54,6 @@ private:
 
 	RenderDevice m_RenderDevice;
 	Gui m_Gui;
-	CommandContext* m_pUploadCommandContext;
+	GpuScene m_GpuScene;
 	RenderGraph m_RenderGraph;
-	GpuBufferAllocator m_GpuBufferAllocator;
-	GpuTextureAllocator m_GpuTextureAllocator;
-
-	RenderResourceHandle m_SwapChainTextureHandles[NumSwapChainBuffers];
-	Texture* m_pSwapChainTextures[NumSwapChainBuffers];
-	DescriptorAllocation m_SwapChainRTVs;
-
-	RenderResourceHandle m_RenderPassConstantBufferHandle;
-	Buffer* m_pRenderPassConstantBuffer;
-
-	GpuDescriptorIndices m_GpuDescriptorIndices;
 };

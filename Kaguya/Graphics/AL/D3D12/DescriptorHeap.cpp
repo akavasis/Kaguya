@@ -6,7 +6,7 @@ DescriptorAllocation::DescriptorAllocation()
 	: StartDescriptor(Descriptor()),
 	NumDescriptors(0),
 	IncrementSize(0),
-	PartitonIndex(-1),
+	PartitionIndex(-1),
 	pOwningHeap(nullptr)
 {
 }
@@ -15,7 +15,7 @@ DescriptorAllocation::DescriptorAllocation(Descriptor StartDescriptor, UINT NumD
 	: StartDescriptor(StartDescriptor),
 	NumDescriptors(NumDescriptors),
 	IncrementSize(IncrementSize),
-	PartitonIndex(PartitonIndex),
+	PartitionIndex(PartitonIndex),
 	pOwningHeap(pOwningHeap)
 {
 }
@@ -24,12 +24,12 @@ DescriptorAllocation::~DescriptorAllocation()
 {
 	if (*this && pOwningHeap)
 	{
-		pOwningHeap->Free(PartitonIndex, std::move(*this));
+		pOwningHeap->Free(PartitionIndex, std::move(*this));
 
 		StartDescriptor = Descriptor();
 		NumDescriptors = 0;
 		IncrementSize = 0;
-		PartitonIndex = -1;
+		PartitionIndex = -1;
 		pOwningHeap = nullptr;
 	}
 }
@@ -39,13 +39,13 @@ DescriptorAllocation::DescriptorAllocation(DescriptorAllocation&& rvalue) noexce
 		rvalue.StartDescriptor,
 		rvalue.NumDescriptors,
 		rvalue.IncrementSize,
-		rvalue.PartitonIndex,
+		rvalue.PartitionIndex,
 		rvalue.pOwningHeap)
 {
 	rvalue.StartDescriptor = Descriptor();
 	rvalue.NumDescriptors = 0;
 	rvalue.IncrementSize = 0;
-	rvalue.PartitonIndex = -1;
+	rvalue.PartitionIndex = -1;
 	rvalue.pOwningHeap = nullptr;
 }
 
@@ -58,13 +58,13 @@ DescriptorAllocation& DescriptorAllocation::operator=(DescriptorAllocation&& rva
 		StartDescriptor = rvalue.StartDescriptor;
 		NumDescriptors = rvalue.NumDescriptors;
 		IncrementSize = rvalue.IncrementSize;
-		PartitonIndex = rvalue.PartitonIndex;
+		PartitionIndex = rvalue.PartitionIndex;
 		pOwningHeap = rvalue.pOwningHeap;
 
 		rvalue.StartDescriptor = Descriptor();
 		rvalue.NumDescriptors = 0;
 		rvalue.IncrementSize = 0;
-		rvalue.PartitonIndex = -1;
+		rvalue.PartitionIndex = -1;
 		rvalue.pOwningHeap = nullptr;
 	}
 	return *this;
@@ -75,7 +75,7 @@ Descriptor DescriptorAllocation::operator[](INT Index) const
 	assert(Index >= 0 && Index < NumDescriptors && "Descriptor index out of range");
 	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(StartDescriptor.CPUHandle);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(StartDescriptor.GPUHandle);
-	return { cpuHandle.Offset(Index, IncrementSize), gpuHandle.Offset(Index, IncrementSize), StartDescriptor.HeapIndex + Index };
+	return { cpuHandle.Offset(Index, IncrementSize), gpuHandle.Offset(Index, IncrementSize), StartDescriptor.HeapIndex + Index, StartDescriptor.PartitionHeapIndex + Index };
 }
 
 DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type)
@@ -84,7 +84,7 @@ DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool S
 	// if you recorded a GPU descriptor handle into the command list (everything else) then that descriptor cannot be reused until gpu is done referencing them
 	m_ShaderVisible = ShaderVisible;
 
-	D3D12_DESCRIPTOR_HEAP_DESC desc;
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = Type;
 	desc.NumDescriptors = std::accumulate(Ranges.begin(), Ranges.end(), 0);
 	desc.Flags = m_ShaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -105,7 +105,7 @@ DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool S
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {}; CD3DX12_CPU_DESCRIPTOR_HANDLE::InitOffsetted(cpuHandle, CpuHandle, heapIndex, m_DescriptorIncrementSize);
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {}; CD3DX12_GPU_DESCRIPTOR_HANDLE::InitOffsetted(gpuHandle, GpuHandle, heapIndex, m_DescriptorIncrementSize);
 
-		Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex };
+		Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex, 0 };
 		m_DescriptorPartitions[i].Allocation = DescriptorAllocation(descriptor, Ranges[i], m_DescriptorIncrementSize, i, this);
 		m_DescriptorPartitions[i].Allocator.Reset(Ranges[i]);
 
@@ -129,7 +129,8 @@ DescriptorAllocation DescriptorHeap::Allocate(INT PartitionIndex, UINT NumDescri
 		gpuHandle = GetGPUHandleAt(PartitionIndex, offset);
 
 	UINT heapIndex = PartitionIndex * descriptorPartition.Allocation.NumDescriptors + offset;
-	Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex };
+	UINT partitionHeapIndex = offset;
+	Descriptor descriptor = { cpuHandle, gpuHandle, heapIndex, partitionHeapIndex };
 	return DescriptorAllocation(descriptor, NumDescriptors, m_DescriptorIncrementSize, PartitionIndex, this);
 }
 

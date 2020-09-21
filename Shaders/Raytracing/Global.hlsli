@@ -13,9 +13,9 @@ StructuredBuffer<Material> Materials							: register(t4, space0);
 #define RenderPassDataType RenderPassConstants
 #include "../ShaderLayout.hlsli"
 
-Triangle GetTriangle(in uint geometryIndex)
+Triangle GetTriangle()
 {
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
+	GeometryInfo info = GeometryInfoBuffer[InstanceID()];
 
 	const uint primIndex = PrimitiveIndex();
 	const uint idx0 = IndexBuffer[primIndex * 3 + info.IndexOffset + 0];
@@ -30,13 +30,12 @@ Triangle GetTriangle(in uint geometryIndex)
 	return t;
 }
 
-Vertex GetBERPedVertex(in HitAttributes attrib, in uint geometryIndex)
+Vertex GetInterpolatedVertex(in HitAttributes attrib)
 {
-	float3 barycentrics =
-    float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
+	float3 barycentrics = float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
 
-	Triangle t = GetTriangle(geometryIndex);
-	return BERP(t, barycentrics);
+	Triangle t = GetTriangle();
+	return BarycentricInterpolation(t, barycentrics);
 }
 
 struct SurfaceInteraction
@@ -48,12 +47,12 @@ struct SurfaceInteraction
 	Material material;
 };
 
-SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib, uint geometryIndex)
+SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib)
 {
 	SurfaceInteraction si;
 	
-	GeometryInfo info = GeometryInfoBuffer[geometryIndex];
-	Vertex hitSurface = GetBERPedVertex(attrib, geometryIndex);
+	GeometryInfo info = GeometryInfoBuffer[InstanceID()];
+	Vertex hitSurface = GetInterpolatedVertex(attrib);
 	Material material = Materials[info.MaterialIndex];
 	
 	hitSurface.Tangent = mul(float4(hitSurface.Tangent, 0.0f), info.World).xyz;

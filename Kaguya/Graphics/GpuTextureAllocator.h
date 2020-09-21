@@ -13,8 +13,6 @@
 class GpuTextureAllocator
 {
 public:
-	inline auto GetMaterialBufferHandle() const { return m_MaterialStructuredBufferHandle; }
-
 	enum RendererReseveredTextures
 	{
 		BRDFLUT,
@@ -37,13 +35,11 @@ public:
 		std::pair<RenderResourceHandle, size_t> GetTexture(const std::string& Path) const;
 	} TextureStorage;
 
-	GpuTextureAllocator(RenderDevice* pRenderDevice, size_t NumMaterials);
+	GpuTextureAllocator(RenderDevice* pRenderDevice);
 
 	inline auto GetNumTextures() const { return m_NumTextures; }
 
 	void Stage(Scene& Scene, CommandContext* pCommandContext);
-	void Update(const Scene& Scene);
-	void Bind(std::optional<UINT> MaterialRootParameterIndex, CommandContext* pCommandContext) const;
 private:
 	struct Status
 	{
@@ -92,7 +88,4 @@ private:
 	RenderResourceHandle m_CubemapCamerasUploadBufferHandle;
 
 	size_t m_NumTextures;
-
-	RenderResourceHandle m_MaterialStructuredBufferHandle;
-	Buffer* m_pMaterialStructuredBuffer;
 };
