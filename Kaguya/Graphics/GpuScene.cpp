@@ -382,8 +382,18 @@ void GpuScene::CreateShaderTableBuffers()
 	// Hit Group Shader Table
 	{
 		ShaderTable<void> shaderTable;
-		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"Default"));
-		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"Shadow"));
+
+		ShaderIdentifier hitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
+		ShaderIdentifier shadowHitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Shadow");
+
+		for (const auto& modelInstance : pScene->ModelInstances)
+		{
+			for (const auto& meshInstance : modelInstance.MeshInstances)
+			{
+				shaderTable.AddShaderRecord(hitGroupSID);
+				shaderTable.AddShaderRecord(shadowHitGroupSID);
+			}
+		}
 
 		UINT64 shaderTableSizeInBytes; UINT stride;
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
