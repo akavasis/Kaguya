@@ -1,6 +1,4 @@
 # Kaguya
-How I got the name? Anime. This is my second iteration of DirectX 12 Renderer.
-
 ## Description
 This is a path tracer using DXR (DirectX Raytracing).  
 ### Features
