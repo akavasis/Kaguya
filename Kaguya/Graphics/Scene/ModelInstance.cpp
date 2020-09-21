@@ -37,6 +37,15 @@ void ModelInstance::Translate(float DeltaX, float DeltaY, float DeltaZ)
 	}
 }
 
+void ModelInstance::SetScale(float Scale)
+{
+	Transform.SetScale(Scale, Scale, Scale);
+	for (auto& meshInstance : MeshInstances)
+	{
+		meshInstance.Transform.SetScale(Scale, Scale, Scale);
+	}
+}
+
 void ModelInstance::Rotate(float AngleX, float AngleY, float AngleZ)
 {
 	Transform.Rotate(AngleX, AngleY, AngleZ);

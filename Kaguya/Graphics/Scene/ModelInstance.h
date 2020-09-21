@@ -17,5 +17,6 @@ public:
 
 	void SetTransform(DirectX::FXMMATRIX M);
 	void Translate(float DeltaX, float DeltaY, float DeltaZ);
+	void SetScale(float Scale);
 	void Rotate(float AngleX, float AngleY, float AngleZ);
 };

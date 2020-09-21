@@ -26,64 +26,62 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 	Scene scene;
 
 	// Materials
-	{
-		// 0
-		auto& nullMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		nullMaterial.Albedo = { 0.7f, 0.7f, 0.7f };
-		nullMaterial.Model = LambertianModel;
-	}
+	auto& defaultMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	defaultMaterial.Albedo = { 0.7f, 0.7f, 0.7f };
+	defaultMaterial.Model = LambertianModel;
 
-	int matIdx = 1;
 	// Models
+	auto& floor = scene.AddModel(CreateGrid(500.0f, 500.0f, 10, 10));
+	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+
+	// Model instances
+	auto& floorInstance = scene.AddModelInstance({ &floor, &defaultMaterial });
+
+	for (int a = -11; a < 11; a++)
 	{
-		auto& floor = scene.AddModel(CreateGrid(500.0f, 500.0f, 10, 10));
-		//floor.Meshes[0].MaterialIndex = 0;
-
-		for (int a = -11; a < 11; a++)
+		for (int b = -11; b < 11; b++)
 		{
-			for (int b = -11; b < 11; b++)
+			auto choose_mat = Math::RandF();
+			XMFLOAT3 center0(a + 0.9f * Math::RandF(), 0.2f, b + 0.9f * Math::RandF());
+			XMVECTOR centerVector = XMLoadFloat3(&center0);
+			if (XMVectorGetX(XMVector3Length(centerVector - XMVectorSet(4.0f, 0.2f, 0.0f, 1.0f))) > 0.9f)
 			{
-				auto choose_mat = Math::RandF();
-				XMFLOAT3 center0(a + 0.9f * Math::RandF(), 0.2f, b + 0.9f * Math::RandF());
-				XMVECTOR centerVector = XMLoadFloat3(&center0);
-				if (XMVectorGetX(XMVector3Length(centerVector - XMVectorSet(4.0f, 0.2f, 0.0f, 1.0f))) > 0.9f)
+				auto& material = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+
+				if (choose_mat < 0.25f && choose_mat >= 0.0f)
 				{
-					auto& mat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-					auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 0.2f));
-					//sphere.Translate(center0.x, center0.y, center0.z);
-					//sphere.Meshes[0].MaterialIndex = matIdx++;
-
-					if (choose_mat < 0.25f && choose_mat >= 0.0f)
-					{
-						XMVECTOR albedo = Math::RandomVector() * Math::RandomVector();
-						XMStoreFloat3(&mat.Albedo, albedo);
-						mat.Model = LambertianModel;
-					}
-					else if (choose_mat < 0.5f && choose_mat >= 0.25f)
-					{
-						XMVECTOR albedo = Math::RandomVector();
-						XMStoreFloat3(&mat.Albedo, albedo);
-						mat.SpecularChance = Math::RandF();
-						mat.Roughness = Math::RandF();
-						XMVECTOR specularColor = Math::RandomVector();
-						XMStoreFloat3(&mat.Albedo, specularColor);
-						mat.Model = GlossyModel;
-					}
-					else if (choose_mat < 0.75f && choose_mat >= 0.5f)
-					{
-						mat.IndexOfRefraction = 1.5f;
-						mat.Model = DielectricModel;
-					}
-					else
-					{
-						XMVECTOR albedo = Math::RandomVector(0.5, 1);
-						float fuzz = Math::RandF(0, 0.5);
-
-						XMStoreFloat3(&mat.Albedo, albedo);
-						mat.Fuzziness = fuzz;
-						mat.Model = MetalModel;
-					}
+					XMVECTOR albedo = Math::RandomVector() * Math::RandomVector();
+					XMStoreFloat3(&material.Albedo, albedo);
+					material.Model = LambertianModel;
 				}
+				else if (choose_mat < 0.5f && choose_mat >= 0.25f)
+				{
+					XMVECTOR albedo = Math::RandomVector();
+					XMStoreFloat3(&material.Albedo, albedo);
+					material.SpecularChance = Math::RandF();
+					material.Roughness = Math::RandF();
+					XMVECTOR specularColor = Math::RandomVector();
+					XMStoreFloat3(&material.Albedo, specularColor);
+					material.Model = GlossyModel;
+				}
+				else if (choose_mat < 0.75f && choose_mat >= 0.5f)
+				{
+					material.IndexOfRefraction = 1.5f;
+					material.Model = DielectricModel;
+				}
+				else
+				{
+					XMVECTOR albedo = Math::RandomVector(0.5, 1);
+					float fuzz = Math::RandF(0, 0.5);
+
+					XMStoreFloat3(&material.Albedo, albedo);
+					material.Fuzziness = fuzz;
+					material.Model = MetalModel;
+				}
+
+				auto& sphereInstance = scene.AddModelInstance({ &sphere, &material });
+				sphereInstance.SetScale(0.2f);
+				sphereInstance.Translate(center0.x, center0.y, center0.z);
 			}
 		}
 	}
@@ -94,9 +92,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		material.Albedo = { 0.4f, 0.2f, 0.1f };
 		material.Model = LambertianModel;
 
-		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		//sphere.Translate(-3.0f, 1.0f, 0.0f);
-		//sphere.Meshes[0].MaterialIndex = matIdx++;
+		auto& sphereInstance = scene.AddModelInstance({ &sphere, &material });
+		sphereInstance.Translate(-3.0f, 1.0f, 0.0f);
 	}
 
 	// Sphere 2
@@ -108,9 +105,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		material.Specular = { 0.9f, 0.9f, 0.9f };
 		material.Model = GlossyModel;
 
-		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		//sphere.Translate(-1.0f, 1.0f, 0.0f);
-		//sphere.Meshes[0].MaterialIndex = matIdx++;
+		auto& sphereInstance = scene.AddModelInstance({ &sphere, &material });
+		sphereInstance.Translate(-1.0f, 1.0f, 0.0f);
 	}
 
 	// Sphere 3
@@ -120,9 +116,8 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		material.Fuzziness = 0.0f;
 		material.Model = MetalModel;
 
-		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		//sphere.Translate(1.0f, 1.0f, 0.0f);
-		//sphere.Meshes[0].MaterialIndex = matIdx++;
+		auto& sphereInstance = scene.AddModelInstance({ &sphere, &material });
+		sphereInstance.Translate(1.0f, 1.0f, 0.0f);
 	}
 
 	// Sphere 4
@@ -131,183 +126,156 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 		material.IndexOfRefraction = 1.5f;
 		material.Model = DielectricModel;
 
-		auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		//sphere.Translate(3.0f, 1.0f, 0.0f);
-		//sphere.Meshes[0].MaterialIndex = matIdx++;
+		auto& sphereInstance = scene.AddModelInstance({ &sphere, &material });
+		sphereInstance.Translate(3.0f, 1.0f, 0.0f);
 	}
 
 	return scene;
 }
 
-Scene CornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
+void AddCornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader, Scene* pScene)
 {
-	Scene scene;
-
+	assert(pScene != nullptr);
 	// Materials
-	{
-		// 0
-		auto& nullMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		nullMaterial.Albedo = { 0.7f, 0.7f, 0.7f };
-		nullMaterial.Model = LambertianModel;
+	auto& defaultMat = pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
+	defaultMat.Model = LambertianModel;
 
-		// 1
-		auto& leftwallMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		leftwallMaterial.Albedo = { 0.7f, 0.1f, 0.1f };
-		leftwallMaterial.Model = LambertianModel;
+	auto& leftWallMat = pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	leftWallMat.Albedo = { 0.7f, 0.1f, 0.1f };
+	leftWallMat.Model = LambertianModel;
 
-		// 2
-		auto& rightwallMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		rightwallMaterial.Albedo = { 0.1f, 0.7f, 0.1f };
-		rightwallMaterial.Model = LambertianModel;
+	auto& rightWallMat = pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	rightWallMat.Albedo = { 0.1f, 0.7f, 0.1f };
+	rightWallMat.Model = LambertianModel;
 
-		// 3
-		auto& lightMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		lightMaterial.Albedo = { 0.0f, 0.0f, 0.0f };
-		XMStoreFloat3(&lightMaterial.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
-		lightMaterial.Model = DiffuseLightModel;
-	}
+	auto& lightMat = pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	lightMat.Albedo = { 0.0f, 0.0f, 0.0f };
+	XMStoreFloat3(&lightMat.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
+	lightMat.Model = DiffuseLightModel;
 
 	// Models
-	{
-		auto& floor = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		//floor.Meshes[0].MaterialIndex = 0;
+	auto& rect = pScene->AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+	auto& light = pScene->AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
 
-		auto& ceiling = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		//ceiling.Translate(0.0f, 10.0f, 0.0f);
-		//ceiling.Rotate(0.0f, 0.0f, XM_PI);
-		//ceiling.Meshes[0].MaterialIndex = 0;
-
-		auto& backwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		//backwall.Translate(0.0f, 5.0f, 5.0f);
-		//backwall.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
-		//backwall.Meshes[0].MaterialIndex = 0;
-
-		auto& leftwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		//leftwall.Translate(-5.0f, 5.0f, 0.0f);
-		//leftwall.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
-		//leftwall.Meshes[0].MaterialIndex = 1;
-
-		auto& rightwall = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		//rightwall.Translate(+5.0f, 5.0f, 0.0f);
-		//rightwall.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
-		//rightwall.Meshes[0].MaterialIndex = 2;
-
-		auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
-		//light.Translate(0.0f, 9.9f, 1.0f);
-		//light.Meshes[0].MaterialIndex = 3;
-	}
-
-	return scene;
+	// Model instances
+	auto& floorInstance = pScene->AddModelInstance({ &rect, &defaultMat });
+	auto& ceilingInstance = pScene->AddModelInstance({ &rect, &defaultMat });
+	ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
+	ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
+	auto& backwallInstance = pScene->AddModelInstance({ &rect, &defaultMat });
+	backwallInstance.Translate(0.0f, 5.0f, 5.0f);
+	backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
+	auto& leftwallInstance = pScene->AddModelInstance({ &rect, &leftWallMat });
+	leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
+	leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
+	auto& rightwallInstance = pScene->AddModelInstance({ &rect, &rightWallMat });
+	rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
+	rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
+	auto& lightInstance = pScene->AddModelInstance({ &light, &lightMat });
+	lightInstance.Translate(0.0f, 9.9f, 0.0f);
 }
 
 Scene LambertianSpheresInCornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
 {
-	Scene scene = CornellBox(MaterialLoader, ModelLoader);
+	Scene scene; AddCornellBox(MaterialLoader, ModelLoader, &scene);
 
 	// Materials
-	{
-		// 4
-		auto& leftsphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		leftsphereMaterial.Albedo = { 0.9f, 0.9f, 0.5f };
-		leftsphereMaterial.Model = LambertianModel;
+	auto& leftSphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	leftSphereMaterial.Albedo = { 0.9f, 0.9f, 0.5f };
+	leftSphereMaterial.Model = LambertianModel;
 
-		// 5
-		auto& middlesphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		middlesphereMaterial.Albedo = { 0.9f, 0.5f, 0.9f };
-		middlesphereMaterial.Model = LambertianModel;
+	auto& middleSphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	middleSphereMaterial.Albedo = { 0.9f, 0.5f, 0.9f };
+	middleSphereMaterial.Model = LambertianModel;
 
-		// 6
-		auto& rightsphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		rightsphereMaterial.Albedo = { 0.5f, 0.9f, 0.9f };
-		rightsphereMaterial.Model = LambertianModel;
-	}
+	auto& rightSphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	rightSphereMaterial.Albedo = { 0.5f, 0.9f, 0.9f };
+	rightSphereMaterial.Model = LambertianModel;
 
-	// Spheres
-	{
-		auto& left = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		//left.Translate(-4.0f, 1.0f, 0.0f);
-		//left.Meshes[0].MaterialIndex = 4;
+	// Models
+	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
 
-		auto& middle = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		//middle.Translate(0.0f, 1.0f, 0.0f);
-		//middle.Meshes[0].MaterialIndex = 5;
+	// Model instances
+	auto& leftSphereInstance = scene.AddModelInstance({ &sphere, &leftSphereMaterial });
+	leftSphereInstance.SetScale(1.25f);
+	leftSphereInstance.Translate(-3.25f, 1.25f, 0.0f);
 
-		auto& right = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
-		//right.Translate(4.0f, 1.0f, 0.0f);
-		//right.Meshes[0].MaterialIndex = 6;
-	}
+	auto& middleSphereInstance = scene.AddModelInstance({ &sphere, &middleSphereMaterial });
+	middleSphereInstance.SetScale(1.25f);
+	middleSphereInstance.Translate(0.0f, 1.25f, 0.0f);
+
+	auto& rightSphereInstance = scene.AddModelInstance({ &sphere, &rightSphereMaterial });
+	rightSphereInstance.SetScale(1.25f);
+	rightSphereInstance.Translate(3.25f, 1.25f, 0.0f);
 
 	return scene;
 }
 
 Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
 {
-	Scene scene = CornellBox(MaterialLoader, ModelLoader);
+	Scene scene; AddCornellBox(MaterialLoader, ModelLoader, &scene);
+	constexpr int NumSpheres = 5;
 
 	// Materials
+	auto& leftSphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	leftSphereMaterial.Albedo = { 0.9f, 0.9f, 0.5f };
+	leftSphereMaterial.SpecularChance = 0.1f;
+	leftSphereMaterial.Roughness = 0.2f;
+	leftSphereMaterial.Specular = { 0.9f, 0.9f, 0.9f };
+	leftSphereMaterial.Model = GlossyModel;
+
+	auto& middleSphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	middleSphereMaterial.Albedo = { 0.9f, 0.5f, 0.9f };
+	middleSphereMaterial.SpecularChance = 0.3f;
+	middleSphereMaterial.Roughness = 0.2f;
+	middleSphereMaterial.Specular = { 0.9f, 0.9f, 0.9f };
+	middleSphereMaterial.Model = GlossyModel;
+
+	auto& rightSphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	rightSphereMaterial.Albedo = { 0.0f, 0.0f, 1.0f };
+	rightSphereMaterial.SpecularChance = 0.5f;
+	rightSphereMaterial.Roughness = 0.4f;
+	rightSphereMaterial.Specular = { 1.0f, 0.0f, 0.0f };
+	rightSphereMaterial.Model = GlossyModel;
+
+	Material* sphereMats[NumSpheres];
+	for (int i = 0; i < NumSpheres; ++i)
 	{
-		// 4
-		auto& leftsphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		leftsphereMaterial.Albedo = { 0.9f, 0.9f, 0.5f };
-		leftsphereMaterial.SpecularChance = 0.1f;
-		leftsphereMaterial.Roughness = 0.2f;
-		leftsphereMaterial.Specular = { 0.9f, 0.9f, 0.9f };
-		leftsphereMaterial.Model = GlossyModel;
+		float roughness = float(i) * 0.25f;
 
-		// 5
-		auto& middlesphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		middlesphereMaterial.Albedo = { 0.9f, 0.5f, 0.9f };
-		middlesphereMaterial.SpecularChance = 0.3f;
-		middlesphereMaterial.Roughness = 0.2f;
-		middlesphereMaterial.Specular = { 0.9f, 0.9f, 0.9f };
-		middlesphereMaterial.Model = GlossyModel;
-
-		// 6
-		// a ball which has blue diffuse but red specular. an example of a "bad material".
-		// a better lighting model wouldn't let you do this sort of thing
-		auto& rightsphereMaterial = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		rightsphereMaterial.Albedo = { 0.0f, 0.0f, 1.0f };
-		rightsphereMaterial.SpecularChance = 0.5f;
-		rightsphereMaterial.Roughness = 0.4f;
-		rightsphereMaterial.Specular = { 1.0f, 0.0f, 0.0f };
-		rightsphereMaterial.Model = GlossyModel;
-
-		// 7 + i
-		float variousRoughness[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
-		for (int i = 0; i < 5; ++i)
-		{
-			auto& greenMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-			greenMat.Albedo = { 1.0f, 1.0f, 1.0f };
-			greenMat.SpecularChance = 1.0f;
-			greenMat.Roughness = variousRoughness[i];
-			greenMat.Specular = { 0.3f, 1.0f, 0.3f };
-			greenMat.Model = GlossyModel;
-		}
+		sphereMats[i] = &scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		sphereMats[i]->Albedo = { 1.0f, 1.0f, 1.0f };
+		sphereMats[i]->SpecularChance = 1.0f;
+		sphereMats[i]->Roughness = roughness;
+		sphereMats[i]->Specular = { 0.3f, 1.0f, 0.3f };
+		sphereMats[i]->Model = GlossyModel;
 	}
 
-	// Spheres
+	// Models
+	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+
+	// Model instances
+	auto& leftSphereInstance = scene.AddModelInstance({ &sphere, &leftSphereMaterial });
+	leftSphereInstance.SetScale(1.25f);
+	leftSphereInstance.Translate(-3.25f, 1.25f, 0.0f);
+
+	auto& middleSphereInstance = scene.AddModelInstance({ &sphere, &middleSphereMaterial });
+	middleSphereInstance.SetScale(1.25f);
+	middleSphereInstance.Translate(0.0f, 1.25f, 0.0f);
+
+	auto& rightSphereInstance = scene.AddModelInstance({ &sphere, &rightSphereMaterial });
+	rightSphereInstance.SetScale(1.25f);
+	rightSphereInstance.Translate(3.25f, 1.25f, 0.0f);
+
+	// Shiny green spheres of varying roughnesses
+	for (int i = 0; i < NumSpheres; ++i)
 	{
-		auto& left = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 1.25f));
-		//left.Translate(-3.25f, 1.25f, 0.0f);
-		//left.Meshes[0].MaterialIndex = 4;
+		float dx = i * 2.0f - 4.0f;
 
-		auto& middle = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 1.25f));
-		//middle.Translate(0.0f, 1.25f, 0.0f);
-		//middle.Meshes[0].MaterialIndex = 5;
-
-		auto& right = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 1.25f));
-		//right.Translate(3.25f, 1.25f, 0.0f);
-		//right.Meshes[0].MaterialIndex = 6;
-
-		// Shiny green spheres of varying roughnesses
-		for (int i = 0; i < 5; ++i)
-		{
-			float dx = i * 2.0f - 4.0f;
-
-			auto& greenSphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj", 0.75f));
-			//greenSphere.Translate(dx, 5.0f, 4.0f);
-			//greenSphere.Meshes[0].MaterialIndex = i + 7;
-		}
+		auto& sphereInstance = scene.AddModelInstance({ &sphere, sphereMats[i] });
+		sphereInstance.SetScale(0.75f);
+		sphereInstance.Translate(dx, 5.0f, 4.0f);
 	}
 
 	return scene;
@@ -355,7 +323,7 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 	ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
 
 	auto& lightInstance = scene.AddModelInstance({ &light, &lightMat });
-	lightInstance.Translate(0.0f, 9.9f, 1.0f);
+	lightInstance.Translate(0.0f, 9.9f, 0.0f);
 
 	for (int i = 0; i < NumSpheres; ++i)
 	{
@@ -383,7 +351,7 @@ int main(int argc, char** argv)
 
 		MaterialLoader materialLoader{ application.ExecutableFolderPath() };
 		ModelLoader modelLoader{ application.ExecutableFolderPath() };
-		Scene scene = TransparentSpheresOfIncreasingIoR(materialLoader, modelLoader);
+		Scene scene = RandomScene(materialLoader, modelLoader);
 		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
 
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
