@@ -5,11 +5,6 @@
 #include "SharedTypes.hlsli"
 #include "Constants.hlsli"
 
-half Luminance(half3 LinearColor)
-{
-	return dot(LinearColor, half3(0.3, 0.59, 0.11));
-}
-
 float3 CartesianToSpherical(float x, float y, float z)
 {
 	float radius = sqrt(x * x + y * y + z * z);

@@ -239,7 +239,7 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 	pRenderResourceHandle->Data = 0;
 }
 
-void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor)
+void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	switch (RenderResourceHandle.Type)
@@ -275,6 +275,8 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 	case RenderResourceType::Texture:
 	{
 		Texture* pTexture = GetTexture(RenderResourceHandle);
+		UINT mostDetailedMip = MostDetailedMip.value_or(0);
+		UINT mipLevels = MipLevels.value_or(pTexture->GetMipLevels());
 
 		auto getValidSRVFormat = [](DXGI_FORMAT Format)
 		{
@@ -293,13 +295,18 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 			if (pTexture->GetDepthOrArraySize() > 1)
 			{
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-				desc.Texture1DArray.MipLevels = pTexture->GetMipLevels();
+				desc.Texture1DArray.MostDetailedMip = mostDetailedMip;
+				desc.Texture1DArray.MipLevels = mipLevels;
+				desc.Texture1DArray.FirstArraySlice = 0;
 				desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
+				desc.Texture1DArray.ResourceMinLODClamp = 0.0f;
 			}
 			else
 			{
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-				desc.Texture1D.MipLevels = pTexture->GetMipLevels();
+				desc.Texture1D.MostDetailedMip = mostDetailedMip;
+				desc.Texture1D.MipLevels = mipLevels;
+				desc.Texture1D.ResourceMinLODClamp = 0.0f;
 			}
 		}
 		break;
@@ -309,13 +316,19 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 			if (pTexture->GetDepthOrArraySize() > 1)
 			{
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-				desc.Texture2DArray.MipLevels = pTexture->GetMipLevels();
+				desc.Texture2DArray.MostDetailedMip = mostDetailedMip;
+				desc.Texture2DArray.MipLevels = mipLevels;
 				desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
+				desc.Texture2DArray.PlaneSlice = 0;
+				desc.Texture2DArray.ResourceMinLODClamp = 0.0f;
 			}
 			else
 			{
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-				desc.Texture2D.MipLevels = pTexture->GetMipLevels();
+				desc.Texture2D.MostDetailedMip = mostDetailedMip;
+				desc.Texture2D.MipLevels = mipLevels;
+				desc.Texture2D.PlaneSlice = 0;
+				desc.Texture2D.ResourceMinLODClamp = 0.0f;
 			}
 		}
 		break;
@@ -323,14 +336,18 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descript
 		case Resource::Type::Texture3D:
 		{
 			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-			desc.Texture3D.MipLevels = pTexture->GetMipLevels();
+			desc.Texture3D.MostDetailedMip = mostDetailedMip;
+			desc.Texture3D.MipLevels = mipLevels;
+			desc.Texture3D.ResourceMinLODClamp = 0.0f;
 		}
 		break;
 
 		case Resource::Type::TextureCube:
 		{
 			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-			desc.TextureCube.MipLevels = pTexture->GetMipLevels();
+			desc.TextureCube.MostDetailedMip = mostDetailedMip;
+			desc.TextureCube.MipLevels = mipLevels;
+			desc.TextureCube.ResourceMinLODClamp = 0.0f;
 		}
 		break;
 		}

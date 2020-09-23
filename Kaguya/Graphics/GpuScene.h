@@ -37,7 +37,7 @@ public:
 	Scene* pScene;
 	GpuTextureAllocator GpuTextureAllocator;
 private:
-	size_t Stage(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer);
+	size_t Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer);
 	void CreateBottomLevelAS(CommandContext* pCommandContext);
 	void CreateTopLevelAS(CommandContext* pCommandContext);
 	void CreateShaderTableBuffers();
@@ -55,7 +55,6 @@ private:
 	};
 
 	RenderDevice* pRenderDevice;
-
 
 	RenderResourceHandle UploadResourceTables[NumResources];
 	RenderResourceHandle ResourceTables[NumResources];

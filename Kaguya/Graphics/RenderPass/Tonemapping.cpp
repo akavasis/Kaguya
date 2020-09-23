@@ -44,9 +44,7 @@ void Tonemapping::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandConte
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Tonemap");
 
-	auto pOutput = pDestination;
-
-	pCommandContext->TransitionBarrier(pOutput, Resource::State::RenderTarget);
+	pCommandContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
 
 	pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
@@ -59,13 +57,13 @@ void Tonemapping::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandConte
 	vp.TopLeftX = vp.TopLeftY = 0.0f;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
-	vp.Width = pOutput->GetWidth();
-	vp.Height = pOutput->GetHeight();
+	vp.Width = pDestination->GetWidth();
+	vp.Height = pDestination->GetHeight();
 
 	D3D12_RECT sr;
 	sr.left = sr.top = 0;
-	sr.right = pOutput->GetWidth();
-	sr.bottom = pOutput->GetHeight();
+	sr.right = pDestination->GetWidth();
+	sr.bottom = pDestination->GetHeight();
 
 	pCommandContext->SetViewports(1, &vp);
 	pCommandContext->SetScissorRects(1, &sr);

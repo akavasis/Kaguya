@@ -94,7 +94,7 @@ void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandCont
 	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 16);
 	pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
 
-	pCommandContext->TransitionBarrier(pOutput, Resource::State::PixelShaderResource);
+	pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 }
 
 void Accumulation::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)

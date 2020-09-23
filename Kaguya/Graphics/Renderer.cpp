@@ -7,6 +7,7 @@
 // Render passes
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/Accumulation.h"
+#include "RenderPass/PostProcess.h"
 #include "RenderPass/Tonemapping.h"
 
 Renderer::Renderer(const Application& Application, Window& Window)
@@ -94,7 +95,10 @@ void Renderer::SetScene(Scene* pScene)
 	m_RenderGraph.AddRenderPass(new Accumulation(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 
 	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();
-	m_RenderGraph.AddRenderPass(new Tonemapping(pAccumulationRenderPass->ResourceViews[Accumulation::EResourceViews::RenderTargetShaderResource].GetStartDescriptor()));
+	m_RenderGraph.AddRenderPass(new PostProcess(pAccumulationRenderPass->ResourceViews[Accumulation::EResourceViews::RenderTargetShaderResource].GetStartDescriptor(), pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
+
+	auto pPostProcessRenderPass = m_RenderGraph.GetRenderPass<PostProcess>();
+	m_RenderGraph.AddRenderPass(new Tonemapping(pPostProcessRenderPass->ResourceViews[PostProcess::EResourceViews::RenderTargetSRV].GetStartDescriptor()));
 
 	m_RenderGraph.Initialize();
 }

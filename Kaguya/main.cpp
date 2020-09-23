@@ -47,21 +47,26 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 			if (XMVectorGetX(XMVector3Length(centerVector - XMVectorSet(4.0f, 0.2f, 0.0f, 1.0f))) > 0.9f)
 			{
 				auto& material = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+				auto& sphereInstance = scene.AddModelInstance({ &sphere, &material });
+				sphereInstance.SetScale(0.2f);
+				sphereInstance.Translate(center0.x, center0.y, center0.z);
 
 				if (choose_mat < 0.25f && choose_mat >= 0.0f)
 				{
 					XMVECTOR albedo = Math::RandomVector() * Math::RandomVector();
+
 					XMStoreFloat3(&material.Albedo, albedo);
 					material.Model = LambertianModel;
 				}
 				else if (choose_mat < 0.5f && choose_mat >= 0.25f)
 				{
 					XMVECTOR albedo = Math::RandomVector();
+					XMVECTOR specularColor = Math::RandomVector();
+
 					XMStoreFloat3(&material.Albedo, albedo);
 					material.SpecularChance = Math::RandF();
 					material.Roughness = Math::RandF();
-					XMVECTOR specularColor = Math::RandomVector();
-					XMStoreFloat3(&material.Albedo, specularColor);
+					XMStoreFloat3(&material.Specular, specularColor);
 					material.Model = GlossyModel;
 				}
 				else if (choose_mat < 0.75f && choose_mat >= 0.5f)
@@ -71,17 +76,13 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 				}
 				else
 				{
-					XMVECTOR albedo = Math::RandomVector(0.5, 1);
-					float fuzz = Math::RandF(0, 0.5);
+					XMVECTOR albedo = Math::RandomVector();
+					float fuzz = Math::RandF();
 
 					XMStoreFloat3(&material.Albedo, albedo);
 					material.Fuzziness = fuzz;
 					material.Model = MetalModel;
 				}
-
-				auto& sphereInstance = scene.AddModelInstance({ &sphere, &material });
-				sphereInstance.SetScale(0.2f);
-				sphereInstance.Translate(center0.x, center0.y, center0.z);
 			}
 		}
 	}
@@ -346,12 +347,12 @@ int main(int argc, char** argv)
 #endif
 
 		Application application;
-		Window window{ L"Path Tracer" };
-		Renderer renderer{ application, window };
+		Window window(L"Path Tracer", 1280, 720);
+		Renderer renderer(application, window);
 
-		MaterialLoader materialLoader{ application.ExecutableFolderPath() };
-		ModelLoader modelLoader{ application.ExecutableFolderPath() };
-		Scene scene = RandomScene(materialLoader, modelLoader);
+		MaterialLoader materialLoader(application.ExecutableFolderPath());
+		ModelLoader modelLoader(application.ExecutableFolderPath());
+		Scene scene = TransparentSpheresOfIncreasingIoR(materialLoader, modelLoader);
 		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
 
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);

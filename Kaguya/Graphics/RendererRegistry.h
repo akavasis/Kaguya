@@ -143,6 +143,12 @@ struct Shaders
 		inline static RenderResourceHandle GenerateMips;
 
 		inline static RenderResourceHandle Accumulation;
+
+		inline static RenderResourceHandle PostProcess_BloomMask;
+		inline static RenderResourceHandle PostProcess_BloomDownsample;
+		inline static RenderResourceHandle PostProcess_BloomBlur;
+		inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
+		inline static RenderResourceHandle PostProcess_BloomComposition;
 	};
 
 	static void Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath);
@@ -166,6 +172,11 @@ struct RootSignatures
 
 	inline static RenderResourceHandle Skybox;
 
+	inline static RenderResourceHandle PostProcess_BloomMask;
+	inline static RenderResourceHandle PostProcess_BloomDownsample;
+	inline static RenderResourceHandle PostProcess_BloomBlur;
+	inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
+	inline static RenderResourceHandle PostProcess_BloomComposition;
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 
 	struct Raytracing
@@ -207,6 +218,12 @@ struct ComputePSOs
 	inline static RenderResourceHandle EquirectangularToCubemap;
 
 	inline static RenderResourceHandle Accumulation;
+
+	inline static RenderResourceHandle PostProcess_BloomMask;
+	inline static RenderResourceHandle PostProcess_BloomDownsample;
+	inline static RenderResourceHandle PostProcess_BloomBlur;
+	inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
+	inline static RenderResourceHandle PostProcess_BloomComposition;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

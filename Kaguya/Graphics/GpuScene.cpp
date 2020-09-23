@@ -56,7 +56,6 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 void GpuScene::UploadMaterials()
 {
 	auto pUploadMaterialTable = pRenderDevice->GetBuffer(UploadResourceTables[MaterialTable]);
-	pUploadMaterialTable->Map();
 
 	size_t index = 0;
 
@@ -71,16 +70,13 @@ void GpuScene::UploadMaterials()
 		hlslMaterials.push_back(hlslMaterial);
 	}
 
-	Stage(MaterialTable, hlslMaterials.data(), hlslMaterials.size() * sizeof(HLSLMaterial), pUploadMaterialTable);
+	Upload(MaterialTable, hlslMaterials.data(), hlslMaterials.size() * sizeof(HLSLMaterial), pUploadMaterialTable);
 }
 
 void GpuScene::UploadModels()
 {
 	auto pUploadVertexBuffer = pRenderDevice->GetBuffer(UploadResourceTables[VertexBuffer]);
-	pUploadVertexBuffer->Map();
-
 	auto pUploadIndexBuffer = pRenderDevice->GetBuffer(UploadResourceTables[IndexBuffer]);
-	pUploadIndexBuffer->Map();
 
 	auto pVertexBuffer = pRenderDevice->GetBuffer(ResourceTables[VertexBuffer]);
 	auto pIndexBuffer = pRenderDevice->GetBuffer(ResourceTables[IndexBuffer]);
@@ -100,8 +96,8 @@ void GpuScene::UploadModels()
 		UINT64 totalVertexBytes = vertices.size() * sizeof(Vertex);
 		UINT64 totalIndexBytes = indices.size() * sizeof(UINT);
 
-		Stage(VertexBuffer, vertices.data(), totalVertexBytes, pUploadVertexBuffer);
-		Stage(IndexBuffer, indices.data(), totalIndexBytes, pUploadIndexBuffer);
+		Upload(VertexBuffer, vertices.data(), totalVertexBytes, pUploadVertexBuffer);
+		Upload(IndexBuffer, indices.data(), totalIndexBytes, pUploadIndexBuffer);
 	}
 
 	for (auto& model : pScene->Models)
@@ -109,8 +105,8 @@ void GpuScene::UploadModels()
 		UINT64 totalVertexBytes = model.Vertices.size() * sizeof(Vertex);
 		UINT64 totalIndexBytes = model.Indices.size() * sizeof(UINT);
 
-		auto vertexByteOffset = Stage(VertexBuffer, model.Vertices.data(), totalVertexBytes, pUploadVertexBuffer);
-		auto indexByteOffset = Stage(IndexBuffer, model.Indices.data(), totalIndexBytes, pUploadIndexBuffer);
+		auto vertexByteOffset = Upload(VertexBuffer, model.Vertices.data(), totalVertexBytes, pUploadVertexBuffer);
+		auto indexByteOffset = Upload(IndexBuffer, model.Indices.data(), totalIndexBytes, pUploadIndexBuffer);
 
 		for (auto& mesh : model.Meshes)
 		{
@@ -152,9 +148,8 @@ void GpuScene::UploadModels()
 void GpuScene::UploadModelInstances()
 {
 	auto pUploadGeometryInfoTable = pRenderDevice->GetBuffer(UploadResourceTables[GeometryInfoTable]);
-	pUploadGeometryInfoTable->Map();
 
-	size_t index = 0;
+	std::vector<GeometryInfo> geometryInfos;
 	for (auto& modelInstance : pScene->ModelInstances)
 	{
 		for (auto& meshInstance : modelInstance.MeshInstances)
@@ -165,9 +160,11 @@ void GpuScene::UploadModelInstances()
 			info.MaterialIndex = modelInstance.pMaterial->GpuMaterialIndex;
 			XMStoreFloat4x4(&info.World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
 
-			pUploadGeometryInfoTable->Update<GeometryInfo>(index++, info);
+			geometryInfos.push_back(info);
 		}
 	}
+
+	Upload(GeometryInfoTable, geometryInfos.data(), geometryInfos.size() * sizeof(GeometryInfo), pUploadGeometryInfoTable);
 }
 
 void GpuScene::Commit(CommandContext* pCommandContext)
@@ -227,7 +224,7 @@ void GpuScene::Update()
 {
 }
 
-size_t GpuScene::Stage(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer)
+size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer)
 {
 	auto pair = Allocators[Type].Allocate(ByteSize);
 	if (!pair.has_value())
