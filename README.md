@@ -2,9 +2,11 @@
 ## Description
 This is a path tracer using DXR (DirectX Raytracing).  
 ### Features
++ __Path tracing__
 + __Bindless Texturing__
 + __Multi-threaded commandlist recording__
 + __Lambertian, Glossy, Metal, and Dielectric material models__
++ __Various post processing effects__
 
 ### Goals
 + Various BSDF models

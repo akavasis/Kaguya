@@ -42,17 +42,17 @@ Window::Window(LPCWSTR WindowName,
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 	WNDCLASSEXW windowClass = {};
 	windowClass.cbSize = sizeof(WNDCLASSEX);
+	windowClass.style = CS_HREDRAW | CS_VREDRAW;
 	windowClass.lpfnWndProc = Window::WindowProcedure;
 	windowClass.cbClsExtra = 0;
 	windowClass.cbWndExtra = 0;
-	windowClass.lpszClassName = m_ClassName.data();
 	windowClass.hInstance = hInstance;
-	windowClass.lpszMenuName = NULL;
-	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.hCursor = ::LoadCursor(nullptr, IDC_ARROW);
 	windowClass.hIcon = NULL;
-	windowClass.hIconSm = NULL;
+	windowClass.hCursor = ::LoadCursor(nullptr, IDC_ARROW);
 	windowClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+	windowClass.lpszMenuName = NULL;
+	windowClass.lpszClassName = m_ClassName.data();
+	windowClass.hIconSm = NULL;
 	if (!RegisterClassExW(&windowClass))
 	{
 		CORE_ERROR("RegisterClassExW Error: {}", ::GetLastError());
@@ -61,7 +61,7 @@ Window::Window(LPCWSTR WindowName,
 	// Create window
 	m_WindowName = WindowName;
 	m_WindowHandle = CreateWindowW(m_ClassName.data(), m_WindowName.data(),
-		WS_OVERLAPPEDWINDOW,
+		WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU,
 		X, Y, Width, Height, NULL, NULL, hInstance, this);
 	if (m_WindowHandle)
 	{

@@ -92,14 +92,6 @@ struct RootParameters
 			OutMips
 		};
 	};
-	struct Tonemapping
-	{
-		enum
-		{
-			Settings,
-			Input
-		};
-	};
 	struct Raytracing
 	{
 		enum

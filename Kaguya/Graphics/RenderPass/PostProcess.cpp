@@ -4,7 +4,7 @@
 #include "Accumulation.h"
 
 PostProcess::PostProcess(Descriptor Input, UINT Width, UINT Height)
-	: IRenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat }),
+	: RenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat }),
 	Input(Input)
 {
 }
@@ -14,7 +14,7 @@ PostProcess::~PostProcess()
 
 }
 
-bool PostProcess::Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
+bool PostProcess::Initialize(RenderDevice* pRenderDevice)
 {
 	Resources.resize(EResources::NumResources);
 	ResourceViews.resize(EResourceViews::NumResourceViews);
@@ -69,21 +69,34 @@ bool PostProcess::Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 	return true;
 }
 
-void PostProcess::Update(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
+void PostProcess::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
 
 }
 
 void PostProcess::RenderGui()
 {
-	if (ImGui::TreeNode("PostProcess"))
+	if (ImGui::TreeNode("Post Process"))
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{
 			Settings = SSettings();
 		}
-		ImGui::SliderFloat("Bloom Threshold", &Settings.BloomThreshold, 0.0f, 8.0f);
-		ImGui::SliderFloat("Bloom Intensity", &Settings.BloomIntensity, 0.0f, 2.0f);
+
+		if (ImGui::TreeNode("Bloom"))
+		{
+			ImGui::SliderFloat("Threshold", &Settings.Bloom.Threshold, 0.0f, 8.0f);
+			ImGui::SliderFloat("Intensity", &Settings.Bloom.Intensity, 0.0f, 2.0f);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Tonemapping"))
+		{
+			ImGui::SliderFloat("Exposure", &Settings.Tonemapping.Exposure, 0.1f, 10.0f);
+			//ImGui::SliderFloat("Gamma", &Settings.Tonemapping.Gamma, 0.1f, 4.0f);
+			ImGui::TreePop();
+		}
+
 		ImGui::TreePop();
 	}
 }
@@ -91,11 +104,17 @@ void PostProcess::RenderGui()
 void PostProcess::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
 	ApplyBloom(RenderGraphRegistry, pCommandContext);
+	ApplyTonemappingToSwapChain(RenderGraphRegistry, pCommandContext);
 }
 
 void PostProcess::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
 {
-	IRenderPass::Resize(Width, Height, pRenderDevice);
+	RenderPass::Resize(Width, Height, pRenderDevice);
+
+}
+
+void PostProcess::StateRefresh()
+{
 
 }
 
@@ -193,7 +212,7 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 			float Threshold;
 		} MaskSettings;
 		MaskSettings.InverseOutputSize = { 1.0f / bloomWidth, 1.0f / bloomHeight };
-		MaskSettings.Threshold = Settings.BloomThreshold;
+		MaskSettings.Threshold = Settings.Bloom.Threshold;
 		pCommandContext->SetComputeRoot32BitConstants(0, 3, &MaskSettings, 0);
 		pCommandContext->SetComputeRootDescriptorTable(1, Input.GPUHandle);
 		pCommandContext->SetComputeRootDescriptorTable(2, OutputUAV.GPUHandle);
@@ -279,7 +298,7 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 			float Intensity;
 		} BloomSettings;
 		BloomSettings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
-		BloomSettings.Intensity = Settings.BloomIntensity;
+		BloomSettings.Intensity = Settings.Bloom.Intensity;
 		pCommandContext->SetComputeRoot32BitConstants(0, 3, &BloomSettings, 0);
 		pCommandContext->SetComputeRootDescriptorTable(1, Input.GPUHandle);
 		pCommandContext->SetComputeRootDescriptorTable(2, BloomSRV.GPUHandle);
@@ -291,4 +310,42 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 
 		pCommandContext->TransitionBarrier(pOutput, Resource::State::PixelShaderResource);
 	}
+}
+
+void PostProcess::ApplyTonemappingToSwapChain(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+{
+	PIXMarker(pCommandContext->GetD3DCommandList(), L"Tonemap");
+
+	auto InputSRV = ResourceViews[EResourceViews::RenderTargetSRV].GetStartDescriptor();
+	auto pDestination = RenderGraphRegistry.GetCurrentSwapChainBuffer();
+	auto DestinationRTV = RenderGraphRegistry.GetCurrentSwapChainRTV();
+
+	pCommandContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
+
+	pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
+	pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
+
+	pCommandContext->SetGraphicsRoot32BitConstants(0, 2, &Settings.Tonemapping, 0);
+	pCommandContext->SetGraphicsRootDescriptorTable(1, InputSRV.GPUHandle);
+
+	D3D12_VIEWPORT vp;
+	vp.TopLeftX = vp.TopLeftY = 0.0f;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.Width = pDestination->GetWidth();
+	vp.Height = pDestination->GetHeight();
+
+	D3D12_RECT sr;
+	sr.left = sr.top = 0;
+	sr.right = pDestination->GetWidth();
+	sr.bottom = pDestination->GetHeight();
+
+	pCommandContext->SetViewports(1, &vp);
+	pCommandContext->SetScissorRects(1, &sr);
+
+	pCommandContext->SetRenderTargets(1, DestinationRTV, TRUE, Descriptor());
+	pCommandContext->DrawInstanced(3, 1, 0, 0);
+
+	pCommandContext->TransitionBarrier(pDestination, Resource::State::Present);
 }

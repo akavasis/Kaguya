@@ -1,5 +1,5 @@
 template<typename RenderPass>
-inline RenderPass* RenderGraph::GetRenderPass()
+inline RenderPass* RenderGraph::GetRenderPass() const
 {
 	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
 	{

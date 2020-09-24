@@ -11,7 +11,7 @@
 
 // Forward decl
 class RenderGraphRegistry;
-class IRenderPass;
+class RenderPass;
 class RenderGraph;
 
 enum class RenderPassType
@@ -28,29 +28,31 @@ struct RenderTargetProperties
 	DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 };
 
-class IRenderPass
+class RenderPass
 {
 public:
-	IRenderPass(RenderPassType Type, RenderTargetProperties Properties);
-	virtual ~IRenderPass() = default;
+	RenderPass(RenderPassType Type, RenderTargetProperties Properties);
+	virtual ~RenderPass() = default;
 
-	bool OnInitialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return Initialize(pGpuScene, pRenderDevice); }
-	void OnUpdate(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return Update(pGpuScene, pRenderDevice); }
+	bool OnInitialize(RenderDevice* pRenderDevice) { return Initialize(pRenderDevice); }
+	void OnInitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return InitializeScene(pGpuScene, pRenderDevice); }
 	void OnRenderGui() { return RenderGui(); }
 	void OnExecute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) { return Execute(RenderGraphRegistry, pCommandContext); }
 	void OnResize(UINT Width, UINT Height, RenderDevice* pRenderDevice) { return Resize(Width, Height, pRenderDevice); }
+	void OnStateRefresh() { Refresh = false; StateRefresh(); }
 
 	virtual bool RequiresScene() { return false; }
 	virtual bool UseRaytracing() { return false; }
 
 	bool Enabled;
+	bool Refresh;
 	RenderPassType Type;
 	RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Resources;
 	std::vector<DescriptorAllocation> ResourceViews;
 protected:
-	virtual bool Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
-	virtual void Update(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
+	virtual bool Initialize(RenderDevice* pRenderDevice) = 0;
+	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
 	virtual void RenderGui() = 0;
 	virtual void Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) = 0;
 	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
@@ -58,6 +60,7 @@ protected:
 		Properties.Width = Width;
 		Properties.Height = Height;
 	}
+	virtual void StateRefresh() = 0;
 };
 
 // TODO: Add a RenderGraphScheduler to indicate reads/writes to a particular resource so we can
@@ -82,7 +85,10 @@ public:
 	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart() const { return pRenderDevice->GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart(); }
 
 	template<typename RenderPass>
-	[[nodiscard]] inline RenderPass* GetRenderPass() { return pRenderGraph->GetRenderPass<RenderPass>(); }
+	[[nodiscard]] inline RenderPass* GetRenderPass() const { return pRenderGraph->GetRenderPass<RenderPass>(); }
+
+	inline auto GetCurrentSwapChainBuffer() const { return pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[pRenderDevice->FrameIndex]); }
+	inline auto GetCurrentSwapChainRTV() const { return pRenderDevice->SwapChainRenderTargetViews[pRenderDevice->FrameIndex]; }
 private:
 	RenderDevice* pRenderDevice;
 	RenderGraph* pRenderGraph;
@@ -129,15 +135,14 @@ public:
 	}
 
 	template<typename RenderPass>
-	RenderPass* GetRenderPass();
+	RenderPass* GetRenderPass() const;
 
-	void AddRenderPass(IRenderPass* pIRenderPass);
+	void AddRenderPass(RenderPass* pIRenderPass);
 
 	// Only call once
 	void Initialize();
 
 	// Call every frame
-	void Update();
 	void RenderGui();
 	void Execute();
 	void ExecuteCommandContexts(Gui* pGui);
@@ -153,7 +158,7 @@ private:
 	std::vector<std::future<void>> m_Futures;
 
 	UINT m_NumRenderPasses;
-	std::vector<std::unique_ptr<IRenderPass>> m_RenderPasses;
+	std::vector<std::unique_ptr<RenderPass>> m_RenderPasses;
 	std::vector<std::reference_wrapper<const std::type_info>> m_RenderPassDataIDs;
 	std::vector<CommandContext*> m_CommandContexts;
 

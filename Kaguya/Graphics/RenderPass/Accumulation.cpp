@@ -4,11 +4,9 @@
 #include "Pathtracing.h"
 
 Accumulation::Accumulation(UINT Width, UINT Height)
-	: IRenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat })
+	: RenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat })
 {
-	LastAperture = 0.0f;
-	LastFocalLength = 0.0f;
-	LastCameraTransform = {};
+
 }
 
 Accumulation::~Accumulation()
@@ -16,13 +14,12 @@ Accumulation::~Accumulation()
 
 }
 
-bool Accumulation::Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
+bool Accumulation::Initialize(RenderDevice* pRenderDevice)
 {
-	LastAperture = pGpuScene->pScene->Camera.Aperture;
-	LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
-	LastCameraTransform = pGpuScene->pScene->Camera.Transform;
+	Resources.resize(EResources::NumResources);
+	ResourceViews.resize(EResourceViews::NumResourceViews);
 
-	auto accumulationOutput = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	Resources[EResources::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
@@ -31,46 +28,43 @@ bool Accumulation::Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 
-	Resources.push_back(accumulationOutput);
+	ResourceViews[EResourceViews::RenderTargetUAV] = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(1);
+	ResourceViews[EResourceViews::RenderTargetSRV] = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(1);
 
-	auto uav = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(1);
-	pRenderDevice->CreateUAV(accumulationOutput, uav[0], {}, {});
-
-	auto srv = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(1);
-	pRenderDevice->CreateSRV(accumulationOutput, srv[0]);
-
-	ResourceViews.push_back(std::move(uav));
-	ResourceViews.push_back(std::move(srv));
+	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor());
+	pRenderDevice->CreateSRV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetSRV].GetStartDescriptor());
 
 	return true;
 }
 
-void Accumulation::Update(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
+void Accumulation::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
-	auto pScene = pGpuScene->pScene;
+	this->pGpuScene = pGpuScene;
 
-	Settings.AccumulationCount++;
-
-	// If the camera has moved
-	if (pScene->Camera.Aperture != LastAperture ||
-		pScene->Camera.FocalLength != LastFocalLength ||
-		pScene->Camera.Transform != LastCameraTransform)
-	{
-		Settings.AccumulationCount = 0;
-		LastAperture = pScene->Camera.Aperture;
-		LastFocalLength = pScene->Camera.FocalLength;
-		LastCameraTransform = pScene->Camera.Transform;
-	}
+	LastAperture = pGpuScene->pScene->Camera.Aperture;
+	LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
+	LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 }
 
 void Accumulation::RenderGui()
 {
-
+	
 }
 
 void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Accumulation");
+
+	// If the camera has moved
+	if (pGpuScene->pScene->Camera.Aperture != LastAperture ||
+		pGpuScene->pScene->Camera.FocalLength != LastFocalLength ||
+		pGpuScene->pScene->Camera.Transform != LastCameraTransform)
+	{
+		Settings.AccumulationCount = 0;
+		LastAperture = pGpuScene->pScene->Camera.Aperture;
+		LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
+		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
+	}
 
 	auto pPathtracingRenderPass = RenderGraphRegistry.GetRenderPass<Pathtracing>();
 
@@ -86,9 +80,14 @@ void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandCont
 	pCommandContext->SetComputeRootSignature(pAccumulationRootSignature);
 
 	// Bind Resources
+	struct  
+	{
+		unsigned int AccumulationCount;
+	} AccumulationSettings;
+	AccumulationSettings.AccumulationCount = Settings.AccumulationCount++;
 	pCommandContext->SetComputeRoot32BitConstants(RootParameters::Accumulation::AccumulationCBuffer, sizeof(Settings) / 4, &Settings, 0);
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Input, pPathtracingRenderPass->ResourceViews[Pathtracing::EResourceViews::RenderTargetUnorderedAccess].GetStartDescriptor().GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Output, ResourceViews[EResourceViews::RenderTargetUnorderedAccess].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Input, pPathtracingRenderPass->ResourceViews[Pathtracing::EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Output, ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
 
 	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 16);
 	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 16);
@@ -116,10 +115,15 @@ void Accumulation::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
 	});
 
 	// Recreate uav for render target
-	const auto& uav = ResourceViews[EResourceViews::RenderTargetUnorderedAccess];
+	const auto& uav = ResourceViews[EResourceViews::RenderTargetUAV];
 	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], uav[0], {}, {});
 
 	// Recreate SRV for render targets
-	const auto& srv = ResourceViews[EResourceViews::RenderTargetShaderResource];
+	const auto& srv = ResourceViews[EResourceViews::RenderTargetSRV];
 	pRenderDevice->CreateSRV(Resources[EResources::RenderTarget], srv[0]);
+}
+
+void Accumulation::StateRefresh()
+{
+	Settings.AccumulationCount = 0;
 }

@@ -4,15 +4,16 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
-class Pathtracing : public IRenderPass
+class Pathtracing : public RenderPass
 {
 public:
 	struct EResources
 	{
 		enum
 		{
-			ConstantBuffer,	// Render pass data
-			RenderTarget	// Output render target
+			ConstantBuffer,
+			RenderTarget,
+			NumResources
 		};
 	};
 
@@ -20,20 +21,30 @@ public:
 	{
 		enum
 		{
-			GeometryTables,				// Shader resource views for material, vertex, index, and geometry info buffers
-			RenderTargetUnorderedAccess	// Output UAV for Raytracing
+			GeometryTables,				
+			RenderTargetUAV,
+			NumResourceViews
 		};
+	};
+
+	struct SSettings
+	{
+		int MaxDepth = 4;
 	};
 
 	Pathtracing(UINT Width, UINT Height);
 	virtual ~Pathtracing() override;
 protected:
-	virtual bool Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
-	virtual void Update(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
+	virtual bool Initialize(RenderDevice* pRenderDevice) override;
+	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
 	virtual void RenderGui() override;
 	virtual void Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
 	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
+	virtual void StateRefresh() override;
 private:
+	SSettings Settings;
+	GpuScene* pGpuScene;
+
 	RenderResourceHandle m_RayGenerationShaderTable;
 	RenderResourceHandle m_MissShaderTable;
 	RenderResourceHandle m_HitGroupShaderTable;

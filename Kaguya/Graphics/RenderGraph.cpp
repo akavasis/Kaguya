@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "RenderGraph.h"
 
-IRenderPass::IRenderPass(RenderPassType Type, RenderTargetProperties Properties)
+RenderPass::RenderPass(RenderPassType Type, RenderTargetProperties Properties)
 	: Enabled(true),
+	Refresh(false),
 	Type(Type),
 	Properties(Properties)
 {
@@ -15,13 +16,14 @@ RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
 {
 }
 
-void RenderGraph::AddRenderPass(IRenderPass* pIRenderPass)
+void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)
 {
-	auto pRenderPass = std::unique_ptr<IRenderPass>(pIRenderPass);
-	if (!pRenderPass->OnInitialize(pGpuScene, pRenderDevice))
+	auto pRenderPass = std::unique_ptr<RenderPass>(pIRenderPass);
+	if (!pRenderPass->OnInitialize(pRenderDevice))
 	{
 		throw std::logic_error("Failed to initialize render pass");
 	}
+	pRenderPass->OnInitializeScene(pGpuScene, pRenderDevice);
 
 	m_RenderPasses.emplace_back(std::move(pRenderPass));
 	switch (pIRenderPass->Type)
@@ -41,27 +43,41 @@ void RenderGraph::Initialize()
 	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); // This command context is for Gui
 }
 
-void RenderGraph::Update()
+void RenderGraph::RenderGui()
 {
+	if (ImGui::Begin("Render Pipeline"))
+	{
+		for (auto& renderPass : m_RenderPasses)
+		{
+			renderPass->OnRenderGui();
+		}
+	}
+	ImGui::End();
+}
+
+void RenderGraph::Execute()
+{
+	bool stateRefresh = false;
 	for (auto& renderPass : m_RenderPasses)
 	{
 		if (!renderPass->Enabled)
 			continue;
 
-		renderPass->OnUpdate(pGpuScene, pRenderDevice);
+		if (renderPass->Refresh)
+		{
+			stateRefresh = true;
+			break;
+		}
 	}
-}
 
-void RenderGraph::RenderGui()
-{
-	for (auto& renderPass : m_RenderPasses)
+	if (stateRefresh)
 	{
-		renderPass->OnRenderGui();
+		for (auto& renderPass : m_RenderPasses)
+		{
+			renderPass->OnStateRefresh();
+		}
 	}
-}
 
-void RenderGraph::Execute()
-{
 	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
 	{
 		if (!m_RenderPasses[i]->Enabled)

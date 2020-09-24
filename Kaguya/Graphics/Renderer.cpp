@@ -8,7 +8,6 @@
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
-#include "RenderPass/Tonemapping.h"
 
 Renderer::Renderer(const Application& Application, Window& Window)
 	: pWindow(&Window),
@@ -95,10 +94,7 @@ void Renderer::SetScene(Scene* pScene)
 	m_RenderGraph.AddRenderPass(new Accumulation(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 
 	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();
-	m_RenderGraph.AddRenderPass(new PostProcess(pAccumulationRenderPass->ResourceViews[Accumulation::EResourceViews::RenderTargetShaderResource].GetStartDescriptor(), pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
-
-	auto pPostProcessRenderPass = m_RenderGraph.GetRenderPass<PostProcess>();
-	m_RenderGraph.AddRenderPass(new Tonemapping(pPostProcessRenderPass->ResourceViews[PostProcess::EResourceViews::RenderTargetSRV].GetStartDescriptor()));
+	m_RenderGraph.AddRenderPass(new PostProcess(pAccumulationRenderPass->ResourceViews[Accumulation::EResourceViews::RenderTargetSRV].GetStartDescriptor(), pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 
 	m_RenderGraph.Initialize();
 }
@@ -138,8 +134,6 @@ void Renderer::RenderGui(Scene* pScene)
 			ImGui::Checkbox("V-Sync", &Settings::VSync);
 			ImGui::TreePop();
 		}
-
-		m_RenderGraph.RenderGui();
 	}
 	ImGui::End();
 
@@ -162,11 +156,11 @@ void Renderer::RenderGui(Scene* pScene)
 
 void Renderer::Render(Scene* pScene)
 {
-	PIXCapture();
+	//PIXCapture();
 	pScene->Camera.SetAspectRatio(m_AspectRatio);
 
 	m_GpuScene.Update();
-	m_RenderGraph.Update();
+	m_RenderGraph.RenderGui();
 	m_RenderGraph.Execute();
 	m_RenderGraph.ThreadBarrier();
 	m_RenderGraph.ExecuteCommandContexts(&m_Gui);

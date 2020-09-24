@@ -4,14 +4,15 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
-class Accumulation : public IRenderPass
+class Accumulation : public RenderPass
 {
 public:
 	struct EResources
 	{
 		enum
 		{
-			RenderTarget
+			RenderTarget,
+			NumResources
 		};
 	};
 
@@ -19,8 +20,9 @@ public:
 	{
 		enum
 		{
-			RenderTargetUnorderedAccess,
-			RenderTargetShaderResource
+			RenderTargetUAV,
+			RenderTargetSRV,
+			NumResourceViews
 		};
 	};
 
@@ -32,13 +34,16 @@ public:
 	Accumulation(UINT Width, UINT Height);
 	virtual ~Accumulation() override;
 protected:
-	virtual bool Initialize(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
-	virtual void Update(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
+	virtual bool Initialize(RenderDevice* pRenderDevice) override;
+	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
 	virtual void RenderGui() override;
 	virtual void Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
 	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
+	virtual void StateRefresh() override;
 private:
-	SSettings Settings; // Set in Renderer
+	SSettings Settings;
+	GpuScene* pGpuScene;
+
 	float LastAperture;
 	float LastFocalLength;
 	Transform LastCameraTransform;

@@ -4,7 +4,6 @@
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
-#include "RenderPass/Tonemapping.h"
 
 void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
 {
@@ -233,7 +232,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
 		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter<Tonemapping::SSettings>(0, 0);
+		proxy.AddRootConstantsParameter(0, 0, 2);
 		proxy.AddRootDescriptorTableParameter({ input });
 
 		proxy.AllowInputLayout();
