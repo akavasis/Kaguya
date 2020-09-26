@@ -53,7 +53,6 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 
 	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor(), {}, {});
 
-
 	m_RayGenerationShaderTable = pGpuScene->GetRayGenerationShaderTableHandle();
 	m_MissShaderTable = pGpuScene->GetMissShaderTableHandle();
 	m_HitGroupShaderTable = pGpuScene->GetHitGroupShaderTableHandle();

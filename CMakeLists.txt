@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
+set(CMAKE_SYSTEM_VERSION 10.0.19041.0)
 project(Kaguya LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)

@@ -185,7 +185,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 		pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), Resource::State::RenderTarget);
 
 		pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		pCommandContext->SetPipelineState(&GraphicsPSOs::BRDFIntegration);
+		pCommandContext->SetPipelineState(pRenderDevice->GetGraphicsPSO(GraphicsPSOs::BRDFIntegration));
 		pCommandContext->SetGraphicsRootSignature(pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration));
 
 		pRenderDevice->CreateRTV(RendererReseveredTextures[BRDFLUT], m_RTV[0], {}, {}, {});
