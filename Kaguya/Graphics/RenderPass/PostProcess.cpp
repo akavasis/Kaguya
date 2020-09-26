@@ -2,7 +2,10 @@
 #include "PostProcess.h"
 
 PostProcess::PostProcess(Descriptor Input, UINT Width, UINT Height)
-	: RenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat }),
+	: RenderPass(RenderPassType::Graphics,
+		{ Width, Height, RendererFormats::HDRBufferFormat },
+		EResources::NumResources,
+		EResourceViews::NumResourceViews),
 	Input(Input)
 {
 
@@ -15,9 +18,6 @@ PostProcess::~PostProcess()
 
 bool PostProcess::Initialize(RenderDevice* pRenderDevice)
 {
-	Resources.resize(EResources::NumResources);
-	ResourceViews.resize(EResourceViews::NumResourceViews);
-
 	Resources[EResources::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);

@@ -3,7 +3,10 @@
 #include "../Renderer.h"
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
-	: RenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat })
+	: RenderPass(RenderPassType::Graphics,
+		{ Width, Height, RendererFormats::HDRBufferFormat },
+		EResources::NumResources,
+		EResourceViews::NumResourceViews)
 {
 
 }
@@ -15,9 +18,6 @@ Pathtracing::~Pathtracing()
 
 bool Pathtracing::Initialize(RenderDevice* pRenderDevice)
 {
-	Resources.resize(EResources::NumResources);
-	ResourceViews.resize(EResourceViews::NumResourceViews);
-
 	Resources[EResources::ConstantBuffer] = pRenderDevice->CreateBuffer([](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
@@ -53,9 +53,76 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 
 	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor(), {}, {});
 
-	m_RayGenerationShaderTable = pGpuScene->GetRayGenerationShaderTableHandle();
-	m_MissShaderTable = pGpuScene->GetMissShaderTableHandle();
-	m_HitGroupShaderTable = pGpuScene->GetHitGroupShaderTableHandle();
+	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::Pathtracing);
+
+	// Ray Generation Shader Table
+	{
+		ShaderTable<void> shaderTable;
+		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"RayGeneration"));
+
+		UINT64 shaderTableSizeInBytes; UINT stride;
+		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		stride = shaderTable.GetShaderRecordStride();
+
+		m_RayGenerationShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(shaderTableSizeInBytes);
+			proxy.SetStride(stride);
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_RayGenerationShaderTable);
+		shaderTable.Generate(pShaderTableBuffer);
+	}
+
+	// Miss Shader Table
+	{
+		ShaderTable<void> shaderTable;
+		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"Miss"));
+
+		UINT64 shaderTableSizeInBytes; UINT stride;
+		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		stride = shaderTable.GetShaderRecordStride();
+
+		m_MissShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(shaderTableSizeInBytes);
+			proxy.SetStride(stride);
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_MissShaderTable);
+		shaderTable.Generate(pShaderTableBuffer);
+	}
+
+	// Hit Group Shader Table
+	{
+		ShaderTable<void> shaderTable;
+
+		ShaderIdentifier hitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
+
+		for (const auto& modelInstance : pGpuScene->pScene->ModelInstances)
+		{
+			for (const auto& meshInstance : modelInstance.MeshInstances)
+			{
+				shaderTable.AddShaderRecord(hitGroupSID);
+			}
+		}
+
+		UINT64 shaderTableSizeInBytes; UINT stride;
+		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		stride = shaderTable.GetShaderRecordStride();
+
+		m_HitGroupShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(shaderTableSizeInBytes);
+			proxy.SetStride(stride);
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_HitGroupShaderTable);
+		shaderTable.Generate(pShaderTableBuffer);
+	}
 }
 
 void Pathtracing::RenderGui()

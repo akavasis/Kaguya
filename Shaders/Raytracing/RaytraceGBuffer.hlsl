@@ -12,6 +12,21 @@ enum GBufferTypes
 	NumGBufferTypes
 };
 
+// Hit information, aka ray payload
+// Note that the payload should be kept as small as possible,
+// and that its size must be declared in the corresponding
+// D3D12_RAYTRACING_SHADER_CONFIG pipeline subobjet.
+struct RayPayload
+{
+	bool Dummy;
+};
+
+enum RayType
+{
+	RayTypePrimary,
+    NumRayTypes
+};
+
 RWTexture2D<float4> RenderTargets[NumGBufferTypes] : register(u0, space0);
 
 [shader("raygeneration")]
@@ -23,13 +38,10 @@ void RayGeneration()
 	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions);
 	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 	
-	float3 origin = RenderPassDataCB.EyePosition;
-	float3 direction = normalize(ndc.x * RenderPassDataCB.CameraU + ndc.y * RenderPassDataCB.CameraV + RenderPassDataCB.CameraW);
-	
 	// Initialize ray
-	RayDesc ray = { origin, 0.0f, direction, 1e+38f };
+	RayDesc ray = GenerateCameraRay(ndc, seed);
 	// Initialize payload
-	RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), 0, 0 };
+	RayPayload rayPayload = { false };
 	// Trace the ray
 	const uint flags = RAY_FLAG_NONE;
 	const uint mask = 0xffffffff;

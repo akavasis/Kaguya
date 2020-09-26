@@ -71,3 +71,23 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib)
 	
 	return si;
 }
+
+RayDesc GenerateCameraRay(in float2 ndc, inout uint seed)
+{
+	float3 direction = ndc.x * RenderPassDataCB.CameraU + ndc.y * RenderPassDataCB.CameraV + RenderPassDataCB.CameraW;
+	
+	// Find the focal point for this pixel
+	direction /= length(RenderPassDataCB.CameraW); // Make ray have length 1 along the camera's w-axis.
+	float3 focalPoint = RenderPassDataCB.EyePosition + RenderPassDataCB.FocalLength * direction; // Select point on ray a distance FocalLength along the w-axis
+	
+	// Get random numbers (in polar coordinates), convert to random cartesian uv on the lens
+	float2 rnd = float2(s_2PI * RandomFloat01(seed), RenderPassDataCB.LensRadius * RandomFloat01(seed));
+	float2 uv = float2(cos(rnd.x) * rnd.y, sin(rnd.x) * rnd.y);
+
+	// Use uv coordinate to compute a random origin on the camera lens
+	float3 origin = RenderPassDataCB.EyePosition + uv.x * normalize(RenderPassDataCB.CameraU) + uv.y * normalize(RenderPassDataCB.CameraV);
+	direction = normalize(focalPoint - origin);
+	
+	RayDesc ray = { origin, 0.0f, direction, 1e+38f };
+	return ray;
+}

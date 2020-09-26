@@ -31,7 +31,7 @@ struct RenderTargetProperties
 class RenderPass
 {
 public:
-	RenderPass(RenderPassType Type, RenderTargetProperties Properties);
+	RenderPass(RenderPassType Type, RenderTargetProperties Properties, size_t NumResources, size_t NumResourceViews);
 	virtual ~RenderPass() = default;
 
 	bool OnInitialize(RenderDevice* pRenderDevice) { return Initialize(pRenderDevice); }

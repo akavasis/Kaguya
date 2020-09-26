@@ -7,35 +7,29 @@
 class PostProcess : public RenderPass
 {
 public:
-	struct EResources
+	enum EResources
 	{
-		enum
-		{
-			RenderTarget,
-			BloomRenderTarget1a,	// 1
-			BloomRenderTarget1b,	// 1
-			BloomRenderTarget2a,	// 1/2
-			BloomRenderTarget2b,	// 1/2
-			BloomRenderTarget3a,	// 1/4
-			BloomRenderTarget3b,	// 1/4
-			BloomRenderTarget4a,	// 1/8
-			BloomRenderTarget4b,	// 1/8
-			BloomRenderTarget5a,	// 1/16
-			BloomRenderTarget5b,	// 1/16
-			NumResources
-		};
+		RenderTarget,
+		BloomRenderTarget1a,	// 1
+		BloomRenderTarget1b,	// 1
+		BloomRenderTarget2a,	// 1/2
+		BloomRenderTarget2b,	// 1/2
+		BloomRenderTarget3a,	// 1/4
+		BloomRenderTarget3b,	// 1/4
+		BloomRenderTarget4a,	// 1/8
+		BloomRenderTarget4b,	// 1/8
+		BloomRenderTarget5a,	// 1/16
+		BloomRenderTarget5b,	// 1/16
+		NumResources
 	};
 
-	struct EResourceViews
+	enum EResourceViews
 	{
-		enum
-		{
-			RenderTargetSRV,
-			RenderTargetUAV,
-			BloomUAVs,
-			BloomSRVs,
-			NumResourceViews
-		};
+		RenderTargetSRV,
+		RenderTargetUAV,
+		BloomUAVs,
+		BloomSRVs,
+		NumResourceViews
 	};
 
 	struct SSettings

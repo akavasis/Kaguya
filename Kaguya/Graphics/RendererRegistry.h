@@ -170,14 +170,12 @@ struct RootSignatures
 		{
 			inline static RenderResourceHandle Global;
 			inline static RenderResourceHandle EmptyLocal;
-			inline static RenderResourceHandle HitGroup;
 		};
 
-		struct AmbientOcclusion
+		struct RaytraceGBuffer
 		{
 			inline static RenderResourceHandle Global;
 			inline static RenderResourceHandle EmptyLocal;
-			inline static RenderResourceHandle HitGroup;
 		};
 	};
 
@@ -214,7 +212,7 @@ struct ComputePSOs
 struct RaytracingPSOs
 {
 	inline static RenderResourceHandle Pathtracing;
-	inline static RenderResourceHandle AmbientOcclusion;
+	inline static RenderResourceHandle RaytraceGBuffer;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

@@ -2,9 +2,13 @@
 #include "Accumulation.h"
 
 #include "Pathtracing.h"
+#include "RaytraceGBuffer.h"
 
 Accumulation::Accumulation(UINT Width, UINT Height)
-	: RenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat })
+	: RenderPass(RenderPassType::Graphics,
+		{ Width, Height, RendererFormats::HDRBufferFormat },
+		EResources::NumResources,
+		EResourceViews::NumResourceViews)
 {
 
 }
@@ -16,9 +20,6 @@ Accumulation::~Accumulation()
 
 bool Accumulation::Initialize(RenderDevice* pRenderDevice)
 {
-	Resources.resize(EResources::NumResources);
-	ResourceViews.resize(EResourceViews::NumResourceViews);
-
 	Resources[EResources::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
@@ -48,7 +49,7 @@ void Accumulation::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDev
 
 void Accumulation::RenderGui()
 {
-	
+
 }
 
 void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
@@ -66,7 +67,8 @@ void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandCont
 		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 	}
 
-	auto pPathtracingRenderPass = RenderGraphRegistry.GetRenderPass<Pathtracing>();
+	//auto pPathtracingRenderPass = RenderGraphRegistry.GetRenderPass<Pathtracing>();
+	auto pRaytraceGBufferRenderPass = RenderGraphRegistry.GetRenderPass<RaytraceGBuffer>();
 
 	auto pOutput = RenderGraphRegistry.GetTexture(Resources[EResources::RenderTarget]);
 
@@ -80,13 +82,14 @@ void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandCont
 	pCommandContext->SetComputeRootSignature(pAccumulationRootSignature);
 
 	// Bind Resources
-	struct  
+	struct
 	{
 		unsigned int AccumulationCount;
 	} AccumulationSettings;
 	AccumulationSettings.AccumulationCount = Settings.AccumulationCount++;
 	pCommandContext->SetComputeRoot32BitConstants(0, 1, &AccumulationSettings, 0);
-	pCommandContext->SetComputeRootDescriptorTable(1, pPathtracingRenderPass->ResourceViews[Pathtracing::EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
+	//pCommandContext->SetComputeRootDescriptorTable(1, pPathtracingRenderPass->ResourceViews[Pathtracing::EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(1, pRaytraceGBufferRenderPass->ResourceViews[RaytraceGBuffer::EResourceViews::RenderTargetUAVs][RaytraceGBuffer::EResources::MaterialAlbedo - 1].GPUHandle);
 	pCommandContext->SetComputeRootDescriptorTable(2, ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
 
 	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 16);

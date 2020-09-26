@@ -1,12 +1,15 @@
 #include "pch.h"
 #include "RenderGraph.h"
 
-RenderPass::RenderPass(RenderPassType Type, RenderTargetProperties Properties)
+RenderPass::RenderPass(RenderPassType Type, RenderTargetProperties Properties, size_t NumResources, size_t NumResourceViews)
 	: Enabled(true),
 	Refresh(false),
 	Type(Type),
-	Properties(Properties)
+	Properties(Properties),
+	Resources(NumResources),
+	ResourceViews(NumResourceViews)
 {
+
 }
 
 RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
@@ -15,6 +18,7 @@ RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
 	m_ThreadPool(3),
 	m_NumRenderPasses(0)
 {
+
 }
 
 void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)

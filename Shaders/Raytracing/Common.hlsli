@@ -56,31 +56,12 @@ Vertex BarycentricInterpolation(in Triangle t, in float3 barycentric)
 // here the barycentric coordinates, using hlsl predefined struct
 typedef BuiltInTriangleIntersectionAttributes HitAttributes;
 
-// Hit information, aka ray payload
-// Note that the payload should be kept as small as possible,
-// and that its size must be declared in the corresponding
-// D3D12_RAYTRACING_SHADER_CONFIG pipeline subobjet.
-struct RayPayload
-{
-    float3  Radiance;
-	float3  Throughput;
-	uint    Seed;
-	uint    Depth;
-};
+//struct ShadowRayPayload
+//{
+//    float Visibility;
+//};
 
-struct ShadowRayPayload
-{
-    float Visibility;
-};
-
-struct AORayPayload
-{
-	float Visibility;
-};
-
-enum RayType
-{
-    RayTypePrimary,
-    RayTypeShadow,
-    NumRayTypes
-};
+//struct AORayPayload
+//{
+//	float Visibility;
+//};

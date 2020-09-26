@@ -6,6 +6,7 @@
 
 // Render passes
 #include "RenderPass/Pathtracing.h"
+#include "RenderPass/RaytraceGBuffer.h"
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 
@@ -90,7 +91,8 @@ void Renderer::SetScene(Scene* pScene)
 		}
 	}
 
-	m_RenderGraph.AddRenderPass(new Pathtracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
+	//m_RenderGraph.AddRenderPass(new Pathtracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
+	m_RenderGraph.AddRenderPass(new RaytraceGBuffer(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 	m_RenderGraph.AddRenderPass(new Accumulation(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 
 	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();

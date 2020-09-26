@@ -7,24 +7,18 @@
 class Pathtracing : public RenderPass
 {
 public:
-	struct EResources
+	enum EResources
 	{
-		enum
-		{
-			ConstantBuffer,
-			RenderTarget,
-			NumResources
-		};
+		ConstantBuffer,
+		RenderTarget,
+		NumResources
 	};
 
-	struct EResourceViews
+	enum EResourceViews
 	{
-		enum
-		{
-			GeometryTables,				
-			RenderTargetUAV,
-			NumResourceViews
-		};
+		GeometryTables,
+		RenderTargetUAV,
+		NumResourceViews
 	};
 
 	struct SSettings

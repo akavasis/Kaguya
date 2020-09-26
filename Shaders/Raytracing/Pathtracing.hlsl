@@ -1,5 +1,23 @@
 #include "Global.hlsli"
 
+// Hit information, aka ray payload
+// Note that the payload should be kept as small as possible,
+// and that its size must be declared in the corresponding
+// D3D12_RAYTRACING_SHADER_CONFIG pipeline subobjet.
+struct RayPayload
+{
+	float3 Radiance;
+	float3 Throughput;
+	uint Seed;
+	uint Depth;
+};
+
+enum RayType
+{
+	RayTypePrimary,
+    NumRayTypes
+};
+
 struct Lambertian
 {
 	float3 Albedo;
@@ -123,22 +141,8 @@ void RayGeneration()
 	
 	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 	
-	float3 direction = ndc.x * RenderPassDataCB.CameraU + ndc.y * RenderPassDataCB.CameraV + RenderPassDataCB.CameraW;
-	
-	// Find the focal point for this pixel
-	direction /= length(RenderPassDataCB.CameraW); // Make ray have length 1 along the camera's w-axis.
-	float3 focalPoint = RenderPassDataCB.EyePosition + RenderPassDataCB.FocalLength * direction; // Select point on ray a distance FocalLength along the w-axis
-	
-	// Get random numbers (in polar coordinates), convert to random cartesian uv on the lens
-	float2 rnd = float2(s_2PI * RandomFloat01(seed), RenderPassDataCB.LensRadius * RandomFloat01(seed));
-	float2 uv = float2(cos(rnd.x) * rnd.y, sin(rnd.x) * rnd.y);
-
-	// Use uv coordinate to compute a random origin on the camera lens
-	float3 origin = RenderPassDataCB.EyePosition + uv.x * normalize(RenderPassDataCB.CameraU) + uv.y * normalize(RenderPassDataCB.CameraV);
-	direction = normalize(focalPoint - origin);
-	
 	// Initialize ray
-	RayDesc ray = { origin, 0.0f, direction, 1e+38f };
+	RayDesc ray = GenerateCameraRay(ndc, seed);
 	// Initialize payload
 	RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
 	// Trace the ray
@@ -156,12 +160,6 @@ void RayGeneration()
 void Miss(inout RayPayload rayPayload)
 {
 	rayPayload.Radiance += TexCubeTable[RenderPassDataCB.RadianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
-}
-
-[shader("miss")]
-void ShadowMiss(inout ShadowRayPayload rayPayload)
-{
-	rayPayload.Visibility = 1.0f;
 }
 
 [shader("closesthit")]
@@ -231,10 +229,4 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		const uint missShaderIndex = RayTypePrimary;
 		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 	}
-}
-
-[shader("closesthit")]
-void ShadowClosestHit(inout ShadowRayPayload rayPayload, in HitAttributes attrib)
-{
-	rayPayload.Visibility = 0.0f;
 }

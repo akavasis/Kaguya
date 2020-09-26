@@ -30,9 +30,6 @@ public:
 	inline auto GetIndexBufferHandle() const { return ResourceTables[IndexBuffer]; }
 	inline auto GetGeometryInfoTableHandle() const { return ResourceTables[GeometryInfoTable]; }
 	inline auto GetRTTLASResourceHandle() const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
-	inline auto GetRayGenerationShaderTableHandle() const { return m_RayGenerationShaderTable; }
-	inline auto GetMissShaderTableHandle() const { return m_MissShaderTable; }
-	inline auto GetHitGroupShaderTableHandle() const { return m_HitGroupShaderTable; }
 
 	Scene* pScene;
 	GpuTextureAllocator GpuTextureAllocator;
@@ -40,7 +37,6 @@ private:
 	size_t Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer);
 	void CreateBottomLevelAS(CommandContext* pCommandContext);
 	void CreateTopLevelAS(CommandContext* pCommandContext);
-	void CreateShaderTableBuffers();
 
 	struct RTBLAS
 	{
@@ -62,8 +58,4 @@ private:
 
 	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS m_RaytracingTopLevelAccelerationStructure;
-
-	RenderResourceHandle m_RayGenerationShaderTable;
-	RenderResourceHandle m_MissShaderTable;
-	RenderResourceHandle m_HitGroupShaderTable;
 };
