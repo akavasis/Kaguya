@@ -246,7 +246,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 
 		// Generate cube map
 		pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		pCommandContext->SetPipelineState(i == CubemapConvolution::Irradiance ? &GraphicsPSOs::ConvolutionIrradiace : &GraphicsPSOs::ConvolutionPrefilter);
+		pCommandContext->SetPipelineState(pRenderDevice->GetGraphicsPSO(i == CubemapConvolution::Irradiance ? GraphicsPSOs::ConvolutionIrradiace : GraphicsPSOs::ConvolutionPrefilter));
 		pCommandContext->SetGraphicsRootSignature(pRenderDevice->GetRootSignature(i == CubemapConvolution::Irradiance ? RootSignatures::ConvolutionIrradiace : RootSignatures::ConvolutionPrefilter));
 
 		pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::CubemapConvolution::CubemapSRV, tempSkyboxSRV[0].GPUHandle);
@@ -588,7 +588,7 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 
 	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
-	pCommandContext->SetPipelineState(&ComputePSOs::GenerateMips);
+	pCommandContext->SetPipelineState(pRenderDevice->GetComputePSO(ComputePSOs::GenerateMips));
 	pCommandContext->SetComputeRootSignature(pRenderDevice->GetRootSignature(RootSignatures::GenerateMips));
 
 	GenerateMipsData generateMipsCB;
@@ -729,7 +729,7 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 	auto resourceDesc = pCubemap->GetD3DResource()->GetDesc();
 
-	pCommandContext->SetPipelineState(&ComputePSOs::EquirectangularToCubemap);
+	pCommandContext->SetPipelineState(pRenderDevice->GetComputePSO(ComputePSOs::EquirectangularToCubemap));
 	pCommandContext->SetComputeRootSignature(pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap));
 
 	EquirectangularToCubemapData panoToCubemapCB;

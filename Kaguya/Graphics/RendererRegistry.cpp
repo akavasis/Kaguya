@@ -291,109 +291,119 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 {
-	GraphicsPipelineState inputLayoutPSO;
-	inputLayoutPSO.InputLayout.AddVertexLayoutElement("POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
-	inputLayoutPSO.InputLayout.AddVertexLayoutElement("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, -1);
-	inputLayoutPSO.InputLayout.AddVertexLayoutElement("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
-	inputLayoutPSO.InputLayout.AddVertexLayoutElement("TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
-	inputLayoutPSO.InputLayout.AddVertexLayoutElement("BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
+	GraphicsPipelineStateProxy inputLayoutProxy;
+	inputLayoutProxy.InputLayout.AddVertexLayoutElement("POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
+	inputLayoutProxy.InputLayout.AddVertexLayoutElement("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, -1);
+	inputLayoutProxy.InputLayout.AddVertexLayoutElement("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
+	inputLayoutProxy.InputLayout.AddVertexLayoutElement("TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
+	inputLayoutProxy.InputLayout.AddVertexLayoutElement("BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
 
+	// BRDFIntegration
+	BRDFIntegration = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
 	{
-		BRDFIntegration.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration);
-		BRDFIntegration.pVS = &Shaders::VS::Quad;
-		BRDFIntegration.pPS = &Shaders::PS::BRDFIntegration;
-		BRDFIntegration.PrimitiveTopology = PrimitiveTopology::Triangle;
-		BRDFIntegration.AddRenderTargetFormat(RendererFormats::BRDFLUTFormat);
-		BRDFIntegration.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration);
+		proxy.pVS = &Shaders::VS::Quad;
+		proxy.pPS = &Shaders::PS::BRDFIntegration;
+		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
+		proxy.AddRenderTargetFormat(RendererFormats::BRDFLUTFormat);
+	});
 
+	// Cubemap convolutions PSO
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
-		RootSignature* pRS = i == CubemapConvolution::Irradiance ? pRenderDevice->GetRootSignature(RootSignatures::ConvolutionIrradiace)
+		const RootSignature* pRS = i == CubemapConvolution::Irradiance ? pRenderDevice->GetRootSignature(RootSignatures::ConvolutionIrradiace)
 			: pRenderDevice->GetRootSignature(RootSignatures::ConvolutionPrefilter);
-		Shader* pVS = &Shaders::VS::Skybox;
-		Shader* pPS = i == CubemapConvolution::Irradiance ? &Shaders::PS::ConvolutionIrradiance : &Shaders::PS::ConvolutionPrefilter;
+		const Shader* pVS = &Shaders::VS::Skybox;
+		const Shader* pPS = i == CubemapConvolution::Irradiance ? &Shaders::PS::ConvolutionIrradiance : &Shaders::PS::ConvolutionPrefilter;
 		DXGI_FORMAT rtvFormat = i == CubemapConvolution::Irradiance ? RendererFormats::IrradianceFormat : RendererFormats::PrefilterFormat;
 
-		GraphicsPipelineState PSO = inputLayoutPSO;
-		PSO.pRootSignature = pRS;
-		PSO.pVS = pVS;
-		PSO.pPS = pPS;
-		PSO.RasterizerState.SetCullMode(RasterizerState::CullMode::None);
-		PSO.PrimitiveTopology = PrimitiveTopology::Triangle;
-		PSO.AddRenderTargetFormat(rtvFormat);
-		PSO.Compile(&pRenderDevice->Device);
+		RenderResourceHandle handle = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
+		{
+			proxy = inputLayoutProxy;
+
+			proxy.pRootSignature = pRS;
+			proxy.pVS = pVS;
+			proxy.pPS = pPS;
+
+			proxy.RasterizerState.SetCullMode(RasterizerState::CullMode::None);
+
+			proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
+			proxy.AddRenderTargetFormat(rtvFormat);
+		});
 
 		switch (i)
 		{
-		case Irradiance: ConvolutionIrradiace = PSO; break;
-		case Prefilter: ConvolutionPrefilter = PSO; break;
+		case Irradiance: ConvolutionIrradiace = handle; break;
+		case Prefilter: ConvolutionPrefilter = handle; break;
 		}
 	}
 
+	// PostProcess_Tonemapping
+	PostProcess_Tonemapping = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
 	{
-		PostProcess_Tonemapping.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemapping);
-		PostProcess_Tonemapping.pVS = &Shaders::VS::Quad;
-		PostProcess_Tonemapping.pPS = &Shaders::PS::PostProcess_Tonemapping;
-		PostProcess_Tonemapping.PrimitiveTopology = PrimitiveTopology::Triangle;
-		PostProcess_Tonemapping.AddRenderTargetFormat(RendererFormats::SwapChainBufferFormat);
-		PostProcess_Tonemapping.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemapping);
+		proxy.pVS = &Shaders::VS::Quad;
+		proxy.pPS = &Shaders::PS::PostProcess_Tonemapping;
+
+		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
+		proxy.AddRenderTargetFormat(RendererFormats::SwapChainBufferFormat);
+	});
 }
 
 void ComputePSOs::Register(RenderDevice* pRenderDevice)
 {
+	GenerateMips = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
 	{
-		GenerateMips.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GenerateMips);
-		GenerateMips.pCS = &Shaders::CS::GenerateMips;
-		GenerateMips.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GenerateMips);
+		proxy.pCS = &Shaders::CS::GenerateMips;
+	});
 
+	EquirectangularToCubemap = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
 	{
-		EquirectangularToCubemap.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap);
-		EquirectangularToCubemap.pCS = &Shaders::CS::EquirectangularToCubemap;
-		EquirectangularToCubemap.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap);
+		proxy.pCS = &Shaders::CS::EquirectangularToCubemap;
+	});
 
+	Accumulation = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
 	{
-		Accumulation.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Accumulation);
-		Accumulation.pCS = &Shaders::CS::Accumulation;
-		Accumulation.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Accumulation);
+		proxy.pCS = &Shaders::CS::Accumulation;
+	});
 
+	PostProcess_BloomMask = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
 	{
-		PostProcess_BloomMask.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomMask);
-		PostProcess_BloomMask.pCS = &Shaders::CS::PostProcess_BloomMask;
-		PostProcess_BloomMask.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomMask);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomMask;
+	});
 
+	PostProcess_BloomDownsample = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
 	{
-		PostProcess_BloomDownsample.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomDownsample);
-		PostProcess_BloomDownsample.pCS = &Shaders::CS::PostProcess_BloomDownsample;
-		PostProcess_BloomDownsample.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomDownsample);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomDownsample;
+	});
 
+	PostProcess_BloomBlur = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
 	{
-		PostProcess_BloomBlur.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomBlur);
-		PostProcess_BloomBlur.pCS = &Shaders::CS::PostProcess_BloomBlur;
-		PostProcess_BloomBlur.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomBlur);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomBlur;
+	});
 
+	PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
 	{
-		PostProcess_BloomUpsampleBlurAccumulation.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation);
-		PostProcess_BloomUpsampleBlurAccumulation.pCS = &Shaders::CS::PostProcess_BloomUpsampleBlurAccumulation;
-		PostProcess_BloomUpsampleBlurAccumulation.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomUpsampleBlurAccumulation;
+	});
 
+	PostProcess_BloomComposition = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
 	{
-		PostProcess_BloomComposition.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomComposition);
-		PostProcess_BloomComposition.pCS = &Shaders::CS::PostProcess_BloomComposition;
-		PostProcess_BloomComposition.Compile(&pRenderDevice->Device);
-	}
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomComposition);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomComposition;
+	});
 }
 
 void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 {
+	Pathtracing = pRenderDevice->CreateRaytracingPipelineState([=](RaytracingPipelineStateProxy& proxy)
 	{
 		enum Symbols
 		{
@@ -427,15 +437,15 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 
 		const Library* pRaytraceLibrary = &Libraries::Pathtracing;
 
-		Pathtracing.AddLibrary(pRaytraceLibrary,
+		proxy.AddLibrary(pRaytraceLibrary,
 			{
 				symbols[RayGeneration],
 				symbols[Miss], symbols[ShadowMiss],
 				symbols[ClosestHit], symbols[ShadowClosestHit]
 			});
 
-		Pathtracing.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
-		Pathtracing.AddHitGroup(hitGroups[Shadow], nullptr, symbols[ShadowClosestHit], nullptr);
+		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
+		proxy.AddHitGroup(hitGroups[Shadow], nullptr, symbols[ShadowClosestHit], nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Pathtracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Pathtracing::EmptyLocal);
@@ -446,21 +456,19 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
 		// to as hit groups, meaning that the underlying intersection, any-hit and
 		// closest-hit shaders share the same root signature.
-		Pathtracing.AddRootSignatureAssociation(pEmptyLocalRootSignature,
+		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
 			{
 				symbols[RayGeneration], symbols[Miss], symbols[ShadowMiss]
 			});
 
-		Pathtracing.AddRootSignatureAssociation(pHitGroupRootSignature,
+		proxy.AddRootSignatureAssociation(pHitGroupRootSignature,
 			{
 				hitGroups[Default], hitGroups[Shadow]
 			});
 
-		Pathtracing.SetGlobalRootSignature(pGlobalRootSignature);
+		proxy.SetGlobalRootSignature(pGlobalRootSignature);
 
-		Pathtracing.SetRaytracingShaderConfig(6 * sizeof(float) + 2 * sizeof(unsigned int), 2 * sizeof(float));
-		Pathtracing.SetRaytracingPipelineConfig(8);
-
-		Pathtracing.Compile(&pRenderDevice->Device);
-	}
+		proxy.SetRaytracingShaderConfig(6 * sizeof(float) + 2 * sizeof(unsigned int), 2 * sizeof(float));
+		proxy.SetRaytracingPipelineConfig(8);
+	});
 }
