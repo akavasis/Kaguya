@@ -1,5 +1,6 @@
 #pragma once
 #include <dxcapi.h>
+#include <d3d12shader.h>
 #include <wrl/client.h>
 
 #include "Shader.h"
@@ -24,4 +25,5 @@ private:
 
 	Microsoft::WRL::ComPtr<IDxcCompiler> m_DxcCompiler;
 	Microsoft::WRL::ComPtr<IDxcLibrary> m_DxcLibrary;
+	Microsoft::WRL::ComPtr<IDxcUtils> m_DxcUtils;
 };

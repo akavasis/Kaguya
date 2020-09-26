@@ -8,11 +8,6 @@ This is a path tracer using DXR (DirectX Raytracing).
 + __Lambertian, Glossy, Metal, and Dielectric material models__
 + __Various post processing effects__
 
-### Goals
-+ Various BSDF models
-+ Deferred rendering
-+ Global illumination
-
 ## Source of learning
 + 3D Game Programming with DirectX 12 Book by Frank D Luna
 + Direct3D 12 programming guide from MSDN [https://docs.microsoft.com/en-us/windows/win32/direct3d12/directx-12-programming-guide]

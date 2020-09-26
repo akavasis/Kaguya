@@ -114,7 +114,7 @@ void Renderer::Update(const Time& Time)
 	m_RenderDevice.FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 }
 
-void Renderer::RenderGui(Scene* pScene)
+void Renderer::RenderGui()
 {
 	m_Gui.BeginFrame(); // End frame will be called at the end of the Render method by RenderGraph
 
@@ -125,7 +125,7 @@ void Renderer::RenderGui(Scene* pScene)
 		ImGui::Text("FPS: %f", Statistics::FPS);
 		ImGui::Text("FPMS: %f", Statistics::FPMS);
 
-		if (ImGui::TreeNode("Setting"))
+		if (ImGui::TreeNode("Settings"))
 		{
 			if (ImGui::Button("Restore Defaults"))
 			{
@@ -143,21 +143,21 @@ void Renderer::RenderGui(Scene* pScene)
 		{
 			if (ImGui::Button("Restore Defaults"))
 			{
-				pScene->Camera.Aperture = 0.0f;
-				pScene->Camera.FocalLength = 10.0f;
+				m_GpuScene.pScene->Camera.Aperture = 0.0f;
+				m_GpuScene.pScene->Camera.FocalLength = 10.0f;
 			}
-			ImGui::DragFloat("Aperture", &pScene->Camera.Aperture, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat("Focal Length", &pScene->Camera.FocalLength, 0.01f, 0.01f, FLT_MAX);
+			ImGui::DragFloat("Aperture", &m_GpuScene.pScene->Camera.Aperture, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat("Focal Length", &m_GpuScene.pScene->Camera.FocalLength, 0.01f, 0.01f, FLT_MAX);
 			ImGui::TreePop();
 		}
 	}
 	ImGui::End();
 }
 
-void Renderer::Render(Scene* pScene)
+void Renderer::Render()
 {
 	//PIXCapture();
-	pScene->Camera.SetAspectRatio(m_AspectRatio);
+	m_GpuScene.pScene->Camera.SetAspectRatio(m_AspectRatio);
 
 	m_GpuScene.Update();
 	m_RenderGraph.RenderGui();

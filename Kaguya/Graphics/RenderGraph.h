@@ -77,9 +77,6 @@ public:
 	[[nodiscard]] inline Texture* GetTexture(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetTexture(RenderResourceHandle); }
 	[[nodiscard]] inline Heap* GetHeap(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetHeap(RenderResourceHandle); }
 	[[nodiscard]] inline RootSignature* GetRootSignature(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetRootSignature(RenderResourceHandle); }
-	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetGraphicsPSO(RenderResourceHandle); }
-	[[nodiscard]] inline ComputePipelineState* GetComputePSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetComputePSO(RenderResourceHandle); }
-	[[nodiscard]] inline RaytracingPipelineState* GetRaytracingPSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetRaytracingPSO(RenderResourceHandle); }
 
 	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const { return pRenderDevice->GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart(); }
 	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart() const { return pRenderDevice->GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart(); }
@@ -154,7 +151,7 @@ private:
 	RenderDevice* pRenderDevice;
 	GpuScene* pGpuScene;
 
-	std::unique_ptr<ThreadPool> m_ThreadPool;
+	ThreadPool m_ThreadPool;
 	std::vector<std::future<void>> m_Futures;
 
 	UINT m_NumRenderPasses;

@@ -8,8 +8,6 @@
 enum class RenderResourceType : size_t
 {
 	Unknown,
-	Shader,
-	Library,
 	Buffer,
 	Texture,
 	Heap,

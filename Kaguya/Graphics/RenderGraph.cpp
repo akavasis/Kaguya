@@ -12,6 +12,7 @@ RenderPass::RenderPass(RenderPassType Type, RenderTargetProperties Properties)
 RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
 	: pRenderDevice(pRenderDevice),
 	pGpuScene(pGpuScene),
+	m_ThreadPool(3),
 	m_NumRenderPasses(0)
 {
 }
@@ -38,7 +39,6 @@ void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)
 
 void RenderGraph::Initialize()
 {
-	m_ThreadPool = std::make_unique<ThreadPool>(m_NumRenderPasses);
 	m_Futures.resize(m_NumRenderPasses);
 	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); // This command context is for Gui
 }
@@ -85,7 +85,7 @@ void RenderGraph::Execute()
 
 		if constexpr (RenderGraph::Settings::MultiThreaded)
 		{
-			m_Futures[i] = m_ThreadPool->AddWork([this, i]()
+			m_Futures[i] = m_ThreadPool.AddWork([this, i]()
 			{
 				RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
 				pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);

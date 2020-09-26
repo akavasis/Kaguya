@@ -39,13 +39,22 @@ ShaderCompiler::ShaderCompiler()
 {
 	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(m_DxcCompiler.ReleaseAndGetAddressOf())));
 	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(m_DxcLibrary.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(m_DxcUtils.ReleaseAndGetAddressOf())));
 }
 
 Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
 	auto profileString = ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_4);
 	auto pDxcBlob = Compile(pPath, pEntryPoint, profileString.data(), ShaderDefines);
-	return Shader(Type, pDxcBlob);
+
+	DxcBuffer dxcBuffer = {};
+	dxcBuffer.Ptr = pDxcBlob->GetBufferPointer();
+	dxcBuffer.Size = pDxcBlob->GetBufferSize();
+	dxcBuffer.Encoding = CP_ACP;
+	Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pShaderReflection;
+	m_DxcUtils->CreateReflection(&dxcBuffer, IID_PPV_ARGS(&pShaderReflection));
+
+	return Shader(Type, pDxcBlob, pShaderReflection);
 }
 
 Library ShaderCompiler::CompileLibrary(LPCWSTR pPath)
@@ -69,8 +78,8 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 	LPCWSTR cmdlineArgs[] =
 	{
 		L"-all_resources_bound",
-		L"-WX",				// Warnings as errors
 #ifdef _DEBUG
+		L"-WX",				// Warnings as errors
 		L"-Zi",				// Debug info
 		L"-Qembed_debug",	// Embed debug info into the shader
 		L"-Od",				// Disable optimization

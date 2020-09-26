@@ -37,8 +37,8 @@ public:
 	void SetScene(Scene* pScene);
 
 	void Update(const Time& Time);
-	void RenderGui(Scene* pScene);
-	void Render(Scene* pScene);
+	void RenderGui();
+	void Render();
 private:
 	void Resize(UINT Width, UINT Height);
 

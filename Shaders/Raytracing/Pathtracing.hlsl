@@ -155,7 +155,7 @@ void RayGeneration()
 [shader("miss")]
 void Miss(inout RayPayload rayPayload)
 {
-	//rayPayload.Radiance += TexCubeTable[RenderPassDataCB.RadianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
+	rayPayload.Radiance += TexCubeTable[RenderPassDataCB.RadianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
 }
 
 [shader("miss")]

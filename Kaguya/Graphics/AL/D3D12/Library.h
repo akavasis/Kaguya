@@ -14,7 +14,6 @@ class Library
 public:
 	Library() = default;
 	Library(Microsoft::WRL::ComPtr<IDxcBlob> DxcBlob);
-	~Library() = default;
 
 	Library(Library&&) noexcept = default;
 	Library& operator=(Library&&) noexcept = default;

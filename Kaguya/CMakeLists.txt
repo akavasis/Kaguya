@@ -65,7 +65,7 @@ include_directories("../External/DirectXTex/include")
 target_link_libraries(${PROJECTNAME} debug ${CMAKE_SOURCE_DIR}/External/DirectXTex/lib/Debug/DirectXTex.lib)
 target_link_libraries(${PROJECTNAME} optimized ${CMAKE_SOURCE_DIR}/External/DirectXTex/lib/Release/DirectXTex.lib)
 
-include_directories("../External/dxc/dxcapi.h")
+include_directories("../External/dxc")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/dxc/dxcompiler.lib)
 
 include_directories("../External/imgui")

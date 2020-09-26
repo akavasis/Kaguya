@@ -61,7 +61,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 
 void Pathtracing::RenderGui()
 {
-	if (ImGui::TreeNode("Pathtracing"))
+	if (ImGui::TreeNode("Path Tracing"))
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{

@@ -416,8 +416,8 @@ int main(int argc, char** argv)
 
 			time.Signal();
 			renderer.Update(time);
-			renderer.RenderGui(&scene);
-			renderer.Render(&scene);
+			renderer.RenderGui();
+			renderer.Render();
 		});
 	}
 	catch (std::exception& e)

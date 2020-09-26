@@ -72,16 +72,14 @@ void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, Command
 	GraphicsQueue.Flush();
 }
 
-RenderResourceHandle RenderDevice::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
+Shader RenderDevice::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
-	auto [handle, shader] = m_Shaders.CreateResource(m_ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines));
-	return handle;
+	return m_ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines);
 }
 
-RenderResourceHandle RenderDevice::CompileLibrary(const std::filesystem::path& Path)
+Library RenderDevice::CompileLibrary(const std::filesystem::path& Path)
 {
-	auto [handle, library] = m_Libraries.CreateResource(m_ShaderCompiler.CompileLibrary(Path.c_str()));
-	return handle;
+	return m_ShaderCompiler.CompileLibrary(Path.c_str());
 }
 
 RenderResourceHandle RenderDevice::CreateBuffer(Delegate<void(BufferProxy&)> Configurator)
@@ -206,8 +204,6 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 
 	switch (pRenderResourceHandle->Type)
 	{
-	case RenderResourceType::Shader: m_Shaders.Destroy(pRenderResourceHandle); break;
-	case RenderResourceType::Library: m_Libraries.Destroy(pRenderResourceHandle); break;
 	case RenderResourceType::Buffer:
 	{
 		auto buffer = m_Buffers.GetResource(*pRenderResourceHandle);

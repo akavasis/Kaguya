@@ -85,9 +85,9 @@ void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandCont
 		unsigned int AccumulationCount;
 	} AccumulationSettings;
 	AccumulationSettings.AccumulationCount = Settings.AccumulationCount++;
-	pCommandContext->SetComputeRoot32BitConstants(RootParameters::Accumulation::AccumulationCBuffer, sizeof(Settings) / 4, &Settings, 0);
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Input, pPathtracingRenderPass->ResourceViews[Pathtracing::EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Accumulation::Output, ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRoot32BitConstants(0, 1, &AccumulationSettings, 0);
+	pCommandContext->SetComputeRootDescriptorTable(1, pPathtracingRenderPass->ResourceViews[Pathtracing::EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(2, ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
 
 	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 16);
 	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 16);

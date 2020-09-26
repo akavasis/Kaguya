@@ -62,8 +62,8 @@ public:
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
 	// Shader compilation
-	[[nodiscard]] RenderResourceHandle CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
-	[[nodiscard]] RenderResourceHandle CompileLibrary(const std::filesystem::path& Path);
+	[[nodiscard]] Shader CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
+	[[nodiscard]] Library CompileLibrary(const std::filesystem::path& Path);
 
 	// Resource creation
 	[[nodiscard]] RenderResourceHandle CreateBuffer(Delegate<void(BufferProxy&)> Configurator);
@@ -90,8 +90,6 @@ public:
 	void CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 
 	// Returns nullptr if a resource is not found
-	[[nodiscard]] inline auto GetShader(RenderResourceHandle RenderResourceHandle) { return m_Shaders.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetLibrary(RenderResourceHandle RenderResourceHandle) { return m_Libraries.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) { return m_Buffers.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle) { return m_Textures.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle) { return m_Heaps.GetResource(RenderResourceHandle); }
@@ -129,9 +127,6 @@ private:
 		NumDescriptorRanges
 	};
 	std::array<D3D12_DESCRIPTOR_RANGE1, std::size_t(DescriptorRanges::NumDescriptorRanges)> m_StandardShaderLayoutDescriptorRanges;
-
-	RenderResourceContainer<RenderResourceType::Shader, Shader> m_Shaders;
-	RenderResourceContainer<RenderResourceType::Library, Library> m_Libraries;
 
 	RenderResourceContainer<RenderResourceType::Buffer, Buffer> m_Buffers;
 	RenderResourceContainer<RenderResourceType::Texture, Texture> m_Textures;

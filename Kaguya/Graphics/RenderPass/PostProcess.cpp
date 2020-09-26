@@ -1,12 +1,11 @@
 #include "pch.h"
 #include "PostProcess.h"
 
-#include "Accumulation.h"
-
 PostProcess::PostProcess(Descriptor Input, UINT Width, UINT Height)
 	: RenderPass(RenderPassType::Graphics, { Width, Height, RendererFormats::HDRBufferFormat }),
 	Input(Input)
 {
+
 }
 
 PostProcess::~PostProcess()
@@ -83,6 +82,7 @@ void PostProcess::RenderGui()
 			Settings = SSettings();
 		}
 
+		ImGui::Checkbox("Apply Bloom", &Settings.ApplyBloom);
 		if (ImGui::TreeNode("Bloom"))
 		{
 			ImGui::SliderFloat("Threshold", &Settings.Bloom.Threshold, 0.0f, 8.0f);
@@ -103,7 +103,8 @@ void PostProcess::RenderGui()
 
 void PostProcess::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
 {
-	ApplyBloom(RenderGraphRegistry, pCommandContext);
+	if (Settings.ApplyBloom)
+		ApplyBloom(RenderGraphRegistry, pCommandContext);
 	ApplyTonemappingToSwapChain(RenderGraphRegistry, pCommandContext);
 }
 
@@ -316,7 +317,7 @@ void PostProcess::ApplyTonemappingToSwapChain(RenderGraphRegistry& RenderGraphRe
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Tonemap");
 
-	auto InputSRV = ResourceViews[EResourceViews::RenderTargetSRV].GetStartDescriptor();
+	auto InputSRV = Settings.ApplyBloom ? ResourceViews[EResourceViews::RenderTargetSRV].GetStartDescriptor() : Input;
 	auto pDestination = RenderGraphRegistry.GetCurrentSwapChainBuffer();
 	auto DestinationRTV = RenderGraphRegistry.GetCurrentSwapChainRTV();
 
