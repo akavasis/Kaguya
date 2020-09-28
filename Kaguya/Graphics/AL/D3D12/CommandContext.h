@@ -70,6 +70,9 @@ public:
 	inline void SetComputeRootUnorderedAccessView(UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation);
 
 	void Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ);
+	void Dispatch1D(UINT ThreadGroupCountX, UINT ThreadSizeX);
+	void Dispatch2D(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadSizeX, UINT ThreadSizeY);
+	void Dispatch3D(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ, UINT ThreadSizeX, UINT ThreadSizeY, UINT ThreadSizeZ);
 
 	void BuildRaytracingAccelerationStructure(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC* pDesc,
 		UINT NumPostbuildInfoDescs,

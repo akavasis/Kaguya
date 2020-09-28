@@ -122,9 +122,7 @@ void PostProcess::Blur(size_t Input, size_t Output, ResourceRegistry& ResourceRe
 	pCommandContext->SetComputeRootDescriptorTable(1, ResourceRegistry.ShaderResourceViews[inputSRVIndex].GPUHandle);
 	pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.UnorderedAccessViews[outputUAVIndex].GPUHandle);
 
-	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 8);
-	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 8);
-	pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
+	pCommandContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 }
@@ -160,9 +158,7 @@ void PostProcess::UpsampleBlur(size_t HighResolution, size_t LowResolution, size
 	pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.ShaderResourceViews[LowResolutionSRVIndex].GPUHandle);
 	pCommandContext->SetComputeRootDescriptorTable(3, ResourceRegistry.ShaderResourceViews[OutputUAVIndex].GPUHandle);
 
-	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 8);
-	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 8);
-	pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
+	pCommandContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 }
@@ -200,9 +196,7 @@ void PostProcess::ApplyBloom(ResourceRegistry& ResourceRegistry, CommandContext*
 		pCommandContext->SetComputeRootDescriptorTable(1, InputSRV.GPUHandle);
 		pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.UnorderedAccessViews[OutputUAVIndex].GPUHandle);
 
-		UINT threadGroupCountX = Math::RoundUpAndDivide(bloomWidth, 8);
-		UINT threadGroupCountY = Math::RoundUpAndDivide(bloomHeight, 8);
-		pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
+		pCommandContext->Dispatch2D(bloomWidth, bloomHeight, 8, 8);
 
 		pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 	}
@@ -242,9 +236,7 @@ void PostProcess::ApplyBloom(ResourceRegistry& ResourceRegistry, CommandContext*
 		pCommandContext->SetComputeRootDescriptorTable(4, ResourceRegistry.UnorderedAccessViews[Output3UAVIndex].GPUHandle);
 		pCommandContext->SetComputeRootDescriptorTable(5, ResourceRegistry.UnorderedAccessViews[Output4UAVIndex].GPUHandle);
 
-		UINT threadGroupCountX = Math::RoundUpAndDivide(bloomWidth / 2, 8);
-		UINT threadGroupCountY = Math::RoundUpAndDivide(bloomHeight / 2, 8);
-		pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
+		pCommandContext->Dispatch2D(bloomWidth / 2, bloomHeight / 2, 8, 8);
 
 		pCommandContext->TransitionBarrier(pOutput1, Resource::State::NonPixelShaderResource);
 		pCommandContext->TransitionBarrier(pOutput2, Resource::State::NonPixelShaderResource);
@@ -291,9 +283,7 @@ void PostProcess::ApplyBloom(ResourceRegistry& ResourceRegistry, CommandContext*
 		pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.ShaderResourceViews[BloomSRVIndex].GPUHandle);
 		pCommandContext->SetComputeRootDescriptorTable(3, ResourceRegistry.UnorderedAccessViews[OutputUAVIndex].GPUHandle);
 
-		UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 8);
-		UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 8);
-		pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
+		pCommandContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
 		pCommandContext->TransitionBarrier(pOutput, Resource::State::PixelShaderResource);
 	}

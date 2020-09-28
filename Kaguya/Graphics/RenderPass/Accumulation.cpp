@@ -63,8 +63,6 @@ void Accumulation::Execute(ResourceRegistry& ResourceRegistry, CommandContext* p
 		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 	}
 
-
-
 	auto pOutput = ResourceRegistry.GetTexture(Resources[EResources::RenderTarget]);
 
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
@@ -87,9 +85,7 @@ void Accumulation::Execute(ResourceRegistry& ResourceRegistry, CommandContext* p
 	pCommandContext->SetComputeRootDescriptorTable(1, ResourceRegistry.ShaderResourceViews[srv].GPUHandle);
 	pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.UnorderedAccessViews[uav].GPUHandle);
 
-	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 16);
-	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 16);
-	pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
+	pCommandContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 16, 16);
 
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 }
