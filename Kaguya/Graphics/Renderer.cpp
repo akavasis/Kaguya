@@ -49,9 +49,6 @@ Renderer::Renderer(const Application& Application, Window& Window)
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 		m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
 		m_RenderDevice.CreateRTV(m_RenderDevice.SwapChainTextures[i], m_RenderDevice.SwapChainRenderTargetViews[i], {}, {}, {});
-
-		std::string name = "Swap Chain: " + std::to_string(i);
-		m_RenderGraph.AddNonTransientResource(name.data(), m_RenderDevice.SwapChainTextures[i]);
 	}
 }
 
@@ -94,9 +91,7 @@ void Renderer::SetScene(Scene* pScene)
 	//m_RenderGraph.AddRenderPass(new Pathtracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 	m_RenderGraph.AddRenderPass(new RaytraceGBuffer(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 	m_RenderGraph.AddRenderPass(new Accumulation(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
-
-	auto pAccumulationRenderPass = m_RenderGraph.GetRenderPass<Accumulation>();
-	m_RenderGraph.AddRenderPass(new PostProcess(pAccumulationRenderPass->ResourceViews[Accumulation::EResourceViews::RenderTargetSRV].GetStartDescriptor(), pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
+	m_RenderGraph.AddRenderPass(new PostProcess(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 
 	m_RenderGraph.Initialize();
 }
@@ -164,7 +159,6 @@ void Renderer::Render()
 	m_GpuScene.Update();
 	m_RenderGraph.RenderGui();
 	m_RenderGraph.Execute();
-	m_RenderGraph.ThreadBarrier();
 	m_RenderGraph.ExecuteCommandContexts(&m_Gui);
 
 	UINT syncInterval = Renderer::Settings::VSync ? 1u : 0u;
@@ -193,8 +187,6 @@ void Renderer::Resize(UINT Width, UINT Height)
 		for (size_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
 			m_RenderDevice.Destroy(&m_RenderDevice.SwapChainTextures[i]);
-			std::string name = "Swap Chain: " + std::to_string(i);
-			m_RenderGraph.RemoveNonTransientResource(name.data());
 		}
 
 		// Resize backbuffer
@@ -216,15 +208,10 @@ void Renderer::Resize(UINT Width, UINT Height)
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 			m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
 			m_RenderDevice.CreateRTV(m_RenderDevice.SwapChainTextures[i], m_RenderDevice.SwapChainRenderTargetViews[i], {}, {}, {});
-
-			std::string name = "Swap Chain: " + std::to_string(i);
-			m_RenderGraph.AddNonTransientResource(name.data(), m_RenderDevice.SwapChainTextures[i]);
 		}
 
 		// Reset back buffer index
 		m_RenderDevice.FrameIndex = 0;
-
-		m_RenderGraph.Resize(Width, Height);
 	}
 	m_RenderDevice.GraphicsQueue.WaitForIdle();
 }

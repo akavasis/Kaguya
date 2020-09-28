@@ -1,13 +1,11 @@
 #include "pch.h"
 #include "RenderGraph.h"
 
-RenderPass::RenderPass(RenderPassType Type, RenderTargetProperties Properties, size_t NumResources, size_t NumResourceViews)
+RenderPass::RenderPass(RenderPassType Type, RenderTargetProperties Properties)
 	: Enabled(true),
 	Refresh(false),
 	Type(Type),
-	Properties(Properties),
-	Resources(NumResources),
-	ResourceViews(NumResourceViews)
+	Properties(Properties)
 {
 
 }
@@ -16,7 +14,7 @@ RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
 	: pRenderDevice(pRenderDevice),
 	pGpuScene(pGpuScene),
 	m_ThreadPool(3),
-	m_NumRenderPasses(0)
+	m_ResourceRegistry(pRenderDevice, this)
 {
 
 }
@@ -24,10 +22,9 @@ RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
 void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)
 {
 	auto pRenderPass = std::unique_ptr<RenderPass>(pIRenderPass);
-	if (!pRenderPass->OnInitialize(pRenderDevice))
-	{
-		throw std::logic_error("Failed to initialize render pass");
-	}
+
+	m_ResourceScheduler.m_pCurrentRenderPass = pRenderPass.get();
+	pRenderPass->OnScheduleResource(&m_ResourceScheduler);
 	pRenderPass->OnInitializeScene(pGpuScene, pRenderDevice);
 
 	m_RenderPasses.emplace_back(std::move(pRenderPass));
@@ -37,14 +34,15 @@ void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)
 	case RenderPassType::Compute: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Compute)); break;
 	case RenderPassType::Copy: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Copy)); break;
 	}
-	m_RenderPassDataIDs.emplace_back(typeid(*pIRenderPass));
-	m_NumRenderPasses++;
+	m_RenderPassIDs.emplace_back(typeid(*pIRenderPass));
 }
 
 void RenderGraph::Initialize()
 {
-	m_Futures.resize(m_NumRenderPasses);
 	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); // This command context is for Gui
+
+	CreaterResources();
+	CreateResourceViews();
 }
 
 void RenderGraph::RenderGui()
@@ -82,26 +80,31 @@ void RenderGraph::Execute()
 		}
 	}
 
-	for (decltype(m_NumRenderPasses) i = 0; i < m_NumRenderPasses; ++i)
+	std::vector<std::future<void>> futures(m_RenderPasses.size());
+	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
 	{
 		if (!m_RenderPasses[i]->Enabled)
 			continue;
 
 		if constexpr (RenderGraph::Settings::MultiThreaded)
 		{
-			m_Futures[i] = m_ThreadPool.AddWork([this, i]()
+			futures[i] = m_ThreadPool.AddWork([this, i]()
 			{
-				RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
 				pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
-				m_RenderPasses[i]->OnExecute(renderGraphRegistry, m_CommandContexts[i]);
+				m_RenderPasses[i]->OnExecute(m_ResourceRegistry, m_CommandContexts[i]);
 			});
 		}
 		else
 		{
-			RenderGraphRegistry renderGraphRegistry(pRenderDevice, this);
 			pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
-			m_RenderPasses[i]->OnExecute(renderGraphRegistry, m_CommandContexts[i]);
+			m_RenderPasses[i]->OnExecute(m_ResourceRegistry, m_CommandContexts[i]);
 		}
+	}
+
+	for (auto& future : futures)
+	{
+		if (future.valid())
+			future.wait();
 	}
 }
 
@@ -115,19 +118,68 @@ void RenderGraph::ExecuteCommandContexts(Gui* pGui)
 	pRenderDevice->ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
 }
 
-void RenderGraph::ThreadBarrier()
+void RenderGraph::CreaterResources()
 {
-	for (auto& future : m_Futures)
+	for (auto& bufferRequest : m_ResourceScheduler.m_BufferRequests)
 	{
-		if (future.valid())
-			future.wait();
+		for (const auto& bufferProxy : bufferRequest.second)
+		{
+			bufferRequest.first->Resources.push_back(pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+			{
+				proxy = bufferProxy;
+			}));
+		}
+	}
+
+	for (auto& textureRequest : m_ResourceScheduler.m_TextureRequests)
+	{
+		for (const auto& textureProxy : textureRequest.second)
+		{
+			textureRequest.first->Resources.push_back(pRenderDevice->CreateTexture(Resource::Type::Unknown, [&](TextureProxy& proxy)
+			{
+				proxy = textureProxy;
+			}));
+		}
 	}
 }
 
-void RenderGraph::Resize(UINT Width, UINT Height)
+void RenderGraph::CreateResourceViews()
 {
+	UINT64 numSRVsToCreate = 0;
+	UINT64 numUAVsToCreate = 0;
+	for (const auto& textureRequest : m_ResourceScheduler.m_TextureRequests)
+	{
+		for (const auto& textureProxy : textureRequest.second)
+		{
+			numSRVsToCreate++;
+			if (EnumMaskBitSet(textureProxy.BindFlags, Resource::BindFlags::UnorderedAccess))
+			{
+				numUAVsToCreate++;
+			}
+		}
+	}
+
+	m_ResourceRegistry.ShaderResourceViews = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(numSRVsToCreate);
+	m_ResourceRegistry.UnorderedAccessViews = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(numUAVsToCreate);
+
+	UINT64 srvIndex = 0;
+	UINT64 uavIndex = 0;
 	for (auto& renderPass : m_RenderPasses)
 	{
-		renderPass->OnResize(Width, Height, pRenderDevice);
+		for (auto handle : renderPass->Resources)
+		{
+			if (handle.Type == RenderResourceType::Buffer)
+				continue;
+
+			m_ResourceRegistry.m_ShaderResourceTable[handle] = srvIndex;
+			pRenderDevice->CreateSRV(handle, m_ResourceRegistry.ShaderResourceViews[srvIndex++]);
+			
+			auto texture = pRenderDevice->GetTexture(handle);
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::UnorderedAccess))
+			{
+				m_ResourceRegistry.m_UnorderedAccessTable[handle] = uavIndex;
+				pRenderDevice->CreateUAV(handle, m_ResourceRegistry.UnorderedAccessViews[uavIndex++]);
+			}
+		}
 	}
 }

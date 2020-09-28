@@ -1,9 +1,22 @@
 #include "Global.hlsli"
 
+struct AORayPayload
+{
+	float Visibility;
+};
+
+enum RayType
+{
+	RayTypePrimary,
+    NumRayTypes
+};
+
 static const uint NumAORays = 10;
 static const float AORadius = 1.0f;
 
 RWTexture2D<float4> RenderTarget : register(u0, space0);
+Texture2D<float4> WorldPosition : register(t0, space5);
+Texture2D<float4> WorldNormal : register(t1, space5);
 
 float TraceAmbientOcclusionRay(float3 origin, float tMin, float3 direction, float tMax)
 {
@@ -15,7 +28,7 @@ float TraceAmbientOcclusionRay(float3 origin, float tMin, float3 direction, floa
 	const uint hitGroupIndex = RayTypePrimary;
 	const uint hitGroupIndexMultiplier = NumRayTypes;
 	const uint missShaderIndex = RayTypePrimary;
-	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
+	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, aoRayPayload);
 
 	return aoRayPayload.Visibility;
 }
@@ -27,12 +40,12 @@ void RayGeneration()
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
 	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
 	
-	float4 worldPosition = Tex2DTable[WorldPositionIdx][launchIndex];
-	float4 worldNormal = Tex2DTable[WorldNormalIdx][launchIndex];
+	float4 worldPosition = WorldPosition[launchIndex];
+	float4 worldNormal = WorldNormal[launchIndex];
 	
 	float occlusionSum = 0.0f;
 	
-	if (worldPosition != float4(0.0f, 0.0f, 0.0f, 0.0f))
+	if (worldPosition.z != 0.0f)
 	{
 		for (uint i = 0; i < NumAORays; ++i)
 		{

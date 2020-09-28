@@ -4,11 +4,6 @@
 TextureProxy::TextureProxy(Resource::Type Type)
 	: ResourceProxy(Type)
 {
-	assert(
-		Type == Resource::Type::Texture1D ||
-		Type == Resource::Type::Texture2D ||
-		Type == Resource::Type::Texture3D ||
-		Type == Resource::Type::TextureCube);
 	m_Format = DXGI_FORMAT_UNKNOWN;
 	m_Width = 0;
 	m_Height = 0;
@@ -48,6 +43,11 @@ void TextureProxy::SetClearValue(D3D12_CLEAR_VALUE ClearValue)
 
 void TextureProxy::Link()
 {
+	assert(m_Type == Resource::Type::Texture1D ||
+		m_Type == Resource::Type::Texture2D ||
+		m_Type == Resource::Type::Texture3D ||
+		m_Type == Resource::Type::TextureCube);
+
 	bool isArray = (m_Type == Resource::Type::Texture1D || m_Type == Resource::Type::Texture2D || m_Type == Resource::Type::TextureCube) && m_DepthOrArraySize > 1;
 	m_NumSubresources = isArray ? m_DepthOrArraySize * m_MipLevels : m_MipLevels;
 

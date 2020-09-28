@@ -23,15 +23,6 @@ public:
 		NumResources
 	};
 
-	enum EResourceViews
-	{
-		RenderTargetSRV,
-		RenderTargetUAV,
-		BloomUAVs,
-		BloomSRVs,
-		NumResourceViews
-	};
-
 	struct SSettings
 	{
 		bool ApplyBloom = true;
@@ -47,22 +38,19 @@ public:
 		} Tonemapping;
 	};
 
-	PostProcess(Descriptor Input, UINT Width, UINT Height);
+	PostProcess(UINT Width, UINT Height);
 	virtual ~PostProcess() override;
 protected:
-	virtual bool Initialize(RenderDevice* pRenderDevice) override;
+	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
 	virtual void RenderGui() override;
-	virtual void Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) override;
-	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice) override;
+	virtual void Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext) override;
 	virtual void StateRefresh() override;
 private:
-	void Blur(size_t Input, size_t Output, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext);
-	void UpsampleBlur(size_t HighResolution, size_t LowResolution, size_t Output, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext);
-	void ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext);
-	void ApplyTonemappingToSwapChain(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext);
+	void Blur(size_t Input, size_t Output, ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext);
+	void UpsampleBlur(size_t HighResolution, size_t LowResolution, size_t Output, ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext);
+	void ApplyBloom(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext);
+	void ApplyTonemappingToSwapChain(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext);
 
 	SSettings Settings;
-
-	Descriptor Input;
 };

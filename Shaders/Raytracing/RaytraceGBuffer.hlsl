@@ -34,6 +34,7 @@ void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
 	
 	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions);
 	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);

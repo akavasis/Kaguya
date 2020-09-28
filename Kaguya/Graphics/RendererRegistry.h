@@ -141,6 +141,7 @@ struct Libraries
 {
 	inline static Library Pathtracing;
 	inline static Library RaytraceGBuffer;
+	inline static Library AmbientOcclusion;
 
 	static void Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath);
 };
@@ -165,17 +166,21 @@ struct RootSignatures
 	struct Raytracing
 	{
 		inline static RenderResourceHandle Accumulation;
+		inline static RenderResourceHandle EmptyLocal;
 
 		struct Pathtracing
 		{
 			inline static RenderResourceHandle Global;
-			inline static RenderResourceHandle EmptyLocal;
 		};
 
 		struct RaytraceGBuffer
 		{
 			inline static RenderResourceHandle Global;
-			inline static RenderResourceHandle EmptyLocal;
+		};
+
+		struct AmbientOcclusion
+		{
+			inline static RenderResourceHandle Global;
 		};
 	};
 
@@ -213,6 +218,7 @@ struct RaytracingPSOs
 {
 	inline static RenderResourceHandle Pathtracing;
 	inline static RenderResourceHandle RaytraceGBuffer;
+	inline static RenderResourceHandle AmbientOcclusion;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

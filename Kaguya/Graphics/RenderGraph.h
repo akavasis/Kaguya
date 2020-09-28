@@ -10,8 +10,9 @@
 #include "GpuScene.h"
 
 // Forward decl
-class RenderGraphRegistry;
 class RenderPass;
+class ResourceScheduler;
+class ResourceRegistry;
 class RenderGraph;
 
 enum class RenderPassType
@@ -31,14 +32,13 @@ struct RenderTargetProperties
 class RenderPass
 {
 public:
-	RenderPass(RenderPassType Type, RenderTargetProperties Properties, size_t NumResources, size_t NumResourceViews);
+	RenderPass(RenderPassType Type, RenderTargetProperties Properties);
 	virtual ~RenderPass() = default;
 
-	bool OnInitialize(RenderDevice* pRenderDevice) { return Initialize(pRenderDevice); }
+	void OnScheduleResource(ResourceScheduler* pResourceScheduler) { return ScheduleResource(pResourceScheduler); }
 	void OnInitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return InitializeScene(pGpuScene, pRenderDevice); }
 	void OnRenderGui() { return RenderGui(); }
-	void OnExecute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) { return Execute(RenderGraphRegistry, pCommandContext); }
-	void OnResize(UINT Width, UINT Height, RenderDevice* pRenderDevice) { return Resize(Width, Height, pRenderDevice); }
+	void OnExecute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext) { return Execute(ResourceRegistry, pCommandContext); }
 	void OnStateRefresh() { Refresh = false; StateRefresh(); }
 
 	bool Enabled;
@@ -46,49 +46,96 @@ public:
 	RenderPassType Type;
 	RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Resources;
-	std::vector<DescriptorAllocation> ResourceViews;
 protected:
-	virtual bool Initialize(RenderDevice* pRenderDevice) = 0;
+	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) = 0;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
 	virtual void RenderGui() = 0;
-	virtual void Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext) = 0;
-	virtual void Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
-	{
-		Properties.Width = Width;
-		Properties.Height = Height;
-	}
+	virtual void Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext) = 0;
 	virtual void StateRefresh() = 0;
 };
 
-// TODO: Add a RenderGraphScheduler to indicate reads/writes to a particular resource so we can
-// apply resource barriers ahead of time, removing the need to place them in code
-class RenderGraphRegistry
+class ResourceScheduler
 {
 public:
-	RenderGraphRegistry(RenderDevice* pRenderDevice, RenderGraph* pRenderGraph)
+	void AllocateBuffer(Delegate<void(BufferProxy&)> Configurator)
+	{
+		if (!m_pCurrentRenderPass)
+			return;
+
+		BufferProxy proxy;
+		Configurator(proxy);
+
+		m_BufferRequests[m_pCurrentRenderPass].push_back(proxy);
+	}
+
+	void AllocateTexture(Resource::Type Type, Delegate<void(TextureProxy&)> Configurator)
+	{
+		if (!m_pCurrentRenderPass)
+			return;
+
+		TextureProxy proxy(Type);
+		Configurator(proxy);
+
+		m_TextureRequests[m_pCurrentRenderPass].push_back(proxy);
+	}
+private:
+	friend class RenderGraph;
+
+	RenderPass* m_pCurrentRenderPass;
+	std::unordered_map<RenderPass*, std::vector<BufferProxy>> m_BufferRequests;
+	std::unordered_map<RenderPass*, std::vector<TextureProxy>> m_TextureRequests;
+};
+
+class ResourceRegistry
+{
+public:
+	ResourceRegistry(RenderDevice* pRenderDevice, RenderGraph* pRenderGraph)
 		: pRenderDevice(pRenderDevice),
 		pRenderGraph(pRenderGraph)
-	{}
+	{
+	}
 
-	[[nodiscard]] inline Buffer* GetBuffer(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetBuffer(RenderResourceHandle); }
-	[[nodiscard]] inline Texture* GetTexture(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetTexture(RenderResourceHandle); }
-	[[nodiscard]] inline Heap* GetHeap(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetHeap(RenderResourceHandle); }
-	[[nodiscard]] inline RootSignature* GetRootSignature(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetRootSignature(RenderResourceHandle); }
-	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetGraphicsPSO(RenderResourceHandle); }
-	[[nodiscard]] inline ComputePipelineState* GetComputePSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetComputePSO(RenderResourceHandle); }
-	[[nodiscard]] inline RaytracingPipelineState* GetRaytracingPSO(const RenderResourceHandle& RenderResourceHandle) const { return pRenderDevice->GetRaytracingPSO(RenderResourceHandle); }
+	[[nodiscard]] inline Buffer* GetBuffer(RenderResourceHandle Handle) const { return pRenderDevice->GetBuffer(Handle); }
+	[[nodiscard]] inline Texture* GetTexture(RenderResourceHandle Handle) const { return pRenderDevice->GetTexture(Handle); }
+	[[nodiscard]] inline RootSignature* GetRootSignature(RenderResourceHandle RenderResourceHandle) const { return pRenderDevice->GetRootSignature(RenderResourceHandle); }
+	[[nodiscard]] inline GraphicsPipelineState* GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) const { return pRenderDevice->GetGraphicsPSO(RenderResourceHandle); }
+	[[nodiscard]] inline ComputePipelineState* GetComputePSO(RenderResourceHandle RenderResourceHandle) const { return pRenderDevice->GetComputePSO(RenderResourceHandle); }
+	[[nodiscard]] inline RaytracingPipelineState* GetRaytracingPSO(RenderResourceHandle RenderResourceHandle) const { return pRenderDevice->GetRaytracingPSO(RenderResourceHandle); }
+
+	[[nodiscard]] size_t GetShaderResourceDescriptorIndex(RenderResourceHandle Handle) const
+	{
+		if (auto iter = m_ShaderResourceTable.find(Handle);
+			iter != m_ShaderResourceTable.end())
+			return iter->second;
+		return -1;
+	}
+
+	[[nodiscard]] size_t GetUnorderedAccessDescriptorIndex(RenderResourceHandle Handle) const
+	{
+		if (auto iter = m_UnorderedAccessTable.find(Handle);
+			iter != m_UnorderedAccessTable.end())
+			return iter->second;
+		return -1;
+	}
 
 	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const { return pRenderDevice->GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart(); }
 	[[nodiscard]] inline auto GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart() const { return pRenderDevice->GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart(); }
 
-	template<typename RenderPass>
-	[[nodiscard]] inline RenderPass* GetRenderPass() const { return pRenderGraph->GetRenderPass<RenderPass>(); }
+	[[nodiscard]] inline auto GetCurrentSwapChainBuffer() const { return pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[pRenderDevice->FrameIndex]); }
+	[[nodiscard]] inline auto GetCurrentSwapChainRTV() const { return pRenderDevice->SwapChainRenderTargetViews[pRenderDevice->FrameIndex]; }
 
-	inline auto GetCurrentSwapChainBuffer() const { return pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[pRenderDevice->FrameIndex]); }
-	inline auto GetCurrentSwapChainRTV() const { return pRenderDevice->SwapChainRenderTargetViews[pRenderDevice->FrameIndex]; }
+	template<typename RenderPass>
+	RenderPass* GetRenderPass() const { return pRenderGraph->GetRenderPass<RenderPass>(); }
+
+	DescriptorAllocation ShaderResourceViews;
+	DescriptorAllocation UnorderedAccessViews;
 private:
+	friend class RenderGraph;
+
 	RenderDevice* pRenderDevice;
 	RenderGraph* pRenderGraph;
+	std::unordered_map<RenderResourceHandle, size_t> m_ShaderResourceTable;
+	std::unordered_map<RenderResourceHandle, size_t> m_UnorderedAccessTable;
 };
 
 class RenderGraph
@@ -96,40 +143,10 @@ class RenderGraph
 public:
 	struct Settings
 	{
-		static constexpr bool MultiThreaded = true;
+		static constexpr bool MultiThreaded = false;
 	};
 
 	RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene);
-
-	RenderResourceHandle GetNonTransientResource(const std::string& Name)
-	{
-		auto iter = m_NonTransientResources.find(Name);
-		if (iter != m_NonTransientResources.end())
-		{
-			return iter->second;
-		}
-		return RenderResourceHandle();
-	}
-
-	void AddNonTransientResource(const std::string& Name, RenderResourceHandle Handle)
-	{
-		auto [iter, success] = m_NonTransientResources.emplace(Name, Handle);
-		if (!success)
-		{
-			throw std::logic_error("The name has been taken");
-		}
-	}
-
-	bool RemoveNonTransientResource(const std::string& Name)
-	{
-		auto iter = m_NonTransientResources.find(Name);
-		if (iter != m_NonTransientResources.end())
-		{
-			m_NonTransientResources.erase(iter);
-			return true;
-		}
-		return false;
-	}
 
 	template<typename RenderPass>
 	RenderPass* GetRenderPass() const;
@@ -143,23 +160,20 @@ public:
 	void RenderGui();
 	void Execute();
 	void ExecuteCommandContexts(Gui* pGui);
-
-	void ThreadBarrier();
-
-	void Resize(UINT Width, UINT Height);
 private:
+	void CreaterResources();
+	void CreateResourceViews();
+
 	RenderDevice* pRenderDevice;
 	GpuScene* pGpuScene;
 
 	ThreadPool m_ThreadPool;
-	std::vector<std::future<void>> m_Futures;
 
-	UINT m_NumRenderPasses;
+	ResourceScheduler m_ResourceScheduler;
+	ResourceRegistry m_ResourceRegistry;
 	std::vector<std::unique_ptr<RenderPass>> m_RenderPasses;
-	std::vector<std::reference_wrapper<const std::type_info>> m_RenderPassDataIDs;
+	std::vector<std::reference_wrapper<const std::type_info>> m_RenderPassIDs;
 	std::vector<CommandContext*> m_CommandContexts;
-
-	std::unordered_map<std::string, RenderResourceHandle> m_NonTransientResources;
 };
 
 #include "RenderGraph.inl"

@@ -1,12 +1,11 @@
 #include "pch.h"
 #include "PostProcess.h"
 
-PostProcess::PostProcess(Descriptor Input, UINT Width, UINT Height)
+#include "Accumulation.h"
+
+PostProcess::PostProcess(UINT Width, UINT Height)
 	: RenderPass(RenderPassType::Graphics,
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		EResources::NumResources,
-		EResourceViews::NumResourceViews),
-	Input(Input)
+		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
 
 }
@@ -16,9 +15,9 @@ PostProcess::~PostProcess()
 
 }
 
-bool PostProcess::Initialize(RenderDevice* pRenderDevice)
+void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
-	Resources[EResources::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
@@ -33,7 +32,7 @@ bool PostProcess::Initialize(RenderDevice* pRenderDevice)
 	const UINT denominators[EResources::NumResources / 2] = { 1, 2, 4, 8, 16 };
 	for (size_t i = 1; i < EResources::NumResources; i += 2, denominatorIndex++)
 	{
-		Resources[i] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(bloomWidth / denominators[denominatorIndex]);
@@ -42,7 +41,7 @@ bool PostProcess::Initialize(RenderDevice* pRenderDevice)
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 
-		Resources[i + 1] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(bloomWidth / denominators[denominatorIndex]);
@@ -51,21 +50,6 @@ bool PostProcess::Initialize(RenderDevice* pRenderDevice)
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
-
-	ResourceViews[EResourceViews::RenderTargetSRV] = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(1);
-	ResourceViews[EResourceViews::RenderTargetUAV] = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(1);
-	ResourceViews[EResourceViews::BloomUAVs] = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(EResources::NumResources);
-	ResourceViews[EResourceViews::BloomSRVs] = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(EResources::NumResources);
-
-	pRenderDevice->CreateSRV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetSRV][EResources::RenderTarget]);
-	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetUAV][EResources::RenderTarget]);
-	for (size_t i = 0; i < EResources::NumResources; ++i)
-	{
-		pRenderDevice->CreateUAV(Resources[i], ResourceViews[EResourceViews::BloomUAVs][i]);
-		pRenderDevice->CreateSRV(Resources[i], ResourceViews[EResourceViews::BloomSRVs][i]);
-	}
-
-	return true;
 }
 
 void PostProcess::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
@@ -101,17 +85,11 @@ void PostProcess::RenderGui()
 	}
 }
 
-void PostProcess::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void PostProcess::Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
 {
 	if (Settings.ApplyBloom)
-		ApplyBloom(RenderGraphRegistry, pCommandContext);
-	ApplyTonemappingToSwapChain(RenderGraphRegistry, pCommandContext);
-}
-
-void PostProcess::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
-{
-	RenderPass::Resize(Width, Height, pRenderDevice);
-
+		ApplyBloom(ResourceRegistry, pCommandContext);
+	ApplyTonemappingToSwapChain(ResourceRegistry, pCommandContext);
 }
 
 void PostProcess::StateRefresh()
@@ -119,21 +97,21 @@ void PostProcess::StateRefresh()
 
 }
 
-void PostProcess::Blur(size_t Input, size_t Output, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void PostProcess::Blur(size_t Input, size_t Output, ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Bloom Blur");
 
-	auto pInput = RenderGraphRegistry.GetTexture(Resources[Input]);
-	auto pOutput = RenderGraphRegistry.GetTexture(Resources[Output]);
+	auto pInput = ResourceRegistry.GetTexture(Resources[Input]);
+	auto pOutput = ResourceRegistry.GetTexture(Resources[Output]);
 
-	auto InputSRV = ResourceViews[EResourceViews::BloomSRVs][Input];
-	auto OutputUAV = ResourceViews[EResourceViews::BloomUAVs][Output];
+	size_t inputSRVIndex = ResourceRegistry.GetShaderResourceDescriptorIndex(Resources[Input]);
+	size_t outputUAVIndex = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[Output]);
 
 	pCommandContext->TransitionBarrier(pInput, Resource::State::NonPixelShaderResource);
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
-	pCommandContext->SetPipelineState(RenderGraphRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomBlur));
-	pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_BloomBlur));
+	pCommandContext->SetPipelineState(ResourceRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomBlur));
+	pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::PostProcess_BloomBlur));
 
 	struct
 	{
@@ -141,8 +119,8 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderGraphRegistry& RenderG
 	} BlurSettings;
 	BlurSettings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
 	pCommandContext->SetComputeRoot32BitConstants(0, 2, &BlurSettings, 0);
-	pCommandContext->SetComputeRootDescriptorTable(1, InputSRV.GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(2, OutputUAV.GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(1, ResourceRegistry.ShaderResourceViews[inputSRVIndex].GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.UnorderedAccessViews[outputUAVIndex].GPUHandle);
 
 	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 8);
 	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 8);
@@ -151,24 +129,24 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderGraphRegistry& RenderG
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 }
 
-void PostProcess::UpsampleBlur(size_t HighResolution, size_t LowResolution, size_t Output, RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void PostProcess::UpsampleBlur(size_t HighResolution, size_t LowResolution, size_t Output, ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Bloom Upsample Blur");
 
-	auto pHighResolution = RenderGraphRegistry.GetTexture(Resources[HighResolution]);
-	auto pLowResolution = RenderGraphRegistry.GetTexture(Resources[LowResolution]);
-	auto pOutput = RenderGraphRegistry.GetTexture(Resources[Output]);
+	auto pHighResolution = ResourceRegistry.GetTexture(Resources[HighResolution]);
+	auto pLowResolution = ResourceRegistry.GetTexture(Resources[LowResolution]);
+	auto pOutput = ResourceRegistry.GetTexture(Resources[Output]);
 
-	auto HighResolutionSRV = ResourceViews[EResourceViews::BloomSRVs][HighResolution];
-	auto LowResolutionSRV = ResourceViews[EResourceViews::BloomSRVs][LowResolution];
-	auto OutputUAV = ResourceViews[EResourceViews::BloomUAVs][Output];
+	size_t HighResolutionSRVIndex = ResourceRegistry.GetShaderResourceDescriptorIndex(Resources[HighResolution]);
+	size_t LowResolutionSRVIndex = ResourceRegistry.GetShaderResourceDescriptorIndex(Resources[LowResolution]);
+	size_t OutputUAVIndex = ResourceRegistry.GetShaderResourceDescriptorIndex(Resources[Output]);
 
 	pCommandContext->TransitionBarrier(pHighResolution, Resource::State::NonPixelShaderResource);
 	pCommandContext->TransitionBarrier(pLowResolution, Resource::State::NonPixelShaderResource);
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
-	pCommandContext->SetPipelineState(RenderGraphRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation));
-	pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation));
+	pCommandContext->SetPipelineState(ResourceRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation));
+	pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation));
 
 	struct
 	{
@@ -178,9 +156,9 @@ void PostProcess::UpsampleBlur(size_t HighResolution, size_t LowResolution, size
 	UpsampleBlurSettings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
 	UpsampleBlurSettings.UpsampleInterpolationFactor = 1.0f;
 	pCommandContext->SetComputeRoot32BitConstants(0, 3, &UpsampleBlurSettings, 0);
-	pCommandContext->SetComputeRootDescriptorTable(1, HighResolutionSRV.GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(2, LowResolutionSRV.GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(3, OutputUAV.GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(1, ResourceRegistry.ShaderResourceViews[HighResolutionSRVIndex].GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.ShaderResourceViews[LowResolutionSRVIndex].GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(3, ResourceRegistry.ShaderResourceViews[OutputUAVIndex].GPUHandle);
 
 	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 8);
 	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 8);
@@ -189,7 +167,7 @@ void PostProcess::UpsampleBlur(size_t HighResolution, size_t LowResolution, size
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 }
 
-void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void PostProcess::ApplyBloom(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Bloom");
 
@@ -199,13 +177,17 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 	{
 		PIXMarker(pCommandContext->GetD3DCommandList(), L"Bloom Mask");
 
-		auto pOutput = RenderGraphRegistry.GetTexture(Resources[EResources::BloomRenderTarget1a]);
-		auto OutputUAV = ResourceViews[EResourceViews::BloomUAVs][EResources::BloomRenderTarget1a];
+		auto pAccumulationRenderPass = ResourceRegistry.GetRenderPass<Accumulation>();
+		size_t InputSRVIndex = ResourceRegistry.GetShaderResourceDescriptorIndex(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
+		auto InputSRV = ResourceRegistry.ShaderResourceViews[InputSRVIndex];
+
+		auto pOutput = ResourceRegistry.GetTexture(Resources[EResources::BloomRenderTarget1a]);
+		size_t OutputUAVIndex = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::BloomRenderTarget1a]);
 
 		pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
-		pCommandContext->SetPipelineState(RenderGraphRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomMask));
-		pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_BloomMask));
+		pCommandContext->SetPipelineState(ResourceRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomMask));
+		pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::PostProcess_BloomMask));
 
 		struct
 		{
@@ -215,8 +197,8 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 		MaskSettings.InverseOutputSize = { 1.0f / bloomWidth, 1.0f / bloomHeight };
 		MaskSettings.Threshold = Settings.Bloom.Threshold;
 		pCommandContext->SetComputeRoot32BitConstants(0, 3, &MaskSettings, 0);
-		pCommandContext->SetComputeRootDescriptorTable(1, Input.GPUHandle);
-		pCommandContext->SetComputeRootDescriptorTable(2, OutputUAV.GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(1, InputSRV.GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.UnorderedAccessViews[OutputUAVIndex].GPUHandle);
 
 		UINT threadGroupCountX = Math::RoundUpAndDivide(bloomWidth, 8);
 		UINT threadGroupCountY = Math::RoundUpAndDivide(bloomHeight, 8);
@@ -229,24 +211,24 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 	{
 		PIXMarker(pCommandContext->GetD3DCommandList(), L"Bloom Downsample");
 
-		auto pOutput1 = RenderGraphRegistry.GetTexture(Resources[EResources::BloomRenderTarget2a]);
-		auto pOutput2 = RenderGraphRegistry.GetTexture(Resources[EResources::BloomRenderTarget3a]);
-		auto pOutput3 = RenderGraphRegistry.GetTexture(Resources[EResources::BloomRenderTarget4a]);
-		auto pOutput4 = RenderGraphRegistry.GetTexture(Resources[EResources::BloomRenderTarget5a]);
+		auto pOutput1 = ResourceRegistry.GetTexture(Resources[EResources::BloomRenderTarget2a]);
+		auto pOutput2 = ResourceRegistry.GetTexture(Resources[EResources::BloomRenderTarget3a]);
+		auto pOutput3 = ResourceRegistry.GetTexture(Resources[EResources::BloomRenderTarget4a]);
+		auto pOutput4 = ResourceRegistry.GetTexture(Resources[EResources::BloomRenderTarget5a]);
 
-		auto Bloom = ResourceViews[EResourceViews::BloomSRVs][EResources::BloomRenderTarget1a];
-		auto Output1 = ResourceViews[EResourceViews::BloomUAVs][EResources::BloomRenderTarget2a];
-		auto Output2 = ResourceViews[EResourceViews::BloomUAVs][EResources::BloomRenderTarget3a];
-		auto Output3 = ResourceViews[EResourceViews::BloomUAVs][EResources::BloomRenderTarget4a];
-		auto Output4 = ResourceViews[EResourceViews::BloomUAVs][EResources::BloomRenderTarget5a];
+		size_t BloomSRVIndex = ResourceRegistry.GetShaderResourceDescriptorIndex(Resources[EResources::BloomRenderTarget1a]);
+		size_t Output1UAVIndex = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::BloomRenderTarget2a]);
+		size_t Output2UAVIndex = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::BloomRenderTarget3a]);
+		size_t Output3UAVIndex = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::BloomRenderTarget4a]);
+		size_t Output4UAVIndex = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::BloomRenderTarget5a]);
 
 		pCommandContext->TransitionBarrier(pOutput1, Resource::State::UnorderedAccess);
 		pCommandContext->TransitionBarrier(pOutput2, Resource::State::UnorderedAccess);
 		pCommandContext->TransitionBarrier(pOutput3, Resource::State::UnorderedAccess);
 		pCommandContext->TransitionBarrier(pOutput4, Resource::State::UnorderedAccess);
 
-		pCommandContext->SetPipelineState(RenderGraphRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomDownsample));
-		pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_BloomDownsample));
+		pCommandContext->SetPipelineState(ResourceRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomDownsample));
+		pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::PostProcess_BloomDownsample));
 
 		struct
 		{
@@ -254,11 +236,11 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 		} DownsampleSettings;
 		DownsampleSettings.InverseOutputSize = { 1.0f / bloomWidth, 1.0f / bloomHeight };
 		pCommandContext->SetComputeRoot32BitConstants(0, 2, &DownsampleSettings, 0);
-		pCommandContext->SetComputeRootDescriptorTable(1, Bloom.GPUHandle);
-		pCommandContext->SetComputeRootDescriptorTable(2, Output1.GPUHandle);
-		pCommandContext->SetComputeRootDescriptorTable(3, Output2.GPUHandle);
-		pCommandContext->SetComputeRootDescriptorTable(4, Output3.GPUHandle);
-		pCommandContext->SetComputeRootDescriptorTable(5, Output4.GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(1, ResourceRegistry.ShaderResourceViews[BloomSRVIndex].GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.UnorderedAccessViews[Output1UAVIndex].GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(3, ResourceRegistry.UnorderedAccessViews[Output2UAVIndex].GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(4, ResourceRegistry.UnorderedAccessViews[Output3UAVIndex].GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(5, ResourceRegistry.UnorderedAccessViews[Output4UAVIndex].GPUHandle);
 
 		UINT threadGroupCountX = Math::RoundUpAndDivide(bloomWidth / 2, 8);
 		UINT threadGroupCountY = Math::RoundUpAndDivide(bloomHeight / 2, 8);
@@ -273,25 +255,29 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 	// Upsample Blur Accumulation
 	{
 		// Blur then upsample and blur 4 times
-		Blur(EResources::BloomRenderTarget5a, EResources::BloomRenderTarget5b, RenderGraphRegistry, pCommandContext);
-		UpsampleBlur(EResources::BloomRenderTarget4a, EResources::BloomRenderTarget5b, EResources::BloomRenderTarget4b, RenderGraphRegistry, pCommandContext);
-		UpsampleBlur(EResources::BloomRenderTarget3a, EResources::BloomRenderTarget4b, EResources::BloomRenderTarget3b, RenderGraphRegistry, pCommandContext);
-		UpsampleBlur(EResources::BloomRenderTarget2a, EResources::BloomRenderTarget3b, EResources::BloomRenderTarget2b, RenderGraphRegistry, pCommandContext);
-		UpsampleBlur(EResources::BloomRenderTarget1a, EResources::BloomRenderTarget2b, EResources::BloomRenderTarget1b, RenderGraphRegistry, pCommandContext);
+		Blur(EResources::BloomRenderTarget5a, EResources::BloomRenderTarget5b, ResourceRegistry, pCommandContext);
+		UpsampleBlur(EResources::BloomRenderTarget4a, EResources::BloomRenderTarget5b, EResources::BloomRenderTarget4b, ResourceRegistry, pCommandContext);
+		UpsampleBlur(EResources::BloomRenderTarget3a, EResources::BloomRenderTarget4b, EResources::BloomRenderTarget3b, ResourceRegistry, pCommandContext);
+		UpsampleBlur(EResources::BloomRenderTarget2a, EResources::BloomRenderTarget3b, EResources::BloomRenderTarget2b, ResourceRegistry, pCommandContext);
+		UpsampleBlur(EResources::BloomRenderTarget1a, EResources::BloomRenderTarget2b, EResources::BloomRenderTarget1b, ResourceRegistry, pCommandContext);
 	}
 
 	// Apply bloom
 	{
-		auto pBloom = RenderGraphRegistry.GetTexture(Resources[EResources::BloomRenderTarget1b]);
-		auto pOutput = RenderGraphRegistry.GetTexture(Resources[EResources::RenderTarget]);
+		auto pAccumulationRenderPass = ResourceRegistry.GetRenderPass<Accumulation>();
+		size_t InputSRVIndex = ResourceRegistry.GetShaderResourceDescriptorIndex(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
+		auto InputSRV = ResourceRegistry.ShaderResourceViews[InputSRVIndex];
 
-		auto BloomSRV = ResourceViews[EResourceViews::BloomSRVs][EResources::BloomRenderTarget1b];
-		auto OutputUAV = ResourceViews[EResourceViews::RenderTargetUAV][EResources::RenderTarget];
+		auto pBloom = ResourceRegistry.GetTexture(Resources[EResources::BloomRenderTarget1b]);
+		auto pOutput = ResourceRegistry.GetTexture(Resources[EResources::RenderTarget]);
+		
+		size_t BloomSRVIndex = ResourceRegistry.GetShaderResourceDescriptorIndex(Resources[EResources::BloomRenderTarget1b]);
+		size_t OutputUAVIndex = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::RenderTarget]);
 
 		pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
-		pCommandContext->SetPipelineState(RenderGraphRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomComposition));
-		pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_BloomComposition));
+		pCommandContext->SetPipelineState(ResourceRegistry.GetComputePSO(ComputePSOs::PostProcess_BloomComposition));
+		pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::PostProcess_BloomComposition));
 
 		struct
 		{
@@ -301,9 +287,9 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 		BloomSettings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
 		BloomSettings.Intensity = Settings.Bloom.Intensity;
 		pCommandContext->SetComputeRoot32BitConstants(0, 3, &BloomSettings, 0);
-		pCommandContext->SetComputeRootDescriptorTable(1, Input.GPUHandle);
-		pCommandContext->SetComputeRootDescriptorTable(2, BloomSRV.GPUHandle);
-		pCommandContext->SetComputeRootDescriptorTable(3, OutputUAV.GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(1, InputSRV.GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.ShaderResourceViews[BloomSRVIndex].GPUHandle);
+		pCommandContext->SetComputeRootDescriptorTable(3, ResourceRegistry.UnorderedAccessViews[OutputUAVIndex].GPUHandle);
 
 		UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 8);
 		UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 8);
@@ -313,19 +299,22 @@ void PostProcess::ApplyBloom(RenderGraphRegistry& RenderGraphRegistry, CommandCo
 	}
 }
 
-void PostProcess::ApplyTonemappingToSwapChain(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void PostProcess::ApplyTonemappingToSwapChain(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Tonemap");
 
-	auto InputSRV = Settings.ApplyBloom ? ResourceViews[EResourceViews::RenderTargetSRV].GetStartDescriptor() : Input;
-	auto pDestination = RenderGraphRegistry.GetCurrentSwapChainBuffer();
-	auto DestinationRTV = RenderGraphRegistry.GetCurrentSwapChainRTV();
+	auto pAccumulationRenderPass = ResourceRegistry.GetRenderPass<Accumulation>();
+	size_t InputSRVIndex = Settings.ApplyBloom ? ResourceRegistry.GetShaderResourceDescriptorIndex(Resources[EResources::RenderTarget]) : 
+		ResourceRegistry.GetShaderResourceDescriptorIndex(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
+	auto InputSRV = ResourceRegistry.ShaderResourceViews[InputSRVIndex];
+	auto pDestination = ResourceRegistry.GetCurrentSwapChainBuffer();
+	auto DestinationRTV = ResourceRegistry.GetCurrentSwapChainRTV();
 
 	pCommandContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
 
 	pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pCommandContext->SetPipelineState(RenderGraphRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
-	pCommandContext->SetGraphicsRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
+	pCommandContext->SetPipelineState(ResourceRegistry.GetGraphicsPSO(GraphicsPSOs::PostProcess_Tonemapping));
+	pCommandContext->SetGraphicsRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::PostProcess_Tonemapping));
 
 	pCommandContext->SetGraphicsRoot32BitConstants(0, 2, &Settings.Tonemapping, 0);
 	pCommandContext->SetGraphicsRootDescriptorTable(1, InputSRV.GPUHandle);

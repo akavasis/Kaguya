@@ -46,6 +46,7 @@ void Libraries::Register(RenderDevice* pRenderDevice, std::filesystem::path Exec
 {
 	Pathtracing = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
 	RaytraceGBuffer = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/RaytraceGBuffer.hlsl");
+	AmbientOcclusion = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
@@ -238,12 +239,11 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	// Accumulation
-	RootSignatures::Raytracing::Accumulation = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	Raytracing::Accumulation = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
 	{
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0, volatileFlag);
+		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
+		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
 
 		proxy.AddRootConstantsParameter<Accumulation::SSettings>(0, 0);
 		proxy.AddRootDescriptorTableParameter({ input });
@@ -253,11 +253,17 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
+	// Empty Local RS
+	Raytracing::EmptyLocal = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	{
+		proxy.SetAsLocalRootSignature();
+	});
+
 	{
 		// Global RS
 		options.InitConstantDataTypeAsRootConstants = FALSE;
 		options.Num32BitValues = 0;
-		RootSignatures::Raytracing::Pathtracing::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
+		Raytracing::Pathtracing::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
 		{
 			CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
 			CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
@@ -265,19 +271,13 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 			proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
 			proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
 		});
-
-		// Empty Local RS
-		RootSignatures::Raytracing::Pathtracing::EmptyLocal = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
-		{
-			proxy.SetAsLocalRootSignature();
-		});
 	}
 
 	{
 		// Global RS
 		options.InitConstantDataTypeAsRootConstants = FALSE;
 		options.Num32BitValues = 0;
-		RootSignatures::Raytracing::RaytraceGBuffer::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
+		Raytracing::RaytraceGBuffer::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
 		{
 			CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
 			CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 7, 0, 0);
@@ -285,11 +285,19 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 			proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
 			proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Targets
 		});
+	}
 
-		// Empty Local RS
-		RootSignatures::Raytracing::RaytraceGBuffer::EmptyLocal = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	{
+		// Global RS
+		options.InitConstantDataTypeAsRootConstants = FALSE;
+		options.Num32BitValues = 0;
+		Raytracing::AmbientOcclusion::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
 		{
-			proxy.SetAsLocalRootSignature();
+			CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
+			CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+
+			proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
+			proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
 		});
 	}
 }
@@ -448,7 +456,7 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Pathtracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Pathtracing::EmptyLocal);
+		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
@@ -508,7 +516,67 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::RaytraceGBuffer::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::RaytraceGBuffer::EmptyLocal);
+		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
+
+		// The following section associates the root signature to each shader. Note
+		// that we can explicitly show that some shaders share the same root signature
+		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
+		// to as hit groups, meaning that the underlying intersection, any-hit and
+		// closest-hit shaders share the same root signature.
+		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
+			{
+				symbols[RayGeneration],
+				symbols[Miss],
+				hitGroups[Default]
+			});
+
+		proxy.SetGlobalRootSignature(pGlobalRootSignature);
+
+		proxy.SetRaytracingShaderConfig(sizeof(int), SizeOfBuiltInTriangleIntersectionAttributes);
+		proxy.SetRaytracingPipelineConfig(2);
+	});
+
+	AmbientOcclusion = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
+	{
+		enum Symbols
+		{
+			RayGeneration,
+			Miss,
+			ClosestHit,
+			NumSymbols
+		};
+
+		const LPCWSTR symbols[NumSymbols] =
+		{
+			ENUM_TO_LSTR(RayGeneration),
+			ENUM_TO_LSTR(Miss),
+			ENUM_TO_LSTR(ClosestHit)
+		};
+
+		enum HitGroups
+		{
+			Default,
+			NumHitGroups
+		};
+
+		const LPCWSTR hitGroups[NumHitGroups] =
+		{
+			ENUM_TO_LSTR(Default)
+		};
+
+		const Library* pRaytraceLibrary = &Libraries::RaytraceGBuffer;
+
+		proxy.AddLibrary(pRaytraceLibrary,
+			{
+				symbols[RayGeneration],
+				symbols[Miss],
+				symbols[ClosestHit]
+			});
+
+		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
+
+		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::RaytraceGBuffer::Global);
+		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature

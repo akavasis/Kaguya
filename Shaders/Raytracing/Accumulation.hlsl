@@ -3,8 +3,8 @@ cbuffer Settings : register(b0)
 	unsigned int AccumulationCount;
 };
 
-RWTexture2D<float4> Input : register(u0);
-RWTexture2D<float4> Output : register(u1);
+Texture2D<float4> Input : register(t0);
+RWTexture2D<float4> Output : register(u0);
 
 [numthreads(16, 16, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)

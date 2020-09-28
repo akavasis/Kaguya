@@ -60,8 +60,3 @@ typedef BuiltInTriangleIntersectionAttributes HitAttributes;
 //{
 //    float Visibility;
 //};
-
-//struct AORayPayload
-//{
-//	float Visibility;
-//};

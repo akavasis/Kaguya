@@ -6,9 +6,7 @@
 
 Accumulation::Accumulation(UINT Width, UINT Height)
 	: RenderPass(RenderPassType::Graphics,
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		EResources::NumResources,
-		EResourceViews::NumResourceViews)
+		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
 
 }
@@ -18,9 +16,9 @@ Accumulation::~Accumulation()
 
 }
 
-bool Accumulation::Initialize(RenderDevice* pRenderDevice)
+void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
-	Resources[EResources::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
@@ -28,14 +26,6 @@ bool Accumulation::Initialize(RenderDevice* pRenderDevice)
 		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
-
-	ResourceViews[EResourceViews::RenderTargetUAV] = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(1);
-	ResourceViews[EResourceViews::RenderTargetSRV] = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(1);
-
-	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor());
-	pRenderDevice->CreateSRV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetSRV].GetStartDescriptor());
-
-	return true;
 }
 
 void Accumulation::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
@@ -52,7 +42,7 @@ void Accumulation::RenderGui()
 
 }
 
-void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void Accumulation::Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Accumulation");
 
@@ -68,20 +58,19 @@ void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandCont
 	}
 
 	//auto pPathtracingRenderPass = RenderGraphRegistry.GetRenderPass<Pathtracing>();
-	auto pRaytraceGBufferRenderPass = RenderGraphRegistry.GetRenderPass<RaytraceGBuffer>();
+	auto pRaytraceGBufferRenderPass = ResourceRegistry.GetRenderPass<RaytraceGBuffer>();
 
-	auto pOutput = RenderGraphRegistry.GetTexture(Resources[EResources::RenderTarget]);
-
-	auto pAccumulationPipelineState = RenderGraphRegistry.GetComputePSO(ComputePSOs::Accumulation);
-	auto pAccumulationRootSignature = RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Accumulation);
+	auto pOutput = ResourceRegistry.GetTexture(Resources[EResources::RenderTarget]);
 
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
 	// Bind Pipeline
-	pCommandContext->SetPipelineState(pAccumulationPipelineState);
-	pCommandContext->SetComputeRootSignature(pAccumulationRootSignature);
+	pCommandContext->SetPipelineState(ResourceRegistry.GetComputePSO(ComputePSOs::Accumulation));
+	pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::Raytracing::Accumulation));
 
 	// Bind Resources
+	size_t srv = ResourceRegistry.GetShaderResourceDescriptorIndex(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::MaterialAlbedo - 1]);
+	size_t uav = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::RenderTarget]);
 	struct
 	{
 		unsigned int AccumulationCount;
@@ -89,41 +78,14 @@ void Accumulation::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandCont
 	AccumulationSettings.AccumulationCount = Settings.AccumulationCount++;
 	pCommandContext->SetComputeRoot32BitConstants(0, 1, &AccumulationSettings, 0);
 	//pCommandContext->SetComputeRootDescriptorTable(1, pPathtracingRenderPass->ResourceViews[Pathtracing::EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(1, pRaytraceGBufferRenderPass->ResourceViews[RaytraceGBuffer::EResourceViews::RenderTargetUAVs][RaytraceGBuffer::EResources::MaterialAlbedo - 1].GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(2, ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(1, ResourceRegistry.ShaderResourceViews[srv].GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.UnorderedAccessViews[uav].GPUHandle);
 
 	UINT threadGroupCountX = Math::RoundUpAndDivide(pOutput->GetWidth(), 16);
 	UINT threadGroupCountY = Math::RoundUpAndDivide(pOutput->GetHeight(), 16);
 	pCommandContext->Dispatch(threadGroupCountX, threadGroupCountY, 1);
 
 	pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
-}
-
-void Accumulation::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
-{
-	// Destroy render target
-	for (auto& output : Resources)
-	{
-		pRenderDevice->Destroy(&output);
-	}
-
-	// Recreate render target
-	Resources[EResources::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
-	{
-		proxy.SetFormat(RendererFormats::HDRBufferFormat);
-		proxy.SetWidth(Width);
-		proxy.SetHeight(Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-		proxy.InitialState = Resource::State::UnorderedAccess;
-	});
-
-	// Recreate uav for render target
-	const auto& uav = ResourceViews[EResourceViews::RenderTargetUAV];
-	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], uav[0], {}, {});
-
-	// Recreate SRV for render targets
-	const auto& srv = ResourceViews[EResourceViews::RenderTargetSRV];
-	pRenderDevice->CreateSRV(Resources[EResources::RenderTarget], srv[0]);
 }
 
 void Accumulation::StateRefresh()

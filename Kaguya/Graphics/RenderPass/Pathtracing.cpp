@@ -4,9 +4,7 @@
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
 	: RenderPass(RenderPassType::Graphics,
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		EResources::NumResources,
-		EResourceViews::NumResourceViews)
+		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
 
 }
@@ -16,9 +14,9 @@ Pathtracing::~Pathtracing()
 
 }
 
-bool Pathtracing::Initialize(RenderDevice* pRenderDevice)
+void Pathtracing::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
-	Resources[EResources::ConstantBuffer] = pRenderDevice->CreateBuffer([](BufferProxy& proxy)
+	pResourceScheduler->AllocateBuffer([](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
 
@@ -26,7 +24,7 @@ bool Pathtracing::Initialize(RenderDevice* pRenderDevice)
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
-	Resources[EResources::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
@@ -34,24 +32,11 @@ bool Pathtracing::Initialize(RenderDevice* pRenderDevice)
 		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
-
-	ResourceViews[EResourceViews::GeometryTables] = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(5);
-	ResourceViews[EResourceViews::RenderTargetUAV] = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(1);
-
-	return true;
 }
 
 void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
 	this->pGpuScene = pGpuScene;
-
-	pRenderDevice->CreateSRV(pGpuScene->GetRTTLASResourceHandle(), ResourceViews[EResourceViews::GeometryTables][0]);
-	pRenderDevice->CreateSRV(pGpuScene->GetVertexBufferHandle(), ResourceViews[EResourceViews::GeometryTables][1]);
-	pRenderDevice->CreateSRV(pGpuScene->GetIndexBufferHandle(), ResourceViews[EResourceViews::GeometryTables][2]);
-	pRenderDevice->CreateSRV(pGpuScene->GetGeometryInfoTableHandle(), ResourceViews[EResourceViews::GeometryTables][3]);
-	pRenderDevice->CreateSRV(pGpuScene->GetMaterialTableHandle(), ResourceViews[EResourceViews::GeometryTables][4]);
-
-	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor(), {}, {});
 
 	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::Pathtracing);
 
@@ -142,11 +127,11 @@ void Pathtracing::RenderGui()
 	}
 }
 
-void Pathtracing::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void Pathtracing::Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Pathtracing");
 
-	auto pConstantBuffer = RenderGraphRegistry.GetBuffer(Resources[EResources::ConstantBuffer]);
+	auto pConstantBuffer = ResourceRegistry.GetBuffer(Resources[EResources::ConstantBuffer]);
 	pConstantBuffer->Map();
 
 	// Update render pass cbuffer
@@ -174,21 +159,22 @@ void Pathtracing::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandConte
 
 	pConstantBuffer->Update<RenderPassConstants>(0, renderPassCPU);
 
-	auto pOutput = RenderGraphRegistry.GetTexture(Resources[EResources::RenderTarget]);
-	auto pRayGenerationShaderTable = RenderGraphRegistry.GetBuffer(m_RayGenerationShaderTable);
-	auto pMissShaderTable = RenderGraphRegistry.GetBuffer(m_MissShaderTable);
-	auto pHitGroupShaderTable = RenderGraphRegistry.GetBuffer(m_HitGroupShaderTable);
+	auto pOutput = ResourceRegistry.GetTexture(Resources[EResources::RenderTarget]);
+	auto pRayGenerationShaderTable = ResourceRegistry.GetBuffer(m_RayGenerationShaderTable);
+	auto pMissShaderTable = ResourceRegistry.GetBuffer(m_MissShaderTable);
+	auto pHitGroupShaderTable = ResourceRegistry.GetBuffer(m_HitGroupShaderTable);
 
-	auto pRaytracingPipelineState = RenderGraphRegistry.GetRaytracingPSO(RaytracingPSOs::Pathtracing);
+	size_t uav = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::RenderTarget]);
 
-	pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::Pathtracing::Global));
+	pCommandContext->SetRaytracingPipelineState(ResourceRegistry.GetRaytracingPSO(RaytracingPSOs::Pathtracing));
+	pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::Raytracing::Pathtracing::Global));
 
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, ResourceViews[EResourceViews::GeometryTables].GetStartDescriptor().GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, ResourceViews[EResourceViews::RenderTargetUAV].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, pGpuScene->ShaderResourceViews.GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, ResourceRegistry.UnorderedAccessViews[uav].GPUHandle);
 	pCommandContext->SetComputeRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB + RootParameters::Raytracing::NumRootParameters,
 		pConstantBuffer->GetGpuVirtualAddressAt(0));
 	pCommandContext->SetComputeRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables + RootParameters::Raytracing::NumRootParameters,
-		RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+		ResourceRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 	D3D12_DISPATCH_RAYS_DESC desc = {};
 
@@ -207,32 +193,9 @@ void Pathtracing::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandConte
 	desc.Height = Properties.Height;
 	desc.Depth = 1;
 
-	pCommandContext->SetRaytracingPipelineState(pRaytracingPipelineState);
 	pCommandContext->DispatchRays(&desc);
 
 	pCommandContext->UAVBarrier(pOutput);
-}
-
-void Pathtracing::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
-{
-	RenderPass::Resize(Width, Height, pRenderDevice);
-
-	// Destroy render target
-	pRenderDevice->Destroy(&Resources[EResources::RenderTarget]);
-
-	// Recreate render target
-	Resources[EResources::RenderTarget] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
-	{
-		proxy.SetFormat(RendererFormats::HDRBufferFormat);
-		proxy.SetWidth(Width);
-		proxy.SetHeight(Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-		proxy.InitialState = Resource::State::UnorderedAccess;
-	});
-
-	// Recreate resource views
-	const auto& uav = ResourceViews[EResourceViews::RenderTargetUAV];
-	pRenderDevice->CreateUAV(Resources[EResources::RenderTarget], uav[0], {}, {});
 }
 
 void Pathtracing::StateRefresh()

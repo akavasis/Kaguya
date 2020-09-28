@@ -4,9 +4,7 @@
 
 RaytraceGBuffer::RaytraceGBuffer(UINT Width, UINT Height)
 	: RenderPass(RenderPassType::Graphics,
-		{ Width, Height, DXGI_FORMAT_R32G32B32A32_FLOAT },
-		EResources::NumResources,
-		EResourceViews::NumResourceViews)
+		{ Width, Height, DXGI_FORMAT_R32G32B32A32_FLOAT })
 {
 
 }
@@ -16,9 +14,9 @@ RaytraceGBuffer::~RaytraceGBuffer()
 
 }
 
-bool RaytraceGBuffer::Initialize(RenderDevice* pRenderDevice)
+void RaytraceGBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
-	Resources[EResources::ConstantBuffer] = pRenderDevice->CreateBuffer([](BufferProxy& proxy)
+	pResourceScheduler->AllocateBuffer([](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
 
@@ -28,7 +26,7 @@ bool RaytraceGBuffer::Initialize(RenderDevice* pRenderDevice)
 
 	for (size_t i = 1; i < EResources::NumResources; ++i)
 	{
-		Resources[i] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width);
@@ -37,27 +35,43 @@ bool RaytraceGBuffer::Initialize(RenderDevice* pRenderDevice)
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
-
-	ResourceViews[EResourceViews::GeometryTables] = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(5);
-	ResourceViews[EResourceViews::RenderTargetUAVs] = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(EResources::NumResources- 1);
-
-	for (size_t i = 1; i < EResources::NumResources; ++i)
-	{
-		pRenderDevice->CreateUAV(Resources[i], ResourceViews[EResourceViews::RenderTargetUAVs][i - 1]);
-	}
-
-	return true;
 }
+
+//bool RaytraceGBuffer::Initialize(RenderDevice* pRenderDevice)
+//{
+//	Resources[EResources::ConstantBuffer] = pRenderDevice->CreateBuffer([](BufferProxy& proxy)
+//	{
+//		proxy.SetSizeInBytes(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+//
+//		proxy.SetStride(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+//		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+//	});
+//
+//	for (size_t i = 1; i < EResources::NumResources; ++i)
+//	{
+//		Resources[i] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+//		{
+//			proxy.SetFormat(Properties.Format);
+//			proxy.SetWidth(Properties.Width);
+//			proxy.SetHeight(Properties.Height);
+//			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+//			proxy.InitialState = Resource::State::UnorderedAccess;
+//		});
+//	}
+//
+//	ResourceViews[EResourceViews::RenderTargetUAVs] = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(EResources::NumResources- 1);
+//
+//	for (size_t i = 1; i < EResources::NumResources; ++i)
+//	{
+//		pRenderDevice->CreateUAV(Resources[i], ResourceViews[EResourceViews::RenderTargetUAVs][i - 1]);
+//	}
+//
+//	return true;
+//}
 
 void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
 	this->pGpuScene = pGpuScene;
-
-	pRenderDevice->CreateSRV(pGpuScene->GetRTTLASResourceHandle(), ResourceViews[EResourceViews::GeometryTables][0]);
-	pRenderDevice->CreateSRV(pGpuScene->GetVertexBufferHandle(), ResourceViews[EResourceViews::GeometryTables][1]);
-	pRenderDevice->CreateSRV(pGpuScene->GetIndexBufferHandle(), ResourceViews[EResourceViews::GeometryTables][2]);
-	pRenderDevice->CreateSRV(pGpuScene->GetGeometryInfoTableHandle(), ResourceViews[EResourceViews::GeometryTables][3]);
-	pRenderDevice->CreateSRV(pGpuScene->GetMaterialTableHandle(), ResourceViews[EResourceViews::GeometryTables][4]);
 
 	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::RaytraceGBuffer);
 
@@ -136,11 +150,11 @@ void RaytraceGBuffer::RenderGui()
 
 }
 
-void RaytraceGBuffer::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandContext* pCommandContext)
+void RaytraceGBuffer::Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Raytrace GBuffer");
 
-	auto pConstantBuffer = RenderGraphRegistry.GetBuffer(Resources[EResources::ConstantBuffer]);
+	auto pConstantBuffer = ResourceRegistry.GetBuffer(Resources[EResources::ConstantBuffer]);
 	pConstantBuffer->Map();
 
 	// Update render pass cbuffer
@@ -168,28 +182,30 @@ void RaytraceGBuffer::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandC
 
 	pConstantBuffer->Update<RenderPassConstants>(0, renderPassCPU);
 
-	auto pWorldPosition = RenderGraphRegistry.GetTexture(Resources[EResources::WorldPosition]);
-	auto pWorldNormal = RenderGraphRegistry.GetTexture(Resources[EResources::WorldNormal]);
-	auto pMaterialAlbedo = RenderGraphRegistry.GetTexture(Resources[EResources::MaterialAlbedo]);
-	auto pMaterialEmissive = RenderGraphRegistry.GetTexture(Resources[EResources::MaterialEmissive]);
-	auto pMaterialSpecular = RenderGraphRegistry.GetTexture(Resources[EResources::MaterialSpecular]);
-	auto pMaterialRefraction = RenderGraphRegistry.GetTexture(Resources[EResources::MaterialRefraction]);
-	auto pMaterialExtra = RenderGraphRegistry.GetTexture(Resources[EResources::MaterialExtra]);
+	auto pWorldPosition = ResourceRegistry.GetTexture(Resources[EResources::WorldPosition]);
+	auto pWorldNormal = ResourceRegistry.GetTexture(Resources[EResources::WorldNormal]);
+	auto pMaterialAlbedo = ResourceRegistry.GetTexture(Resources[EResources::MaterialAlbedo]);
+	auto pMaterialEmissive = ResourceRegistry.GetTexture(Resources[EResources::MaterialEmissive]);
+	auto pMaterialSpecular = ResourceRegistry.GetTexture(Resources[EResources::MaterialSpecular]);
+	auto pMaterialRefraction = ResourceRegistry.GetTexture(Resources[EResources::MaterialRefraction]);
+	auto pMaterialExtra = ResourceRegistry.GetTexture(Resources[EResources::MaterialExtra]);
 
-	auto pRayGenerationShaderTable = RenderGraphRegistry.GetBuffer(m_RayGenerationShaderTable);
-	auto pMissShaderTable = RenderGraphRegistry.GetBuffer(m_MissShaderTable);
-	auto pHitGroupShaderTable = RenderGraphRegistry.GetBuffer(m_HitGroupShaderTable);
+	auto pRayGenerationShaderTable = ResourceRegistry.GetBuffer(m_RayGenerationShaderTable);
+	auto pMissShaderTable = ResourceRegistry.GetBuffer(m_MissShaderTable);
+	auto pHitGroupShaderTable = ResourceRegistry.GetBuffer(m_HitGroupShaderTable);
 
-	auto pRaytracingPipelineState = RenderGraphRegistry.GetRaytracingPSO(RaytracingPSOs::RaytraceGBuffer);
+	auto pRaytracingPipelineState = ResourceRegistry.GetRaytracingPSO(RaytracingPSOs::RaytraceGBuffer);
 
-	pCommandContext->SetComputeRootSignature(RenderGraphRegistry.GetRootSignature(RootSignatures::Raytracing::RaytraceGBuffer::Global));
+	size_t uav = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::WorldPosition]);
 
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, ResourceViews[EResourceViews::GeometryTables].GetStartDescriptor().GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, ResourceViews[EResourceViews::RenderTargetUAVs].GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::Raytracing::RaytraceGBuffer::Global));
+
+	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, pGpuScene->ShaderResourceViews.GetStartDescriptor().GPUHandle);
+	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, ResourceRegistry.UnorderedAccessViews[uav].GPUHandle);
 	pCommandContext->SetComputeRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB + RootParameters::Raytracing::NumRootParameters,
 		pConstantBuffer->GetGpuVirtualAddressAt(0));
 	pCommandContext->SetComputeRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables + RootParameters::Raytracing::NumRootParameters,
-		RenderGraphRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
+		ResourceRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
 
 	D3D12_DISPATCH_RAYS_DESC desc = {};
 
@@ -218,11 +234,6 @@ void RaytraceGBuffer::Execute(RenderGraphRegistry& RenderGraphRegistry, CommandC
 	pCommandContext->UAVBarrier(pMaterialSpecular);
 	pCommandContext->UAVBarrier(pMaterialRefraction);
 	pCommandContext->UAVBarrier(pMaterialExtra);
-}
-
-void RaytraceGBuffer::Resize(UINT Width, UINT Height, RenderDevice* pRenderDevice)
-{
-
 }
 
 void RaytraceGBuffer::StateRefresh()
