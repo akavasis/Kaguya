@@ -18,17 +18,15 @@ public:
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain(IUnknown* pUnknown, const Window& Window, DXGI_FORMAT Format, UINT BufferCount);
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> QueryAdapter(API API);
 
-	const DXGI_QUERY_VIDEO_MEMORY_INFO& QueryLocalVideoMemoryInfo() const;
-	const DXGI_QUERY_VIDEO_MEMORY_INFO& QueryNonLocalVideoMemoryInfo() const;
+	DXGI_QUERY_VIDEO_MEMORY_INFO QueryLocalVideoMemoryInfo() const;
+	DXGI_QUERY_VIDEO_MEMORY_INFO QueryNonLocalVideoMemoryInfo() const;
 
-	bool TearingSupport() const;
+	inline auto GetAdapterDesc() const { return m_QueriedAdapterDesc; }
+	inline auto TearingSupport() const { return m_TearingSupport; }
 private:
 	Microsoft::WRL::ComPtr<IDXGIFactory7> m_pDXGIFactory;
 	std::vector<Microsoft::WRL::ComPtr<IDXGIAdapter4>> m_pAdapters;
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> m_pQueriedAdapter;
-
-	mutable DXGI_QUERY_VIDEO_MEMORY_INFO m_LocalVideoMemoryInfo;
-	mutable DXGI_QUERY_VIDEO_MEMORY_INFO m_NonLocalVideoMemoryInfo;
-
+	DXGI_ADAPTER_DESC3 m_QueriedAdapterDesc;
 	bool m_TearingSupport;
 };

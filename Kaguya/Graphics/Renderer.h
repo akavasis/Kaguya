@@ -51,6 +51,7 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 
 	DXGIManager m_DXGIManager;
+	std::string AdapterDescription;
 
 	RenderDevice m_RenderDevice;
 	Gui m_Gui;

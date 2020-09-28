@@ -17,6 +17,9 @@ Renderer::Renderer(const Application& Application, Window& Window)
 	m_GpuScene(&m_RenderDevice),
 	m_RenderGraph(&m_RenderDevice, &m_GpuScene)
 {
+	auto adapterDesc = m_DXGIManager.GetAdapterDesc();
+	AdapterDescription = UTF16ToUTF8(adapterDesc.Description);
+
 	m_EventReceiver.Register(Window, [&](const Event& event)
 	{
 		Window::Event windowEvent;
@@ -114,6 +117,16 @@ void Renderer::Update(const Time& Time)
 void Renderer::RenderGui()
 {
 	m_Gui.BeginFrame(); // End frame will be called at the end of the Render method by RenderGraph
+
+	if (ImGui::Begin("Adapter Info"))
+	{
+		auto localVideoMemoryInfo = m_DXGIManager.QueryLocalVideoMemoryInfo();
+		auto usageInMiB = ToMiB(localVideoMemoryInfo.CurrentUsage);
+
+		ImGui::Text("Description: %s", AdapterDescription.data());
+		ImGui::Text("Current Usage: %d Mib", usageInMiB);
+	}
+	ImGui::End();
 
 	if (ImGui::Begin("Renderer"))
 	{

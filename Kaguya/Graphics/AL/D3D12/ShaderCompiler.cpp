@@ -52,7 +52,7 @@ Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR p
 	dxcBuffer.Size = pDxcBlob->GetBufferSize();
 	dxcBuffer.Encoding = CP_ACP;
 	Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pShaderReflection;
-	m_DxcUtils->CreateReflection(&dxcBuffer, IID_PPV_ARGS(&pShaderReflection));
+	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&dxcBuffer, IID_PPV_ARGS(pShaderReflection.ReleaseAndGetAddressOf())));
 
 	return Shader(Type, pDxcBlob, pShaderReflection);
 }
@@ -61,7 +61,15 @@ Library ShaderCompiler::CompileLibrary(LPCWSTR pPath)
 {
 	auto profileString = LibraryProfileString(ShaderCompiler::Profile::Profile_6_4);
 	auto pDxcBlob = Compile(pPath, L"", profileString.data(), {});
-	return Library(pDxcBlob);
+
+	DxcBuffer dxcBuffer = {};
+	dxcBuffer.Ptr = pDxcBlob->GetBufferPointer();
+	dxcBuffer.Size = pDxcBlob->GetBufferSize();
+	dxcBuffer.Encoding = CP_ACP;
+	Microsoft::WRL::ComPtr<ID3D12LibraryReflection> pLibraryReflection;
+	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&dxcBuffer, IID_PPV_ARGS(pLibraryReflection.ReleaseAndGetAddressOf())));
+
+	return Library(pDxcBlob, pLibraryReflection);
 }
 
 Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines)

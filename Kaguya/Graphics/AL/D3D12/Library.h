@@ -2,6 +2,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include <dxcapi.h>
+#include <d3d12shader.h>
 
 /*
 	A DXIL library can be seen similarly as a regular DLL, 
@@ -13,16 +14,14 @@ class Library
 {
 public:
 	Library() = default;
-	Library(Microsoft::WRL::ComPtr<IDxcBlob> DxcBlob);
-
-	Library(Library&&) noexcept = default;
-	Library& operator=(Library&&) noexcept = default;
-
-	Library(const Library&) = delete;
-	Library& operator=(const Library&) = delete;
+	Library(
+		Microsoft::WRL::ComPtr<IDxcBlob> DxcBlob,
+		Microsoft::WRL::ComPtr<ID3D12LibraryReflection> LibraryReflection);
 
 	inline auto GetDxcBlob() const { return m_DxcBlob.Get(); }
 	inline D3D12_SHADER_BYTECODE GetD3DShaderBytecode() const { return { m_DxcBlob->GetBufferPointer(), m_DxcBlob->GetBufferSize() }; }
+
 private:
 	Microsoft::WRL::ComPtr<IDxcBlob> m_DxcBlob;
+	Microsoft::WRL::ComPtr<ID3D12LibraryReflection> m_LibraryReflection;
 };

@@ -9,9 +9,7 @@
 #pragma comment(lib, "dxguid.lib")
 
 DXGIManager::DXGIManager()
-	: m_pQueriedAdapter(nullptr),
-	m_LocalVideoMemoryInfo(),
-	m_NonLocalVideoMemoryInfo()
+	: m_pQueriedAdapter(nullptr)
 {
 	UINT FactoryFlags = 0;
 #if defined (_DEBUG)
@@ -52,7 +50,7 @@ DXGIManager::~DXGIManager()
 
 Microsoft::WRL::ComPtr<IDXGISwapChain4> DXGIManager::CreateSwapChain(IUnknown* pUnknown, const Window& Window, DXGI_FORMAT Format, UINT BufferCount)
 {
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> returnVal;
+	Microsoft::WRL::ComPtr<IDXGISwapChain4> pSwapChain4;
 	// For DX11 pUnknown should be ID3D11Device
 	// For DX12 pUnknown should be ID3D12CommandQueue
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc1;
@@ -71,8 +69,8 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> DXGIManager::CreateSwapChain(IUnknown* p
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> pSwapChain1;
 	ThrowCOMIfFailed(m_pDXGIFactory->CreateSwapChainForHwnd(pUnknown, Window.GetWindowHandle(), &swapChainDesc1, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
 	ThrowCOMIfFailed(m_pDXGIFactory->MakeWindowAssociation(Window.GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
-	ThrowCOMIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(returnVal.ReleaseAndGetAddressOf())));
-	return returnVal;
+	ThrowCOMIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(pSwapChain4.ReleaseAndGetAddressOf())));
+	return pSwapChain4;
 }
 
 Microsoft::WRL::ComPtr<IDXGIAdapter4> DXGIManager::QueryAdapter(API API)
@@ -118,9 +116,9 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> DXGIManager::QueryAdapter(API API)
 
 	if (SUCCEEDED(m_pQueriedAdapter->GetDesc3(&adapterDesc3)))
 	{
-		using convert_type = std::codecvt_utf8<wchar_t>;
-		std::wstring_convert<convert_type, wchar_t> converter;
-		std::string desc = converter.to_bytes(adapterDesc3.Description);
+		m_QueriedAdapterDesc = adapterDesc3;
+
+		std::string desc = UTF16ToUTF8(adapterDesc3.Description);
 		CORE_INFO("Queried Adapter/GPU: {} \n\t\t\tVendor: {}", desc.data(), ((adapterDesc3.VendorId == 0x10DE) ? "Nvidia" : "Unknown"));
 	}
 	else
@@ -128,26 +126,21 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> DXGIManager::QueryAdapter(API API)
 		CORE_WARN("Failed To Obtain Queried Adapter / GPU's Description");
 	}
 
-	QueryLocalVideoMemoryInfo();
-	QueryNonLocalVideoMemoryInfo();
 	return m_pQueriedAdapter;
 }
 
-const DXGI_QUERY_VIDEO_MEMORY_INFO& DXGIManager::QueryLocalVideoMemoryInfo() const
+DXGI_QUERY_VIDEO_MEMORY_INFO DXGIManager::QueryLocalVideoMemoryInfo() const
 {
+	DXGI_QUERY_VIDEO_MEMORY_INFO localVideoMemoryInfo = {};
 	if (m_pQueriedAdapter)
-		m_pQueriedAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &m_LocalVideoMemoryInfo);
-	return m_LocalVideoMemoryInfo;
+		m_pQueriedAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &localVideoMemoryInfo);
+	return localVideoMemoryInfo;
 }
 
-const DXGI_QUERY_VIDEO_MEMORY_INFO& DXGIManager::QueryNonLocalVideoMemoryInfo() const
+DXGI_QUERY_VIDEO_MEMORY_INFO DXGIManager::QueryNonLocalVideoMemoryInfo() const
 {
+	DXGI_QUERY_VIDEO_MEMORY_INFO nonLocalVideoMemoryInfo = {};
 	if (m_pQueriedAdapter)
-		m_pQueriedAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &m_NonLocalVideoMemoryInfo);
-	return m_NonLocalVideoMemoryInfo;
-}
-
-bool DXGIManager::TearingSupport() const
-{
-	return m_TearingSupport;
+		m_pQueriedAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &nonLocalVideoMemoryInfo);
+	return nonLocalVideoMemoryInfo;
 }
