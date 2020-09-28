@@ -20,8 +20,15 @@ public:
 		NumResources
 	};
 
+	struct SSettings
+	{
+		int GBuffer = 0;
+	};
+
 	RaytraceGBuffer(UINT Width, UINT Height);
 	virtual ~RaytraceGBuffer() override;
+
+	inline auto GetSettings() const { return Settings; }
 protected:
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
@@ -29,6 +36,7 @@ protected:
 	virtual void Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext) override;
 	virtual void StateRefresh() override;
 private:
+	SSettings Settings;
 	GpuScene* pGpuScene;
 
 	RenderResourceHandle m_RayGenerationShaderTable;

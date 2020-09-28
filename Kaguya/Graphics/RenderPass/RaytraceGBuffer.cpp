@@ -37,38 +37,6 @@ void RaytraceGBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 	}
 }
 
-//bool RaytraceGBuffer::Initialize(RenderDevice* pRenderDevice)
-//{
-//	Resources[EResources::ConstantBuffer] = pRenderDevice->CreateBuffer([](BufferProxy& proxy)
-//	{
-//		proxy.SetSizeInBytes(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-//
-//		proxy.SetStride(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-//		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-//	});
-//
-//	for (size_t i = 1; i < EResources::NumResources; ++i)
-//	{
-//		Resources[i] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
-//		{
-//			proxy.SetFormat(Properties.Format);
-//			proxy.SetWidth(Properties.Width);
-//			proxy.SetHeight(Properties.Height);
-//			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-//			proxy.InitialState = Resource::State::UnorderedAccess;
-//		});
-//	}
-//
-//	ResourceViews[EResourceViews::RenderTargetUAVs] = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(EResources::NumResources- 1);
-//
-//	for (size_t i = 1; i < EResources::NumResources; ++i)
-//	{
-//		pRenderDevice->CreateUAV(Resources[i], ResourceViews[EResourceViews::RenderTargetUAVs][i - 1]);
-//	}
-//
-//	return true;
-//}
-
 void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
 	this->pGpuScene = pGpuScene;
@@ -147,7 +115,18 @@ void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRender
 
 void RaytraceGBuffer::RenderGui()
 {
+	if (ImGui::TreeNode("Raytrace GBuffer"))
+	{
+		if (ImGui::Button("Restore Defaults"))
+		{
+			Settings = SSettings();
+		}
 
+		const char* GBufferOutputs[] = { "Position", "Normal", "Albedo", "Emissive", "Specular", "Refraction", "Extra" };
+		ImGui::Combo("GBuffer Outputs", &Settings.GBuffer, GBufferOutputs, ARRAYSIZE(GBufferOutputs), ARRAYSIZE(GBufferOutputs));
+
+		ImGui::TreePop();
+	}
 }
 
 void RaytraceGBuffer::Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)

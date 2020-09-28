@@ -32,6 +32,7 @@ void Accumulation::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDev
 {
 	this->pGpuScene = pGpuScene;
 
+	LastGBuffer = 0;
 	LastAperture = pGpuScene->pScene->Camera.Aperture;
 	LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
 	LastCameraTransform = pGpuScene->pScene->Camera.Transform;
@@ -46,19 +47,23 @@ void Accumulation::Execute(ResourceRegistry& ResourceRegistry, CommandContext* p
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"Accumulation");
 
+	//auto pPathtracingRenderPass = RenderGraphRegistry.GetRenderPass<Pathtracing>();
+	auto pRaytraceGBufferRenderPass = ResourceRegistry.GetRenderPass<RaytraceGBuffer>();
+
 	// If the camera has moved
-	if (pGpuScene->pScene->Camera.Aperture != LastAperture ||
+	if (pRaytraceGBufferRenderPass->GetSettings().GBuffer != LastGBuffer ||
+		pGpuScene->pScene->Camera.Aperture != LastAperture ||
 		pGpuScene->pScene->Camera.FocalLength != LastFocalLength ||
 		pGpuScene->pScene->Camera.Transform != LastCameraTransform)
 	{
 		Settings.AccumulationCount = 0;
+		LastGBuffer = pRaytraceGBufferRenderPass->GetSettings().GBuffer;
 		LastAperture = pGpuScene->pScene->Camera.Aperture;
 		LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
 		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 	}
 
-	//auto pPathtracingRenderPass = RenderGraphRegistry.GetRenderPass<Pathtracing>();
-	auto pRaytraceGBufferRenderPass = ResourceRegistry.GetRenderPass<RaytraceGBuffer>();
+
 
 	auto pOutput = ResourceRegistry.GetTexture(Resources[EResources::RenderTarget]);
 
@@ -69,7 +74,8 @@ void Accumulation::Execute(ResourceRegistry& ResourceRegistry, CommandContext* p
 	pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::Raytracing::Accumulation));
 
 	// Bind Resources
-	size_t srv = ResourceRegistry.GetShaderResourceDescriptorIndex(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::MaterialAlbedo - 1]);
+	// + 1 for the constant buffer offset
+	size_t srv = ResourceRegistry.GetShaderResourceDescriptorIndex(pRaytraceGBufferRenderPass->Resources[pRaytraceGBufferRenderPass->GetSettings().GBuffer + 1]);
 	size_t uav = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::RenderTarget]);
 	struct
 	{

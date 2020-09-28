@@ -33,6 +33,7 @@ private:
 	SSettings Settings;
 	GpuScene* pGpuScene;
 
+	int LastGBuffer;
 	float LastAperture;
 	float LastFocalLength;
 	Transform LastCameraTransform;
