@@ -91,8 +91,8 @@ void Renderer::SetScene(Scene* pScene)
 		}
 	}
 
-	//m_RenderGraph.AddRenderPass(new Pathtracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
-	m_RenderGraph.AddRenderPass(new RaytraceGBuffer(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
+	m_RenderGraph.AddRenderPass(new Pathtracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
+	//m_RenderGraph.AddRenderPass(new RaytraceGBuffer(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 	m_RenderGraph.AddRenderPass(new Accumulation(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 	m_RenderGraph.AddRenderPass(new PostProcess(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 

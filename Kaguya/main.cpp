@@ -352,7 +352,7 @@ int main(int argc, char** argv)
 
 		MaterialLoader materialLoader(application.ExecutableFolderPath());
 		ModelLoader modelLoader(application.ExecutableFolderPath());
-		Scene scene = TransparentSpheresOfIncreasingIoR(materialLoader, modelLoader);
+		Scene scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
 		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
 
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
