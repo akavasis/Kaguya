@@ -1,6 +1,12 @@
 # Kaguya
 ## Description
 This is a path tracer using DXR (DirectX Raytracing).  
+
+### Showcase
+![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
+![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
+![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")
+
 ### Features
 + __Path tracing__
 + __Bindless Texturing__
