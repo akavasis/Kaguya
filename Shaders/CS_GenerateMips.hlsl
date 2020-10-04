@@ -33,19 +33,21 @@ cbuffer GenerateMipsCB : register(b0)
 	uint SrcDimension; // Width and height of the source texture are even or odd.
 	bool IsSRGB; // Must apply gamma correction to sRGB textures.
 	float2 TexelSize; // 1.0 / OutMip1.Dimensions
+
+	// Source mip map.
+	int InputIndex;
+
+	// Write up to 4 mip map levels.
+	int Output1Index;
+	int Output2Index;
+	int Output3Index;
+	int Output4Index;
 }
 
-// Source mip map.
-Texture2D<float4> SrcMip : register(t0);
-
-// Write up to 4 mip map levels.
-RWTexture2D<float4> OutMip1 : register(u0);
-RWTexture2D<float4> OutMip2 : register(u1);
-RWTexture2D<float4> OutMip3 : register(u2);
-RWTexture2D<float4> OutMip4 : register(u3);
-
-// Linear clamp sampler.
 SamplerState LinearClampSampler : register(s0);
+
+// Shader layout define and include
+#include "ShaderLayout.hlsli"
 
 // The reason for separating channels is to reduce bank conflicts in the
 // local data memory controller.  A large stride will cause more threads
@@ -97,6 +99,8 @@ float4 PackColor(float4 x)
 [numthreads(BLOCK_SIZE, BLOCK_SIZE, 1)]
 void main(ComputeShaderInput IN)
 {
+	Texture2D SrcMip = Texture2DTable[InputIndex];
+
 	float4 Src1 = (float4) 0;
 
     // One bilinear sample is insufficient when scaling down by more than 2x.
@@ -162,7 +166,11 @@ void main(ComputeShaderInput IN)
 			break;
 	}
 
-	OutMip1[IN.DispatchThreadID.xy] = PackColor(Src1);
+	if (Output1Index != -1)
+	{
+		RWTexture2D<float4> OutMip1 = RWTexture2DTable[Output1Index];
+		OutMip1[IN.DispatchThreadID.xy] = PackColor(Src1);
+	}
 
     // A scalar (constant) branch can exit all threads coherently.
 	if (NumMipLevels == 1)
@@ -179,13 +187,15 @@ void main(ComputeShaderInput IN)
 
     // With low three bits for X and high three bits for Y, this bit mask
     // (binary: 001001) checks that X and Y are even.
-	if ((IN.GroupIndex & 0x9) == 0)
+	if ((IN.GroupIndex & 0x9) == 0 &&
+		Output2Index != -1)
 	{
 		float4 Src2 = LoadColor(IN.GroupIndex + 0x01);
 		float4 Src3 = LoadColor(IN.GroupIndex + 0x08);
 		float4 Src4 = LoadColor(IN.GroupIndex + 0x09);
 		Src1 = 0.25 * (Src1 + Src2 + Src3 + Src4);
 
+		RWTexture2D<float4> OutMip2 = RWTexture2DTable[Output2Index];
 		OutMip2[IN.DispatchThreadID.xy / 2] = PackColor(Src1);
 		StoreColor(IN.GroupIndex, Src1);
 	}
@@ -196,13 +206,15 @@ void main(ComputeShaderInput IN)
 	GroupMemoryBarrierWithGroupSync();
 
     // This bit mask (binary: 011011) checks that X and Y are multiples of four.
-	if ((IN.GroupIndex & 0x1B) == 0)
+	if ((IN.GroupIndex & 0x1B) == 0 &&
+		Output3Index != -1)
 	{
 		float4 Src2 = LoadColor(IN.GroupIndex + 0x02);
 		float4 Src3 = LoadColor(IN.GroupIndex + 0x10);
 		float4 Src4 = LoadColor(IN.GroupIndex + 0x12);
 		Src1 = 0.25 * (Src1 + Src2 + Src3 + Src4);
 
+		RWTexture2D<float4> OutMip3 = RWTexture2DTable[Output3Index];
 		OutMip3[IN.DispatchThreadID.xy / 4] = PackColor(Src1);
 		StoreColor(IN.GroupIndex, Src1);
 	}
@@ -214,13 +226,15 @@ void main(ComputeShaderInput IN)
 
     // This bit mask would be 111111 (X & Y multiples of 8), but only one
     // thread fits that criteria.
-	if (IN.GroupIndex == 0)
+	if (IN.GroupIndex == 0 &&
+		Output4Index != -1)
 	{
 		float4 Src2 = LoadColor(IN.GroupIndex + 0x04);
 		float4 Src3 = LoadColor(IN.GroupIndex + 0x20);
 		float4 Src4 = LoadColor(IN.GroupIndex + 0x24);
 		Src1 = 0.25 * (Src1 + Src2 + Src3 + Src4);
 
+		RWTexture2D<float4> OutMip4 = RWTexture2DTable[Output4Index];
 		OutMip4[IN.DispatchThreadID.xy / 8] = PackColor(Src1);
 	}
 }

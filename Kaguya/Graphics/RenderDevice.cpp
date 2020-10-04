@@ -6,26 +6,15 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	GraphicsQueue(&Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	ComputeQueue(&Device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
 	CopyQueue(&Device, D3D12_COMMAND_LIST_TYPE_COPY),
-	DescriptorAllocator(&Device)
+	m_CBSRUADescriptorHeap(&Device, NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true),
+	m_SamplerDescriptorHeap(&Device, NumDescriptorsPerRange, true),
+	m_RenderTargetDescriptorHeap(&Device, NumDescriptorsPerRange),
+	m_DepthStencilDescriptorHeap(&Device, NumDescriptorsPerRange)
 {
-	for (std::size_t i = 0; i < DescriptorRanges::NumDescriptorRanges; ++i)
-	{
-		m_StandardShaderLayoutDescriptorRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-		m_StandardShaderLayoutDescriptorRanges[i].NumDescriptors = UINT_MAX;
-		m_StandardShaderLayoutDescriptorRanges[i].BaseShaderRegister = 0;
-		m_StandardShaderLayoutDescriptorRanges[i].RegisterSpace = i + 100; // Descriptor range starts at 100 in HLSL
-		m_StandardShaderLayoutDescriptorRanges[i].OffsetInDescriptorsFromTableStart = 0;
-		m_StandardShaderLayoutDescriptorRanges[i].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-	}
 	FrameIndex = 0;
-	SwapChainRenderTargetViews = DescriptorAllocator.AllocateRenderTargetDescriptors(NumSwapChainBuffers);
 
 	// Allocate upload context
 	pUploadCommandContext = AllocateContext(CommandContext::Direct);
-}
-
-RenderDevice::~RenderDevice()
-{
 }
 
 CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
@@ -42,9 +31,9 @@ CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
 	return m_RenderCommandContexts[Type].back().get();
 }
 
-void RenderDevice::BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const
+void RenderDevice::BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext)
 {
-	pCommandContext->SetDescriptorHeaps(DescriptorAllocator.GetUniversalGpuDescriptorHeap(), nullptr);
+	pCommandContext->SetDescriptorHeaps(&m_CBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
 }
 
 void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[])
@@ -82,7 +71,7 @@ Library RenderDevice::CompileLibrary(const std::filesystem::path& Path)
 	return m_ShaderCompiler.CompileLibrary(Path.c_str());
 }
 
-RenderResourceHandle RenderDevice::CreateBuffer(Delegate<void(BufferProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateBuffer(std::function<void(BufferProxy&)> Configurator)
 {
 	BufferProxy proxy;
 	Configurator(proxy);
@@ -95,7 +84,7 @@ RenderResourceHandle RenderDevice::CreateBuffer(Delegate<void(BufferProxy&)> Con
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(BufferProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator)
 {
 	BufferProxy proxy;
 	Configurator(proxy);
@@ -113,7 +102,7 @@ RenderResourceHandle RenderDevice::CreateTexture(Microsoft::WRL::ComPtr<ID3D12Re
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, Delegate<void(TextureProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, std::function<void(TextureProxy&)> Configurator)
 {
 	TextureProxy proxy(Type);
 	Configurator(proxy);
@@ -123,7 +112,7 @@ RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, Delegate<v
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(TextureProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator)
 {
 	TextureProxy proxy(Type);
 	Configurator(proxy);
@@ -137,7 +126,7 @@ RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, RenderReso
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateHeap(Delegate<void(HeapProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateHeap(std::function<void(HeapProxy&)> Configurator)
 {
 	HeapProxy proxy;
 	Configurator(proxy);
@@ -146,18 +135,18 @@ RenderResourceHandle RenderDevice::CreateHeap(Delegate<void(HeapProxy&)> Configu
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateRootSignature(std::function<void(RootSignatureProxy&)> Configurator, bool AddShaderLayoutRootParameters)
 {
 	RootSignatureProxy proxy;
 	Configurator(proxy);
-	if (pOptions)
-		AppendStandardShaderLayoutRootParameter(pOptions, proxy);
+	if (AddShaderLayoutRootParameters)
+		AddStandardShaderLayoutRootParameter(proxy);
 
 	auto [handle, rootSignature] = m_RootSignatures.CreateResource(&Device, proxy);
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateGraphicsPipelineState(Delegate<void(GraphicsPipelineStateProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateGraphicsPipelineState(std::function<void(GraphicsPipelineStateProxy&)> Configurator)
 {
 	GraphicsPipelineStateProxy proxy;
 	Configurator(proxy);
@@ -166,7 +155,7 @@ RenderResourceHandle RenderDevice::CreateGraphicsPipelineState(Delegate<void(Gra
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateComputePipelineState(Delegate<void(ComputePipelineStateProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateComputePipelineState(std::function<void(ComputePipelineStateProxy&)> Configurator)
 {
 	ComputePipelineStateProxy proxy;
 	Configurator(proxy);
@@ -175,7 +164,7 @@ RenderResourceHandle RenderDevice::CreateComputePipelineState(Delegate<void(Comp
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateRaytracingPipelineState(Delegate<void(RaytracingPipelineStateProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateRaytracingPipelineState(std::function<void(RaytracingPipelineStateProxy&)> Configurator)
 {
 	RaytracingPipelineStateProxy proxy;
 	Configurator(proxy);
@@ -235,358 +224,428 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 	pRenderResourceHandle->Data = 0;
 }
 
-void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
+void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
 {
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	switch (RenderResourceHandle.Type)
 	{
 	case RenderResourceType::Buffer:
 	{
-		Buffer* pBuffer = GetBuffer(RenderResourceHandle);
-
-		if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::BindFlags::AccelerationStructure))
+		if (auto iter = m_RenderBuffers.find(RenderResourceHandle);
+			iter != m_RenderBuffers.end())
 		{
-			desc.Format = DXGI_FORMAT_UNKNOWN;
-			desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
-			desc.RaytracingAccelerationStructure.Location = pBuffer->GetGpuVirtualAddress();
+			auto& renderBuffer = iter->second;
 
-			Device.GetD3DDevice()->CreateShaderResourceView(nullptr, &desc, DestDescriptor.CPUHandle);
+			// Re-use descriptor
+			if (renderBuffer.ShaderResourceView.IsValid())
+			{
+				m_CBSRUADescriptorHeap.AssignSRDescriptor(renderBuffer.ShaderResourceView.HeapIndex,
+					renderBuffer.pBuffer);
+			}
+			// Create new one
+			else
+			{
+				size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
+				m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, renderBuffer.pBuffer);
+				renderBuffer.ShaderResourceView = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+			}
 		}
 		else
 		{
-			desc.Format = DXGI_FORMAT_UNKNOWN;
-			desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-			desc.Buffer.FirstElement = 0;
-			desc.Buffer.NumElements = pBuffer->GetMemoryRequested() / pBuffer->GetStride();
-			desc.Buffer.StructureByteStride = pBuffer->GetStride();
-			desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+			// First-time request
+			Buffer* pBuffer = GetBuffer(RenderResourceHandle);
+			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
+			m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pBuffer);
 
-			Device.GetD3DDevice()->CreateShaderResourceView(pBuffer->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+			RenderBuffer renderBuffer;
+			renderBuffer.pBuffer = pBuffer;
+			renderBuffer.ShaderResourceView = m_CBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
+
+			m_RenderBuffers[RenderResourceHandle] = renderBuffer;
 		}
 	}
 	break;
 
 	case RenderResourceType::Texture:
 	{
-		Texture* pTexture = GetTexture(RenderResourceHandle);
-		UINT mostDetailedMip = MostDetailedMip.value_or(0);
-		UINT mipLevels = MipLevels.value_or(pTexture->GetMipLevels());
-
-		auto getValidSRVFormat = [](DXGI_FORMAT Format)
+		if (auto iter = m_RenderTextures.find(RenderResourceHandle);
+			iter != m_RenderTextures.end())
 		{
-			if (Format == DXGI_FORMAT_R32_TYPELESS)
-				return DXGI_FORMAT_R32_FLOAT;
-			return Format;
-		};
+			auto& renderTexture = iter->second;
 
-		desc.Format = getValidSRVFormat(pTexture->GetFormat());
-		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-		switch (pTexture->GetType())
-		{
-		case Resource::Type::Texture1D:
-		{
-			if (pTexture->GetDepthOrArraySize() > 1)
+			UINT64 HashValue = CBSRUADescriptorHeap::GetHashValue(CBSRUADescriptorHeap::GetShaderResourceViewDesc(renderTexture.pTexture, MostDetailedMip, MipLevels));
+			if (auto srvIter = renderTexture.ShaderResourceViews.find(HashValue);
+				srvIter != renderTexture.ShaderResourceViews.end())
 			{
-				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-				desc.Texture1DArray.MostDetailedMip = mostDetailedMip;
-				desc.Texture1DArray.MipLevels = mipLevels;
-				desc.Texture1DArray.FirstArraySlice = 0;
-				desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
-				desc.Texture1DArray.ResourceMinLODClamp = 0.0f;
+				// Re-use descriptor
+				m_CBSRUADescriptorHeap.AssignSRDescriptor(srvIter->second.HeapIndex, renderTexture.pTexture, MostDetailedMip, MipLevels);
 			}
 			else
 			{
-				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-				desc.Texture1D.MostDetailedMip = mostDetailedMip;
-				desc.Texture1D.MipLevels = mipLevels;
-				desc.Texture1D.ResourceMinLODClamp = 0.0f;
+				// Add a new descriptor
+				size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
+				UINT64 HashValue = m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, renderTexture.pTexture, MostDetailedMip, MipLevels);
+
+				renderTexture.ShaderResourceViews[HashValue] = m_CBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
 			}
 		}
-		break;
-
-		case Resource::Type::Texture2D:
+		else
 		{
-			if (pTexture->GetDepthOrArraySize() > 1)
-			{
-				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-				desc.Texture2DArray.MostDetailedMip = mostDetailedMip;
-				desc.Texture2DArray.MipLevels = mipLevels;
-				desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
-				desc.Texture2DArray.PlaneSlice = 0;
-				desc.Texture2DArray.ResourceMinLODClamp = 0.0f;
-			}
-			else
-			{
-				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-				desc.Texture2D.MostDetailedMip = mostDetailedMip;
-				desc.Texture2D.MipLevels = mipLevels;
-				desc.Texture2D.PlaneSlice = 0;
-				desc.Texture2D.ResourceMinLODClamp = 0.0f;
-			}
-		}
-		break;
+			// First-time request
+			Texture* pTexture = GetTexture(RenderResourceHandle);
+			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
+			UINT64 HashValue = m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pTexture, MostDetailedMip, MipLevels);
 
-		case Resource::Type::Texture3D:
-		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-			desc.Texture3D.MostDetailedMip = mostDetailedMip;
-			desc.Texture3D.MipLevels = mipLevels;
-			desc.Texture3D.ResourceMinLODClamp = 0.0f;
-		}
-		break;
+			RenderTexture renderTexture;
+			renderTexture.pTexture = pTexture;
+			renderTexture.ShaderResourceViews[HashValue] = m_CBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
 
-		case Resource::Type::TextureCube:
-		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-			desc.TextureCube.MostDetailedMip = mostDetailedMip;
-			desc.TextureCube.MipLevels = mipLevels;
-			desc.TextureCube.ResourceMinLODClamp = 0.0f;
+			m_RenderTextures[RenderResourceHandle] = renderTexture;
 		}
-		break;
-		}
-
-		Device.GetD3DDevice()->CreateShaderResourceView(pTexture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
 	}
 	break;
 
 	default:
-		throw std::logic_error("Could not find resource given the handle");
+		throw std::logic_error("Invalid type");
 	}
 }
 
-void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
+void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
-	Texture* texture = GetTexture(RenderResourceHandle);
-	if (!texture)
+	switch (RenderResourceHandle.Type)
 	{
-		throw std::logic_error("Could not find texture given the handle");
-		return;
-	}
-
-	UINT arraySlice = ArraySlice.value_or(0);
-	UINT mipSlice = MipSlice.value_or(0);
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
-	desc.Format = texture->GetFormat();
-
-	// TODO: Add buffer support
-	switch (texture->GetType())
+	case RenderResourceType::Buffer:
 	{
-	case Resource::Type::Texture1D:
-	{
-		if (texture->GetDepthOrArraySize() > 1)
+		if (auto iter = m_RenderBuffers.find(RenderResourceHandle);
+			iter != m_RenderBuffers.end())
 		{
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
-			desc.Texture1DArray.MipSlice = mipSlice;
-			desc.Texture1DArray.FirstArraySlice = arraySlice;
-			desc.Texture1DArray.ArraySize = texture->GetDepthOrArraySize();
+			auto& renderBuffer = iter->second;
+
+			// Re-use descriptor
+			if (renderBuffer.UnorderedAccessView.IsValid())
+			{
+				m_CBSRUADescriptorHeap.AssignUADescriptor(renderBuffer.UnorderedAccessView.HeapIndex,
+					renderBuffer.pBuffer);
+			}
+			// Create new one
+			else
+			{
+				size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
+				m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, renderBuffer.pBuffer);
+				renderBuffer.UnorderedAccessView = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+			}
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
-			desc.Texture1D.MipSlice = mipSlice;
+			// First-time request
+			Buffer* pBuffer = GetBuffer(RenderResourceHandle);
+			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
+			m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pBuffer);
+
+			RenderBuffer renderBuffer;
+			renderBuffer.pBuffer = pBuffer;
+			renderBuffer.UnorderedAccessView = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+
+			m_RenderBuffers[RenderResourceHandle] = renderBuffer;
 		}
 	}
 	break;
 
-	case Resource::Type::Texture2D: [[fallthrough]];
-	case Resource::Type::TextureCube:
+	case RenderResourceType::Texture:
 	{
-		if (texture->GetDepthOrArraySize() > 1)
+		if (auto iter = m_RenderTextures.find(RenderResourceHandle);
+			iter != m_RenderTextures.end())
 		{
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipSlice = mipSlice;
-			desc.Texture2DArray.FirstArraySlice = arraySlice;
-			desc.Texture2DArray.ArraySize = texture->GetDepthOrArraySize();
-			desc.Texture2DArray.PlaneSlice = 0;
+			auto& renderTexture = iter->second;
+
+			UINT64 HashValue = CBSRUADescriptorHeap::GetHashValue(CBSRUADescriptorHeap::GetUnorderedAccessViewDesc(renderTexture.pTexture, ArraySlice, MipSlice));
+			if (auto uavIter = renderTexture.UnorderedAccessViews.find(HashValue);
+				uavIter != renderTexture.UnorderedAccessViews.end())
+			{
+				// Re-use descriptor
+				m_CBSRUADescriptorHeap.AssignUADescriptor(uavIter->second.HeapIndex, renderTexture.pTexture, ArraySlice, MipSlice);
+			}
+			else
+			{
+				// Add a new descriptor
+				size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
+				UINT64 HashValue = m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, renderTexture.pTexture, ArraySlice, MipSlice);
+
+				renderTexture.UnorderedAccessViews[HashValue] = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+			}
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipSlice = mipSlice;
-			desc.Texture2D.PlaneSlice = 0;
+			// First-time request
+			Texture* pTexture = GetTexture(RenderResourceHandle);
+			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
+			UINT64 HashValue = m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pTexture, ArraySlice, MipSlice);
+
+			RenderTexture renderTexture;
+			renderTexture.pTexture = pTexture;
+			renderTexture.UnorderedAccessViews[HashValue] = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+
+			m_RenderTextures[RenderResourceHandle] = renderTexture;
 		}
 	}
 	break;
 
-	case Resource::Type::Texture3D:
-	{
-		desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
-		desc.Texture3D.MipSlice = mipSlice;
-		desc.Texture3D.FirstWSlice = 0;
-		desc.Texture3D.WSize = 0;
+	default:
+		throw std::logic_error("Invalid type");
 	}
-	break;
-	}
-
-	Device.GetD3DDevice()->CreateUnorderedAccessView(texture->GetD3DResource(), nullptr, &desc, DestDescriptor.CPUHandle);
 }
 
-void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
-	Texture* texture = GetTexture(RenderResourceHandle);
-	if (!texture)
+	if (auto iter = m_RenderTextures.find(RenderResourceHandle);
+		iter != m_RenderTextures.end())
 	{
-		throw std::logic_error("Could not find texture given the handle");
-		return;
-	}
+		auto& renderTexture = iter->second;
 
-	UINT arraySlice = ArraySlice.value_or(0);
-	UINT mipSlice = MipSlice.value_or(0);
-	UINT arraySize = ArraySize.value_or(texture->GetDepthOrArraySize());
-	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
-	desc.Format = texture->GetFormat();
-
-	// TODO: Add buffer support and MS support
-	switch (texture->GetType())
-	{
-	case Resource::Type::Texture1D:
-	{
-		if (texture->GetDepthOrArraySize() > 1)
+		UINT64 HashValue = RenderTargetDescriptorHeap::GetHashValue(RenderTargetDescriptorHeap::GetRenderTargetViewDesc(renderTexture.pTexture, ArraySlice, MipSlice, ArraySize));
+		if (auto rtvIter = renderTexture.RenderTargetViews.find(HashValue);
+			rtvIter != renderTexture.RenderTargetViews.end())
 		{
-			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
-			desc.Texture1DArray.MipSlice = mipSlice;
-			desc.Texture1DArray.FirstArraySlice = arraySlice;
-			desc.Texture1DArray.ArraySize = arraySize;
+			// Re-use descriptor
+			auto entry = m_RenderTargetDescriptorHeap[rtvIter->second.HeapIndex];
+			entry.ArraySlice = ArraySlice;
+			entry.MipSlice = MipSlice;
+			entry.ArraySize = ArraySize;
+			entry = renderTexture.pTexture;
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
-			desc.Texture1D.MipSlice = mipSlice;
+			// Add a new descriptor
+			size_t HeapIndex = m_RenderTargetDescriptorIndexPool.Allocate();
+			auto entry = m_RenderTargetDescriptorHeap[HeapIndex];
+			entry.ArraySlice = ArraySlice;
+			entry.MipSlice = MipSlice;
+			entry.ArraySize = ArraySize;
+			entry = renderTexture.pTexture;
+
+			UINT64 HashValue = entry.GetHashValue();
+			renderTexture.RenderTargetViews[HashValue] = m_RenderTargetDescriptorHeap.GetDescriptorAt(HeapIndex);
 		}
 	}
-	break;
-
-	case Resource::Type::Texture2D: [[fallthrough]];
-	case Resource::Type::TextureCube:
-	{
-		if (texture->GetDepthOrArraySize() > 1)
-		{
-			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipSlice = mipSlice;
-			desc.Texture2DArray.FirstArraySlice = arraySlice;
-			desc.Texture2DArray.ArraySize = arraySize;
-			desc.Texture2DArray.PlaneSlice = 0;
-		}
-		else
-		{
-			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipSlice = mipSlice;
-			desc.Texture2D.PlaneSlice = 0;
-		}
-	}
-	break;
-
-	case Resource::Type::Texture3D:
-	{
-		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
-		desc.Texture3D.MipSlice = mipSlice;
-		desc.Texture3D.FirstWSlice = 0;
-		desc.Texture3D.WSize = 0;
-	}
-	break;
-	}
-
-	Device.GetD3DDevice()->CreateRenderTargetView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
-}
-
-void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
-{
-	Texture* texture = GetTexture(RenderResourceHandle);
-	if (!texture)
-	{
-		throw std::logic_error("Could not find texture given the handle");
-		return;
-	}
-
-	auto getValidDSVFormat = [](DXGI_FORMAT Format)
-	{
-		// TODO: Add more
-		switch (Format)
-		{
-		case DXGI_FORMAT_R32_TYPELESS: return DXGI_FORMAT_D32_FLOAT;
-
-		default: return DXGI_FORMAT_UNKNOWN;
-		}
-	};
-
-	UINT arraySlice = ArraySlice.value_or(0);
-	UINT mipSlice = MipSlice.value_or(0);
-	UINT arraySize = ArraySize.value_or(texture->GetDepthOrArraySize());
-	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
-	desc.Format = getValidDSVFormat(texture->GetFormat());
-	desc.Flags = D3D12_DSV_FLAG_NONE;
-
-	// TODO: Add support and MS support
-	switch (texture->GetType())
-	{
-	case Resource::Type::Texture1D:
-	{
-		if (texture->GetDepthOrArraySize() > 1)
-		{
-			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
-			desc.Texture1DArray.MipSlice = mipSlice;
-			desc.Texture1DArray.FirstArraySlice = arraySlice;
-			desc.Texture1DArray.ArraySize = arraySize;
-		}
-		else
-		{
-			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
-			desc.Texture1D.MipSlice = mipSlice;
-		}
-	}
-	break;
-
-	case Resource::Type::Texture2D: [[fallthrough]];
-	case Resource::Type::TextureCube:
-	{
-		if (texture->GetDepthOrArraySize() > 1)
-		{
-			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipSlice = mipSlice;
-			desc.Texture2DArray.FirstArraySlice = arraySlice;
-			desc.Texture2DArray.ArraySize = arraySize;
-		}
-		else
-		{
-			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipSlice = mipSlice;
-		}
-	}
-	break;
-
-	case Resource::Type::Texture3D:
-	{
-		throw std::logic_error("Cannot create DSV for Texture3D resource type");
-	}
-	break;
-	}
-
-	Device.GetD3DDevice()->CreateDepthStencilView(texture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
-}
-
-void RenderDevice::AppendStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy)
-{
-	// ConstantDataCB
-	if (pOptions->InitConstantDataTypeAsRootConstants)
-		RootSignatureProxy.AddRootConstantsParameter(0, 100, pOptions->Num32BitValues);
 	else
-		RootSignatureProxy.AddRootCBVParameter(0, 100);
+	{
+		// First-time request
+		Texture* pTexture = GetTexture(RenderResourceHandle);
+		if (!pTexture)
+		{
+			throw std::logic_error("Could not find texture given the handle");
+		}
 
+		size_t HeapIndex = m_RenderTargetDescriptorIndexPool.Allocate();
+		auto entry = m_RenderTargetDescriptorHeap[HeapIndex];
+		entry.ArraySlice = ArraySlice;
+		entry.MipSlice = MipSlice;
+		entry.ArraySize = ArraySize;
+		entry = pTexture;
+
+		UINT64 HashValue = entry.GetHashValue();
+
+		RenderTexture renderTexture;
+		renderTexture.pTexture = pTexture;
+		renderTexture.RenderTargetViews[HashValue] = m_RenderTargetDescriptorHeap.GetDescriptorAt(HeapIndex);
+
+		m_RenderTextures[RenderResourceHandle] = renderTexture;
+	}
+}
+
+void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+{
+	if (auto iter = m_RenderTextures.find(RenderResourceHandle);
+		iter != m_RenderTextures.end())
+	{
+		auto& renderTexture = iter->second;
+
+		UINT64 HashValue = DepthStencilDescriptorHeap::GetHashValue(DepthStencilDescriptorHeap::GetDepthStencilViewDesc(renderTexture.pTexture, ArraySlice, MipSlice, ArraySize));
+		if (auto rtvIter = renderTexture.DepthStencilViews.find(HashValue);
+			rtvIter != renderTexture.DepthStencilViews.end())
+		{
+			// Re-use descriptor
+			auto entry = m_DepthStencilDescriptorHeap[rtvIter->second.HeapIndex];
+			entry.ArraySlice = ArraySlice;
+			entry.MipSlice = MipSlice;
+			entry.ArraySize = ArraySize;
+			entry = renderTexture.pTexture;
+		}
+		else
+		{
+			// Add a new descriptor
+			size_t HeapIndex = m_DepthStencilDescriptorIndexPool.Allocate();
+			auto entry = m_DepthStencilDescriptorHeap[HeapIndex];
+			entry.ArraySlice = ArraySlice;
+			entry.MipSlice = MipSlice;
+			entry.ArraySize = ArraySize;
+			entry = renderTexture.pTexture;
+
+			UINT64 HashValue = entry.GetHashValue();
+			renderTexture.DepthStencilViews[HashValue] = m_DepthStencilDescriptorHeap.GetDescriptorAt(HeapIndex);
+		}
+	}
+	else
+	{
+		// First-time request
+		Texture* pTexture = GetTexture(RenderResourceHandle);
+		if (!pTexture)
+		{
+			throw std::logic_error("Could not find texture given the handle");
+		}
+
+		size_t HeapIndex = m_DepthStencilDescriptorIndexPool.Allocate();
+		auto entry = m_DepthStencilDescriptorHeap[HeapIndex];
+		entry.ArraySlice = ArraySlice;
+		entry.MipSlice = MipSlice;
+		entry.ArraySize = ArraySize;
+		entry = pTexture;
+
+		UINT64 HashValue = entry.GetHashValue();
+
+		RenderTexture renderTexture;
+		renderTexture.pTexture = pTexture;
+		renderTexture.DepthStencilViews[HashValue] = m_DepthStencilDescriptorHeap.GetDescriptorAt(HeapIndex);
+
+		m_RenderTextures[RenderResourceHandle] = renderTexture;
+	}
+}
+
+Descriptor RenderDevice::GetSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip /*= {}*/, std::optional<UINT> MipLevels /*= {}*/) const
+{
+	switch (RenderResourceHandle.Type)
+	{
+	case RenderResourceType::Buffer:
+	{
+		if (auto iter = m_RenderBuffers.find(RenderResourceHandle);
+			iter != m_RenderBuffers.end())
+		{
+			auto& renderBuffer = iter->second;
+
+			if (renderBuffer.ShaderResourceView.IsValid())
+				return renderBuffer.ShaderResourceView;
+		}
+	}
+	break;
+
+	case RenderResourceType::Texture:
+	{
+		if (auto iter = m_RenderTextures.find(RenderResourceHandle);
+			iter != m_RenderTextures.end())
+		{
+			auto& renderTexture = iter->second;
+
+			UINT64 HashValue = CBSRUADescriptorHeap::GetHashValue(CBSRUADescriptorHeap::GetShaderResourceViewDesc(renderTexture.pTexture, MostDetailedMip, MipLevels));
+			if (auto srvIter = renderTexture.ShaderResourceViews.find(HashValue);
+				srvIter != renderTexture.ShaderResourceViews.end())
+				return srvIter->second;
+		}
+	}
+	break;
+
+	default:
+		throw std::logic_error("Invalid type");
+	}
+	return Descriptor();
+}
+
+Descriptor RenderDevice::GetUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/) const
+{
+	switch (RenderResourceHandle.Type)
+	{
+	case RenderResourceType::Buffer:
+	{
+		if (auto iter = m_RenderBuffers.find(RenderResourceHandle);
+			iter != m_RenderBuffers.end())
+		{
+			auto& renderBuffer = iter->second;
+
+			if (renderBuffer.UnorderedAccessView.IsValid())
+				return renderBuffer.UnorderedAccessView;
+		}
+	}
+	break;
+
+	case RenderResourceType::Texture:
+	{
+		if (auto iter = m_RenderTextures.find(RenderResourceHandle);
+			iter != m_RenderTextures.end())
+		{
+			auto& renderTexture = iter->second;
+
+			UINT64 HashValue = CBSRUADescriptorHeap::GetHashValue(CBSRUADescriptorHeap::GetUnorderedAccessViewDesc(renderTexture.pTexture, ArraySlice, MipSlice));
+			if (auto uavIter = renderTexture.UnorderedAccessViews.find(HashValue);
+				uavIter != renderTexture.UnorderedAccessViews.end())
+				return uavIter->second;
+		}
+	}
+	break;
+
+	default:
+		throw std::logic_error("Invalid type");
+	}
+	return Descriptor();
+}
+
+Descriptor RenderDevice::GetRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/, std::optional<UINT> ArraySize /*= {}*/) const
+{
+	if (auto iter = m_RenderTextures.find(RenderResourceHandle);
+		iter != m_RenderTextures.end())
+	{
+		auto& renderTexture = iter->second;
+
+		UINT64 HashValue = RenderTargetDescriptorHeap::GetHashValue(RenderTargetDescriptorHeap::GetRenderTargetViewDesc(renderTexture.pTexture, ArraySlice, MipSlice, ArraySize));
+		if (auto rtvIter = renderTexture.RenderTargetViews.find(HashValue);
+			rtvIter != renderTexture.RenderTargetViews.end())
+		{
+			return rtvIter->second;
+		}
+	}
+
+	return Descriptor();
+}
+
+Descriptor RenderDevice::GetDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/, std::optional<UINT> ArraySize /*= {}*/) const
+{
+	if (auto iter = m_RenderTextures.find(RenderResourceHandle);
+		iter != m_RenderTextures.end())
+	{
+		auto& renderTexture = iter->second;
+
+		UINT64 HashValue = DepthStencilDescriptorHeap::GetHashValue(DepthStencilDescriptorHeap::GetDepthStencilViewDesc(renderTexture.pTexture, ArraySlice, MipSlice, ArraySize));
+		if (auto dsvIter = renderTexture.DepthStencilViews.find(HashValue);
+			dsvIter != renderTexture.DepthStencilViews.end())
+		{
+			return dsvIter->second;
+		}
+	}
+
+	return Descriptor();
+}
+
+void RenderDevice::AddStandardShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy)
+{
 	// RenderPassDataCB
-	RootSignatureProxy.AddRootCBVParameter(1, 100);
+	RootSignatureProxy.AddRootCBVParameter(RootCBV(0, 100));
 
-	// Descriptor table for unbound descriptors
-	RootSignatureProxy.AddRootDescriptorTableParameter(std::vector<D3D12_DESCRIPTOR_RANGE1>(m_StandardShaderLayoutDescriptorRanges.begin(), m_StandardShaderLayoutDescriptorRanges.end()));
+	// Descriptor Tables
+	constexpr D3D12_DESCRIPTOR_RANGE_FLAGS flag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-	// Static Samplers
-	RootSignatureProxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16); // PointWrap
-	RootSignatureProxy.AddStaticSampler(1, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16); // PointClamp
-	RootSignatureProxy.AddStaticSampler(2, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16); // LinearWrap
-	RootSignatureProxy.AddStaticSampler(3, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16); // LinearClamp
-	RootSignatureProxy.AddStaticSampler(4, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16); // AnisotropicClamp
-	RootSignatureProxy.AddStaticSampler(5, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16); // AnisotropicLinearClamp
-	RootSignatureProxy.AddStaticSampler(6, D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 16, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK); // Shadow
+	// ShaderResource
+	RootDescriptorTable ShaderResource;
+	ShaderResource.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, flag, 0)); // Texture2DTable
+	ShaderResource.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, flag, 0)); // Texture2DArrayTable
+	ShaderResource.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 102, flag, 0)); // TextureCubeTable
+	ShaderResource.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 103, flag, 0)); // RawBufferTable
+	RootSignatureProxy.AddRootDescriptorTableParameter(ShaderResource);
+
+	// UnorderedAccess
+	RootDescriptorTable UnorderedAccess;
+	UnorderedAccess.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, flag, 0)); // RWTexture2DTable
+	UnorderedAccess.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, flag, 0)); // RWTexture2DArrayTable
+	RootSignatureProxy.AddRootDescriptorTableParameter(UnorderedAccess);
+
+	// Sampler
+	RootDescriptorTable Sampler;
+	Sampler.AddDescriptorRange(DescriptorRange::Type::Sampler, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, flag, 0)); // SamplerTable
+	RootSignatureProxy.AddRootDescriptorTableParameter(Sampler);
 }

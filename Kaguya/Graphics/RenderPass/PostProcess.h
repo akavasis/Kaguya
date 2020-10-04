@@ -34,7 +34,6 @@ public:
 		struct Tonemapping
 		{
 			float Exposure = 0.5f;
-			float Gamma = 2.2f;
 		} Tonemapping;
 	};
 
@@ -44,13 +43,14 @@ protected:
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
 	virtual void RenderGui() override;
-	virtual void Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext) override;
+	virtual void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
 	virtual void StateRefresh() override;
 private:
-	void Blur(size_t Input, size_t Output, ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext);
-	void UpsampleBlur(size_t HighResolution, size_t LowResolution, size_t Output, ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext);
-	void ApplyBloom(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext);
-	void ApplyTonemappingToSwapChain(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext);
+	void ApplyBloom(RenderContext& RenderContext, RenderGraph* pRenderGraph);
+	void ApplyTonemappingToSwapChain(RenderContext& RenderContext, RenderGraph* pRenderGraph);
+
+	void Blur(size_t Input, size_t Output, RenderContext& RenderContext);
+	void UpsampleBlurAccumulation(size_t HighResolution, size_t LowResolution, size_t Output, RenderContext& RenderContext);
 
 	SSettings Settings;
 };

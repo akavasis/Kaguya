@@ -7,6 +7,8 @@ PipelineState::PipelineState(PipelineStateProxy& Proxy)
 	: m_Type(Proxy.m_Type)
 {
 	Proxy.Link();
+
+	pRootSignature = Proxy.pRootSignature;
 }
 
 GraphicsPipelineState::GraphicsPipelineState(const Device* pDevice, GraphicsPipelineStateProxy& Proxy)

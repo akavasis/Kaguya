@@ -51,7 +51,7 @@ Renderer::Renderer(const Application& Application, Window& Window)
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 		m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
-		m_RenderDevice.CreateRTV(m_RenderDevice.SwapChainTextures[i], m_RenderDevice.SwapChainRenderTargetViews[i], {}, {}, {});
+		m_RenderDevice.CreateRTV(m_RenderDevice.SwapChainTextures[i]);
 	}
 }
 
@@ -76,18 +76,28 @@ void Renderer::SetScene(Scene* pScene)
 
 	// Create texture srvs
 	{
-		const std::size_t numSRVsToAllocate = m_GpuScene.GpuTextureAllocator.GetNumTextures();
-		m_RenderDevice.TextureShaderResourceViews = m_RenderDevice.DescriptorAllocator.AllocateSRDescriptors(numSRVsToAllocate);
+		//for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
+		//{
+		//	auto handle = m_GpuScene.GpuTextureAllocator.RendererReseveredTextures[i];
+		//	m_RenderDevice.CreateSRV(handle);
+		//}
 
-		for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
+		for (auto iter = m_GpuScene.GpuTextureAllocator.TextureHandles.begin(); iter != m_GpuScene.GpuTextureAllocator.TextureHandles.end(); ++iter)
 		{
-			auto handle = m_GpuScene.GpuTextureAllocator.RendererReseveredTextures[i];
-			m_RenderDevice.CreateSRV(handle, m_RenderDevice.TextureShaderResourceViews[i]);
+			m_RenderDevice.CreateSRV(iter->second);
 		}
 
-		for (auto iter = m_GpuScene.GpuTextureAllocator.TextureStorage.TextureIndices.begin(); iter != m_GpuScene.GpuTextureAllocator.TextureStorage.TextureIndices.end(); ++iter)
+		// Update material's gpu texture index
+		for (auto& material : m_GpuScene.pScene->Materials)
 		{
-			m_RenderDevice.CreateSRV(m_GpuScene.GpuTextureAllocator.TextureStorage.TextureHandles[iter->first], m_RenderDevice.TextureShaderResourceViews[iter->second]);
+			for (unsigned int i = 0; i < NumTextureTypes; ++i)
+			{
+				if (auto iter = m_GpuScene.GpuTextureAllocator.TextureHandles.find(material.Textures[i].Path.generic_string());
+					iter != m_GpuScene.GpuTextureAllocator.TextureHandles.end())
+				{
+					material.TextureIndices[i] = m_RenderDevice.GetSRV(iter->second).HeapIndex;
+				}
+			}
 		}
 	}
 
@@ -220,7 +230,7 @@ void Renderer::Resize(UINT Width, UINT Height)
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 			m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
-			m_RenderDevice.CreateRTV(m_RenderDevice.SwapChainTextures[i], m_RenderDevice.SwapChainRenderTargetViews[i], {}, {}, {});
+			m_RenderDevice.CreateRTV(m_RenderDevice.SwapChainTextures[i]);
 		}
 
 		// Reset back buffer index

@@ -43,12 +43,23 @@ void Accumulation::RenderGui()
 
 }
 
-void Accumulation::Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
+void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(pCommandContext->GetD3DCommandList(), L"Accumulation");
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Accumulation");
 
-	auto pPathtracingRenderPass = ResourceRegistry.GetRenderPass<Pathtracing>();
+	auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
 	//auto pRaytraceGBufferRenderPass = ResourceRegistry.GetRenderPass<RaytraceGBuffer>();
+	//size_t srv = ResourceRegistry.GetShaderResourceDescriptorIndex(pRaytraceGBufferRenderPass->Resources[pRaytraceGBufferRenderPass->GetSettings().GBuffer]);
+
+	struct AccumulationData
+	{
+		uint InputIndex;
+		uint OutputIndex;
+	} Data;
+
+	Data.InputIndex = RenderContext.GetSRV(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]).HeapIndex;
+	Data.OutputIndex = RenderContext.GetUAV(Resources[EResources::RenderTarget]).HeapIndex;
+	RenderContext.UpdateRenderPassData<AccumulationData>(Data);
 
 	// If the camera has moved
 	if (/*pRaytraceGBufferRenderPass->GetSettings().GBuffer != LastGBuffer ||*/
@@ -63,31 +74,22 @@ void Accumulation::Execute(ResourceRegistry& ResourceRegistry, CommandContext* p
 		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 	}
 
-	auto pOutput = ResourceRegistry.GetTexture(Resources[EResources::RenderTarget]);
-
-	pCommandContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
+	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);
 
 	// Bind Pipeline
-	pCommandContext->SetPipelineState(ResourceRegistry.GetComputePSO(ComputePSOs::Accumulation));
-	pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::Raytracing::Accumulation));
+	RenderContext.SetPipelineState(ComputePSOs::Accumulation);
 
 	// Bind Resources
-	// + 1 for the constant buffer offset
-	//size_t srv = ResourceRegistry.GetShaderResourceDescriptorIndex(pRaytraceGBufferRenderPass->Resources[pRaytraceGBufferRenderPass->GetSettings().GBuffer + 1]);
-	size_t srv = ResourceRegistry.GetShaderResourceDescriptorIndex(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);
-	size_t uav = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::RenderTarget]);
 	struct
 	{
 		unsigned int AccumulationCount;
 	} AccumulationSettings;
 	AccumulationSettings.AccumulationCount = Settings.AccumulationCount++;
-	pCommandContext->SetComputeRoot32BitConstants(0, 1, &AccumulationSettings, 0);
-	pCommandContext->SetComputeRootDescriptorTable(1, ResourceRegistry.ShaderResourceViews[srv].GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(2, ResourceRegistry.UnorderedAccessViews[uav].GPUHandle);
+	RenderContext->SetComputeRoot32BitConstants(0, 1, &AccumulationSettings, 0);
 
-	pCommandContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 16, 16);
+	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
 
-	pCommandContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::NonPixelShaderResource);
 }
 
 void Accumulation::StateRefresh()

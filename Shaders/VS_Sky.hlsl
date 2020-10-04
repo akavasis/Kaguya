@@ -1,8 +1,7 @@
 #include "HLSLCommon.hlsli"
 
 // Shader layout define and include
-#define ConstantDataType ObjectConstants
-#define RenderPassDataType RenderPassConstants
+#define RenderPassDataType GlobalConstants
 #include "ShaderLayout.hlsli"
 
 struct InputVertex
@@ -24,7 +23,7 @@ OutputVertex main(InputVertex inputVertex)
 	// Transform to Clip/Homogenized space
 	// Set z = w so that z/w = 1 (i.e., skydome always on far plane).
 	output.positionH.xyz = inputVertex.positionL;
-	output.positionH = mul(float4(inputVertex.positionL, 0.0f), RenderPassDataCB.ViewProjection).xyww;
+	output.positionH = mul(float4(inputVertex.positionL, 0.0f), RenderPassData.ViewProjection).xyww;
 	output.textureCoord = inputVertex.positionL;
 	return output;
 }

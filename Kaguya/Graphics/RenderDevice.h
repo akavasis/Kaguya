@@ -1,10 +1,10 @@
 #pragma once
-#include "Core/Delegate.h"
+#include "Template/Pool.h"
 
 #include "AL/D3D12/Device.h"
 #include "AL/D3D12/ShaderCompiler.h"
 #include "AL/D3D12/ResourceStateTracker.h"
-#include "AL/D3D12/DescriptorAllocator.h"
+#include "AL/D3D12/DescriptorHeap.h"
 #include "AL/D3D12/CommandQueue.h"
 #include "AL/D3D12/CommandContext.h"
 #include "AL/D3D12/RaytracingAccelerationStructure.h"
@@ -18,12 +18,8 @@
 
 #include "RenderResourceContainer.h"
 
-// Standard Shader Layout is added after Configurator call
-struct StandardShaderLayoutOptions
-{
-	BOOL InitConstantDataTypeAsRootConstants;
-	UINT Num32BitValues;
-};
+#include "RenderBuffer.h"
+#include "RenderTexture.h"
 
 struct RaytracingAccelerationStructureHandles
 {
@@ -40,25 +36,21 @@ struct RaytracingAccelerationStructureHandles
 class RenderDevice
 {
 public:
-	enum 
-	{ 
-		NumSwapChainBuffers = 3 
+	enum
+	{
+		NumSwapChainBuffers = 3,
+		NumDescriptorsPerRange = 2048
 	};
 
 	RenderDevice(IDXGIAdapter4* pAdapter);
-	~RenderDevice();
 
 	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
-	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext) const;
-	auto GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart() const
-	{
-		return DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::ShaderResource).GPUHandle;
-	}
-	auto GetUniversalGpuDescriptorHeapUAVDescriptorHandleFromStart() const
-	{
-		return DescriptorAllocator.GetUniversalGpuDescriptorHeap()->GetRangeHandleFromStart(CBSRUADescriptorHeap::RangeType::UnorderedAccess).GPUHandle;
-	}
+	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext);
+	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_CBSRUADescriptorHeap.GetCBDescriptorAt(0); }
+	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_CBSRUADescriptorHeap.GetSRDescriptorAt(0); }
+	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_CBSRUADescriptorHeap.GetUADescriptorAt(0); }
+	inline auto GetSamplerDescriptorHeapDescriptorFromStart() const { return m_SamplerDescriptorHeap.GetDescriptorFromStart(); }
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
 	// Shader compilation
@@ -66,28 +58,28 @@ public:
 	[[nodiscard]] Library CompileLibrary(const std::filesystem::path& Path);
 
 	// Resource creation
-	[[nodiscard]] RenderResourceHandle CreateBuffer(Delegate<void(BufferProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(BufferProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateBuffer(std::function<void(BufferProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator);
 
 	[[nodiscard]] RenderResourceHandle CreateTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
-	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, Delegate<void(TextureProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, Delegate<void(TextureProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator);
 
-	[[nodiscard]] RenderResourceHandle CreateHeap(Delegate<void(HeapProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateHeap(std::function<void(HeapProxy&)> Configurator);
 
 	// If pOptions is not null, AppendStandardShaderLayoutRootParameter will be called after Configurator
-	[[nodiscard]] RenderResourceHandle CreateRootSignature(StandardShaderLayoutOptions* pOptions, Delegate<void(RootSignatureProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(Delegate<void(GraphicsPipelineStateProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(Delegate<void(ComputePipelineStateProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateRaytracingPipelineState(Delegate<void(RaytracingPipelineStateProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateRootSignature(std::function<void(RootSignatureProxy&)> Configurator, bool AddShaderLayoutRootParameters = true);
+	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(std::function<void(GraphicsPipelineStateProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(std::function<void(ComputePipelineStateProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateRaytracingPipelineState(std::function<void(RaytracingPipelineStateProxy&)> Configurator);
 
 	void Destroy(RenderResourceHandle* pRenderResourceHandle);
 
 	// Resource view creation
-	void CreateSRV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
-	void CreateUAV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
-	void CreateRTV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
-	void CreateDSV(RenderResourceHandle RenderResourceHandle, Descriptor DestDescriptor, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	void CreateSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
+	void CreateUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
+	void CreateRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	void CreateDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 
 	// Returns nullptr if a resource is not found
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) { return m_Buffers.GetResource(RenderResourceHandle); }
@@ -98,35 +90,50 @@ public:
 	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle) { return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
 
+	Descriptor GetSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const;
+	Descriptor GetUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;
+	Descriptor GetRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
+	Descriptor GetDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
+
 	Device Device;
 	CommandQueue GraphicsQueue;
 	CommandQueue ComputeQueue;
 	CommandQueue CopyQueue;
 	ResourceStateTracker GlobalResourceStateTracker;
-	DescriptorAllocator DescriptorAllocator;
+
 	UINT FrameIndex;
 	RenderResourceHandle SwapChainTextures[NumSwapChainBuffers];
-	DescriptorAllocation SwapChainRenderTargetViews;
-
-	DescriptorAllocation TextureShaderResourceViews;
 
 	CommandContext* pUploadCommandContext;
 private:
-	void AppendStandardShaderLayoutRootParameter(StandardShaderLayoutOptions* pOptions, RootSignatureProxy& RootSignatureProxy);
+	void AddStandardShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
+
+	struct DescriptorTables
+	{
+		enum ShaderResource
+		{
+			Texture2DTable,
+			Texture2DArrayTable,
+			TextureCubeTable,
+			RawBufferTable,
+			NumSRDescriptorTables
+		};
+
+		enum UnorderedAccess
+		{
+			RWTexture2DTable,
+			NumUADescriptorTables
+		};
+
+		enum Sampler
+		{
+			SamplerTable,
+			NumSamplerDescriptorTables
+		};
+	};
 
 	ShaderCompiler m_ShaderCompiler;
 	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[CommandContext::NumTypes];
-
-	enum DescriptorRanges
-	{
-		Tex2DTableRange,
-		Tex2DArrayTableRange,
-		TexCubeTableRange,
-		RawBufferTableRange,
-
-		NumDescriptorRanges
-	};
-	std::array<D3D12_DESCRIPTOR_RANGE1, std::size_t(DescriptorRanges::NumDescriptorRanges)> m_StandardShaderLayoutDescriptorRanges;
 
 	RenderResourceContainer<RenderResourceType::Buffer, Buffer> m_Buffers;
 	RenderResourceContainer<RenderResourceType::Texture, Texture> m_Textures;
@@ -136,4 +143,19 @@ private:
 	RenderResourceContainer<RenderResourceType::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
 	RenderResourceContainer<RenderResourceType::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
 	RenderResourceContainer<RenderResourceType::RaytracingPSO, RaytracingPipelineState> m_RaytracingPipelineStates;
+
+	CBSRUADescriptorHeap m_CBSRUADescriptorHeap;
+	SamplerDescriptorHeap m_SamplerDescriptorHeap;
+	RenderTargetDescriptorHeap m_RenderTargetDescriptorHeap;
+	DepthStencilDescriptorHeap m_DepthStencilDescriptorHeap;
+
+	Pool<void, NumDescriptorsPerRange> m_ConstantBufferDescriptorIndexPool;
+	Pool<void, NumDescriptorsPerRange> m_ShaderResourceDescriptorIndexPool;
+	Pool<void, NumDescriptorsPerRange> m_UnorderedAccessDescriptorIndexPool;
+	Pool<void, NumDescriptorsPerRange> m_SamplerDescriptorIndexPool;
+	Pool<void, NumDescriptorsPerRange> m_RenderTargetDescriptorIndexPool;
+	Pool<void, NumDescriptorsPerRange> m_DepthStencilDescriptorIndexPool;
+
+	std::unordered_map<RenderResourceHandle, RenderBuffer> m_RenderBuffers;
+	std::unordered_map<RenderResourceHandle, RenderTexture> m_RenderTextures;
 };

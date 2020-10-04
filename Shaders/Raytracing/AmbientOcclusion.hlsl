@@ -1,5 +1,16 @@
 #include "Global.hlsli"
 
+struct AmbientOcclusionData
+{
+	GlobalConstants GlobalConstants;
+	int InputWorldPositionIndex;
+	int InputWorldNormalIndex;
+	int OutputIndex;
+};
+
+#define RenderPassDataType AmbientOcclusionData
+#include "../ShaderLayout.hlsli"
+
 struct AORayPayload
 {
 	float Visibility;
@@ -13,10 +24,6 @@ enum RayType
 
 static const uint NumAORays = 10;
 static const float AORadius = 1.0f;
-
-RWTexture2D<float4> RenderTarget : register(u0, space0);
-Texture2D<float4> WorldPosition : register(t0, space5);
-Texture2D<float4> WorldNormal : register(t1, space5);
 
 float TraceAmbientOcclusionRay(float3 origin, float tMin, float3 direction, float tMax)
 {
@@ -38,8 +45,11 @@ void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassData.GlobalConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
+	Texture2D WorldPosition = Texture2DTable[RenderPassData.InputWorldPositionIndex];
+	Texture2D WorldNormal = Texture2DTable[RenderPassData.InputWorldNormalIndex];
+
 	float4 worldPosition = WorldPosition[launchIndex];
 	float4 worldNormal = WorldNormal[launchIndex];
 	
@@ -57,6 +67,8 @@ void RayGeneration()
 	occlusionSum /= NumAORays;
 	
 	float access = 1.0f - occlusionSum;
+
+	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.OutputIndex];
 	RenderTarget[launchIndex] = float4(access, access, access, 1.0f);
 }
 

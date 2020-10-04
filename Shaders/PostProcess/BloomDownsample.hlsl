@@ -1,13 +1,14 @@
 cbuffer Settings : register(b0)
 {
 	float2 InverseOutputSize;
+	uint BloomIndex;
+	uint Output1Index;
+	uint Output2Index;
+	uint Output3Index;
+	uint Output4Index;
 };
 
-Texture2D Bloom : register(t0);
-RWTexture2D<float4> Output1 : register(u0);
-RWTexture2D<float4> Output2 : register(u1);
-RWTexture2D<float4> Output3 : register(u2);
-RWTexture2D<float4> Output4 : register(u3);
+#include "../ShaderLayout.hlsli"
 
 SamplerState BiLinearClamp : register(s0);
 
@@ -16,6 +17,12 @@ groupshared float4 g_Tile[64]; // 8x8 input pixels
 [numthreads(8, 8, 1)]
 void main(uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID)
 {
+	Texture2D Bloom = Texture2DTable[BloomIndex];
+	RWTexture2D<float4> Output1 = RWTexture2DTable[Output1Index];
+	RWTexture2D<float4> Output2 = RWTexture2DTable[Output2Index];
+	RWTexture2D<float4> Output3 = RWTexture2DTable[Output3Index];
+	RWTexture2D<float4> Output4 = RWTexture2DTable[Output4Index];
+
     // You can tell if both x and y are divisible by a power of two with this value
 	uint parity = DTid.x | DTid.y;
 

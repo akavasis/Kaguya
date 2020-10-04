@@ -1,5 +1,14 @@
 #include "Global.hlsli"
 
+struct PathtracingData
+{
+	GlobalConstants GlobalConstants;
+	uint OutputIndex;
+};
+
+#define RenderPassDataType PathtracingData
+#include "../ShaderLayout.hlsli"
+
 // Hit information, aka ray payload
 // Note that the payload should be kept as small as possible,
 // and that its size must be declared in the corresponding
@@ -126,14 +135,12 @@ struct DiffuseLight
 	}
 };
 
-RWTexture2D<float4> RenderTarget : register(u0, space0);
-
 [shader("raygeneration")]
 void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassDataCB.TotalFrameCount) * uint(26699)) | uint(1);
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassData.GlobalConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
 	// Calculate subpixel camera jitter for anti aliasing
 	const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
@@ -142,7 +149,7 @@ void RayGeneration()
 	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 	
 	// Initialize ray
-	RayDesc ray = GenerateCameraRay(ndc, seed);
+	RayDesc ray = GenerateCameraRay(ndc, seed, RenderPassData.GlobalConstants);
 	// Initialize payload
 	RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
 	// Trace the ray
@@ -153,13 +160,15 @@ void RayGeneration()
 	const uint missShaderIndex = RayTypePrimary;
 	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 	
+	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.OutputIndex];
 	RenderTarget[launchIndex] = float4(rayPayload.Radiance, 1.0f);
 }
 
 [shader("miss")]
 void Miss(inout RayPayload rayPayload)
 {
-	rayPayload.Radiance += TexCubeTable[RenderPassDataCB.RadianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
+	//rayPayload.Radiance += TexCubeTable[RenderPassData.GlobalConstants.RadianceCubemapIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
+	rayPayload.Radiance = float3(0.0f, 0.0f, 0.0f);
 }
 
 [shader("closesthit")]
@@ -218,7 +227,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	rayPayload.Throughput *= attentuation;
 	
 	// Path trace
-	if (rayPayload.Depth + 1 < RenderPassDataCB.MaxDepth)
+	if (rayPayload.Depth + 1 < RenderPassData.GlobalConstants.MaxDepth)
 	{
 		rayPayload.Depth = rayPayload.Depth + 1;
 		

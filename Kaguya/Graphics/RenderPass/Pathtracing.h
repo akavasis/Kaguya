@@ -9,7 +9,6 @@ class Pathtracing : public RenderPass
 public:
 	enum EResources
 	{
-		ConstantBuffer,
 		RenderTarget,
 		NumResources
 	};
@@ -25,7 +24,7 @@ protected:
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
 	virtual void RenderGui() override;
-	virtual void Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext) override;
+	virtual void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
 	virtual void StateRefresh() override;
 private:
 	SSettings Settings;

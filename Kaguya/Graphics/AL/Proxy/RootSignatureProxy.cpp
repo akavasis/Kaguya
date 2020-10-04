@@ -6,67 +6,42 @@ RootSignatureProxy::RootSignatureProxy()
 	m_Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 }
 
-void RootSignatureProxy::AddRootConstantsParameter(UINT ShaderRegister, UINT RegisterSpace, UINT Num32BitValues, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility)
+void RootSignatureProxy::AddRootDescriptorTableParameter(const RootDescriptorTable& RootDescriptorTable)
 {
-	CD3DX12_ROOT_PARAMETER1 parameter = {};
-	parameter.InitAsConstants(Num32BitValues, ShaderRegister, RegisterSpace, ShaderVisibility.value_or(D3D12_SHADER_VISIBILITY_ALL));
-
 	// Add the root parameter to the set of parameters,
-	m_Parameters.push_back(parameter);
-	// and indicate that there will be no range
-	// location to indicate since this parameter is not part of the heap
-	m_DescriptorRangeIndices.push_back(~0);
-}
-
-void RootSignatureProxy::AddRootCBVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility)
-{
-	CD3DX12_ROOT_PARAMETER1 parameter = {};
-	parameter.InitAsConstantBufferView(ShaderRegister, RegisterSpace, Flags.value_or(D3D12_ROOT_DESCRIPTOR_FLAG_NONE), ShaderVisibility.value_or(D3D12_SHADER_VISIBILITY_ALL));
-
-	// Add the root parameter to the set of parameters,
-	m_Parameters.push_back(parameter);
-	// and indicate that there will be no range
-	// location to indicate since this parameter is not part of the heap
-	m_DescriptorRangeIndices.push_back(~0);
-}
-
-void RootSignatureProxy::AddRootSRVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility)
-{
-	CD3DX12_ROOT_PARAMETER1 parameter = {};
-	parameter.InitAsShaderResourceView(ShaderRegister, RegisterSpace, Flags.value_or(D3D12_ROOT_DESCRIPTOR_FLAG_NONE), ShaderVisibility.value_or(D3D12_SHADER_VISIBILITY_ALL));
-
-	// Add the root parameter to the set of parameters,
-	m_Parameters.push_back(parameter);
-	// and indicate that there will be no range
-	// location to indicate since this parameter is not part of the heap
-	m_DescriptorRangeIndices.push_back(~0);
-}
-
-void RootSignatureProxy::AddRootUAVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility)
-{
-	CD3DX12_ROOT_PARAMETER1 parameter = {};
-	parameter.InitAsUnorderedAccessView(ShaderRegister, RegisterSpace, Flags.value_or(D3D12_ROOT_DESCRIPTOR_FLAG_NONE), ShaderVisibility.value_or(D3D12_SHADER_VISIBILITY_ALL));
-
-	// Add the root parameter to the set of parameters,
-	m_Parameters.push_back(parameter);
-	// and indicate that there will be no range
-	// location to indicate since this parameter is not part of the heap
-	m_DescriptorRangeIndices.push_back(~0);
-}
-
-void RootSignatureProxy::AddRootDescriptorTableParameter(std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility)
-{
-	CD3DX12_ROOT_PARAMETER1 parameter = {};
-	// The range pointer is kept null here, and will be resolved when generating the root signature
-	parameter.InitAsDescriptorTable(Ranges.size(), nullptr, ShaderVisibility.value_or(D3D12_SHADER_VISIBILITY_ALL));
-
-	// Add the root parameter to the set of parameters,
-	m_Parameters.push_back(parameter);
+	m_Parameters.push_back(RootDescriptorTable.GetD3DRootParameter());
 	// The descriptor table descriptor ranges require a pointer to the descriptor ranges. Since new
 	// ranges can be dynamically added in the vector, we separately store the index of the range set.
 	// The actual address will be solved when generating the actual root signature
 	m_DescriptorRangeIndices.push_back(m_DescriptorRanges.size());
-	m_DescriptorRanges.push_back(std::move(Ranges));
+	m_DescriptorRanges.push_back(RootDescriptorTable.GetDescriptorRanges());
+}
+
+void RootSignatureProxy::AddRootCBVParameter(const RootCBV& RootCBV)
+{
+	// Add the root parameter to the set of parameters,
+	m_Parameters.push_back(RootCBV.GetD3DRootParameter());
+	// and indicate that there will be no range
+	// location to indicate since this parameter is not part of the heap
+	m_DescriptorRangeIndices.push_back(~0);
+}
+
+void RootSignatureProxy::AddRootSRVParameter(const RootSRV& RootSRV)
+{
+	// Add the root parameter to the set of parameters,
+	m_Parameters.push_back(RootSRV.GetD3DRootParameter());
+	// and indicate that there will be no range
+	// location to indicate since this parameter is not part of the heap
+	m_DescriptorRangeIndices.push_back(~0);
+}
+
+void RootSignatureProxy::AddRootUAVParameter(const RootUAV& RootUAV)
+{
+	// Add the root parameter to the set of parameters,
+	m_Parameters.push_back(RootUAV.GetD3DRootParameter());
+	// and indicate that there will be no range
+	// location to indicate since this parameter is not part of the heap
+	m_DescriptorRangeIndices.push_back(~0);
 }
 
 void RootSignatureProxy::AddStaticSampler(UINT ShaderRegister,

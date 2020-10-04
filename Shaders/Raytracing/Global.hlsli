@@ -10,9 +10,6 @@ StructuredBuffer<uint> IndexBuffer                              : register(t2, s
 StructuredBuffer<GeometryInfo> GeometryInfoBuffer               : register(t3, space0);
 StructuredBuffer<Material> Materials							: register(t4, space0);
 
-#define RenderPassDataType RenderPassConstants
-#include "../ShaderLayout.hlsli"
-
 Triangle GetTriangle()
 {
 	GeometryInfo info = GeometryInfoBuffer[InstanceID()];
@@ -72,20 +69,20 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib)
 	return si;
 }
 
-RayDesc GenerateCameraRay(in float2 ndc, inout uint seed)
+RayDesc GenerateCameraRay(in float2 ndc, inout uint seed, in GlobalConstants globalConstants)
 {
-	float3 direction = ndc.x * RenderPassDataCB.CameraU + ndc.y * RenderPassDataCB.CameraV + RenderPassDataCB.CameraW;
+	float3 direction = ndc.x * globalConstants.CameraU + ndc.y * globalConstants.CameraV + globalConstants.CameraW;
 	
 	// Find the focal point for this pixel
-	direction /= length(RenderPassDataCB.CameraW); // Make ray have length 1 along the camera's w-axis.
-	float3 focalPoint = RenderPassDataCB.EyePosition + RenderPassDataCB.FocalLength * direction; // Select point on ray a distance FocalLength along the w-axis
+	direction /= length(globalConstants.CameraW); // Make ray have length 1 along the camera's w-axis.
+	float3 focalPoint = globalConstants.EyePosition + globalConstants.FocalLength * direction; // Select point on ray a distance FocalLength along the w-axis
 	
 	// Get random numbers (in polar coordinates), convert to random cartesian uv on the lens
-	float2 rnd = float2(s_2PI * RandomFloat01(seed), RenderPassDataCB.LensRadius * RandomFloat01(seed));
+	float2 rnd = float2(s_2PI * RandomFloat01(seed), globalConstants.LensRadius * RandomFloat01(seed));
 	float2 uv = float2(cos(rnd.x) * rnd.y, sin(rnd.x) * rnd.y);
 
 	// Use uv coordinate to compute a random origin on the camera lens
-	float3 origin = RenderPassDataCB.EyePosition + uv.x * normalize(RenderPassDataCB.CameraU) + uv.y * normalize(RenderPassDataCB.CameraV);
+	float3 origin = globalConstants.EyePosition + uv.x * normalize(globalConstants.CameraU) + uv.y * normalize(globalConstants.CameraV);
 	direction = normalize(focalPoint - origin);
 	
 	RayDesc ray = { origin, 0.0f, direction, 1e+38f };

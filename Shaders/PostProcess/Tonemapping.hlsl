@@ -1,10 +1,11 @@
 cbuffer Settings : register(b0)
 {
 	float Exposure;
-	float Gamma;
+	uint InputIndex;
 };
 
-Texture2D Input : register(t0);
+// Shader layout define and include
+#include "../ShaderLayout.hlsli"
 
 // ACES tone mapping curve fit to go from HDR to LDR
 //https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
@@ -55,6 +56,8 @@ struct VSInput
 };
 float4 main(VSInput VSInput) : SV_TARGET
 {
+	Texture2D Input = Texture2DTable[InputIndex];
+	
 	uint2 pixel = uint2(VSInput.Position.xy + 0.5f);
 	
 	float3 color = Input[pixel].rgb;

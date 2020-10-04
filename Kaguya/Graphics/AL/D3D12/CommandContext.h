@@ -27,7 +27,7 @@ public:
 	inline auto GetType() const { return m_Type; }
 
 	void SetPipelineState(const PipelineState* pPipelineState);
-	void SetDescriptorHeaps(const CBSRUADescriptorHeap* pCBSRUADescriptorHeap, const SamplerDescriptorHeap* pSamplerDescriptorHeap);
+	void SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorHeap, SamplerDescriptorHeap* pSamplerDescriptorHeap);
 
 	void TransitionBarrier(Resource* pResource, Resource::State TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 	void AliasingBarrier(Resource* pBeforeResource, Resource* pAfterResource);

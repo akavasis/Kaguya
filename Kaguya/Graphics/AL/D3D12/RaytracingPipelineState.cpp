@@ -24,6 +24,7 @@ RootSignatureAssociation::RootSignatureAssociation(const RootSignature* pRootSig
 RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, RaytracingPipelineStateProxy& Proxy)
 {
 	Proxy.Link();
+	pGlobalRootSignature = Proxy.m_pGlobalRootSignature;
 
 	CD3DX12_STATE_OBJECT_DESC desc(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
 

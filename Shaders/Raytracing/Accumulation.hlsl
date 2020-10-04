@@ -3,15 +3,24 @@ cbuffer Settings : register(b0)
 	unsigned int AccumulationCount;
 };
 
-Texture2D<float4> Input : register(t0);
-RWTexture2D<float4> Output : register(u0);
+struct AccumulationData
+{
+	uint InputIndex;
+	uint OutputIndex;
+};
+
+// Shader layout define and include
+#define RenderPassDataType AccumulationData
+#include "../ShaderLayout.hlsli"
 
 [numthreads(16, 16, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
+	Texture2D Input = Texture2DTable[RenderPassData.InputIndex];
+	RWTexture2D<float4> Output = RWTexture2DTable[RenderPassData.OutputIndex];
+
 	float4 current = Input[DTid.xy]; // Current path tracer result
 	float4 prev = Output[DTid.xy]; // Previous path tracer output
-	float4 color = lerp(prev, current, 1.0f / float(AccumulationCount + 1)); // accumulate
 	
-	Output[DTid.xy] = color;
+	Output[DTid.xy] = lerp(prev, current, 1.0f / float(AccumulationCount + 1)); // accumulate
 }

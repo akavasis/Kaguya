@@ -25,18 +25,34 @@ public:
 	friend class RootSignature;
 	RootSignatureProxy();
 
-	void AddRootConstantsParameter(UINT ShaderRegister, UINT RegisterSpace, UINT Num32BitValues, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
+	void AddRootDescriptorTableParameter(const RootDescriptorTable& RootDescriptorTable);
 	template<typename T>
-	void AddRootConstantsParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {})
+	void AddRootConstantsParameter(const RootConstants<T>& RootConstants)
 	{
 		static_assert(std::is_trivially_copyable<T>::value, "typename T must be trivially copyable!");
 		static_assert(sizeof(T) % 4 == 0, "typename T must be 4 byte aligned");
-		AddRootConstantsParameter(ShaderRegister, RegisterSpace, sizeof(T) / 4, ShaderVisibility);
+
+		// Add the root parameter to the set of parameters,
+		m_Parameters.push_back(RootConstants.GetD3DRootParameter());
+
+		// and indicate that there will be no range
+		// location to indicate since this parameter is not part of the heap
+		m_DescriptorRangeIndices.push_back(~0);
 	}
-	void AddRootCBVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
-	void AddRootSRVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
-	void AddRootUAVParameter(UINT ShaderRegister, UINT RegisterSpace, std::optional<D3D12_ROOT_DESCRIPTOR_FLAGS> Flags = {}, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
-	void AddRootDescriptorTableParameter(std::vector<D3D12_DESCRIPTOR_RANGE1> Ranges, std::optional<D3D12_SHADER_VISIBILITY> ShaderVisibility = {});
+	template<>
+	void AddRootConstantsParameter(const RootConstants<void>& RootConstants)
+	{
+		// Add the root parameter to the set of parameters,
+		m_Parameters.push_back(RootConstants.GetD3DRootParameter());
+
+		// and indicate that there will be no range
+		// location to indicate since this parameter is not part of the heap
+		m_DescriptorRangeIndices.push_back(~0);
+	}
+
+	void AddRootCBVParameter(const RootCBV& RootCBV);
+	void AddRootSRVParameter(const RootSRV& RootSRV);
+	void AddRootUAVParameter(const RootUAV& RootUAV);
 
 	// Register Space: space0
 	void AddStaticSampler(UINT ShaderRegister,

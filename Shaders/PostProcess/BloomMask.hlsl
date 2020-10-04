@@ -2,10 +2,11 @@ cbuffer Settings : register(b0)
 {
 	float2 InverseOutputSize;
 	float Threshold;
+	uint InputIndex;
+	uint OutputIndex;
 };
 
-Texture2D Input : register(t0);
-RWTexture2D<float4> Output : register(u0);
+#include "../ShaderLayout.hlsli"
 
 SamplerState BiLinearClamp : register(s0);
 
@@ -19,6 +20,9 @@ float RGBToLuminance(float3 x)
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
+	Texture2D Input = Texture2DTable[InputIndex];
+	RWTexture2D<float4> Output = RWTexture2DTable[OutputIndex];
+
 	// We need the scale factor and the size of one pixel so that our four samples are right in the middle
     // of the quadrant they are covering.
 	float2 uv = (DTid.xy + 0.5f) * InverseOutputSize;

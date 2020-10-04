@@ -62,6 +62,8 @@ public:
 	inline auto GetD3DPipelineStateProperties() const { return m_StateObjectProperties.Get(); }
 
 	ShaderIdentifier GetShaderIdentifier(LPCWSTR pExportName);
+
+	const RootSignature* pGlobalRootSignature;
 private:
 	Microsoft::WRL::ComPtr<ID3D12StateObject> m_StateObject;
 	Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> m_StateObjectProperties;

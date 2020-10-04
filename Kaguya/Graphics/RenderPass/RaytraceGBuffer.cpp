@@ -16,14 +16,6 @@ RaytraceGBuffer::~RaytraceGBuffer()
 
 void RaytraceGBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
-	pResourceScheduler->AllocateBuffer([](BufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-
-		proxy.SetStride(Math::AlignUp<UINT64>(sizeof(RenderPassConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-	});
-
 	for (size_t i = 1; i < EResources::NumResources; ++i)
 	{
 		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
@@ -129,90 +121,72 @@ void RaytraceGBuffer::RenderGui()
 	}
 }
 
-void RaytraceGBuffer::Execute(ResourceRegistry& ResourceRegistry, CommandContext* pCommandContext)
+void RaytraceGBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(pCommandContext->GetD3DCommandList(), L"Raytrace GBuffer");
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Raytrace GBuffer");
 
-	auto pConstantBuffer = ResourceRegistry.GetBuffer(Resources[EResources::ConstantBuffer]);
-	pConstantBuffer->Map();
+	struct RaytraceGBufferData
+	{
+		GlobalConstants GlobalConstants;
+		int OutputWorldPositionIndex;
+		int OutputWorldNormalIndex;
+		int OutputMaterialAlbedoIndex;
+		int OutputMaterialEmissiveIndex;
+		int OutputMaterialSpecularIndex;
+		int OutputMaterialRefractionIndex;
+		int OutputMaterialExtraIndex;
+	} Data;
 
-	// Update render pass cbuffer
-	RenderPassConstants renderPassCPU;
-	XMStoreFloat3(&renderPassCPU.CameraU, pGpuScene->pScene->Camera.GetUVector());
-	XMStoreFloat3(&renderPassCPU.CameraV, pGpuScene->pScene->Camera.GetVVector());
-	XMStoreFloat3(&renderPassCPU.CameraW, pGpuScene->pScene->Camera.GetWVector());
-	XMStoreFloat4x4(&renderPassCPU.View, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewMatrix()));
-	XMStoreFloat4x4(&renderPassCPU.Projection, XMMatrixTranspose(pGpuScene->pScene->Camera.ProjectionMatrix()));
-	XMStoreFloat4x4(&renderPassCPU.InvView, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseViewMatrix()));
-	XMStoreFloat4x4(&renderPassCPU.InvProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseProjectionMatrix()));
-	XMStoreFloat4x4(&renderPassCPU.ViewProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewProjectionMatrix()));
-	renderPassCPU.EyePosition = pGpuScene->pScene->Camera.Transform.Position;
-	renderPassCPU.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
+	GlobalConstants globalConstants;
+	XMStoreFloat3(&globalConstants.CameraU, pGpuScene->pScene->Camera.GetUVector());
+	XMStoreFloat3(&globalConstants.CameraV, pGpuScene->pScene->Camera.GetVVector());
+	XMStoreFloat3(&globalConstants.CameraW, pGpuScene->pScene->Camera.GetWVector());
+	XMStoreFloat4x4(&globalConstants.View, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewMatrix()));
+	XMStoreFloat4x4(&globalConstants.Projection, XMMatrixTranspose(pGpuScene->pScene->Camera.ProjectionMatrix()));
+	XMStoreFloat4x4(&globalConstants.InvView, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseViewMatrix()));
+	XMStoreFloat4x4(&globalConstants.InvProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseProjectionMatrix()));
+	XMStoreFloat4x4(&globalConstants.ViewProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewProjectionMatrix()));
+	globalConstants.EyePosition = pGpuScene->pScene->Camera.Transform.Position;
+	globalConstants.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
 
-	renderPassCPU.Sun = pGpuScene->pScene->Sun;
-	renderPassCPU.BRDFLUTMapIndex = GpuTextureAllocator::RendererReseveredTextures::BRDFLUT;
-	renderPassCPU.RadianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxCubemap;
-	renderPassCPU.IrradianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxIrradianceCubemap;
-	renderPassCPU.PrefilteredRadianceCubemapIndex = GpuTextureAllocator::RendererReseveredTextures::SkyboxPrefilteredCubemap;
+	globalConstants.Sun = pGpuScene->pScene->Sun;
 
-	renderPassCPU.MaxDepth = 1;
-	renderPassCPU.FocalLength = pGpuScene->pScene->Camera.FocalLength;
-	renderPassCPU.LensRadius = pGpuScene->pScene->Camera.Aperture;
+	globalConstants.MaxDepth = 1;
+	globalConstants.FocalLength = pGpuScene->pScene->Camera.FocalLength;
+	globalConstants.LensRadius = pGpuScene->pScene->Camera.Aperture;
 
-	pConstantBuffer->Update<RenderPassConstants>(0, renderPassCPU);
+	Data.GlobalConstants = globalConstants;
+	Data.OutputWorldPositionIndex = RenderContext.GetUAV(Resources[EResources::WorldPosition]).HeapIndex;
+	Data.OutputWorldNormalIndex = RenderContext.GetUAV(Resources[EResources::WorldNormal]).HeapIndex;
+	Data.OutputMaterialAlbedoIndex = RenderContext.GetUAV(Resources[EResources::MaterialAlbedo]).HeapIndex;
+	Data.OutputMaterialEmissiveIndex = RenderContext.GetUAV(Resources[EResources::MaterialEmissive]).HeapIndex;
+	Data.OutputMaterialSpecularIndex = RenderContext.GetUAV(Resources[EResources::MaterialSpecular]).HeapIndex;
+	Data.OutputMaterialRefractionIndex = RenderContext.GetUAV(Resources[EResources::MaterialRefraction]).HeapIndex;
+	Data.OutputMaterialExtraIndex = RenderContext.GetUAV(Resources[EResources::MaterialExtra]).HeapIndex;
 
-	auto pWorldPosition = ResourceRegistry.GetTexture(Resources[EResources::WorldPosition]);
-	auto pWorldNormal = ResourceRegistry.GetTexture(Resources[EResources::WorldNormal]);
-	auto pMaterialAlbedo = ResourceRegistry.GetTexture(Resources[EResources::MaterialAlbedo]);
-	auto pMaterialEmissive = ResourceRegistry.GetTexture(Resources[EResources::MaterialEmissive]);
-	auto pMaterialSpecular = ResourceRegistry.GetTexture(Resources[EResources::MaterialSpecular]);
-	auto pMaterialRefraction = ResourceRegistry.GetTexture(Resources[EResources::MaterialRefraction]);
-	auto pMaterialExtra = ResourceRegistry.GetTexture(Resources[EResources::MaterialExtra]);
+	RenderContext.UpdateRenderPassData<RaytraceGBufferData>(Data);
 
-	auto pRayGenerationShaderTable = ResourceRegistry.GetBuffer(m_RayGenerationShaderTable);
-	auto pMissShaderTable = ResourceRegistry.GetBuffer(m_MissShaderTable);
-	auto pHitGroupShaderTable = ResourceRegistry.GetBuffer(m_HitGroupShaderTable);
+	RenderContext.SetPipelineState(RaytracingPSOs::RaytraceGBuffer);
+	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
+	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
+	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
+	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetGeometryInfoTableHandle());
+	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
 
-	auto pRaytracingPipelineState = ResourceRegistry.GetRaytracingPSO(RaytracingPSOs::RaytraceGBuffer);
+	RenderContext.DispatchRays(
+		m_RayGenerationShaderTable,
+		m_MissShaderTable,
+		m_HitGroupShaderTable,
+		Properties.Width,
+		Properties.Height);
 
-	size_t uav = ResourceRegistry.GetUnorderedAccessDescriptorIndex(Resources[EResources::WorldPosition]);
-
-	pCommandContext->SetComputeRootSignature(ResourceRegistry.GetRootSignature(RootSignatures::Raytracing::RaytraceGBuffer::Global));
-
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::GeometryTable, pGpuScene->ShaderResourceViews.GetStartDescriptor().GPUHandle);
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::Raytracing::RenderTarget, ResourceRegistry.UnorderedAccessViews[uav].GPUHandle);
-	pCommandContext->SetComputeRootConstantBufferView(RootParameters::StandardShaderLayout::RenderPassDataCB + RootParameters::Raytracing::NumRootParameters,
-		pConstantBuffer->GetGpuVirtualAddressAt(0));
-	pCommandContext->SetComputeRootDescriptorTable(RootParameters::StandardShaderLayout::DescriptorTables + RootParameters::Raytracing::NumRootParameters,
-		ResourceRegistry.GetUniversalGpuDescriptorHeapSRVDescriptorHandleFromStart());
-
-	D3D12_DISPATCH_RAYS_DESC desc = {};
-
-	desc.RayGenerationShaderRecord.StartAddress = pRayGenerationShaderTable->GetGpuVirtualAddress();
-	desc.RayGenerationShaderRecord.SizeInBytes = pRayGenerationShaderTable->GetMemoryRequested();
-
-	desc.MissShaderTable.StartAddress = pMissShaderTable->GetGpuVirtualAddress();
-	desc.MissShaderTable.SizeInBytes = pMissShaderTable->GetMemoryRequested();
-	desc.MissShaderTable.StrideInBytes = pMissShaderTable->GetStride();
-
-	desc.HitGroupTable.StartAddress = pHitGroupShaderTable->GetGpuVirtualAddress();
-	desc.HitGroupTable.SizeInBytes = pHitGroupShaderTable->GetMemoryRequested();
-	desc.HitGroupTable.StrideInBytes = pHitGroupShaderTable->GetStride();
-
-	desc.Width = Properties.Width;
-	desc.Height = Properties.Height;
-	desc.Depth = 1;
-
-	pCommandContext->SetRaytracingPipelineState(pRaytracingPipelineState);
-	pCommandContext->DispatchRays(&desc);
-
-	pCommandContext->UAVBarrier(pWorldPosition);
-	pCommandContext->UAVBarrier(pWorldNormal);
-	pCommandContext->UAVBarrier(pMaterialAlbedo);
-	pCommandContext->UAVBarrier(pMaterialEmissive);
-	pCommandContext->UAVBarrier(pMaterialSpecular);
-	pCommandContext->UAVBarrier(pMaterialRefraction);
-	pCommandContext->UAVBarrier(pMaterialExtra);
+	RenderContext.UAVBarrier(Resources[EResources::WorldPosition]);
+	RenderContext.UAVBarrier(Resources[EResources::WorldNormal]);
+	RenderContext.UAVBarrier(Resources[EResources::MaterialAlbedo]);
+	RenderContext.UAVBarrier(Resources[EResources::MaterialEmissive]);
+	RenderContext.UAVBarrier(Resources[EResources::MaterialSpecular]);
+	RenderContext.UAVBarrier(Resources[EResources::MaterialRefraction]);
+	RenderContext.UAVBarrier(Resources[EResources::MaterialExtra]);
 }
 
 void RaytraceGBuffer::StateRefresh()

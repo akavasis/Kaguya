@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Handle.h"
+#include "Core/Utility.h"
 
 #define RENDER_RESOURCE_HANDLE_TYPE_BIT_FIELD (size_t(4))
 #define RENDER_RESOURCE_HANDLE_FLAGS_BIT_FIELD (size_t(8))
@@ -28,14 +29,6 @@ DECL_HANDLE(RenderResourceHandle, RenderResourceType, RENDER_RESOURCE_HANDLE_TYP
 
 namespace std
 {
-	// Source: https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x 
-	template <typename T>
-	inline void hash_combine(size_t& seed, const T& v)
-	{
-		std::hash<T> hasher;
-		seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-	}
-
 	template<>
 	struct hash<RenderResourceHandle>
 	{
