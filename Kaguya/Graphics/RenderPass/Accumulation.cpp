@@ -6,7 +6,7 @@
 #include "AmbientOcclusion.h"
 
 Accumulation::Accumulation(UINT Width, UINT Height)
-	: RenderPass(RenderPassType::Graphics,
+	: RenderPass("Accumulation",
 		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
 

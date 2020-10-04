@@ -3,7 +3,7 @@
 #include "../Renderer.h"
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
-	: RenderPass(RenderPassType::Graphics,
+	: RenderPass("Path tracing",
 		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
 
@@ -104,7 +104,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 
 void Pathtracing::RenderGui()
 {
-	if (ImGui::TreeNode("Path Tracing"))
+	if (ImGui::TreeNode("Path tracing"))
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{
@@ -121,7 +121,7 @@ void Pathtracing::RenderGui()
 
 void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Pathtracing");
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Path tracing");
 
 	struct PathtracingData
 	{

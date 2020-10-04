@@ -4,7 +4,7 @@
 #include "Accumulation.h"
 
 PostProcess::PostProcess(UINT Width, UINT Height)
-	: RenderPass(RenderPassType::Graphics,
+	: RenderPass("Post Process",
 		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
 
@@ -59,7 +59,7 @@ void PostProcess::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 
 void PostProcess::RenderGui()
 {
-	if (ImGui::TreeNode("Post Process"))
+	if (ImGui::TreeNode(Name.data()))
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{
@@ -99,6 +99,10 @@ void PostProcess::StateRefresh()
 
 void PostProcess::ApplyBloom(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	/*
+		Bloom PP is based on Microsoft's DirectX-Graphics-Samples's MiniEngine.
+		https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine
+	*/
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom");
 
 	auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
@@ -317,7 +321,7 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 	RenderContext.TransitionBarrier(Resources[Output], Resource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation);
-	
+
 	RenderContext->SetComputeRoot32BitConstants(0, 6, &settings, 0);
 
 	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);

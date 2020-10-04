@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "RendererRegistry.h"
 
+// Render passes
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/RaytraceGBuffer.h"
+#include "RenderPass/AmbientOcclusion.h"
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 

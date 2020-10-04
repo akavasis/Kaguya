@@ -5,7 +5,7 @@
 #include "RaytraceGBuffer.h"
 
 AmbientOcclusion::AmbientOcclusion(UINT Width, UINT Height)
-	: RenderPass(RenderPassType::Graphics,
+	: RenderPass("Ambient Occlusion",
 		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
 
@@ -106,7 +106,20 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 
 void AmbientOcclusion::RenderGui()
 {
-
+	if (ImGui::TreeNode(Name.data()))
+	{
+		int Dirty = 0;
+		if (ImGui::Button("Restore Defaults"))
+		{
+			Settings = SSettings();
+			Refresh = true;
+		}
+		Dirty |= (int)ImGui::DragFloat("AO Radius", &Settings.AORadius, Settings.AORadius * 0.01f, 1e-4f, 1e38f);
+		Dirty |= (int)ImGui::SliderInt("Num AO Rays Per Pixel", &Settings.NumAORaysPerPixel, 1, 64);
+		
+		if (Dirty) Refresh = true;
+		ImGui::TreePop();
+	}
 }
 
 void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)

@@ -3,7 +3,7 @@
 #include "../Renderer.h"
 
 RaytraceGBuffer::RaytraceGBuffer(UINT Width, UINT Height)
-	: RenderPass(RenderPassType::Graphics,
+	: RenderPass("Raytrace GBuffer",
 		{ Width, Height, DXGI_FORMAT_R32G32B32A32_FLOAT })
 {
 
@@ -107,7 +107,7 @@ void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRender
 
 void RaytraceGBuffer::RenderGui()
 {
-	if (ImGui::TreeNode("Raytrace GBuffer"))
+	if (ImGui::TreeNode(Name.data()))
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{

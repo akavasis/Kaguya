@@ -3,6 +3,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_set>
+#include <string>
 #include "Core/ThreadPool.h"
 #include "RenderDevice.h"
 #include "Gui.h"
@@ -16,13 +17,6 @@ class ResourceScheduler;
 class ResourceRegistry;
 class RenderGraph;
 
-enum class RenderPassType
-{
-	Graphics,
-	Compute,
-	Copy
-};
-
 struct RenderTargetProperties
 {
 	UINT Width = 0;
@@ -35,7 +29,7 @@ class RenderPass
 public:
 	inline static constexpr size_t GpuDataByteSize = 2048;
 
-	RenderPass(RenderPassType Type, RenderTargetProperties Properties);
+	RenderPass(std::string Name, RenderTargetProperties Properties);
 	virtual ~RenderPass() = default;
 
 	void OnScheduleResource(ResourceScheduler* pResourceScheduler) { return ScheduleResource(pResourceScheduler); }
@@ -46,7 +40,7 @@ public:
 
 	bool Enabled;
 	bool Refresh;
-	RenderPassType Type;
+	std::string Name;
 	RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Resources;
 protected:

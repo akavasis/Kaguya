@@ -25,9 +25,6 @@ enum RayType
     NumRayTypes
 };
 
-static const uint NumAORays = 10;
-static const float AORadius = 1.0f;
-
 float TraceAmbientOcclusionRay(float3 origin, float tMin, float3 direction, float tMax)
 {
 	RayPayload rayPayload = { 0.0f };
@@ -60,14 +57,14 @@ void RayGeneration()
 	
 	if (worldPosition.z != 0.0f)
 	{
-		for (uint i = 0; i < NumAORays; ++i)
+		for (uint i = 0; i < RenderPassData.NumAORaysPerPixel; ++i)
 		{
 			float3 worldDirection = CosHemisphereSample(seed, worldNormal.xyz);
-			occlusionSum += TraceAmbientOcclusionRay(worldPosition.xyz, 0.001f, worldDirection.xyz, AORadius);
+			occlusionSum += TraceAmbientOcclusionRay(worldPosition.xyz, 0.001f, worldDirection.xyz, RenderPassData.AORadius);
 		}
 	}
 	
-	occlusionSum /= NumAORays;
+	occlusionSum /= RenderPassData.NumAORaysPerPixel;
 	
 	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.OutputIndex];
 	RenderTarget[launchIndex] = float4(occlusionSum, occlusionSum, occlusionSum, 1.0f);

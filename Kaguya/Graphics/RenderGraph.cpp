@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "RenderGraph.h"
 
-RenderPass::RenderPass(RenderPassType Type, RenderTargetProperties Properties)
+RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties)
 	: Enabled(true),
 	Refresh(false),
-	Type(Type),
+	Name(Name),
 	Properties(Properties)
 {
 
@@ -28,12 +28,7 @@ void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)
 	pRenderPass->OnInitializeScene(pGpuScene, pRenderDevice);
 
 	m_RenderPasses.emplace_back(std::move(pRenderPass));
-	switch (pIRenderPass->Type)
-	{
-	case RenderPassType::Graphics: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); break;
-	case RenderPassType::Compute: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Compute)); break;
-	case RenderPassType::Copy: m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Copy)); break;
-	}
+	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct));
 	m_RenderPassIDs.emplace_back(typeid(*pIRenderPass));
 }
 

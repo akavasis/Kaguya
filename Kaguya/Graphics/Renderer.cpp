@@ -75,33 +75,6 @@ void Renderer::SetScene(Scene* pScene)
 	m_GpuScene.Commit(m_RenderDevice.pUploadCommandContext);
 	m_RenderDevice.ExecuteRenderCommandContexts(1, &m_RenderDevice.pUploadCommandContext);
 
-	// Create texture srvs
-	{
-		//for (size_t i = 0; i < GpuTextureAllocator::NumAssetTextures; ++i)
-		//{
-		//	auto handle = m_GpuScene.GpuTextureAllocator.RendererReseveredTextures[i];
-		//	m_RenderDevice.CreateSRV(handle);
-		//}
-
-		for (auto iter = m_GpuScene.GpuTextureAllocator.TextureHandles.begin(); iter != m_GpuScene.GpuTextureAllocator.TextureHandles.end(); ++iter)
-		{
-			m_RenderDevice.CreateSRV(iter->second);
-		}
-
-		// Update material's gpu texture index
-		for (auto& material : m_GpuScene.pScene->Materials)
-		{
-			for (unsigned int i = 0; i < NumTextureTypes; ++i)
-			{
-				if (auto iter = m_GpuScene.GpuTextureAllocator.TextureHandles.find(material.Textures[i].Path.generic_string());
-					iter != m_GpuScene.GpuTextureAllocator.TextureHandles.end())
-				{
-					material.TextureIndices[i] = m_RenderDevice.GetSRV(iter->second).HeapIndex;
-				}
-			}
-		}
-	}
-
 	//m_RenderGraph.AddRenderPass(new Pathtracing(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 	m_RenderGraph.AddRenderPass(new RaytraceGBuffer(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));
 	m_RenderGraph.AddRenderPass(new AmbientOcclusion(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()));

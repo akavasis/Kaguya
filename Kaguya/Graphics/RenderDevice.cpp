@@ -196,20 +196,58 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 	case RenderResourceType::Buffer:
 	{
 		auto buffer = m_Buffers.GetResource(*pRenderResourceHandle);
-		if (buffer)
+		// Remove from GRST
+		GlobalResourceStateTracker.RemoveResourceState(buffer->GetD3DResource());
+
+		// Remove all the resource views
+		if (auto iter = m_RenderBuffers.find(*pRenderResourceHandle);
+			iter != m_RenderBuffers.end())
 		{
-			GlobalResourceStateTracker.RemoveResourceState(buffer->GetD3DResource());
+			if (iter->second.ShaderResourceView.IsValid())
+			{
+				m_ShaderResourceDescriptorIndexPool.Free(iter->second.ShaderResourceView.HeapIndex);
+			}
+			if (iter->second.UnorderedAccessView.IsValid())
+			{
+				m_UnorderedAccessDescriptorIndexPool.Free(iter->second.UnorderedAccessView.HeapIndex);
+			}
+			m_RenderBuffers.erase(iter);
 		}
+
+		// Finally, remove the actual resource
 		m_Buffers.Destroy(pRenderResourceHandle);
 	}
 	break;
 	case RenderResourceType::Texture:
 	{
 		auto texture = m_Textures.GetResource(*pRenderResourceHandle);
-		if (texture)
+		// Remove from GRST
+		GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
+
+		// Remove all the resource views
+		if (auto iter = m_RenderTextures.find(*pRenderResourceHandle);
+			iter != m_RenderTextures.end())
 		{
-			GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
+			for (auto srv : iter->second.ShaderResourceViews)
+			{
+				m_ShaderResourceDescriptorIndexPool.Free(srv.second.HeapIndex);
+			}
+			for (auto uav : iter->second.UnorderedAccessViews)
+			{
+				m_UnorderedAccessDescriptorIndexPool.Free(uav.second.HeapIndex);
+			}
+			for (auto rtv : iter->second.RenderTargetViews)
+			{
+				m_RenderTargetDescriptorIndexPool.Free(rtv.second.HeapIndex);
+			}
+			for (auto dsv : iter->second.DepthStencilViews)
+			{
+				m_RenderTargetDescriptorIndexPool.Free(dsv.second.HeapIndex);
+			}
+			m_RenderTextures.erase(iter);
 		}
+
+		// Finally, remove the actual resource
 		m_Textures.Destroy(pRenderResourceHandle);
 	}
 	break;
