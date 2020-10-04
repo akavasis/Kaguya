@@ -3,6 +3,7 @@
 
 #include "Pathtracing.h"
 #include "RaytraceGBuffer.h"
+#include "AmbientOcclusion.h"
 
 Accumulation::Accumulation(UINT Width, UINT Height)
 	: RenderPass(RenderPassType::Graphics,
@@ -47,9 +48,9 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Accumulation");
 
-	auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
-	//auto pRaytraceGBufferRenderPass = ResourceRegistry.GetRenderPass<RaytraceGBuffer>();
-	//size_t srv = ResourceRegistry.GetShaderResourceDescriptorIndex(pRaytraceGBufferRenderPass->Resources[pRaytraceGBufferRenderPass->GetSettings().GBuffer]);
+	//auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
+	//auto pRaytraceGBufferRenderPass = pRenderGraph->GetRenderPass<RaytraceGBuffer>();
+	auto pAmbientOcclusionRenderPass = pRenderGraph->GetRenderPass<AmbientOcclusion>();
 
 	struct AccumulationData
 	{
@@ -57,7 +58,9 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 		uint OutputIndex;
 	} Data;
 
-	Data.InputIndex = RenderContext.GetSRV(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]).HeapIndex;
+	//Data.InputIndex = RenderContext.GetSRV(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]).HeapIndex;
+	//Data.InputIndex = RenderContext.GetSRV(pRaytraceGBufferRenderPass->Resources[pRaytraceGBufferRenderPass->GetSettings().GBuffer]).HeapIndex;
+	Data.InputIndex = RenderContext.GetSRV(pAmbientOcclusionRenderPass->Resources[AmbientOcclusion::EResources::RenderTarget]).HeapIndex;
 	Data.OutputIndex = RenderContext.GetUAV(Resources[EResources::RenderTarget]).HeapIndex;
 	RenderContext.UpdateRenderPassData<AccumulationData>(Data);
 

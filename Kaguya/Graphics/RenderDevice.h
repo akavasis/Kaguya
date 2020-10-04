@@ -67,7 +67,6 @@ public:
 
 	[[nodiscard]] RenderResourceHandle CreateHeap(std::function<void(HeapProxy&)> Configurator);
 
-	// If pOptions is not null, AppendStandardShaderLayoutRootParameter will be called after Configurator
 	[[nodiscard]] RenderResourceHandle CreateRootSignature(std::function<void(RootSignatureProxy&)> Configurator, bool AddShaderLayoutRootParameters = true);
 	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(std::function<void(GraphicsPipelineStateProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(std::function<void(ComputePipelineStateProxy&)> Configurator);
@@ -106,7 +105,7 @@ public:
 
 	CommandContext* pUploadCommandContext;
 private:
-	void AddStandardShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
+	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 
 	struct DescriptorTables
 	{

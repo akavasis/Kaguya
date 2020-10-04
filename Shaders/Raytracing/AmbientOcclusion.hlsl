@@ -3,6 +3,9 @@
 struct AmbientOcclusionData
 {
 	GlobalConstants GlobalConstants;
+	float AORadius;
+	int NumAORaysPerPixel;
+
 	int InputWorldPositionIndex;
 	int InputWorldNormalIndex;
 	int OutputIndex;
@@ -11,7 +14,7 @@ struct AmbientOcclusionData
 #define RenderPassDataType AmbientOcclusionData
 #include "../ShaderLayout.hlsli"
 
-struct AORayPayload
+struct RayPayload
 {
 	float Visibility;
 };
@@ -27,7 +30,7 @@ static const float AORadius = 1.0f;
 
 float TraceAmbientOcclusionRay(float3 origin, float tMin, float3 direction, float tMax)
 {
-	AORayPayload aoRayPayload = { 0.0f };
+	RayPayload rayPayload = { 0.0f };
 	RayDesc ray = { origin, tMin, direction, tMax };
 	
 	const uint flags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER;
@@ -35,9 +38,9 @@ float TraceAmbientOcclusionRay(float3 origin, float tMin, float3 direction, floa
 	const uint hitGroupIndex = RayTypePrimary;
 	const uint hitGroupIndexMultiplier = NumRayTypes;
 	const uint missShaderIndex = RayTypePrimary;
-	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, aoRayPayload);
+	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 
-	return aoRayPayload.Visibility;
+	return rayPayload.Visibility;
 }
 
 [shader("raygeneration")]
@@ -66,14 +69,17 @@ void RayGeneration()
 	
 	occlusionSum /= NumAORays;
 	
-	float access = 1.0f - occlusionSum;
-
 	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.OutputIndex];
-	RenderTarget[launchIndex] = float4(access, access, access, 1.0f);
+	RenderTarget[launchIndex] = float4(occlusionSum, occlusionSum, occlusionSum, 1.0f);
 }
 
 [shader("miss")]
-void Miss(inout AORayPayload rayPayload)
+void Miss(inout RayPayload rayPayload)
 {
 	rayPayload.Visibility = 1.0f;
+}
+
+[shader("closesthit")]
+void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
+{
 }

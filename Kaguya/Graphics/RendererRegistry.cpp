@@ -481,7 +481,7 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 			ENUM_TO_LSTR(Default)
 		};
 
-		const Library* pRaytraceLibrary = &Libraries::RaytraceGBuffer;
+		const Library* pRaytraceLibrary = &Libraries::AmbientOcclusion;
 
 		proxy.AddLibrary(pRaytraceLibrary,
 			{

@@ -1,39 +1,38 @@
 #include "pch.h"
-#include "RaytraceGBuffer.h"
+#include "AmbientOcclusion.h"
 #include "../Renderer.h"
 
-RaytraceGBuffer::RaytraceGBuffer(UINT Width, UINT Height)
+#include "RaytraceGBuffer.h"
+
+AmbientOcclusion::AmbientOcclusion(UINT Width, UINT Height)
 	: RenderPass(RenderPassType::Graphics,
-		{ Width, Height, DXGI_FORMAT_R32G32B32A32_FLOAT })
+		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
 
 }
 
-RaytraceGBuffer::~RaytraceGBuffer()
+AmbientOcclusion::~AmbientOcclusion()
 {
 
 }
 
-void RaytraceGBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void AmbientOcclusion::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
-	for (size_t i = 0; i < EResources::NumResources; ++i)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
-		{
-			proxy.SetFormat(Properties.Format);
-			proxy.SetWidth(Properties.Width);
-			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-			proxy.InitialState = Resource::State::UnorderedAccess;
-		});
-	}
+		proxy.SetFormat(Properties.Format);
+		proxy.SetWidth(Properties.Width);
+		proxy.SetHeight(Properties.Height);
+		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.InitialState = Resource::State::UnorderedAccess;
+	});
 }
 
-void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
+void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
 	this->pGpuScene = pGpuScene;
 
-	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::RaytraceGBuffer);
+	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::AmbientOcclusion);
 
 	// Ray Generation Shader Table
 	{
@@ -105,36 +104,26 @@ void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRender
 	}
 }
 
-void RaytraceGBuffer::RenderGui()
+void AmbientOcclusion::RenderGui()
 {
-	if (ImGui::TreeNode("Raytrace GBuffer"))
-	{
-		if (ImGui::Button("Restore Defaults"))
-		{
-			Settings = SSettings();
-		}
 
-		const char* GBufferOutputs[] = { "Position", "Normal", "Albedo", "Emissive", "Specular", "Refraction", "Extra" };
-		ImGui::Combo("GBuffer Outputs", &Settings.GBuffer, GBufferOutputs, ARRAYSIZE(GBufferOutputs), ARRAYSIZE(GBufferOutputs));
-
-		ImGui::TreePop();
-	}
 }
 
-void RaytraceGBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
+void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Raytrace GBuffer");
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Ambient Occlusion");
 
-	struct RaytraceGBufferData
+	auto pRaytraceGBufferRenderPass = pRenderGraph->GetRenderPass<RaytraceGBuffer>();
+
+	struct AmbientOcclusionData
 	{
 		GlobalConstants GlobalConstants;
-		int OutputWorldPositionIndex;
-		int OutputWorldNormalIndex;
-		int OutputMaterialAlbedoIndex;
-		int OutputMaterialEmissiveIndex;
-		int OutputMaterialSpecularIndex;
-		int OutputMaterialRefractionIndex;
-		int OutputMaterialExtraIndex;
+		float AORadius;
+		int NumAORaysPerPixel;
+
+		int InputWorldPositionIndex;
+		int InputWorldNormalIndex;
+		int OutputIndex;
 	} Data;
 
 	GlobalConstants globalConstants;
@@ -156,17 +145,17 @@ void RaytraceGBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRender
 	globalConstants.LensRadius = pGpuScene->pScene->Camera.Aperture;
 
 	Data.GlobalConstants = globalConstants;
-	Data.OutputWorldPositionIndex = RenderContext.GetUAV(Resources[EResources::WorldPosition]).HeapIndex;
-	Data.OutputWorldNormalIndex = RenderContext.GetUAV(Resources[EResources::WorldNormal]).HeapIndex;
-	Data.OutputMaterialAlbedoIndex = RenderContext.GetUAV(Resources[EResources::MaterialAlbedo]).HeapIndex;
-	Data.OutputMaterialEmissiveIndex = RenderContext.GetUAV(Resources[EResources::MaterialEmissive]).HeapIndex;
-	Data.OutputMaterialSpecularIndex = RenderContext.GetUAV(Resources[EResources::MaterialSpecular]).HeapIndex;
-	Data.OutputMaterialRefractionIndex = RenderContext.GetUAV(Resources[EResources::MaterialRefraction]).HeapIndex;
-	Data.OutputMaterialExtraIndex = RenderContext.GetUAV(Resources[EResources::MaterialExtra]).HeapIndex;
+	Data.AORadius = Settings.AORadius;
+	Data.NumAORaysPerPixel = Settings.NumAORaysPerPixel;
 
-	RenderContext.UpdateRenderPassData<RaytraceGBufferData>(Data);
+	Data.InputWorldPositionIndex = RenderContext.GetSRV(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldPosition]).HeapIndex;
+	Data.InputWorldNormalIndex = RenderContext.GetSRV(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldNormal]).HeapIndex;
+	Data.OutputIndex = RenderContext.GetUAV(Resources[EResources::RenderTarget]).HeapIndex;
+	RenderContext.UpdateRenderPassData<AmbientOcclusionData>(Data);
 
-	RenderContext.SetPipelineState(RaytracingPSOs::RaytraceGBuffer);
+	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);
+
+	RenderContext.SetPipelineState(RaytracingPSOs::AmbientOcclusion);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
@@ -180,16 +169,10 @@ void RaytraceGBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRender
 		Properties.Width,
 		Properties.Height);
 
-	RenderContext.UAVBarrier(Resources[EResources::WorldPosition]);
-	RenderContext.UAVBarrier(Resources[EResources::WorldNormal]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialAlbedo]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialEmissive]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialSpecular]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialRefraction]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialExtra]);
+	RenderContext.UAVBarrier(Resources[EResources::RenderTarget]);
 }
 
-void RaytraceGBuffer::StateRefresh()
+void AmbientOcclusion::StateRefresh()
 {
 
 }

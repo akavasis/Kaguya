@@ -140,7 +140,7 @@ RenderResourceHandle RenderDevice::CreateRootSignature(std::function<void(RootSi
 	RootSignatureProxy proxy;
 	Configurator(proxy);
 	if (AddShaderLayoutRootParameters)
-		AddStandardShaderLayoutRootParameter(proxy);
+		AddShaderLayoutRootParameter(proxy);
 
 	auto [handle, rootSignature] = m_RootSignatures.CreateResource(&Device, proxy);
 	return handle;
@@ -622,7 +622,7 @@ Descriptor RenderDevice::GetDSV(RenderResourceHandle RenderResourceHandle, std::
 	return Descriptor();
 }
 
-void RenderDevice::AddStandardShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy)
+void RenderDevice::AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy)
 {
 	// RenderPassDataCB
 	RootSignatureProxy.AddRootCBVParameter(RootCBV(0, 100));
