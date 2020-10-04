@@ -89,3 +89,43 @@ RootSignature& RootSignature::operator=(RootSignature&& rvalue) noexcept
 	ZeroMemory(&rvalue, sizeof(rvalue));
 	return *this;
 }
+
+RootParameter::RootParameter(Type Type)
+{
+	switch (Type)
+	{
+	case RootParameter::Type::DescriptorTable:	m_RootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; break;
+	case RootParameter::Type::Constants:		m_RootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS; break;
+	case RootParameter::Type::CBV:				m_RootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; break;
+	case RootParameter::Type::SRV:				m_RootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV; break;
+	case RootParameter::Type::UAV:				m_RootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV; break;
+	}
+	m_RootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+}
+
+RootDescriptorTable::RootDescriptorTable()
+	: RootParameter(RootParameter::Type::DescriptorTable)
+{
+}
+
+void RootDescriptorTable::AddDescriptorRange(DescriptorRange::Type Type, const DescriptorRange& DescriptorRange)
+{
+	D3D12_DESCRIPTOR_RANGE1 range = {};
+	switch (Type)
+	{
+	case DescriptorRange::Type::SRV: range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
+	case DescriptorRange::Type::UAV: range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
+	case DescriptorRange::Type::CBV: range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
+	case DescriptorRange::Type::Sampler: range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
+	}
+	range.NumDescriptors = DescriptorRange.NumDescriptors;
+	range.BaseShaderRegister = DescriptorRange.BaseShaderRegister;
+	range.RegisterSpace = DescriptorRange.RegisterSpace;
+	range.Flags = DescriptorRange.Flags;
+	range.OffsetInDescriptorsFromTableStart = DescriptorRange.OffsetInDescriptorsFromTableStart;
+
+	m_DescriptorRanges.push_back(range);
+
+	m_RootParameter.DescriptorTable.NumDescriptorRanges = m_DescriptorRanges.size();
+	m_RootParameter.DescriptorTable.pDescriptorRanges = m_DescriptorRanges.data();
+}

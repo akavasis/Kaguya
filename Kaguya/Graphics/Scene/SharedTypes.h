@@ -11,7 +11,7 @@ struct ObjectConstants
 	float3 _padding;
 };
 
-struct RenderPassConstants
+struct GlobalConstants
 {
 	float3 CameraU;
 	float _padding;
@@ -31,10 +31,6 @@ struct RenderPassConstants
 	uint TotalFrameCount;
 
 	DirectionalLight Sun;
-	uint BRDFLUTMapIndex;
-	uint RadianceCubemapIndex;
-	uint IrradianceCubemapIndex;
-	uint PrefilteredRadianceCubemapIndex;
 
 	uint MaxDepth;
 	float FocalLength;

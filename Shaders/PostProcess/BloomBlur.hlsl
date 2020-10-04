@@ -1,10 +1,11 @@
 cbuffer Settings : register(b0)
 {
 	float2 InverseOutputSize;
+	uint InputIndex;
+	uint OutputIndex;
 }
 
-Texture2D<float4> Input : register(t0);
-RWTexture2D<float4> Output : register(u0);
+#include "../ShaderLayout.hlsli"
 
 // The guassian blur weights (derived from Pascal's triangle)
 static const float Weights[5] = { 70.0f / 256.0f, 56.0f / 256.0f, 28.0f / 256.0f, 8.0f / 256.0f, 1.0f / 256.0f };
@@ -61,7 +62,7 @@ void BlurHorizontally(uint outIndex, uint leftMostIndex)
 	Store1Pixel(outIndex + 1, BlurPixels(s1, s2, s3, s4, s5, s6, s7, s8, s9));
 }
 
-void BlurVertically(uint2 pixelCoord, uint topMostIndex)
+void BlurVertically(uint2 pixelCoord, uint topMostIndex, RWTexture2D<float4> output)
 {
 	float3 s0, s1, s2, s3, s4, s5, s6, s7, s8;
 	Load1Pixel(topMostIndex, s0);
@@ -74,12 +75,15 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex)
 	Load1Pixel(topMostIndex + 56, s7);
 	Load1Pixel(topMostIndex + 64, s8);
 
-	Output[pixelCoord] = float4(BlurPixels(s0, s1, s2, s3, s4, s5, s6, s7, s8), 1.0f);
+	output[pixelCoord] = float4(BlurPixels(s0, s1, s2, s3, s4, s5, s6, s7, s8), 1.0f);
 }
 
 [numthreads(8, 8, 1)]
 void main(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)
 {
+	Texture2D Input = Texture2DTable[InputIndex];
+	RWTexture2D<float4> Output = RWTexture2DTable[OutputIndex];
+
     //
     // Load 4 pixels per thread into LDS
     //
@@ -106,5 +110,5 @@ void main(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV
     //
     // Vertically blur the pixels and write the result to memory
     //
-	BlurVertically(DTid.xy, (GTid.y << 3) + GTid.x);
+	BlurVertically(DTid.xy, (GTid.y << 3) + GTid.x, Output);
 }

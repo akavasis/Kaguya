@@ -48,7 +48,7 @@ void CommandContext::SetPipelineState(const PipelineState* pPipelineState)
 	m_pCommandList->SetPipelineState(pPipelineState->GetD3DPipelineState());
 }
 
-void CommandContext::SetDescriptorHeaps(const CBSRUADescriptorHeap* pCBSRUADescriptorHeap, const SamplerDescriptorHeap* pSamplerDescriptorHeap)
+void CommandContext::SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorHeap, SamplerDescriptorHeap* pSamplerDescriptorHeap)
 {
 	UINT numDescriptorHeaps = 0;
 	ID3D12DescriptorHeap* pDescriptorHeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};

@@ -51,9 +51,8 @@ void Libraries::Register(RenderDevice* pRenderDevice, std::filesystem::path Exec
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
-#pragma region NonStandardRootSignatures
 	// BRDFIntegration RS, this is just a empty root signature
-	RootSignatures::BRDFIntegration = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	BRDFIntegration = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
@@ -62,16 +61,20 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	// Cubemap convolutions RS
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
-		RenderResourceHandle rootSignatureHandle = pRenderDevice->CreateRootSignature(nullptr, [i](RootSignatureProxy& proxy)
+		RenderResourceHandle rootSignatureHandle = pRenderDevice->CreateRootSignature([i](RootSignatureProxy& proxy)
 		{
-			const UINT num32bitValues = i == Irradiance ? sizeof(ConvolutionIrradianceSetting) / 4 : sizeof(ConvolutionPrefilterSetting) / 4;
-
 			D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-			CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
 
-			proxy.AddRootConstantsParameter(0, 0, num32bitValues, D3D12_SHADER_VISIBILITY_PIXEL);
-			proxy.AddRootCBVParameter(1, 100);
-			proxy.AddRootDescriptorTableParameter({ srvRange }, D3D12_SHADER_VISIBILITY_PIXEL);
+			if (i == Irradiance)
+				proxy.AddRootConstantsParameter(RootConstants<ConvolutionIrradianceSetting>(0, 0));
+			else
+				proxy.AddRootConstantsParameter(RootConstants<ConvolutionPrefilterSetting>(0, 0));
+			proxy.AddRootCBVParameter(RootCBV(1, 100));
+
+			RootDescriptorTable descriptorTable;
+			descriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(1, 0, 0, volatileFlag, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND));
+
+			proxy.AddRootDescriptorTableParameter(descriptorTable);
 
 			proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
 
@@ -82,23 +85,17 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 		switch (i)
 		{
-		case Irradiance: RootSignatures::ConvolutionIrradiace = rootSignatureHandle; break;
-		case Prefilter: RootSignatures::ConvolutionPrefilter = rootSignatureHandle; break;
+		case Irradiance: ConvolutionIrradiace = rootSignatureHandle; break;
+		case Prefilter: ConvolutionPrefilter = rootSignatureHandle; break;
 		}
 	}
 
 	// Generate mips RS
-	RootSignatures::GenerateMips = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	GenerateMips = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		constexpr UINT num32bitValues = sizeof(GenerateMipsData) / 4;
-
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 srcMip = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 outMip = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 4, 0, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter(0, 0, num32bitValues);
-		proxy.AddRootDescriptorTableParameter({ srcMip });
-		proxy.AddRootDescriptorTableParameter({ outMip });
+		proxy.AddRootConstantsParameter(RootConstants<GenerateMipsData>(0, 0));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
 
@@ -108,17 +105,11 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	});
 
 	// Equirectangular to cubemap RS
-	RootSignatures::EquirectangularToCubemap = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	EquirectangularToCubemap = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		constexpr UINT num32bitValues = sizeof(GenerateMipsData) / 4;
-
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 srcMip = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 outMip = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 5, 0, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter(0, 0, num32bitValues);
-		proxy.AddRootDescriptorTableParameter({ srcMip });
-		proxy.AddRootDescriptorTableParameter({ outMip });
+		proxy.AddRootConstantsParameter(RootConstants<EquirectangularToCubemapData>(0, 0));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);
 
@@ -126,26 +117,19 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
-#pragma endregion
 
-	StandardShaderLayoutOptions options = {};
-
-	Skybox = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
+	Skybox = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		proxy.AllowInputLayout();
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
-	PostProcess_BloomMask = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	PostProcess_BloomMask = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter(0, 0, 3);
-		proxy.AddRootDescriptorTableParameter({ input });
-		proxy.AddRootDescriptorTableParameter({ output });
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 5));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
 
@@ -153,21 +137,11 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	PostProcess_BloomDownsample = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	PostProcess_BloomDownsample = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 bloom = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output1 = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output2 = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output3 = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output4 = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter(0, 0, 2);
-		proxy.AddRootDescriptorTableParameter({ bloom });
-		proxy.AddRootDescriptorTableParameter({ output1 });
-		proxy.AddRootDescriptorTableParameter({ output2 });
-		proxy.AddRootDescriptorTableParameter({ output3 });
-		proxy.AddRootDescriptorTableParameter({ output4 });
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 7));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
 
@@ -175,32 +149,22 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	PostProcess_BloomBlur = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	PostProcess_BloomBlur = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter(0, 0, 2);
-		proxy.AddRootDescriptorTableParameter({ input });
-		proxy.AddRootDescriptorTableParameter({ output });
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 4));
 
 		proxy.AllowInputLayout();
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
-	PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 highResolution = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 lowResolution = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter(0, 0, 3);
-		proxy.AddRootDescriptorTableParameter({ highResolution });
-		proxy.AddRootDescriptorTableParameter({ lowResolution });
-		proxy.AddRootDescriptorTableParameter({ output });
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
 
@@ -208,17 +172,11 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	PostProcess_BloomComposition = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	PostProcess_BloomComposition = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 bloom = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
 
-		proxy.AddRootConstantsParameter(0, 0, 3);
-		proxy.AddRootDescriptorTableParameter({ input });
-		proxy.AddRootDescriptorTableParameter({ bloom });
-		proxy.AddRootDescriptorTableParameter({ output });
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
 
@@ -226,80 +184,39 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	PostProcess_Tonemapping = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	PostProcess_Tonemapping = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-
-		proxy.AddRootConstantsParameter(0, 0, 2);
-		proxy.AddRootDescriptorTableParameter({ input });
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 3));
 
 		proxy.AllowInputLayout();
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
-	Raytracing::Accumulation = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	Raytracing::Accumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-		CD3DX12_DESCRIPTOR_RANGE1 input = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, volatileFlag);
-		CD3DX12_DESCRIPTOR_RANGE1 output = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, volatileFlag);
-
-		proxy.AddRootConstantsParameter<Accumulation::SSettings>(0, 0);
-		proxy.AddRootDescriptorTableParameter({ input });
-		proxy.AddRootDescriptorTableParameter({ output });
+		proxy.AddRootConstantsParameter(RootConstants<Accumulation::SSettings>(0, 0));
 
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
 	// Empty Local RS
-	Raytracing::EmptyLocal = pRenderDevice->CreateRootSignature(nullptr, [](RootSignatureProxy& proxy)
+	Raytracing::EmptyLocal = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		proxy.SetAsLocalRootSignature();
+	},
+		false);
+
+	// Global RS
+	Raytracing::Global = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootSRVParameter(RootSRV(0, 0)); // BVH,					t0 | s0
+		proxy.AddRootSRVParameter(RootSRV(1, 0)); // Vertex Buffer,			t1 | s0
+		proxy.AddRootSRVParameter(RootSRV(2, 0)); // Index Buffer,			t2 | s0
+		proxy.AddRootSRVParameter(RootSRV(3, 0)); // Geometry info Buffer,	t3 | s0
+		proxy.AddRootSRVParameter(RootSRV(4, 0)); // Material Buffer,		t4 | s0
 	});
-
-	{
-		// Global RS
-		options.InitConstantDataTypeAsRootConstants = FALSE;
-		options.Num32BitValues = 0;
-		Raytracing::Pathtracing::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
-		{
-			CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
-			CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
-
-			proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
-			proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
-		});
-	}
-
-	{
-		// Global RS
-		options.InitConstantDataTypeAsRootConstants = FALSE;
-		options.Num32BitValues = 0;
-		Raytracing::RaytraceGBuffer::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
-		{
-			CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
-			CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 7, 0, 0);
-
-			proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
-			proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Targets
-		});
-	}
-
-	{
-		// Global RS
-		options.InitConstantDataTypeAsRootConstants = FALSE;
-		options.Num32BitValues = 0;
-		Raytracing::AmbientOcclusion::Global = pRenderDevice->CreateRootSignature(&options, [](RootSignatureProxy& proxy)
-		{
-			CD3DX12_DESCRIPTOR_RANGE1 srvRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 0);
-			CD3DX12_DESCRIPTOR_RANGE1 uavRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
-
-			proxy.AddRootDescriptorTableParameter({ srvRange }); // GeometryTable
-			proxy.AddRootDescriptorTableParameter({ uavRange }); // Render Target
-		});
-	}
 }
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
@@ -455,7 +372,7 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 
 		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
 
-		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Pathtracing::Global);
+		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
 
 		// The following section associates the root signature to each shader. Note
@@ -515,7 +432,7 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 
 		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
 
-		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::RaytraceGBuffer::Global);
+		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
 
 		// The following section associates the root signature to each shader. Note
@@ -575,7 +492,7 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 
 		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
 
-		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::RaytraceGBuffer::Global);
+		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
 
 		// The following section associates the root signature to each shader. Note

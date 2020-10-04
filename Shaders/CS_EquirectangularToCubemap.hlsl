@@ -13,31 +13,28 @@ struct ComputeShaderInput
 	uint GroupIndex : SV_GroupIndex; // Flattened local index of the thread within a thread group.
 };
 
-struct PanoToCubemap
+cbuffer EquirectangularToCubemapCB : register(b0)
 {
-    // Size of the cubemap face in pixels at the current mipmap level.
-	uint CubemapSize;
-    // The first mip level to generate.
-	uint FirstMip;
-    // The number of mips to generate.
-	uint NumMips;
-};
+	uint CubemapSize;				// Size of the cubemap face in pixels at the current mipmap level.
+	uint FirstMip;					// The first mip level to generate.
+	uint NumMips;					// The number of mips to generate.
 
-ConstantBuffer<PanoToCubemap> PanoToCubemapCB : register(b0);
+	// Source texture as an equirectangular panoramic image.
+    // It is assumed that the src texture has a full mipmap chain.
+	int InputIndex;
 
-// Source texture as an equirectangular panoramic image.
-// It is assumed that the src texture has a full mipmap chain.
-Texture2D<float4> SrcTexture : register(t0);
+	// Destination texture as a mip slice in the cubemap texture (texture array with 6 elements).
+	int Output1Index;
+	int Output2Index;
+	int Output3Index;
+	int Output4Index;
+    int Output5Index;
+}
 
-// Destination texture as a mip slice in the cubemap texture (texture array with 6 elements).
-RWTexture2DArray<float4> DstMip1 : register(u0);
-RWTexture2DArray<float4> DstMip2 : register(u1);
-RWTexture2DArray<float4> DstMip3 : register(u2);
-RWTexture2DArray<float4> DstMip4 : register(u3);
-RWTexture2DArray<float4> DstMip5 : register(u4);
-
-// Linear repeat sampler.
 SamplerState LinearRepeatSampler : register(s0);
+
+// Shader layout define and include
+#include "ShaderLayout.hlsli"
 
 // 1 / PI
 static const float InvPI = 0.31830988618379067153776752674503f;
@@ -78,14 +75,15 @@ void main(ComputeShaderInput IN)
 {
     // Cubemap texture coords.
 	uint3 texCoord = IN.DispatchThreadID;
+    Texture2D SrcTexture = Texture2DTable[InputIndex];
 
     // First check if the thread is in the cubemap dimensions.
-	if (texCoord.x >= PanoToCubemapCB.CubemapSize || texCoord.y >= PanoToCubemapCB.CubemapSize)
+	if (texCoord.x >= CubemapSize || texCoord.y >= CubemapSize)
 		return;
 
     // Map the UV coords of the cubemap face to a direction
     // [(0, 0), (1, 1)] => [(-0.5, -0.5), (0.5, 0.5)]
-	float3 dir = float3(texCoord.xy / float(PanoToCubemapCB.CubemapSize) - 0.5f, 0.5f);
+	float3 dir = float3(texCoord.xy / float(CubemapSize) - 0.5f, 0.5f);
 
     // Rotate to cubemap face
 	dir = normalize(mul(RotateUV[texCoord.z], dir));
@@ -94,30 +92,42 @@ void main(ComputeShaderInput IN)
     // Source: http://gl.ict.usc.edu/Data/HighResProbes/
 	float2 panoUV = float2(atan2(-dir.x, -dir.z), acos(dir.y)) * InvAtan;
 
-	DstMip1[texCoord] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, PanoToCubemapCB.FirstMip);
+    if (Output1Index != -1)
+	{
+        RWTexture2DArray<float4> DstMip1 = RWTexture2DArrayTable[Output1Index];
+	    DstMip1[texCoord] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip);
+    }
 
     // Only perform on threads that are a multiple of 2.
-	if (PanoToCubemapCB.NumMips > 1 && (IN.GroupIndex & 0x11) == 0)
+	if (NumMips > 1 && (IN.GroupIndex & 0x11) == 0 &&
+        Output2Index != -1)
 	{
-		DstMip2[uint3(texCoord.xy / 2, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, PanoToCubemapCB.FirstMip + 1);
+        RWTexture2DArray<float4> DstMip2 = RWTexture2DArrayTable[Output2Index];
+		DstMip2[uint3(texCoord.xy / 2, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip + 1);
 	}
 
     // Only perform on threads that are a multiple of 4.
-	if (PanoToCubemapCB.NumMips > 2 && (IN.GroupIndex & 0x33) == 0)
+	if (NumMips > 2 && (IN.GroupIndex & 0x33) == 0 &&
+        Output3Index != -1)
 	{
-		DstMip3[uint3(texCoord.xy / 4, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, PanoToCubemapCB.FirstMip + 2);
+        RWTexture2DArray<float4> DstMip3 = RWTexture2DArrayTable[Output3Index];
+		DstMip3[uint3(texCoord.xy / 4, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip + 2);
 	}
 
     // Only perform on threads that are a multiple of 8.
-	if (PanoToCubemapCB.NumMips > 3 && (IN.GroupIndex & 0x77) == 0)
+	if (NumMips > 3 && (IN.GroupIndex & 0x77) == 0 &&
+        Output4Index != -1)
 	{
-		DstMip4[uint3(texCoord.xy / 8, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, PanoToCubemapCB.FirstMip + 3);
+        RWTexture2DArray<float4> DstMip4 = RWTexture2DArrayTable[Output4Index];
+		DstMip4[uint3(texCoord.xy / 8, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip + 3);
 	}
 
     // Only perform on threads that are a multiple of 16.
     // This should only be thread 0 in this group.
-	if (PanoToCubemapCB.NumMips > 4 && (IN.GroupIndex & 0xFF) == 0)
+	if (NumMips > 4 && (IN.GroupIndex & 0xFF) == 0 &&
+        Output5Index != -1)
 	{
-		DstMip5[uint3(texCoord.xy / 16, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, PanoToCubemapCB.FirstMip + 4);
+        RWTexture2DArray<float4> DstMip5 = RWTexture2DArrayTable[Output5Index];
+		DstMip5[uint3(texCoord.xy / 16, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip + 4);
 	}
 }

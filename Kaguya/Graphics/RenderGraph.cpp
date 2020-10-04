@@ -13,8 +13,7 @@ RenderPass::RenderPass(RenderPassType Type, RenderTargetProperties Properties)
 RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
 	: pRenderDevice(pRenderDevice),
 	pGpuScene(pGpuScene),
-	m_ThreadPool(3),
-	m_ResourceRegistry(pRenderDevice, this)
+	m_ThreadPool(3)
 {
 
 }
@@ -24,6 +23,7 @@ void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)
 	auto pRenderPass = std::unique_ptr<RenderPass>(pIRenderPass);
 
 	m_ResourceScheduler.m_pCurrentRenderPass = pRenderPass.get();
+
 	pRenderPass->OnScheduleResource(&m_ResourceScheduler);
 	pRenderPass->OnInitializeScene(pGpuScene, pRenderDevice);
 
@@ -40,6 +40,13 @@ void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)
 void RenderGraph::Initialize()
 {
 	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); // This command context is for Gui
+
+	m_GpuData = pRenderDevice->CreateBuffer([numRenderPasses = m_RenderPasses.size()](BufferProxy& Proxy)
+	{
+		Proxy.SetSizeInBytes(numRenderPasses * Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+		Proxy.SetStride(Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+		Proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+	});
 
 	CreaterResources();
 	CreateResourceViews();
@@ -91,13 +98,17 @@ void RenderGraph::Execute()
 			futures[i] = m_ThreadPool.AddWork([this, i]()
 			{
 				pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
-				m_RenderPasses[i]->OnExecute(m_ResourceRegistry, m_CommandContexts[i]);
+				auto pBuffer = pRenderDevice->GetBuffer(m_GpuData);
+				RenderContext context(i, pBuffer, pRenderDevice, m_CommandContexts[i]);
+				m_RenderPasses[i]->OnExecute(context, this);
 			});
 		}
 		else
 		{
 			pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
-			m_RenderPasses[i]->OnExecute(m_ResourceRegistry, m_CommandContexts[i]);
+			auto pBuffer = pRenderDevice->GetBuffer(m_GpuData);
+			RenderContext context(i, pBuffer, pRenderDevice, m_CommandContexts[i]);
+			m_RenderPasses[i]->OnExecute(context, this);
 		}
 	}
 
@@ -112,7 +123,7 @@ void RenderGraph::ExecuteCommandContexts(Gui* pGui)
 {
 	auto frameIndex = pRenderDevice->FrameIndex;
 	auto pDestination = pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[frameIndex]);
-	auto destination = pRenderDevice->SwapChainRenderTargetViews[frameIndex];
+	auto destination = pRenderDevice->GetRTV(pRenderDevice->SwapChainTextures[frameIndex]);
 
 	pGui->EndFrame(pDestination, destination, m_CommandContexts.back());
 	pRenderDevice->ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
@@ -145,25 +156,6 @@ void RenderGraph::CreaterResources()
 
 void RenderGraph::CreateResourceViews()
 {
-	UINT64 numSRVsToCreate = 0;
-	UINT64 numUAVsToCreate = 0;
-	for (const auto& textureRequest : m_ResourceScheduler.m_TextureRequests)
-	{
-		for (const auto& textureProxy : textureRequest.second)
-		{
-			numSRVsToCreate++;
-			if (EnumMaskBitSet(textureProxy.BindFlags, Resource::BindFlags::UnorderedAccess))
-			{
-				numUAVsToCreate++;
-			}
-		}
-	}
-
-	m_ResourceRegistry.ShaderResourceViews = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(numSRVsToCreate);
-	m_ResourceRegistry.UnorderedAccessViews = pRenderDevice->DescriptorAllocator.AllocateUADescriptors(numUAVsToCreate);
-
-	UINT64 srvIndex = 0;
-	UINT64 uavIndex = 0;
 	for (auto& renderPass : m_RenderPasses)
 	{
 		for (auto handle : renderPass->Resources)
@@ -171,14 +163,12 @@ void RenderGraph::CreateResourceViews()
 			if (handle.Type == RenderResourceType::Buffer)
 				continue;
 
-			m_ResourceRegistry.m_ShaderResourceTable[handle] = srvIndex;
-			pRenderDevice->CreateSRV(handle, m_ResourceRegistry.ShaderResourceViews[srvIndex++]);
+			pRenderDevice->CreateSRV(handle);
 			
 			auto texture = pRenderDevice->GetTexture(handle);
 			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::UnorderedAccess))
 			{
-				m_ResourceRegistry.m_UnorderedAccessTable[handle] = uavIndex;
-				pRenderDevice->CreateUAV(handle, m_ResourceRegistry.UnorderedAccessViews[uavIndex++]);
+				pRenderDevice->CreateUAV(handle);
 			}
 		}
 	}

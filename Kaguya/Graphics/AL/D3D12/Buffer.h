@@ -43,7 +43,7 @@ public:
 	{
 		assert(m_Stride != 0);
 		assert(m_pMappedData && "Map() has not been called, invalid ptr");
-		memcpy(&m_pMappedData[ElementIndex * m_Stride], &Data, m_Stride);
+		memcpy(&m_pMappedData[ElementIndex * m_Stride], &Data, sizeof(T));
 	}
 private:
 	UINT m_Stride;

@@ -32,7 +32,6 @@ public:
 	inline auto GetRTTLASResourceHandle() const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
 
 	Scene* pScene;
-	DescriptorAllocation ShaderResourceViews;
 	GpuTextureAllocator GpuTextureAllocator;
 private:
 	size_t Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer);

@@ -51,9 +51,6 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 		});
 		Allocators[i].Reset(resourceTablesMemorySizeInBytes[i]);
 	}
-
-	// + 1 for TLAS
-	ShaderResourceViews = pRenderDevice->DescriptorAllocator.AllocateSRDescriptors(EResource::NumResources + 1);
 }
 
 void GpuScene::UploadMaterials()
@@ -219,12 +216,6 @@ void GpuScene::Commit(CommandContext* pCommandContext)
 	pCommandContext->SetIndexBuffer(&indexBufferView);
 
 	GpuTextureAllocator.Stage(*pScene, pCommandContext);
-
-	pRenderDevice->CreateSRV(GetRTTLASResourceHandle(), ShaderResourceViews[0]);
-	pRenderDevice->CreateSRV(GetVertexBufferHandle(), ShaderResourceViews[1]);
-	pRenderDevice->CreateSRV(GetIndexBufferHandle(), ShaderResourceViews[2]);
-	pRenderDevice->CreateSRV(GetGeometryInfoTableHandle(), ShaderResourceViews[3]);
-	pRenderDevice->CreateSRV(GetMaterialTableHandle(), ShaderResourceViews[4]);
 }
 
 void GpuScene::Update()

@@ -93,3 +93,11 @@ static inline std::string UTF16ToUTF8(const std::wstring& utf16Str)
 	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> conv;
 	return conv.to_bytes(utf16Str);
 }
+
+// Source: https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
+template <typename T>
+inline void hash_combine(std::size_t& seed, const T& v)
+{
+	std::hash<T> hasher;
+	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}

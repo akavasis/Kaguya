@@ -34,6 +34,15 @@ struct GenerateMipsData
 	UINT SrcDimension;				// Width and height of the source texture are even or odd.
 	UINT IsSRGB;					// Must apply gamma correction to sRGB textures.
 	DirectX::XMFLOAT2 TexelSize;    // 1.0 / OutMip1.Dimensions
+
+	// Source mip map.
+	int InputIndex;
+
+	// Write up to 4 mip map levels.
+	int Output1Index;
+	int Output2Index;
+	int Output3Index;
+	int Output4Index;
 };
 
 struct EquirectangularToCubemapData
@@ -41,6 +50,17 @@ struct EquirectangularToCubemapData
 	UINT CubemapSize;				// Size of the cubemap face in pixels at the current mipmap level.
 	UINT FirstMip;					// The first mip level to generate.
 	UINT NumMips;					// The number of mips to generate.
+
+	// Source texture as an equirectangular panoramic image.
+	// It is assumed that the src texture has a full mipmap chain.
+	int InputIndex;
+
+	// Destination texture as a mip slice in the cubemap texture (texture array with 6 elements).
+	int Output1Index;
+	int Output2Index;
+	int Output3Index;
+	int Output4Index;
+	int Output5Index;
 };
 
 struct RendererFormats
@@ -55,13 +75,14 @@ struct RendererFormats
 
 struct RootParameters
 {
-	struct StandardShaderLayout
+	struct ShaderLayout
 	{
 		enum
 		{
-			ConstantDataCB,
 			RenderPassDataCB,
-			DescriptorTables,
+			ShaderResourceDescriptorTable,
+			UnorderedAccessDescriptorTable,
+			SamplerDescriptorTable,
 			NumRootParameters
 		};
 	};
@@ -78,27 +99,14 @@ struct RootParameters
 	{
 		enum
 		{
-			GenerateMipsCBuffer,
-			SrcMip,
-			OutMips
+			GenerateMipsCB
 		};
 	};
 	struct EquirectangularToCubemap
 	{
 		enum
 		{
-			PanoToCubemapCBuffer,
-			SrcMip,
-			OutMips
-		};
-	};
-	struct Raytracing
-	{
-		enum
-		{
-			GeometryTable,
-			RenderTarget,
-			NumRootParameters
+			EquirectangularToCubemapCB,
 		};
 	};
 };
@@ -168,20 +176,7 @@ struct RootSignatures
 		inline static RenderResourceHandle Accumulation;
 		inline static RenderResourceHandle EmptyLocal;
 
-		struct Pathtracing
-		{
-			inline static RenderResourceHandle Global;
-		};
-
-		struct RaytraceGBuffer
-		{
-			inline static RenderResourceHandle Global;
-		};
-
-		struct AmbientOcclusion
-		{
-			inline static RenderResourceHandle Global;
-		};
+		inline static RenderResourceHandle Global;
 	};
 
 	static void Register(RenderDevice* pRenderDevice);
