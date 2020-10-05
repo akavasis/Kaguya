@@ -36,15 +36,17 @@ public:
 	void DisableCursor();
 	bool CursorEnabled() const;
 
-	inline const HWND& GetWindowHandle() const { return m_WindowHandle; }
-	inline const std::wstring& GetWindowName() const { return m_WindowName; }
-	inline unsigned int GetWindowWidth() const { return m_WindowWidth; }
-	inline unsigned int GetWindowHeight() const { return m_WindowHeight; }
+	inline auto GetWindowHandle() const { return m_WindowHandle; }
+	inline auto GetWindowName() const { return m_WindowName; }
+	inline auto GetWindowWidth() const { return m_WindowWidth; }
+	inline auto GetWindowHeight() const { return m_WindowHeight; }
 	inline Mouse& GetMouse() { return m_Mouse; }
 	inline Keyboard& GetKeyboard() { return m_Keyboard; }
 
 	void SetTitle(std::wstring Title);
 	void AppendToTitle(std::wstring Message);
+
+	bool ProcessWindowEvents();
 private:
 	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

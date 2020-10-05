@@ -115,6 +115,22 @@ void Window::AppendToTitle(std::wstring Message)
 	::SetWindowText(m_WindowHandle, (m_WindowName + Message).data());
 }
 
+bool Window::ProcessWindowEvents()
+{
+	MSG msg = {};
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		// Translates messages and sends them to WndProc
+		// WindowProcedure internally calls this->DispatchEvent
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+
+		if (msg.message == WM_QUIT)
+			return false;
+	}
+	return true;
+}
+
 LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle, uMsg, wParam, lParam))

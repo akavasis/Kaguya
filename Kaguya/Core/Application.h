@@ -1,18 +1,22 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
 #include <filesystem>
-#include "Delegate.h"
+#include "Window.h"
+#include "Time.h"
 
 class Application
 {
 public:
-	Application();
-	~Application();
+	Application(LPCWSTR WindowName,
+		int Width = CW_USEDEFAULT, int Height = CW_USEDEFAULT,
+		int X = CW_USEDEFAULT, int Y = CW_USEDEFAULT);
+	virtual ~Application();
 
-	std::filesystem::path ExecutableFolderPath() const;
-	int Run(Delegate<void()> Callback);
+	virtual int Run() = 0;
+
+	inline auto GetExecutableFolderPath() const { return m_ExecutableFolderPath; }
+
+	Window Window;
+	Time Time;
 private:
 	std::filesystem::path m_ExecutableFolderPath;
-	Delegate<void()> m_Callback;
 };

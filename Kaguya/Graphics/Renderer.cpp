@@ -36,8 +36,8 @@ Renderer::Renderer(const Application& Application, Window& Window)
 
 	m_AspectRatio = static_cast<float>(Window.GetWindowWidth()) / static_cast<float>(Window.GetWindowHeight());
 
-	Shaders::Register(&m_RenderDevice, Application.ExecutableFolderPath());
-	Libraries::Register(&m_RenderDevice, Application.ExecutableFolderPath());
+	Shaders::Register(&m_RenderDevice, Application.GetExecutableFolderPath());
+	Libraries::Register(&m_RenderDevice, Application.GetExecutableFolderPath());
 	RootSignatures::Register(&m_RenderDevice);
 	GraphicsPSOs::Register(&m_RenderDevice);
 	ComputePSOs::Register(&m_RenderDevice);

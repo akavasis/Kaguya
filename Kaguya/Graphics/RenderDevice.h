@@ -112,30 +112,6 @@ public:
 private:
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 
-	struct DescriptorTables
-	{
-		enum ShaderResource
-		{
-			Texture2DTable,
-			Texture2DArrayTable,
-			TextureCubeTable,
-			RawBufferTable,
-			NumSRDescriptorTables
-		};
-
-		enum UnorderedAccess
-		{
-			RWTexture2DTable,
-			NumUADescriptorTables
-		};
-
-		enum Sampler
-		{
-			SamplerTable,
-			NumSamplerDescriptorTables
-		};
-	};
-
 	ShaderCompiler m_ShaderCompiler;
 	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[CommandContext::NumTypes];
 

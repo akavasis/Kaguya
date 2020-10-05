@@ -2,7 +2,10 @@
 #include "Application.h"
 #include <shellapi.h>
 
-Application::Application()
+Application::Application(LPCWSTR WindowName,
+	int Width, int Height,
+	int X, int Y)
+	: Window(WindowName, Width, Height, X, Y)
 {
 	Log::Create();
 	ThrowCOMIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
@@ -26,32 +29,4 @@ Application::Application()
 Application::~Application()
 {
 	CoUninitialize();
-}
-
-std::filesystem::path Application::ExecutableFolderPath() const
-{
-	return m_ExecutableFolderPath;
-}
-
-int Application::Run(Delegate<void()> Callback)
-{
-	m_Callback = Callback;
-	// Main message loop:
-	MSG msg = {};
-	while (msg.message != WM_QUIT)
-	{
-		// Process all messages, stop on WM_QUIT
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			// Translates messages and sends them to WndProc
-			// WindowProcedure internally calls this->DispatchEvent
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-		else
-		{
-			m_Callback();
-		}
-	}
-	return static_cast<int>(msg.wParam);
 }

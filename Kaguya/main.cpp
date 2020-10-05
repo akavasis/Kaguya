@@ -14,8 +14,6 @@
 #include <exception>
 
 #include "Core/Application.h"
-#include "Core/Window.h"
-#include "Core/Time.h"
 #include "Graphics/Renderer.h"
 #include "Graphics/Scene/Scene.h"
 
@@ -337,6 +335,92 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 	return scene;
 }
 
+class PathTracer : public Application
+{
+public:
+	PathTracer()
+		: Application(L"Path Tracer", 1280, 720),
+		Renderer(*this, Window)
+	{
+	}
+
+	virtual int Run() override
+	{
+		MaterialLoader materialLoader(GetExecutableFolderPath());
+		ModelLoader modelLoader(GetExecutableFolderPath());
+		Scene scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
+		scene.Skybox.Path = GetExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
+
+		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
+		scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
+
+		Renderer.SetScene(&scene);
+
+		Time.Restart();
+		while (Window.ProcessWindowEvents())
+		{
+
+			// Handle input
+			while (!Window.GetKeyboard().KeyBufferIsEmpty())
+			{
+				const Keyboard::Event e = Window.GetKeyboard().ReadKey();
+				if (e.type != Keyboard::Event::Type::Press)
+					continue;
+				switch (e.data.Code)
+				{
+				case VK_ESCAPE:
+				{
+					if (Window.CursorEnabled())
+					{
+						Window.DisableCursor();
+						Window.GetMouse().EnableRawInput();
+					}
+					else
+					{
+						Window.EnableCursor();
+						Window.GetMouse().DisableRawInput();
+					}
+				}
+				break;
+				}
+			}
+
+			if (!Window.CursorEnabled())
+			{
+				if (Window.GetKeyboard().IsKeyPressed('W'))
+					scene.Camera.Translate(0.0f, 0.0f, Time.DeltaTime());
+				if (Window.GetKeyboard().IsKeyPressed('A'))
+					scene.Camera.Translate(-Time.DeltaTime(), 0.0f, 0.0f);
+				if (Window.GetKeyboard().IsKeyPressed('S'))
+					scene.Camera.Translate(0.0f, 0.0f, -Time.DeltaTime());
+				if (Window.GetKeyboard().IsKeyPressed('D'))
+					scene.Camera.Translate(Time.DeltaTime(), 0.0f, 0.0f);
+				if (Window.GetKeyboard().IsKeyPressed('Q'))
+					scene.Camera.Translate(0.0f, Time.DeltaTime(), 0.0f);
+				if (Window.GetKeyboard().IsKeyPressed('E'))
+					scene.Camera.Translate(0.0f, -Time.DeltaTime(), 0.0f);
+			}
+
+			while (!Window.GetMouse().RawDeltaBufferIsEmpty())
+			{
+				const auto delta = Window.GetMouse().ReadRawDelta();
+				if (!Window.CursorEnabled())
+				{
+					scene.Camera.Rotate(delta.Y * Time.DeltaTime(), delta.X * Time.DeltaTime());
+				}
+			}
+
+			Time.Signal();
+			Renderer.Update(Time);
+			Renderer.RenderGui();
+			Renderer.Render();
+		}
+		return 0;
+	}
+
+	Renderer Renderer;
+};
+
 int main(int argc, char** argv)
 {
 	try
@@ -346,79 +430,8 @@ int main(int argc, char** argv)
 		SET_LEAK_BREAKPOINT(-1);
 #endif
 
-		Application application;
-		Window window(L"Path Tracer", 1280, 720);
-		Renderer renderer(application, window);
-
-		MaterialLoader materialLoader(application.ExecutableFolderPath());
-		ModelLoader modelLoader(application.ExecutableFolderPath());
-		Scene scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
-		scene.Skybox.Path = application.ExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
-
-		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
-		scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
-
-		renderer.SetScene(&scene);
-
-		Time time;
-		time.Restart();
-		return application.Run([&]()
-		{
-			// Handle input
-			while (!window.GetKeyboard().KeyBufferIsEmpty())
-			{
-				const Keyboard::Event e = window.GetKeyboard().ReadKey();
-				if (e.type != Keyboard::Event::Type::Press)
-					continue;
-				switch (e.data.Code)
-				{
-				case VK_ESCAPE:
-				{
-					if (window.CursorEnabled())
-					{
-						window.DisableCursor();
-						window.GetMouse().EnableRawInput();
-					}
-					else
-					{
-						window.EnableCursor();
-						window.GetMouse().DisableRawInput();
-					}
-				}
-				break;
-				}
-			}
-
-			if (!window.CursorEnabled())
-			{
-				if (window.GetKeyboard().IsKeyPressed('W'))
-					scene.Camera.Translate(0.0f, 0.0f, time.DeltaTime());
-				if (window.GetKeyboard().IsKeyPressed('A'))
-					scene.Camera.Translate(-time.DeltaTime(), 0.0f, 0.0f);
-				if (window.GetKeyboard().IsKeyPressed('S'))
-					scene.Camera.Translate(0.0f, 0.0f, -time.DeltaTime());
-				if (window.GetKeyboard().IsKeyPressed('D'))
-					scene.Camera.Translate(time.DeltaTime(), 0.0f, 0.0f);
-				if (window.GetKeyboard().IsKeyPressed('Q'))
-					scene.Camera.Translate(0.0f, time.DeltaTime(), 0.0f);
-				if (window.GetKeyboard().IsKeyPressed('E'))
-					scene.Camera.Translate(0.0f, -time.DeltaTime(), 0.0f);
-			}
-
-			while (!window.GetMouse().RawDeltaBufferIsEmpty())
-			{
-				const auto delta = window.GetMouse().ReadRawDelta();
-				if (!window.CursorEnabled())
-				{
-					scene.Camera.Rotate(delta.Y * time.DeltaTime(), delta.X * time.DeltaTime());
-				}
-			}
-
-			time.Signal();
-			renderer.Update(time);
-			renderer.RenderGui();
-			renderer.Render();
-		});
+		std::unique_ptr<PathTracer> application = std::make_unique<PathTracer>();
+		return application->Run();
 	}
 	catch (std::exception& e)
 	{
