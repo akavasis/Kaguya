@@ -10,26 +10,24 @@ RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties)
 
 }
 
-RenderGraph::RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene)
+RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice),
-	pGpuScene(pGpuScene),
 	m_ThreadPool(3)
 {
 
 }
 
-void RenderGraph::AddRenderPass(RenderPass* pIRenderPass)
+void RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 {
-	auto pRenderPass = std::unique_ptr<RenderPass>(pIRenderPass);
+	auto renderPass = std::unique_ptr<RenderPass>(pRenderPass);
 
-	m_ResourceScheduler.m_pCurrentRenderPass = pRenderPass.get();
+	m_ResourceScheduler.m_pCurrentRenderPass = renderPass.get();
 
-	pRenderPass->OnScheduleResource(&m_ResourceScheduler);
-	pRenderPass->OnInitializeScene(pGpuScene, pRenderDevice);
+	renderPass->OnScheduleResource(&m_ResourceScheduler);
 
-	m_RenderPasses.emplace_back(std::move(pRenderPass));
+	m_RenderPasses.emplace_back(std::move(renderPass));
 	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct));
-	m_RenderPassIDs.emplace_back(typeid(*pIRenderPass));
+	m_RenderPassIDs.emplace_back(typeid(*pRenderPass));
 }
 
 void RenderGraph::Initialize()
@@ -38,13 +36,21 @@ void RenderGraph::Initialize()
 
 	m_GpuData = pRenderDevice->CreateBuffer([numRenderPasses = m_RenderPasses.size()](BufferProxy& Proxy)
 	{
-		Proxy.SetSizeInBytes(numRenderPasses * Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+		Proxy.SetSizeInBytes(numRenderPasses* Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
 		Proxy.SetStride(Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
 		Proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
 	CreaterResources();
 	CreateResourceViews();
+}
+
+void RenderGraph::InitializeScene(GpuScene* pGpuScene)
+{
+	for (auto& renderPass : m_RenderPasses)
+	{
+		renderPass->OnInitializeScene(pGpuScene, pRenderDevice);
+	}
 }
 
 void RenderGraph::RenderGui()
@@ -159,7 +165,7 @@ void RenderGraph::CreateResourceViews()
 				continue;
 
 			pRenderDevice->CreateSRV(handle);
-			
+
 			auto texture = pRenderDevice->GetTexture(handle);
 			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::UnorderedAccess))
 			{

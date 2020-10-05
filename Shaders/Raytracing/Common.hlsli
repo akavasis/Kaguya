@@ -55,8 +55,3 @@ Vertex BarycentricInterpolation(in Triangle t, in float3 barycentric)
 // Attributes output by the raytracing when hitting a surface,
 // here the barycentric coordinates, using hlsl predefined struct
 typedef BuiltInTriangleIntersectionAttributes HitAttributes;
-
-//struct ShadowRayPayload
-//{
-//    float Visibility;
-//};

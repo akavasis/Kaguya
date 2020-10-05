@@ -85,15 +85,16 @@ public:
 		static constexpr bool MultiThreaded = true;
 	};
 
-	RenderGraph(RenderDevice* pRenderDevice, GpuScene* pGpuScene);
+	RenderGraph(RenderDevice* pRenderDevice);
 
 	template<typename RenderPass>
 	RenderPass* GetRenderPass() const;
 
-	void AddRenderPass(RenderPass* pIRenderPass);
+	void AddRenderPass(RenderPass* pRenderPass);
 
 	// Only call once
 	void Initialize();
+	void InitializeScene(GpuScene* pGpuScene);
 
 	// Call every frame
 	void RenderGui();
@@ -104,7 +105,6 @@ private:
 	void CreateResourceViews();
 
 	RenderDevice* pRenderDevice;
-	GpuScene* pGpuScene;
 
 	ThreadPool m_ThreadPool;
 

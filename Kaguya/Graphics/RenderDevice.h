@@ -39,7 +39,12 @@ public:
 	enum
 	{
 		NumSwapChainBuffers = 3,
-		NumDescriptorsPerRange = 2048
+		NumConstantBufferDescriptors = 1024,
+		NumShaderResourceDescriptors = 1024,
+		NumUnorderedAccessDescriptors = 1024,
+		NumSamplerDescriptors = 1024,
+		NumRenderTargetDescriptors = 1024,
+		NumDepthStencilDescriptors = 1024
 	};
 
 	RenderDevice(IDXGIAdapter4* pAdapter);
@@ -148,12 +153,12 @@ private:
 	RenderTargetDescriptorHeap m_RenderTargetDescriptorHeap;
 	DepthStencilDescriptorHeap m_DepthStencilDescriptorHeap;
 
-	Pool<void, NumDescriptorsPerRange> m_ConstantBufferDescriptorIndexPool;
-	Pool<void, NumDescriptorsPerRange> m_ShaderResourceDescriptorIndexPool;
-	Pool<void, NumDescriptorsPerRange> m_UnorderedAccessDescriptorIndexPool;
-	Pool<void, NumDescriptorsPerRange> m_SamplerDescriptorIndexPool;
-	Pool<void, NumDescriptorsPerRange> m_RenderTargetDescriptorIndexPool;
-	Pool<void, NumDescriptorsPerRange> m_DepthStencilDescriptorIndexPool;
+	Pool<void, NumConstantBufferDescriptors> m_ConstantBufferDescriptorIndexPool;
+	Pool<void, NumShaderResourceDescriptors> m_ShaderResourceDescriptorIndexPool;
+	Pool<void, NumUnorderedAccessDescriptors> m_UnorderedAccessDescriptorIndexPool;
+	Pool<void, NumSamplerDescriptors> m_SamplerDescriptorIndexPool;
+	Pool<void, NumRenderTargetDescriptors> m_RenderTargetDescriptorIndexPool;
+	Pool<void, NumDepthStencilDescriptors> m_DepthStencilDescriptorIndexPool;
 
 	std::unordered_map<RenderResourceHandle, RenderBuffer> m_RenderBuffers;
 	std::unordered_map<RenderResourceHandle, RenderTexture> m_RenderTextures;

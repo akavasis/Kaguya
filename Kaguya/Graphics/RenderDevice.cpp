@@ -6,10 +6,10 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	GraphicsQueue(&Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	ComputeQueue(&Device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
 	CopyQueue(&Device, D3D12_COMMAND_LIST_TYPE_COPY),
-	m_CBSRUADescriptorHeap(&Device, NumDescriptorsPerRange, NumDescriptorsPerRange, NumDescriptorsPerRange, true),
-	m_SamplerDescriptorHeap(&Device, NumDescriptorsPerRange, true),
-	m_RenderTargetDescriptorHeap(&Device, NumDescriptorsPerRange),
-	m_DepthStencilDescriptorHeap(&Device, NumDescriptorsPerRange)
+	m_CBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true),
+	m_SamplerDescriptorHeap(&Device, NumSamplerDescriptors, true),
+	m_RenderTargetDescriptorHeap(&Device, NumRenderTargetDescriptors),
+	m_DepthStencilDescriptorHeap(&Device, NumDepthStencilDescriptors)
 {
 	FrameIndex = 0;
 
@@ -228,19 +228,19 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 		if (auto iter = m_RenderTextures.find(*pRenderResourceHandle);
 			iter != m_RenderTextures.end())
 		{
-			for (auto srv : iter->second.ShaderResourceViews)
+			for (const auto& srv : iter->second.ShaderResourceViews)
 			{
 				m_ShaderResourceDescriptorIndexPool.Free(srv.second.HeapIndex);
 			}
-			for (auto uav : iter->second.UnorderedAccessViews)
+			for (const auto& uav : iter->second.UnorderedAccessViews)
 			{
 				m_UnorderedAccessDescriptorIndexPool.Free(uav.second.HeapIndex);
 			}
-			for (auto rtv : iter->second.RenderTargetViews)
+			for (const auto& rtv : iter->second.RenderTargetViews)
 			{
 				m_RenderTargetDescriptorIndexPool.Free(rtv.second.HeapIndex);
 			}
-			for (auto dsv : iter->second.DepthStencilViews)
+			for (const auto& dsv : iter->second.DepthStencilViews)
 			{
 				m_RenderTargetDescriptorIndexPool.Free(dsv.second.HeapIndex);
 			}
