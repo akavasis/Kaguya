@@ -90,13 +90,6 @@ Resource::~Resource()
 {
 }
 
-void Resource::Release()
-{
-	m_pResource.Reset();
-	m_Type = Resource::Type::Unknown;
-	m_BindFlags = BindFlags::None;
-}
-
 D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type)
 {
 	switch (Type)

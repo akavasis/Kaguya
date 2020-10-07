@@ -167,38 +167,38 @@ void GpuScene::UploadModelInstances()
 	Upload(GeometryInfoTable, geometryInfos.data(), geometryInfos.size() * sizeof(GeometryInfo), pUploadGeometryInfoTable);
 }
 
-void GpuScene::Commit(CommandContext* pCommandContext)
+void GpuScene::Commit(RenderContext& RenderContext)
 {
 	for (size_t i = 0; i < NumResources; ++i)
 	{
 		auto pUploadBuffer = pRenderDevice->GetBuffer(UploadResourceTables[i]);
 		auto pBuffer = pRenderDevice->GetBuffer(ResourceTables[i]);
 
-		pCommandContext->CopyResource(pBuffer, pUploadBuffer);
+		RenderContext->CopyResource(pBuffer, pUploadBuffer);
 
 		switch (i)
 		{
 		case MaterialTable:
-			pCommandContext->TransitionBarrier(pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+			RenderContext->TransitionBarrier(pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 			break;
 
 		case VertexBuffer:
-			pCommandContext->TransitionBarrier(pBuffer, Resource::State::VertexBuffer | Resource::State::NonPixelShaderResource);
+			RenderContext->TransitionBarrier(pBuffer, Resource::State::VertexBuffer | Resource::State::NonPixelShaderResource);
 			break;
 
 		case IndexBuffer:
-			pCommandContext->TransitionBarrier(pBuffer, Resource::State::IndexBuffer | Resource::State::NonPixelShaderResource);
+			RenderContext->TransitionBarrier(pBuffer, Resource::State::IndexBuffer | Resource::State::NonPixelShaderResource);
 			break;
 
 		case GeometryInfoTable:
-			pCommandContext->TransitionBarrier(pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+			RenderContext->TransitionBarrier(pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 			break;
 		}
 	}
-	pCommandContext->FlushResourceBarriers();
+	RenderContext->FlushResourceBarriers();
 
-	CreateBottomLevelAS(pCommandContext);
-	CreateTopLevelAS(pCommandContext);
+	CreateBottomLevelAS(RenderContext);
+	CreateTopLevelAS(RenderContext);
 
 	auto pVertexBuffer = pRenderDevice->GetBuffer(ResourceTables[VertexBuffer]);
 	auto pIndexBuffer = pRenderDevice->GetBuffer(ResourceTables[IndexBuffer]);
@@ -207,15 +207,15 @@ void GpuScene::Commit(CommandContext* pCommandContext)
 	vertexBufferView.BufferLocation = pVertexBuffer->GetGpuVirtualAddress();
 	vertexBufferView.SizeInBytes = Allocators[VertexBuffer].GetCurrentSize();
 	vertexBufferView.StrideInBytes = sizeof(Vertex);
-	pCommandContext->SetVertexBuffers(0, 1, &vertexBufferView);
+	RenderContext->SetVertexBuffers(0, 1, &vertexBufferView);
 
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;
 	indexBufferView.BufferLocation = pIndexBuffer->GetGpuVirtualAddress();
 	indexBufferView.SizeInBytes = Allocators[IndexBuffer].GetCurrentSize();
 	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	pCommandContext->SetIndexBuffer(&indexBufferView);
+	RenderContext->SetIndexBuffer(&indexBufferView);
 
-	GpuTextureAllocator.Stage(*pScene, pCommandContext);
+	GpuTextureAllocator.Stage(*pScene, RenderContext);
 }
 
 void GpuScene::Update()
@@ -239,7 +239,7 @@ size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, Buff
 	return offset;
 }
 
-void GpuScene::CreateBottomLevelAS(CommandContext* pCommandContext)
+void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 {
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
@@ -265,11 +265,11 @@ void GpuScene::CreateBottomLevelAS(CommandContext* pCommandContext)
 		Buffer* pResult = pRenderDevice->GetBuffer(rtblas.Handles.Result);
 		Buffer* pScratch = pRenderDevice->GetBuffer(rtblas.Handles.Scratch);
 
-		rtblas.BLAS.Generate(pCommandContext, pScratch, pResult);
+		rtblas.BLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult);
 	}
 }
 
-void GpuScene::CreateTopLevelAS(CommandContext* pCommandContext)
+void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 {
 	size_t instanceID = 0;
 	size_t hitGroupIndex = 0;
@@ -326,5 +326,5 @@ void GpuScene::CreateTopLevelAS(CommandContext* pCommandContext)
 	pScratch->SetDebugName(L"RTTLAS Scratch");
 	pResult->SetDebugName(L"RTTLAS Result");
 
-	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(pCommandContext, pScratch, pResult, pInstanceDescs);
+	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
 }

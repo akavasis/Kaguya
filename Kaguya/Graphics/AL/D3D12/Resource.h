@@ -77,8 +77,6 @@ public:
 	inline auto GetHeapOffset() const { return m_HeapOffset; }
 	inline auto GetNumSubresources() const { return m_NumSubresources; }
 
-	void Release();
-
 	void SetDebugName(LPCWSTR Name)
 	{
 		m_pResource->SetName(Name);

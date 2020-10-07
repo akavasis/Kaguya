@@ -15,6 +15,8 @@ public:
 	{
 	}
 
+	inline auto GetCommandContext() const { return m_pCommandContext; }
+
 	inline auto GetCurrentSwapChainResourceHandle() const 
 	{
 		return m_pRenderDevice->SwapChainTextures[m_pRenderDevice->FrameIndex];

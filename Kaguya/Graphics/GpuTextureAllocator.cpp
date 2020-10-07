@@ -5,15 +5,15 @@
 GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice)
 {
-	//// Create BRDF LUT
-	//RendererReseveredTextures[BRDFLUT] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
-	//{
-	//	proxy.SetFormat(RendererFormats::BRDFLUTFormat);
-	//	proxy.SetWidth(Resolutions::BRDFLUT);
-	//	proxy.SetHeight(Resolutions::BRDFLUT);
-	//	proxy.BindFlags = Resource::BindFlags::RenderTarget;
-	//	proxy.InitialState = Resource::State::RenderTarget;
-	//});
+	// Create BRDF LUT
+	RendererReseveredTextures[BRDFLUT] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	{
+		proxy.SetFormat(RendererFormats::BRDFLUTFormat);
+		proxy.SetWidth(Resolutions::BRDFLUT);
+		proxy.SetHeight(Resolutions::BRDFLUT);
+		proxy.BindFlags = Resource::BindFlags::RenderTarget;
+		proxy.InitialState = Resource::State::RenderTarget;
+	});
 
 	m_CubemapCamerasUploadBufferHandle = pRenderDevice->CreateBuffer([](BufferProxy& proxy)
 	{
@@ -120,60 +120,58 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 	}
 }
 
-void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
+void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 {
-	//// Generate BRDF LUT
-	//if (!Status::BRDFGenerated)
-	//{
-	//	Status::BRDFGenerated = true;
+	// Generate BRDF LUT
+	if (!Status::BRDFGenerated)
+	{
+		Status::BRDFGenerated = true;
 
-	//	D3D12_VIEWPORT vp;
-	//	vp.TopLeftX = vp.TopLeftY = 0.0f;
-	//	vp.MinDepth = 0.0f;
-	//	vp.MaxDepth = 1.0f;
-	//	vp.Width = vp.Height = Resolutions::BRDFLUT;
+		D3D12_VIEWPORT vp;
+		vp.TopLeftX = vp.TopLeftY = 0.0f;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		vp.Width = vp.Height = Resolutions::BRDFLUT;
 
-	//	D3D12_RECT sr;
-	//	sr.left = sr.top = 0;
-	//	sr.right = sr.bottom = Resolutions::BRDFLUT;
+		D3D12_RECT sr;
+		sr.left = sr.top = 0;
+		sr.right = sr.bottom = Resolutions::BRDFLUT;
 
-	//	pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), Resource::State::RenderTarget);
+		RenderContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), Resource::State::RenderTarget);
 
-	//	pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	//	pCommandContext->SetPipelineState(pRenderDevice->GetGraphicsPSO(GraphicsPSOs::BRDFIntegration));
-	//	pCommandContext->SetGraphicsRootSignature(pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration));
+		RenderContext.SetPipelineState(GraphicsPSOs::BRDFIntegration);
+		RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	//	pRenderDevice->CreateRTV(RendererReseveredTextures[BRDFLUT]);
+		pRenderDevice->CreateRTV(RendererReseveredTextures[BRDFLUT]);
 
-	//	Descriptor RTV = pRenderDevice->GetRTV(RendererReseveredTextures[BRDFLUT]);
+		Descriptor RTV = pRenderDevice->GetRTV(RendererReseveredTextures[BRDFLUT]);
 
-	//	pCommandContext->SetRenderTargets(1, RTV, TRUE, Descriptor());
-	//	pCommandContext->SetViewports(1, &vp);
-	//	pCommandContext->SetScissorRects(1, &sr);
-	//	pCommandContext->DrawInstanced(3, 1, 0, 0);
-	//	pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
-	//}
+		RenderContext->SetRenderTargets(1, RTV, TRUE, Descriptor());
+		RenderContext->SetViewports(1, &vp);
+		RenderContext->SetScissorRects(1, &sr);
+		RenderContext->DrawInstanced(3, 1, 0, 0);
 
-	//pRenderDevice->BindUniversalGpuDescriptorHeap(pCommandContext);
+		RenderContext.TransitionBarrier(RendererReseveredTextures[BRDFLUT], Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+	}
 
-	//// Generate skybox first
-	//RendererReseveredTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
-	//auto& stagingTexture = m_UnstagedTextures[RendererReseveredTextures[SkyboxEquirectangularMap]];
-	//StageTexture(RendererReseveredTextures[SkyboxEquirectangularMap], stagingTexture, pCommandContext);
+	// Generate skybox first
+	RendererReseveredTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
+	auto& stagingTexture = m_UnstagedTextures[RendererReseveredTextures[SkyboxEquirectangularMap]];
+	StageTexture(RendererReseveredTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
 
-	//// Generate cubemap for equirectangular map
-	//Texture* pEquirectangularMap = pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxEquirectangularMap]);
-	//RendererReseveredTextures[SkyboxCubemap] = pRenderDevice->CreateTexture(Resource::Type::TextureCube, [&](TextureProxy& proxy)
-	//{
-	//	proxy.SetFormat(pEquirectangularMap->GetFormat());
-	//	proxy.SetWidth(1024);
-	//	proxy.SetHeight(1024);
-	//	proxy.SetMipLevels(0);
-	//	proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-	//	proxy.InitialState = Resource::State::Common;
-	//});
+	// Generate cubemap for equirectangular map
+	Texture* pEquirectangularMap = pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxEquirectangularMap]);
+	RendererReseveredTextures[SkyboxCubemap] = pRenderDevice->CreateTexture(Resource::Type::TextureCube, [&](TextureProxy& proxy)
+	{
+		proxy.SetFormat(pEquirectangularMap->GetFormat());
+		proxy.SetWidth(1024);
+		proxy.SetHeight(1024);
+		proxy.SetMipLevels(0);
+		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.InitialState = Resource::State::Common;
+	});
 
-	//EquirectangularToCubemap(RendererReseveredTextures[SkyboxEquirectangularMap], RendererReseveredTextures[SkyboxCubemap], pCommandContext);
+	EquirectangularToCubemap(RendererReseveredTextures[SkyboxEquirectangularMap], RendererReseveredTextures[SkyboxCubemap], RenderContext);
 
 	//// Create temporary srv for the cubemap and generate convolutions
 	//pRenderDevice->CreateSRV(RendererReseveredTextures[SkyboxCubemap]);
@@ -265,10 +263,10 @@ void GpuTextureAllocator::Stage(Scene& Scene, CommandContext* pCommandContext)
 	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
 	{
 		// Skybox is already staged, dont need to stage again
-		//if (handle == RendererReseveredTextures[SkyboxEquirectangularMap])
-		//	continue;
+		if (handle == RendererReseveredTextures[SkyboxEquirectangularMap])
+			continue;
 
-		StageTexture(handle, stagingTexture, pCommandContext);
+		StageTexture(handle, stagingTexture, RenderContext);
 	}
 }
 
@@ -368,7 +366,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	default:
 	{
-		assert("Should not get here");
+		throw std::logic_error("Unknown TEX_DIMENSION");
 	}
 	}
 
@@ -469,13 +467,13 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 	}
 }
 
-void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, CommandContext* pCommandContext)
+void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
 {
 	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 	Texture* pStagingResourceTexture = &StagingTexture.texture;
 
 	// Stage texture
-	pCommandContext->TransitionBarrier(pTexture, Resource::State::CopyDest);
+	RenderContext->TransitionBarrier(pTexture, Resource::State::CopyDest);
 	for (std::size_t subresourceIndex = 0; subresourceIndex < StagingTexture.numSubresources; ++subresourceIndex)
 	{
 		D3D12_TEXTURE_COPY_LOCATION destination;
@@ -487,45 +485,44 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 		source.pResource = pStagingResourceTexture->GetD3DResource();
 		source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		source.PlacedFootprint = StagingTexture.placedSubresourceLayouts[subresourceIndex];
-		pCommandContext->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+		RenderContext->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
 	}
 
 	if (StagingTexture.generateMips)
 	{
-		GenerateMips(TextureHandle, pCommandContext);
+		GenerateMips(TextureHandle, RenderContext);
 	}
 
-	pCommandContext->TransitionBarrier(pTexture, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+	RenderContext->TransitionBarrier(pTexture, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 
 	TextureHandles[StagingTexture.path] = TextureHandle;
 	CORE_INFO("{} Loaded", StagingTexture.path);
 }
 
-void GpuTextureAllocator::GenerateMips(RenderResourceHandle TextureHandle, CommandContext* pCommandContext)
+void GpuTextureAllocator::GenerateMips(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
 	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 	if (IsUAVCompatable(pTexture->GetFormat()))
 	{
-		GenerateMipsUAV(TextureHandle, pCommandContext);
+		GenerateMipsUAV(TextureHandle, RenderContext);
 	}
 	else if (IsSRGB(pTexture->GetFormat()))
 	{
-		GenerateMipsSRGB(TextureHandle, pCommandContext);
+		GenerateMipsSRGB(TextureHandle, RenderContext);
 	}
 }
 
-void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, CommandContext* pCommandContext)
+void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
 	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
 	pRenderDevice->CreateSRV(TextureHandle);
 
 	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
-	pCommandContext->SetPipelineState(pRenderDevice->GetComputePSO(ComputePSOs::GenerateMips));
-	pCommandContext->SetComputeRootSignature(pRenderDevice->GetRootSignature(RootSignatures::GenerateMips));
+	RenderContext.SetPipelineState(ComputePSOs::GenerateMips);
 
-	GenerateMipsData generateMipsCB;
-	generateMipsCB.IsSRGB = DirectX::IsSRGB(pTexture->GetFormat());
+	GenerateMipsData generateMipsData;
+	generateMipsData.IsSRGB = DirectX::IsSRGB(pTexture->GetFormat());
 
 	for (uint32_t srcMip = 0; srcMip < pTexture->GetMipLevels() - 1u; )
 	{
@@ -539,7 +536,7 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 		// 0b01(1): Width is odd, height is even.
 		// 0b10(2): Width is even, height is odd.
 		// 0b11(3): Both width and height are odd.
-		generateMipsCB.SrcDimension = (srcHeight & 1) << 1 | (srcWidth & 1);
+		generateMipsData.SrcDimension = (srcHeight & 1) << 1 | (srcWidth & 1);
 
 		// How many mipmap levels to compute this pass (max 4 mips per pass)
 		DWORD mipCount;
@@ -560,17 +557,17 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 		dstWidth = std::max<DWORD>(1, dstWidth);
 		dstHeight = std::max<DWORD>(1, dstHeight);
 
-		generateMipsCB.SrcMipLevel = srcMip;
-		generateMipsCB.NumMipLevels = mipCount;
-		generateMipsCB.TexelSize.x = 1.0f / (float)dstWidth;
-		generateMipsCB.TexelSize.y = 1.0f / (float)dstHeight;
+		generateMipsData.SrcMipLevel = srcMip;
+		generateMipsData.NumMipLevels = mipCount;
+		generateMipsData.TexelSize.x = 1.0f / (float)dstWidth;
+		generateMipsData.TexelSize.y = 1.0f / (float)dstHeight;
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
 			pRenderDevice->CreateUAV(TextureHandle, {}, srcMip + mip + 1);
 		}
 
-		generateMipsCB.InputIndex = pRenderDevice->GetSRV(TextureHandle).HeapIndex;
+		generateMipsData.InputIndex = pRenderDevice->GetSRV(TextureHandle).HeapIndex;
 
 		int outputIndices[4] = { -1, -1, -1, -1 };
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
@@ -578,29 +575,29 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Co
 			outputIndices[mip] = pRenderDevice->GetUAV(TextureHandle, {}, srcMip + mip + 1).HeapIndex;
 		}
 
-		generateMipsCB.Output1Index = outputIndices[0];
-		generateMipsCB.Output2Index = outputIndices[1];
-		generateMipsCB.Output3Index = outputIndices[2];
-		generateMipsCB.Output4Index = outputIndices[3];
+		generateMipsData.Output1Index = outputIndices[0];
+		generateMipsData.Output2Index = outputIndices[1];
+		generateMipsData.Output3Index = outputIndices[2];
+		generateMipsData.Output4Index = outputIndices[3];
 
-		pCommandContext->TransitionBarrier(pTexture, Resource::State::NonPixelShaderResource, srcMip);
+		RenderContext->TransitionBarrier(pTexture, Resource::State::NonPixelShaderResource, srcMip);
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			pCommandContext->TransitionBarrier(pTexture, Resource::State::UnorderedAccess, srcMip + mip + 1);
+			RenderContext->TransitionBarrier(pTexture, Resource::State::UnorderedAccess, srcMip + mip + 1);
 		}
 
-		pCommandContext->SetComputeRoot32BitConstants(RootParameters::GenerateMips::GenerateMipsCB, sizeof(GenerateMipsData) / 4, &generateMipsCB, 0);
+		RenderContext->SetComputeRoot32BitConstants(0, sizeof(GenerateMipsData) / 4, &generateMipsData, 0);
 
-		pCommandContext->Dispatch2D(dstWidth, dstHeight, 8, 8);
+		RenderContext->Dispatch2D(dstWidth, dstHeight, 8, 8);
 
-		pCommandContext->UAVBarrier(pTexture);
-		pCommandContext->FlushResourceBarriers();
+		RenderContext->UAVBarrier(pTexture);
+		RenderContext->FlushResourceBarriers();
 
 		srcMip += mipCount;
 	}
 }
 
-void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, CommandContext* pCommandContext)
+void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
 	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
@@ -617,29 +614,29 @@ void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, C
 
 	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
 
-	pCommandContext->CopyResource(pDstTexture, pTexture);
+	RenderContext->CopyResource(pDstTexture, pTexture);
 
-	GenerateMipsUAV(textureCopyHandle, pCommandContext);
+	GenerateMipsUAV(textureCopyHandle, RenderContext);
 
-	pCommandContext->CopyResource(pTexture, pDstTexture);
+	RenderContext->CopyResource(pTexture, pDstTexture);
 
 	m_TemporaryResources.push_back(textureCopyHandle);
 }
 
-void GpuTextureAllocator::EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext)
+void GpuTextureAllocator::EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
 	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 	if (IsUAVCompatable(pCubemap->GetFormat()))
 	{
-		EquirectangularToCubemapUAV(EquirectangularMap, Cubemap, pCommandContext);
+		EquirectangularToCubemapUAV(EquirectangularMap, Cubemap, RenderContext);
 	}
 	else if (IsSRGB(pCubemap->GetFormat()))
 	{
-		EquirectangularToCubemapSRGB(EquirectangularMap, Cubemap, pCommandContext);
+		EquirectangularToCubemapSRGB(EquirectangularMap, Cubemap, RenderContext);
 	}
 }
 
-void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext)
+void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
 	pRenderDevice->CreateSRV(EquirectangularMap);
 
@@ -647,19 +644,18 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 	auto resourceDesc = pCubemap->GetD3DResource()->GetDesc();
 
-	pCommandContext->SetPipelineState(pRenderDevice->GetComputePSO(ComputePSOs::EquirectangularToCubemap));
-	pCommandContext->SetComputeRootSignature(pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap));
+	RenderContext.SetPipelineState(ComputePSOs::EquirectangularToCubemap);
 
-	EquirectangularToCubemapData panoToCubemapCB;
+	EquirectangularToCubemapData equirectangylarToCubemapData;
 
 	for (uint32_t mipSlice = 0; mipSlice < resourceDesc.MipLevels; )
 	{
 		// Maximum number of mips to generate per pass is 5.
 		uint32_t numMips = std::min<uint32_t>(5, resourceDesc.MipLevels - mipSlice);
 
-		panoToCubemapCB.FirstMip = mipSlice;
-		panoToCubemapCB.CubemapSize = std::max<uint32_t>(static_cast<uint32_t>(resourceDesc.Width), resourceDesc.Height) >> mipSlice;
-		panoToCubemapCB.NumMips = numMips;
+		equirectangylarToCubemapData.FirstMip = mipSlice;
+		equirectangylarToCubemapData.CubemapSize = std::max<uint32_t>(static_cast<uint32_t>(resourceDesc.Width), resourceDesc.Height) >> mipSlice;
+		equirectangylarToCubemapData.NumMips = numMips;
 
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
@@ -672,30 +668,32 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 			outputIndices[mip] = pRenderDevice->GetUAV(Cubemap, {}, mipSlice + mip).HeapIndex;
 		}
 
-		panoToCubemapCB.Output1Index = outputIndices[0];
-		panoToCubemapCB.Output2Index = outputIndices[1];
-		panoToCubemapCB.Output3Index = outputIndices[2];
-		panoToCubemapCB.Output4Index = outputIndices[3];
-		panoToCubemapCB.Output5Index = outputIndices[4];
+		equirectangylarToCubemapData.InputIndex = pRenderDevice->GetSRV(EquirectangularMap).HeapIndex;
 
-		pCommandContext->TransitionBarrier(pEquirectangularMap, Resource::State::NonPixelShaderResource);
+		equirectangylarToCubemapData.Output1Index = outputIndices[0];
+		equirectangylarToCubemapData.Output2Index = outputIndices[1];
+		equirectangylarToCubemapData.Output3Index = outputIndices[2];
+		equirectangylarToCubemapData.Output4Index = outputIndices[3];
+		equirectangylarToCubemapData.Output5Index = outputIndices[4];
+
+		RenderContext->TransitionBarrier(pEquirectangularMap, Resource::State::NonPixelShaderResource);
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
-			pCommandContext->TransitionBarrier(pCubemap, Resource::State::UnorderedAccess);
+			RenderContext->TransitionBarrier(pCubemap, Resource::State::UnorderedAccess);
 		}
 
-		pCommandContext->SetComputeRoot32BitConstants(RootParameters::EquirectangularToCubemap::EquirectangularToCubemapCB, 3, &panoToCubemapCB, 0);
+		RenderContext->SetComputeRoot32BitConstants(0, sizeof(EquirectangularToCubemapData) / 4, &equirectangylarToCubemapData, 0);
 
-		UINT threadGroupCount = Math::RoundUpAndDivide(panoToCubemapCB.CubemapSize, 16);
-		pCommandContext->Dispatch(threadGroupCount, threadGroupCount, 6);
+		UINT threadGroupCount = Math::RoundUpAndDivide(equirectangylarToCubemapData.CubemapSize, 16);
+		RenderContext->Dispatch(threadGroupCount, threadGroupCount, 6);
 
-		pCommandContext->UAVBarrier(pCubemap);
+		RenderContext->UAVBarrier(pCubemap);
 
 		mipSlice += numMips;
 	}
 }
 
-void GpuTextureAllocator::EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext)
+void GpuTextureAllocator::EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
 	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 
@@ -712,11 +710,11 @@ void GpuTextureAllocator::EquirectangularToCubemapSRGB(RenderResourceHandle Equi
 
 	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
 
-	pCommandContext->CopyResource(pDstTexture, pCubemap);
+	RenderContext->CopyResource(pDstTexture, pCubemap);
 
-	EquirectangularToCubemapUAV(EquirectangularMap, textureCopyHandle, pCommandContext);
+	EquirectangularToCubemapUAV(EquirectangularMap, textureCopyHandle, RenderContext);
 
-	pCommandContext->CopyResource(pCubemap, pDstTexture);
+	RenderContext->CopyResource(pCubemap, pDstTexture);
 
 	m_TemporaryResources.push_back(textureCopyHandle);
 }

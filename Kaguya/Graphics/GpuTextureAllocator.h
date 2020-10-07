@@ -7,28 +7,29 @@
 #include <DirectXTex.h>
 
 #include "RenderDevice.h"
+#include "RenderContext.h"
 #include "../Core/Allocator/VariableSizedAllocator.h"
 #include "Scene/Scene.h"
 
 class GpuTextureAllocator
 {
 public:
-	//enum RendererReseveredTextures
-	//{
-	//	BRDFLUT,
-	//	SkyboxEquirectangularMap,
-	//	SkyboxCubemap,
-	//	SkyboxIrradianceCubemap,
-	//	SkyboxPrefilteredCubemap,
-	//	NumAssetTextures
-	//};
-	//RenderResourceHandle RendererReseveredTextures[NumAssetTextures];
+	enum RendererReseveredTextures
+	{
+		BRDFLUT,
+		SkyboxEquirectangularMap,
+		SkyboxCubemap,
+		//SkyboxIrradianceCubemap,
+		//SkyboxPrefilteredCubemap,
+		NumAssetTextures
+	};
+	RenderResourceHandle RendererReseveredTextures[NumAssetTextures];
 
 	std::unordered_map<std::string, RenderResourceHandle> TextureHandles;
 
 	GpuTextureAllocator(RenderDevice* pRenderDevice);
 
-	void Stage(Scene& Scene, CommandContext* pCommandContext);
+	void Stage(Scene& Scene, RenderContext& RenderContext);
 private:
 	struct Status
 	{
@@ -48,13 +49,13 @@ private:
 
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
 	void LoadMaterial(Material& Material);
-	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, CommandContext* pCommandContext);
-	void GenerateMips(RenderResourceHandle TextureHandle, CommandContext* pCommandContext);
-	void GenerateMipsUAV(RenderResourceHandle TextureHandle, CommandContext* pCommandContext);
-	void GenerateMipsSRGB(RenderResourceHandle TextureHandle, CommandContext* pCommandContext);
-	void EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext);
-	void EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext);
-	void EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, CommandContext* pCommandContext);
+	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext);
+	void GenerateMips(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
+	void GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
+	void GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
+	void EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
+	void EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
+	void EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
 
 	bool IsUAVCompatable(DXGI_FORMAT Format);
 	bool IsSRGB(DXGI_FORMAT Format);

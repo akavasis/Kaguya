@@ -71,12 +71,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 				proxy.AddRootConstantsParameter(RootConstants<ConvolutionIrradianceSetting>(0, 0));
 			else
 				proxy.AddRootConstantsParameter(RootConstants<ConvolutionPrefilterSetting>(0, 0));
-			proxy.AddRootCBVParameter(RootCBV(1, 100));
-
-			RootDescriptorTable descriptorTable;
-			descriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(1, 0, 0, volatileFlag, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND));
-
-			proxy.AddRootDescriptorTableParameter(descriptorTable);
+			proxy.AddRootCBVParameter(RootCBV(1, 100)); // Camera projection matrix
 
 			proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
 
@@ -95,8 +90,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	// Generate mips RS
 	GenerateMips = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-
 		proxy.AddRootConstantsParameter(RootConstants<GenerateMipsData>(0, 0));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
@@ -109,8 +102,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	// Equirectangular to cubemap RS
 	EquirectangularToCubemap = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-
 		proxy.AddRootConstantsParameter(RootConstants<EquirectangularToCubemapData>(0, 0));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);
@@ -129,8 +120,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	PostProcess_BloomMask = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 5));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
@@ -141,8 +130,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	PostProcess_BloomDownsample = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 7));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
@@ -153,8 +140,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	PostProcess_BloomBlur = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 4));
 
 		proxy.AllowInputLayout();
@@ -164,8 +149,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
@@ -176,8 +159,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	PostProcess_BloomComposition = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
-
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);

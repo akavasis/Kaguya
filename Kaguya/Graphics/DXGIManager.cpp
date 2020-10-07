@@ -39,6 +39,9 @@ DXGIManager::DXGIManager()
 
 DXGIManager::~DXGIManager()
 {
+	m_pQueriedAdapter = nullptr;
+	m_pAdapters.clear();
+	m_pDXGIFactory = nullptr;
 #if defined(_DEBUG)
 	Microsoft::WRL::ComPtr<IDXGIDebug> pDXGIDebug;
 	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDXGIDebug))))

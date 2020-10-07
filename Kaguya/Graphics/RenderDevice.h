@@ -38,13 +38,13 @@ class RenderDevice
 public:
 	enum
 	{
-		NumSwapChainBuffers = 3,
-		NumConstantBufferDescriptors = 1024,
-		NumShaderResourceDescriptors = 1024,
-		NumUnorderedAccessDescriptors = 1024,
-		NumSamplerDescriptors = 1024,
-		NumRenderTargetDescriptors = 1024,
-		NumDepthStencilDescriptors = 1024
+		NumSwapChainBuffers				= 3,
+		NumConstantBufferDescriptors	= 1024,
+		NumShaderResourceDescriptors	= 1024,
+		NumUnorderedAccessDescriptors	= 1024,
+		NumSamplerDescriptors			= 1024,
+		NumRenderTargetDescriptors		= 1024,
+		NumDepthStencilDescriptors		= 1024
 	};
 
 	RenderDevice(IDXGIAdapter4* pAdapter);
@@ -107,8 +107,6 @@ public:
 
 	UINT FrameIndex;
 	RenderResourceHandle SwapChainTextures[NumSwapChainBuffers];
-
-	CommandContext* pUploadCommandContext;
 private:
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 

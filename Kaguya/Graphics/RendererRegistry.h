@@ -17,14 +17,13 @@ struct Resolutions
 
 struct ConvolutionIrradianceSetting
 {
-	float DeltaPhi = (2.0f * float(DirectX::XM_PI)) / 180.0f;
-	float DeltaTheta = (0.5f * float(DirectX::XM_PI)) / 64.0f;
+	int CubemapIndex;
 };
 
 struct ConvolutionPrefilterSetting
 {
 	float Roughness;
-	UINT NumSamples = 32u;
+	int CubemapIndex;
 };
 
 struct GenerateMipsData
@@ -93,20 +92,6 @@ struct RootParameters
 			Setting,
 			RenderPassCBuffer,
 			CubemapSRV
-		};
-	};
-	struct GenerateMips
-	{
-		enum
-		{
-			GenerateMipsCB
-		};
-	};
-	struct EquirectangularToCubemap
-	{
-		enum
-		{
-			EquirectangularToCubemapCB,
 		};
 	};
 };

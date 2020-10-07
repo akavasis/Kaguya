@@ -5,6 +5,8 @@
 #include "Core/Time.h"
 
 // Render passes
+#include "RendererRegistry.h"
+
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/RaytraceGBuffer.h"
 #include "RenderPass/AmbientOcclusion.h"
@@ -16,7 +18,10 @@ Renderer::Renderer(const Application& Application, Window& Window)
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_Gui(&m_RenderDevice),
 	m_GpuScene(&m_RenderDevice),
-	m_RenderGraph(&m_RenderDevice)
+	m_RenderGraph(&m_RenderDevice),
+
+	pUploadCommandContext(m_RenderDevice.AllocateContext(CommandContext::Direct)),
+	UploadRenderContext(0, nullptr, &m_RenderDevice, pUploadCommandContext)
 {
 	auto adapterDesc = m_DXGIManager.GetAdapterDesc();
 	AdapterDescription = UTF16ToUTF8(adapterDesc.Description);
@@ -79,8 +84,9 @@ void Renderer::SetScene(Scene* pScene)
 	m_GpuScene.UploadMaterials();
 	m_GpuScene.UploadModels();
 	m_GpuScene.UploadModelInstances();
-	m_GpuScene.Commit(m_RenderDevice.pUploadCommandContext);
-	m_RenderDevice.ExecuteRenderCommandContexts(1, &m_RenderDevice.pUploadCommandContext);
+	m_RenderDevice.BindUniversalGpuDescriptorHeap(UploadRenderContext.GetCommandContext());
+	m_GpuScene.Commit(UploadRenderContext);
+	m_RenderDevice.ExecuteRenderCommandContexts(1, &pUploadCommandContext);
 
 	m_RenderGraph.InitializeScene(&m_GpuScene);
 }

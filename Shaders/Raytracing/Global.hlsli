@@ -63,7 +63,6 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib)
 	si.bsdf.bitangent = hitSurface.Bitangent;
 	si.bsdf.normal = hitSurface.Normal;
 	//si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f)); // Not used yet, still reading Physically Based Rendering
-	// Perhaps i should merge these 2 structs into 1 unified Material struct...
 	si.material = material;
 	
 	return si;

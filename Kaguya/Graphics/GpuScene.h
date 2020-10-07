@@ -3,6 +3,7 @@
 #include "Scene/Scene.h"
 #include "GpuTextureAllocator.h"
 #include "RenderDevice.h"
+#include "RenderContext.h"
 
 class GpuScene
 {
@@ -21,7 +22,7 @@ public:
 	void UploadMaterials();
 	void UploadModels();
 	void UploadModelInstances();
-	void Commit(CommandContext* pCommandContext);
+	void Commit(RenderContext& RenderContext);
 
 	void Update();
 
@@ -35,8 +36,8 @@ public:
 	GpuTextureAllocator GpuTextureAllocator;
 private:
 	size_t Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer);
-	void CreateBottomLevelAS(CommandContext* pCommandContext);
-	void CreateTopLevelAS(CommandContext* pCommandContext);
+	void CreateBottomLevelAS(RenderContext& RenderContext);
+	void CreateTopLevelAS(RenderContext& RenderContext);
 
 	struct RTBLAS
 	{
