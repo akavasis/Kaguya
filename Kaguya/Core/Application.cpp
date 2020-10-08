@@ -32,6 +32,9 @@ int Application::Run(RenderSystem* pRenderSystem)
 
 	try
 	{
+		if (!pRenderSystem)
+			throw;
+
 		// Begin our render thread
 		Application::pRenderSystem = pRenderSystem;
 		ExitRenderThread = false;

@@ -9,9 +9,11 @@
 #include "Gui.h"
 #include "RenderGraph.h"
 
+//----------------------------------------------------------------------------------------------------
 class Window;
 class Time;
 
+//----------------------------------------------------------------------------------------------------
 class Renderer : public RenderSystem
 {
 public:
@@ -29,7 +31,7 @@ public:
 		inline static bool VSync = false;
 	};
 
-	Renderer(Window& Window);
+	Renderer(Window* pWindow);
 
 	void SetScene(Scene* pScene);
 

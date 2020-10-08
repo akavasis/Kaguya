@@ -341,26 +341,13 @@ int main(int argc, char** argv)
 	ENABLE_LEAK_DETECTION();
 	SET_LEAK_BREAKPOINT(-1);
 #endif
+	Application::Initialize(L"Path Tracer", 1280, 720);
 
+	Scene scene;
 	Renderer* pRenderer = nullptr;
 	try
 	{
-		Application::Initialize(L"Path Tracer", 1280, 720);
-		{
-			pRenderer = new Renderer(*Application::pWindow);
-
-			MaterialLoader materialLoader(Application::ExecutableFolderPath);
-			ModelLoader modelLoader(Application::ExecutableFolderPath);
-
-			Scene scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
-			scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
-
-			scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
-			scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
-
-			pRenderer->SetScene(&scene);
-			return Application::Run(pRenderer);
-		}
+		pRenderer = new Renderer(Application::pWindow);
 	}
 	catch (std::exception& e)
 	{
@@ -370,5 +357,19 @@ int main(int argc, char** argv)
 	{
 		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
-	return EXIT_FAILURE;
+
+	if (pRenderer)
+	{
+		MaterialLoader materialLoader(Application::ExecutableFolderPath);
+		ModelLoader modelLoader(Application::ExecutableFolderPath);
+
+		scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
+		scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
+
+		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
+		scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
+
+		pRenderer->SetScene(&scene);
+	}
+	return Application::Run(pRenderer);
 }

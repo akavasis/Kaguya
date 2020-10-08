@@ -13,8 +13,8 @@
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 
-Renderer::Renderer(Window& Window)
-	: RenderSystem(Window.GetWindowWidth(), Window.GetWindowHeight()),
+Renderer::Renderer(Window* pWindow)
+	: RenderSystem(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
 	m_Gui(&m_RenderDevice),
 	m_GpuScene(&m_RenderDevice),
@@ -34,7 +34,7 @@ Renderer::Renderer(Window& Window)
 	RaytracingPSOs::Register(&m_RenderDevice);
 
 	// Create swap chain after command objects have been created
-	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), Window, RendererFormats::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
+	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), *pWindow, RendererFormats::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 
 	// Initialize Non-transient resources
 	for (size_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
@@ -71,7 +71,7 @@ void Renderer::SetScene(Scene* pScene)
 
 void Renderer::OnInitialize()
 {
-
+	
 }
 
 void Renderer::OnHandleMouse(int X, int Y, float DeltaTime)
