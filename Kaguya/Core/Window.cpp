@@ -115,36 +115,11 @@ void Window::AppendToTitle(std::wstring Message)
 	::SetWindowText(m_WindowHandle, (m_WindowName + Message).data());
 }
 
-bool Window::ProcessWindowEvents()
-{
-	MSG msg = {};
-	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-	{
-		// Translates messages and sends them to WndProc
-		// WindowProcedure internally calls this->DispatchEvent
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-
-		if (msg.message == WM_QUIT)
-			return false;
-	}
-	return true;
-}
-
 LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle, uMsg, wParam, lParam))
 		return true;
 	const ImGuiIO& imio = ImGui::GetIO();
-
-	RECT clientRect;
-	::GetWindowRect(m_WindowHandle, &clientRect);
-	m_WindowWidth = Math::Max<unsigned int>(1u, clientRect.right - clientRect.left);
-	m_WindowHeight = Math::Max<unsigned int>(1u, clientRect.bottom - clientRect.top);
-	Window::Event windowEvent;
-	windowEvent.type = Event::Type::Invalid;
-	windowEvent.data.Width = m_WindowWidth;
-	windowEvent.data.Height = m_WindowHeight;
 
 	switch (uMsg)
 	{
@@ -161,10 +136,10 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (!m_CursorEnabled)
 		{
-			if (!m_Mouse.IsInWindow())
+			if (!Mouse.IsInWindow())
 			{
 				::SetCapture(m_WindowHandle);
-				m_Mouse.OnMouseEnter();
+				Mouse.OnMouseEnter();
 				HideCursor();
 			}
 			break;
@@ -176,11 +151,11 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Within the range of our window dimension -> log move, and log enter + capture mouse (if not previously in window)
 		if (pt.x >= 0 && pt.x < m_WindowWidth && pt.y >= 0 && pt.y < m_WindowHeight)
 		{
-			m_Mouse.OnMouseMove(pt.x, pt.y);
-			if (!m_Mouse.IsInWindow())
+			Mouse.OnMouseMove(pt.x, pt.y);
+			if (!Mouse.IsInWindow())
 			{
 				::SetCapture(m_WindowHandle);
-				m_Mouse.OnMouseEnter();
+				Mouse.OnMouseEnter();
 			}
 		}
 		// Outside the range of our window dimension -> log move / maintain capture if button down
@@ -188,13 +163,13 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			if (wParam & (MK_LBUTTON | MK_RBUTTON))
 			{
-				m_Mouse.OnMouseMove(pt.x, pt.y);
+				Mouse.OnMouseMove(pt.x, pt.y);
 			}
 			// button up -> release capture / log event for leaving
 			else
 			{
 				::ReleaseCapture();
-				m_Mouse.OnMouseLeave();
+				Mouse.OnMouseLeave();
 			}
 		}
 	}
@@ -211,7 +186,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (imio.WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
-		m_Mouse.OnLMBPress(pt.x, pt.y);
+		Mouse.OnLMBPress(pt.x, pt.y);
 	}
 	break;
 	case WM_RBUTTONDOWN:
@@ -220,7 +195,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (imio.WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
-		m_Mouse.OnRMBPress(pt.x, pt.y);
+		Mouse.OnRMBPress(pt.x, pt.y);
 	}
 	break;
 	case WM_LBUTTONUP:
@@ -229,12 +204,12 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (imio.WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
-		m_Mouse.OnLMBRelease(pt.x, pt.y);
+		Mouse.OnLMBRelease(pt.x, pt.y);
 		// Release mouse if outside of window
 		if (pt.x < 0 || pt.x >= m_WindowWidth || pt.y < 0 || pt.y >= m_WindowHeight)
 		{
 			::ReleaseCapture();
-			m_Mouse.OnMouseLeave();
+			Mouse.OnMouseLeave();
 		}
 	}
 	break;
@@ -244,12 +219,12 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (imio.WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
-		m_Mouse.OnRMBRelease(pt.x, pt.y);
+		Mouse.OnRMBRelease(pt.x, pt.y);
 		// Release mouse if outside of window
 		if (pt.x < 0 || pt.x >= m_WindowWidth || pt.y < 0 || pt.y >= m_WindowHeight)
 		{
 			::ReleaseCapture();
-			m_Mouse.OnMouseLeave();
+			Mouse.OnMouseLeave();
 		}
 	}
 	break;
@@ -260,7 +235,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
 		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-		m_Mouse.OnWheelDelta(pt.x, pt.y, delta);
+		Mouse.OnWheelDelta(pt.x, pt.y, delta);
 	}
 	break;
 #pragma endregion
@@ -268,7 +243,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 #pragma region Raw Mouse Event
 	case WM_INPUT:
 	{
-		if (!m_Mouse.RawInputEnabled())
+		if (!Mouse.RawInputEnabled())
 			break;
 		UINT size = 0;
 		// First get the size of the input data
@@ -289,7 +264,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (rawInput.header.dwType == RIM_TYPEMOUSE &&
 			(rawInput.data.mouse.lLastX != 0 || rawInput.data.mouse.lLastY != 0))
 		{
-			m_Mouse.OnRawDelta(rawInput.data.mouse.lLastX, rawInput.data.mouse.lLastY);
+			Mouse.OnRawDelta(rawInput.data.mouse.lLastX, rawInput.data.mouse.lLastY);
 		}
 	}
 	break;
@@ -300,7 +275,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_KILLFOCUS:
 	{
-		m_Keyboard.ResetKeyState();
+		Keyboard.ResetKeyState();
 	}
 	break;
 
@@ -310,8 +285,8 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Stifle this keyboard message if imgui wants to capture
 		if (imio.WantCaptureKeyboard)
 			break;
-		if (!(lParam & (1 << 30)) || m_Keyboard.AutoRepeatEnabled())
-			m_Keyboard.OnKeyPress(static_cast<unsigned char>(wParam));
+		if (!(lParam & (1 << 30)) || Keyboard.AutoRepeatEnabled())
+			Keyboard.OnKeyPress(static_cast<unsigned char>(wParam));
 	}
 	break;
 
@@ -321,7 +296,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Stifle this keyboard message if imgui wants to capture
 		if (imio.WantCaptureKeyboard)
 			break;
-		m_Keyboard.OnKeyRelease(static_cast<unsigned char>(wParam));
+		Keyboard.OnKeyRelease(static_cast<unsigned char>(wParam));
 	}
 	break;
 
@@ -330,35 +305,29 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Stifle this keyboard message if imgui wants to capture
 		if (imio.WantCaptureKeyboard)
 			break;
-		m_Keyboard.OnChar(static_cast<unsigned char>(wParam));
+		Keyboard.OnChar(static_cast<unsigned char>(wParam));
 	}
 	break;
 #pragma endregion
 
-#pragma region Resize Event
+#pragma region Resize Message
 	case WM_SIZE:
+	case WM_ENTERSIZEMOVE: // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+	case WM_EXITSIZEMOVE: // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
 	{
-		switch (wParam)
-		{
-		case SIZE_MINIMIZED: { windowEvent.type = Event::Type::Minimize; } break;
-		case SIZE_MAXIMIZED: { windowEvent.type = Event::Type::Maximize; } break;
-		case SIZE_RESTORED: { windowEvent.type = Event::Type::Resize; } break;
-		}
+		RECT clientRect = {};
+		::GetWindowRect(m_WindowHandle, &clientRect);
+		m_WindowWidth = Math::Max<unsigned int>(1u, clientRect.right - clientRect.left);
+		m_WindowHeight = Math::Max<unsigned int>(1u, clientRect.bottom - clientRect.top);
+
+		Window::Message windowMessage;
+		windowMessage.type = Message::Type::Resize;
+		windowMessage.data.Width = m_WindowWidth;
+		windowMessage.data.Height = m_WindowHeight;
+		MessageQueue.push(windowMessage);
 	}
 	break;
 
-	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
-	case WM_ENTERSIZEMOVE:
-	{
-		windowEvent.type = Event::Type::Resizing;
-	}
-	break;
-	// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
-	case WM_EXITSIZEMOVE:
-	{
-		windowEvent.type = Event::Type::Resize;
-	}
-	break;
 #pragma endregion
 
 	case WM_ACTIVATE:
@@ -382,16 +351,11 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_DESTROY:
 	{
-		windowEvent.type = Event::Type::Destroy;
 		::PostQuitMessage(0);
 	}
 	break;
 	}
-	if (windowEvent.type != Event::Type::Invalid)
-	{
-		m_Event.Write(windowEvent.type, windowEvent.data);
-		Dispatch(m_Event);
-	}
+
 	return ::DefWindowProc(m_WindowHandle, uMsg, wParam, lParam);
 }
 

@@ -335,112 +335,40 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 	return scene;
 }
 
-class PathTracer : public Application
-{
-public:
-	PathTracer()
-		: Application(L"Path Tracer", 1280, 720),
-		Renderer(*this, Window)
-	{
-	}
-
-	virtual int Run() override
-	{
-		MaterialLoader materialLoader(GetExecutableFolderPath());
-		ModelLoader modelLoader(GetExecutableFolderPath());
-		Scene scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
-		scene.Skybox.Path = GetExecutableFolderPath() / "Assets/IBL/ChiricahuaPath.hdr";
-
-		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
-		scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
-
-		Renderer.SetScene(&scene);
-
-		Time.Restart();
-		while (Window.ProcessWindowEvents())
-		{
-
-			// Handle input
-			while (!Window.GetKeyboard().KeyBufferIsEmpty())
-			{
-				const Keyboard::Event e = Window.GetKeyboard().ReadKey();
-				if (e.type != Keyboard::Event::Type::Press)
-					continue;
-				switch (e.data.Code)
-				{
-				case VK_ESCAPE:
-				{
-					if (Window.CursorEnabled())
-					{
-						Window.DisableCursor();
-						Window.GetMouse().EnableRawInput();
-					}
-					else
-					{
-						Window.EnableCursor();
-						Window.GetMouse().DisableRawInput();
-					}
-				}
-				break;
-				}
-			}
-
-			if (!Window.CursorEnabled())
-			{
-				if (Window.GetKeyboard().IsKeyPressed('W'))
-					scene.Camera.Translate(0.0f, 0.0f, Time.DeltaTime());
-				if (Window.GetKeyboard().IsKeyPressed('A'))
-					scene.Camera.Translate(-Time.DeltaTime(), 0.0f, 0.0f);
-				if (Window.GetKeyboard().IsKeyPressed('S'))
-					scene.Camera.Translate(0.0f, 0.0f, -Time.DeltaTime());
-				if (Window.GetKeyboard().IsKeyPressed('D'))
-					scene.Camera.Translate(Time.DeltaTime(), 0.0f, 0.0f);
-				if (Window.GetKeyboard().IsKeyPressed('Q'))
-					scene.Camera.Translate(0.0f, Time.DeltaTime(), 0.0f);
-				if (Window.GetKeyboard().IsKeyPressed('E'))
-					scene.Camera.Translate(0.0f, -Time.DeltaTime(), 0.0f);
-			}
-
-			while (!Window.GetMouse().RawDeltaBufferIsEmpty())
-			{
-				const auto delta = Window.GetMouse().ReadRawDelta();
-				if (!Window.CursorEnabled())
-				{
-					scene.Camera.Rotate(delta.Y * Time.DeltaTime(), delta.X * Time.DeltaTime());
-				}
-			}
-
-			Time.Signal();
-			Renderer.Update(Time);
-			Renderer.RenderGui();
-			Renderer.Render();
-		}
-		return 0;
-	}
-
-	Renderer Renderer;
-};
-
 int main(int argc, char** argv)
 {
-	try
-	{
 #if defined(_DEBUG)
-		ENABLE_LEAK_DETECTION();
-		SET_LEAK_BREAKPOINT(-1);
+	ENABLE_LEAK_DETECTION();
+	SET_LEAK_BREAKPOINT(-1);
 #endif
 
-		std::unique_ptr<PathTracer> application = std::make_unique<PathTracer>();
-		return application->Run();
+	Renderer* pRenderer = nullptr;
+	try
+	{
+		Application::Initialize(L"Path Tracer", 1280, 720);
+		{
+			pRenderer = new Renderer(*Application::pWindow);
+
+			MaterialLoader materialLoader(Application::ExecutableFolderPath);
+			ModelLoader modelLoader(Application::ExecutableFolderPath);
+
+			Scene scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
+			scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
+
+			scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
+			scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
+
+			pRenderer->SetScene(&scene);
+			return Application::Run(pRenderer);
+		}
 	}
 	catch (std::exception& e)
 	{
-		MessageBoxA(nullptr, e.what(), "ERROR: !KAI LAUNCHED NUCLEAR BOMBS!", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
-		return 0;
+		MessageBoxA(nullptr, e.what(), "Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
 	catch (...)
 	{
-		MessageBoxA(nullptr, "ERROR: UNKNOWN", "ERROR: !KAI LAUNCHED NUCLEAR BOMBS!", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
-		return 0;
+		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
+	return EXIT_FAILURE;
 }

@@ -6,9 +6,11 @@
 #include "Texture.h"
 #include "Buffer.h"
 
+//----------------------------------------------------------------------------------------------------
 class Device;
 class DescriptorHeap;
 
+//----------------------------------------------------------------------------------------------------
 struct Descriptor
 {
 	inline bool IsValid() const { return CPUHandle.ptr != NULL; }
@@ -19,6 +21,7 @@ struct Descriptor
 	UINT HeapIndex = 0;
 };
 
+//----------------------------------------------------------------------------------------------------
 class DescriptorHeap
 {
 public:

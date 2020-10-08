@@ -1,6 +1,6 @@
 #pragma once
-#include <queue>
 #include <bitset>
+#include "ThreadSafeQueue.h"
 
 class Keyboard
 {
@@ -20,7 +20,12 @@ public:
 			unsigned char Code;
 		} data;
 
-		Event(Type type, unsigned char code);
+		Event() = default;
+		Event(Type type, unsigned char code)
+			: type(type)
+		{
+			data.Code = code;
+		}
 	};
 
 	Keyboard();
@@ -39,19 +44,23 @@ public:
 	bool CharBufferIsEmpty() const;
 private:
 	static constexpr unsigned int s_BufferSize = 16u;
+	static constexpr unsigned int s_NumKeyStates = 256u;
 	bool m_AutoRepeat;
-	std::bitset<256u> m_KeyStates;
-	std::queue<Keyboard::Event> m_KeyBuffer;
-	std::queue<unsigned char> m_CharBuffer;
+	std::atomic<bool> m_KeyStates[s_NumKeyStates];
+	ThreadSafeQueue<Keyboard::Event> m_KeyBuffer;
+	ThreadSafeQueue<unsigned char> m_CharBuffer;
 
 	void ResetKeyState();
 	void OnKeyPress(unsigned char KeyCode);
 	void OnKeyRelease(unsigned char KeyCode);
 	void OnChar(unsigned char Char);
 	template<class T>
-	void TrimBuffer(std::queue<T>& QueueBuffer, unsigned int Limit)
+	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer, unsigned int Limit)
 	{
 		while (QueueBuffer.size() > Limit)
-			QueueBuffer.pop();
+		{
+			T item;
+			QueueBuffer.pop(item, 0);
+		}
 	}
 };

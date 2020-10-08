@@ -2,29 +2,31 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <string>
-#include "EventDispatcher.h"
 #include "Mouse.h"
 #include "Keyboard.h"
+#include "ThreadSafeQueue.h"
 
-class Window : public EventDispatcher
+class Window
 {
 public:
-	struct Event
+	struct Message
 	{
 		enum class Type
 		{
-			Invalid,
-			Minimize,
-			Maximize,
-			Resizing,
-			Resize,
-			Destroy
+			None,
+			Resize
 		} type;
 
 		struct Data
 		{
 			UINT Width, Height;
 		} data;
+
+		Message() = default;
+		Message(Type Type, Data Data)
+			: type(Type), data(Data)
+		{
+		}
 	};
 
 	Window(LPCWSTR WindowName,
@@ -40,13 +42,13 @@ public:
 	inline auto GetWindowName() const { return m_WindowName; }
 	inline auto GetWindowWidth() const { return m_WindowWidth; }
 	inline auto GetWindowHeight() const { return m_WindowHeight; }
-	inline Mouse& GetMouse() { return m_Mouse; }
-	inline Keyboard& GetKeyboard() { return m_Keyboard; }
 
 	void SetTitle(std::wstring Title);
 	void AppendToTitle(std::wstring Message);
 
-	bool ProcessWindowEvents();
+	Mouse Mouse;
+	Keyboard Keyboard;
+	ThreadSafeQueue<Message> MessageQueue;
 private:
 	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -69,7 +71,6 @@ private:
 	std::wstring m_ClassName;
 	std::wstring m_WindowName;
 	bool m_CursorEnabled;
-	Mouse m_Mouse;
-	Keyboard m_Keyboard;
+
 	ImGuiContextManager m_ImGuiContextManager;
 };

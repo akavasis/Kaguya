@@ -1,12 +1,6 @@
 #include "pch.h"
 #include "Keyboard.h"
 
-Keyboard::Event::Event(Type type, unsigned char code)
-	: type(type)
-{
-	data.Code = code;
-}
-
 Keyboard::Keyboard()
 {
 	m_AutoRepeat = false;
@@ -29,16 +23,15 @@ bool Keyboard::AutoRepeatEnabled() const
 
 bool Keyboard::IsKeyPressed(unsigned char KeyCode) const
 {
-	return m_KeyStates[KeyCode];
+	return m_KeyStates[KeyCode].load();
 }
 
 Keyboard::Event Keyboard::ReadKey()
 {
-	if (m_KeyBuffer.empty())
-		return Keyboard::Event(Keyboard::Event::Type::Invalid, NULL);
-	Keyboard::Event e = m_KeyBuffer.front();
-	m_KeyBuffer.pop();
-	return e;
+	if (Keyboard::Event e;
+		m_KeyBuffer.pop(e, 0))
+		return e;
+	return Keyboard::Event(Keyboard::Event::Type::Invalid, NULL);
 }
 
 bool Keyboard::KeyBufferIsEmpty() const
@@ -48,11 +41,10 @@ bool Keyboard::KeyBufferIsEmpty() const
 
 unsigned char Keyboard::ReadChar()
 {
-	if (m_CharBuffer.empty())
-		return NULL;
-	unsigned char e = m_CharBuffer.front();
-	m_CharBuffer.pop();
-	return e;
+	if (unsigned char e;
+		m_CharBuffer.pop(e, 0))
+		return e;
+	return NULL;
 }
 
 bool Keyboard::CharBufferIsEmpty() const
@@ -62,7 +54,10 @@ bool Keyboard::CharBufferIsEmpty() const
 
 void Keyboard::ResetKeyState()
 {
-	m_KeyStates.reset();
+	for (auto& keyState : m_KeyStates)
+	{
+		keyState = false;
+	}
 }
 
 void Keyboard::OnKeyPress(unsigned char KeyCode)

@@ -1,5 +1,5 @@
 #pragma once
-#include <queue>
+#include "ThreadSafeQueue.h"
 
 class Mouse
 {
@@ -31,7 +31,16 @@ public:
 			bool RightMouseButtonIsPressed;
 		} data;
 
-		Event(Type type, const Mouse& mouse);
+		Event() = default;
+		Event(Type type, const Mouse& mouse)
+			: type(type)
+		{
+			data.X = mouse.m_X;
+			data.Y = mouse.m_Y;
+			data.LeftMouseButtonIsPressed = mouse.m_LeftMouseButtonIsPressed;
+			data.MiddleMouseButtonIsPressed = mouse.m_MiddleMouseButtonIsPressed;
+			data.RightMouseButtonIsPressed = mouse.m_RightMouseButtonIsPressed;
+		}
 	};
 
 	struct RawDelta
@@ -68,8 +77,8 @@ private:
 	bool m_IsInWindow;
 	int m_WheelDeltaCarry;
 	bool m_RawInputEnabled;
-	std::queue<Mouse::Event> m_MouseBuffer;
-	std::queue<RawDelta> m_RawDeltaBuffer;
+	ThreadSafeQueue<Mouse::Event> m_MouseBuffer;
+	ThreadSafeQueue<RawDelta> m_RawDeltaBuffer;
 
 	void OnMouseMove(int x, int y);
 	void OnMouseEnter();
@@ -85,9 +94,12 @@ private:
 	void OnWheelDelta(int x, int y, int delta);
 	void OnRawDelta(int dx, int dy);
 	template<class T>
-	void TrimBuffer(std::queue<T>& QueueBuffer, unsigned int Limit)
+	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer, unsigned int Limit)
 	{
 		while (QueueBuffer.size() > Limit)
-			QueueBuffer.pop();
+		{
+			T item;
+			QueueBuffer.pop(item, 0);
+		}
 	}
 };
