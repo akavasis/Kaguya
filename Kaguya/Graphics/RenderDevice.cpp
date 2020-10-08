@@ -173,19 +173,10 @@ RenderResourceHandle RenderDevice::CreateRaytracingPipelineState(std::function<v
 
 void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 {
-	if (!pRenderResourceHandle)
+	if (!pRenderResourceHandle ||
+		pRenderResourceHandle->Type == RenderResourceType::Unknown ||
+		pRenderResourceHandle->Flags == RenderResourceFlags::Destroyed)
 	{
-		CORE_INFO("{} Info: Handle is NULL, Call redudant", __FUNCTION__);
-		return;
-	}
-	if (pRenderResourceHandle->Type == RenderResourceType::Unknown)
-	{
-		CORE_INFO("{} Info: Resource type is unknown, Call redudant", __FUNCTION__);
-		return;
-	}
-	if (pRenderResourceHandle->Flags == RenderResourceFlags::Destroyed)
-	{
-		CORE_INFO("{} Info: Resource is already destroyed, Call redudant", __FUNCTION__);
 		return;
 	}
 
@@ -260,7 +251,7 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 	pRenderResourceHandle->Data = 0;
 }
 
-void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
+void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
 {
 	switch (RenderResourceHandle.Type)
 	{
@@ -289,6 +280,8 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, std::opt
 		{
 			// First-time request
 			Buffer* pBuffer = GetBuffer(RenderResourceHandle);
+			assert(pBuffer && "Could not find buffer given the handle");
+
 			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
 			m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pBuffer);
 
@@ -328,6 +321,8 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, std::opt
 		{
 			// First-time request
 			Texture* pTexture = GetTexture(RenderResourceHandle);
+			assert(pTexture && "Could not find texture given the handle");
+
 			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
 			UINT64 HashValue = m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pTexture, MostDetailedMip, MipLevels);
 
@@ -339,13 +334,10 @@ void RenderDevice::CreateSRV(RenderResourceHandle RenderResourceHandle, std::opt
 		}
 	}
 	break;
-
-	default:
-		throw std::logic_error("Invalid type");
 	}
 }
 
-void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
+void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
 	switch (RenderResourceHandle.Type)
 	{
@@ -374,6 +366,8 @@ void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, std::opt
 		{
 			// First-time request
 			Buffer* pBuffer = GetBuffer(RenderResourceHandle);
+			assert(pBuffer && "Could not find buffer given the handle");
+
 			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
 			m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pBuffer);
 
@@ -413,6 +407,8 @@ void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, std::opt
 		{
 			// First-time request
 			Texture* pTexture = GetTexture(RenderResourceHandle);
+			assert(pTexture && "Could not find texture given the handle");
+
 			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
 			UINT64 HashValue = m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pTexture, ArraySlice, MipSlice);
 
@@ -424,13 +420,10 @@ void RenderDevice::CreateUAV(RenderResourceHandle RenderResourceHandle, std::opt
 		}
 	}
 	break;
-
-	default:
-		throw std::logic_error("Invalid type");
 	}
 }
 
-void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+void RenderDevice::CreateRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
 	if (auto iter = m_RenderTextures.find(RenderResourceHandle);
 		iter != m_RenderTextures.end())
@@ -466,10 +459,7 @@ void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, std::opt
 	{
 		// First-time request
 		Texture* pTexture = GetTexture(RenderResourceHandle);
-		if (!pTexture)
-		{
-			throw std::logic_error("Could not find texture given the handle");
-		}
+		assert(pTexture && "Could not find texture given the handle");
 
 		size_t HeapIndex = m_RenderTargetDescriptorIndexPool.Allocate();
 		auto entry = m_RenderTargetDescriptorHeap[HeapIndex];
@@ -488,7 +478,7 @@ void RenderDevice::CreateRTV(RenderResourceHandle RenderResourceHandle, std::opt
 	}
 }
 
-void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+void RenderDevice::CreateDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
 	if (auto iter = m_RenderTextures.find(RenderResourceHandle);
 		iter != m_RenderTextures.end())
@@ -524,10 +514,7 @@ void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, std::opt
 	{
 		// First-time request
 		Texture* pTexture = GetTexture(RenderResourceHandle);
-		if (!pTexture)
-		{
-			throw std::logic_error("Could not find texture given the handle");
-		}
+		assert(pTexture && "Could not find texture given the handle");
 
 		size_t HeapIndex = m_DepthStencilDescriptorIndexPool.Allocate();
 		auto entry = m_DepthStencilDescriptorHeap[HeapIndex];
@@ -546,7 +533,7 @@ void RenderDevice::CreateDSV(RenderResourceHandle RenderResourceHandle, std::opt
 	}
 }
 
-Descriptor RenderDevice::GetSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip /*= {}*/, std::optional<UINT> MipLevels /*= {}*/) const
+Descriptor RenderDevice::GetShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip /*= {}*/, std::optional<UINT> MipLevels /*= {}*/) const
 {
 	switch (RenderResourceHandle.Type)
 	{
@@ -577,14 +564,11 @@ Descriptor RenderDevice::GetSRV(RenderResourceHandle RenderResourceHandle, std::
 		}
 	}
 	break;
-
-	default:
-		throw std::logic_error("Invalid type");
 	}
 	return Descriptor();
 }
 
-Descriptor RenderDevice::GetUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/) const
+Descriptor RenderDevice::GetUnorderedAccessView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/) const
 {
 	switch (RenderResourceHandle.Type)
 	{
@@ -615,14 +599,11 @@ Descriptor RenderDevice::GetUAV(RenderResourceHandle RenderResourceHandle, std::
 		}
 	}
 	break;
-
-	default:
-		throw std::logic_error("Invalid type");
 	}
 	return Descriptor();
 }
 
-Descriptor RenderDevice::GetRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/, std::optional<UINT> ArraySize /*= {}*/) const
+Descriptor RenderDevice::GetRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/, std::optional<UINT> ArraySize /*= {}*/) const
 {
 	if (auto iter = m_RenderTextures.find(RenderResourceHandle);
 		iter != m_RenderTextures.end())
@@ -640,7 +621,7 @@ Descriptor RenderDevice::GetRTV(RenderResourceHandle RenderResourceHandle, std::
 	return Descriptor();
 }
 
-Descriptor RenderDevice::GetDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/, std::optional<UINT> ArraySize /*= {}*/) const
+Descriptor RenderDevice::GetDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/, std::optional<UINT> ArraySize /*= {}*/) const
 {
 	if (auto iter = m_RenderTextures.find(RenderResourceHandle);
 		iter != m_RenderTextures.end())

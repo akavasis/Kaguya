@@ -124,7 +124,7 @@ void RenderGraph::ExecuteCommandContexts(Gui* pGui)
 {
 	auto frameIndex = pRenderDevice->FrameIndex;
 	auto pDestination = pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[frameIndex]);
-	auto destination = pRenderDevice->GetRTV(pRenderDevice->SwapChainTextures[frameIndex]);
+	auto destination = pRenderDevice->GetRenderTargetView(pRenderDevice->SwapChainTextures[frameIndex]);
 
 	pGui->EndFrame(pDestination, destination, m_CommandContexts.back());
 	pRenderDevice->ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
@@ -164,12 +164,12 @@ void RenderGraph::CreateResourceViews()
 			if (handle.Type == RenderResourceType::Buffer)
 				continue;
 
-			pRenderDevice->CreateSRV(handle);
+			pRenderDevice->CreateShaderResourceView(handle);
 
 			auto texture = pRenderDevice->GetTexture(handle);
 			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::UnorderedAccess))
 			{
-				pRenderDevice->CreateUAV(handle);
+				pRenderDevice->CreateUnorderedAccessView(handle);
 			}
 		}
 	}

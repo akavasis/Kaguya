@@ -3,7 +3,6 @@
 #include "Core/RenderSystem.h"
 
 #include "DXGIManager.h"
-#include "Scene/Scene.h"
 #include "GpuScene.h"
 #include "RenderDevice.h"
 #include "Gui.h"

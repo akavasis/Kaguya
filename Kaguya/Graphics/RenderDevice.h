@@ -1,5 +1,8 @@
 #pragma once
 #include "Template/Pool.h"
+#include "RenderBuffer.h"
+#include "RenderTexture.h"
+#include "RenderResourceContainer.h"
 
 #include "AL/D3D12/Device.h"
 #include "AL/D3D12/ShaderCompiler.h"
@@ -15,11 +18,6 @@
 #include "AL/Proxy/RootSignatureProxy.h"
 #include "AL/Proxy/PipelineStateProxy.h"
 #include "AL/Proxy/RaytracingPipelineStateProxy.h"
-
-#include "RenderResourceContainer.h"
-
-#include "RenderBuffer.h"
-#include "RenderTexture.h"
 
 struct RaytracingAccelerationStructureHandles
 {
@@ -80,10 +78,10 @@ public:
 	void Destroy(RenderResourceHandle* pRenderResourceHandle);
 
 	// Resource view creation
-	void CreateSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
-	void CreateUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
-	void CreateRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
-	void CreateDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	void CreateShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
+	void CreateUnorderedAccessView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
+	void CreateRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	void CreateDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 
 	// Returns nullptr if a resource is not found
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) { return m_Buffers.GetResource(RenderResourceHandle); }
@@ -94,10 +92,10 @@ public:
 	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle) { return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
 
-	Descriptor GetSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const;
-	Descriptor GetUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;
-	Descriptor GetRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
-	Descriptor GetDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
+	Descriptor GetShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const;
+	Descriptor GetUnorderedAccessView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;
+	Descriptor GetRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
+	Descriptor GetDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 
 	Device Device;
 	CommandQueue GraphicsQueue;

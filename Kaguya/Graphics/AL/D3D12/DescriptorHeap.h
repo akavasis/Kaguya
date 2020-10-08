@@ -3,6 +3,8 @@
 #include <wrl/client.h>
 #include <optional>
 
+#include <vector>
+
 #include "Texture.h"
 #include "Buffer.h"
 

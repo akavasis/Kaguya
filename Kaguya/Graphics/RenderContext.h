@@ -27,19 +27,19 @@ public:
 
 	Descriptor GetSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const
 	{
-		return m_pRenderDevice->GetSRV(RenderResourceHandle, MostDetailedMip, MipLevels);
+		return m_pRenderDevice->GetShaderResourceView(RenderResourceHandle, MostDetailedMip, MipLevels);
 	}
 	Descriptor GetUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const
 	{
-		return m_pRenderDevice->GetUAV(RenderResourceHandle, ArraySlice, MipSlice);
+		return m_pRenderDevice->GetUnorderedAccessView(RenderResourceHandle, ArraySlice, MipSlice);
 	}
 	Descriptor GetRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const
 	{
-		return m_pRenderDevice->GetRTV(RenderResourceHandle, ArraySlice, MipSlice, ArraySize);
+		return m_pRenderDevice->GetRenderTargetView(RenderResourceHandle, ArraySlice, MipSlice, ArraySize);
 	}
 	Descriptor GetDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const
 	{
-		return m_pRenderDevice->GetDSV(RenderResourceHandle, ArraySlice, MipSlice, ArraySize);
+		return m_pRenderDevice->GetDepthStencilView(RenderResourceHandle, ArraySlice, MipSlice, ArraySize);
 	}
 
 	template<typename T>

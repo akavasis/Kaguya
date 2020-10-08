@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Gui.h"
 
+#define SHOW_IMGUI_DEMO_WINDOW 0
+
 Gui::Gui(RenderDevice* pRenderDevice)
 	: DescriptorHeap(&pRenderDevice->Device, 0, 1, 0, true)
 {
@@ -21,7 +23,9 @@ void Gui::BeginFrame()
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+#if SHOW_IMGUI_DEMO_WINDOW
 	ImGui::ShowDemoWindow();
+#endif
 }
 
 void Gui::EndFrame(Texture* pDestination, Descriptor DestinationRTV, CommandContext* pCommandContext)

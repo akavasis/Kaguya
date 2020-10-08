@@ -13,6 +13,7 @@
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 
+//----------------------------------------------------------------------------------------------------
 Renderer::Renderer(Window* pWindow)
 	: RenderSystem(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
@@ -42,7 +43,7 @@ Renderer::Renderer(Window* pWindow)
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 		m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
-		m_RenderDevice.CreateRTV(m_RenderDevice.SwapChainTextures[i]);
+		m_RenderDevice.CreateRenderTargetView(m_RenderDevice.SwapChainTextures[i]);
 	}
 
 	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
@@ -53,6 +54,7 @@ Renderer::Renderer(Window* pWindow)
 	m_RenderGraph.Initialize();
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::SetScene(Scene* pScene)
 {
 	PIXCapture();
@@ -69,11 +71,13 @@ void Renderer::SetScene(Scene* pScene)
 	m_RenderGraph.InitializeScene(&m_GpuScene);
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::OnInitialize()
 {
 	
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::OnHandleMouse(int X, int Y, float DeltaTime)
 {
 	Scene& scene = *m_GpuScene.pScene;
@@ -81,6 +85,7 @@ void Renderer::OnHandleMouse(int X, int Y, float DeltaTime)
 	scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 {
 	Scene& scene = *m_GpuScene.pScene;
@@ -99,6 +104,7 @@ void Renderer::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 		scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::OnUpdate(const Time& Time)
 {
 	Statistics::TotalFrameCount++;
@@ -114,6 +120,7 @@ void Renderer::OnUpdate(const Time& Time)
 	m_RenderDevice.FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::OnRender()
 {
 	RenderGui();
@@ -142,6 +149,7 @@ void Renderer::OnRender()
 	}
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::OnResize(uint32_t Width, uint32_t Height)
 {
 	m_RenderDevice.GraphicsQueue.WaitForIdle();
@@ -170,7 +178,7 @@ void Renderer::OnResize(uint32_t Width, uint32_t Height)
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
 			m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
-			m_RenderDevice.CreateRTV(m_RenderDevice.SwapChainTextures[i]);
+			m_RenderDevice.CreateRenderTargetView(m_RenderDevice.SwapChainTextures[i]);
 		}
 
 		// Reset back buffer index
@@ -179,6 +187,7 @@ void Renderer::OnResize(uint32_t Width, uint32_t Height)
 	m_RenderDevice.GraphicsQueue.WaitForIdle();
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::OnDestroy()
 {
 	m_RenderDevice.GraphicsQueue.WaitForIdle();
@@ -186,6 +195,7 @@ void Renderer::OnDestroy()
 	m_RenderDevice.ComputeQueue.WaitForIdle();
 }
 
+//----------------------------------------------------------------------------------------------------
 void Renderer::RenderGui()
 {
 	m_Gui.BeginFrame(); // End frame will be called at the end of the Render method by RenderGraph

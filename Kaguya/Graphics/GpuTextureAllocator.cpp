@@ -142,9 +142,9 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		RenderContext.SetPipelineState(GraphicsPSOs::BRDFIntegration);
 		RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		pRenderDevice->CreateRTV(RendererReseveredTextures[BRDFLUT]);
+		pRenderDevice->CreateRenderTargetView(RendererReseveredTextures[BRDFLUT]);
 
-		Descriptor RTV = pRenderDevice->GetRTV(RendererReseveredTextures[BRDFLUT]);
+		Descriptor RTV = pRenderDevice->GetRenderTargetView(RendererReseveredTextures[BRDFLUT]);
 
 		RenderContext->SetRenderTargets(1, RTV, TRUE, Descriptor());
 		RenderContext->SetViewports(1, &vp);
@@ -515,7 +515,7 @@ void GpuTextureAllocator::GenerateMips(RenderResourceHandle TextureHandle, Rende
 void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
 	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
-	pRenderDevice->CreateSRV(TextureHandle);
+	pRenderDevice->CreateShaderResourceView(TextureHandle);
 
 	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
@@ -564,15 +564,15 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			pRenderDevice->CreateUAV(TextureHandle, {}, srcMip + mip + 1);
+			pRenderDevice->CreateUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1);
 		}
 
-		generateMipsData.InputIndex = pRenderDevice->GetSRV(TextureHandle).HeapIndex;
+		generateMipsData.InputIndex = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
 
 		int outputIndices[4] = { -1, -1, -1, -1 };
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			outputIndices[mip] = pRenderDevice->GetUAV(TextureHandle, {}, srcMip + mip + 1).HeapIndex;
+			outputIndices[mip] = pRenderDevice->GetUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1).HeapIndex;
 		}
 
 		generateMipsData.Output1Index = outputIndices[0];
@@ -638,7 +638,7 @@ void GpuTextureAllocator::EquirectangularToCubemap(RenderResourceHandle Equirect
 
 void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
-	pRenderDevice->CreateSRV(EquirectangularMap);
+	pRenderDevice->CreateShaderResourceView(EquirectangularMap);
 
 	Texture* pEquirectangularMap = pRenderDevice->GetTexture(EquirectangularMap);
 	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
@@ -659,16 +659,16 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
-			pRenderDevice->CreateUAV(Cubemap, {}, mipSlice + mip);
+			pRenderDevice->CreateUnorderedAccessView(Cubemap, {}, mipSlice + mip);
 		}
 
 		int outputIndices[5] = { -1, -1, -1, -1, -1 };
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
-			outputIndices[mip] = pRenderDevice->GetUAV(Cubemap, {}, mipSlice + mip).HeapIndex;
+			outputIndices[mip] = pRenderDevice->GetUnorderedAccessView(Cubemap, {}, mipSlice + mip).HeapIndex;
 		}
 
-		equirectangylarToCubemapData.InputIndex = pRenderDevice->GetSRV(EquirectangularMap).HeapIndex;
+		equirectangylarToCubemapData.InputIndex = pRenderDevice->GetShaderResourceView(EquirectangularMap).HeapIndex;
 
 		equirectangylarToCubemapData.Output1Index = outputIndices[0];
 		equirectangylarToCubemapData.Output2Index = outputIndices[1];
