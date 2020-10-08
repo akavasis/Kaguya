@@ -9,6 +9,7 @@
 #include "RenderPass/PostProcess.h"
 
 static constexpr size_t SizeOfBuiltInTriangleIntersectionAttributes = 2 * sizeof(float);
+static constexpr size_t SizeOfHLSLBooleanType = sizeof(int);
 
 #define ENUM_TO_LSTR(Enum) L#Enum
 
@@ -316,7 +317,7 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 
 void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 {
-	Pathtracing = pRenderDevice->CreateRaytracingPipelineState([=](RaytracingPipelineStateProxy& proxy)
+	Pathtracing = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
 	{
 		enum Symbols
 		{
@@ -432,7 +433,7 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 
 		proxy.SetGlobalRootSignature(pGlobalRootSignature);
 
-		proxy.SetRaytracingShaderConfig(sizeof(int), SizeOfBuiltInTriangleIntersectionAttributes);
+		proxy.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
 		proxy.SetRaytracingPipelineConfig(2);
 	});
 
@@ -492,7 +493,7 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 
 		proxy.SetGlobalRootSignature(pGlobalRootSignature);
 
-		proxy.SetRaytracingShaderConfig(sizeof(int), SizeOfBuiltInTriangleIntersectionAttributes);
+		proxy.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
 		proxy.SetRaytracingPipelineConfig(2);
 	});
 }

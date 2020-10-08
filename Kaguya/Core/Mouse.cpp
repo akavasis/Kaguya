@@ -1,16 +1,6 @@
 #include "pch.h"
 #include "Mouse.h"
 
-Mouse::Event::Event(Type type, const Mouse& mouse)
-	: type(type)
-{
-	data.X = mouse.m_X;
-	data.Y = mouse.m_Y;
-	data.LeftMouseButtonIsPressed = mouse.m_LeftMouseButtonIsPressed;
-	data.MiddleMouseButtonIsPressed = mouse.m_MiddleMouseButtonIsPressed;
-	data.RightMouseButtonIsPressed = mouse.m_RightMouseButtonIsPressed;
-}
-
 Mouse::Mouse()
 {
 	m_X = m_Y = 0;
@@ -66,21 +56,23 @@ bool Mouse::IsInWindow() const
 
 Mouse::Event Mouse::Read()
 {
-	if (m_MouseBuffer.empty())
-		return Mouse::Event(Mouse::Event::Type::Invalid, *this);
-	Mouse::Event e = m_MouseBuffer.front();
-	m_MouseBuffer.pop();
-	return e;
+	if (Mouse::Event e;
+		m_MouseBuffer.pop(e, 0))
+		return e;
+	return Mouse::Event(Mouse::Event::Type::Invalid, *this);
 }
-bool Mouse::MouseBufferIsEmpty() const { return m_MouseBuffer.empty(); }
+
+bool Mouse::MouseBufferIsEmpty() const
+{
+	return m_MouseBuffer.empty();
+}
 
 Mouse::RawDelta Mouse::ReadRawDelta()
 {
-	if (m_RawDeltaBuffer.empty())
-		return { 0, 0 };
-	Mouse::RawDelta e = m_RawDeltaBuffer.front();
-	m_RawDeltaBuffer.pop();
-	return e;
+	if (Mouse::RawDelta e;
+		m_RawDeltaBuffer.pop(e, 0))
+		return e;
+	return { 0, 0 };
 }
 
 bool Mouse::RawDeltaBufferIsEmpty() const

@@ -1,6 +1,7 @@
 #pragma once
 #include <wrl/client.h>
-#include "Core/EventReceiver.h"
+#include "Core/RenderSystem.h"
+
 #include "DXGIManager.h"
 #include "Scene/Scene.h"
 #include "GpuScene.h"
@@ -8,11 +9,12 @@
 #include "Gui.h"
 #include "RenderGraph.h"
 
-class Application;
+//----------------------------------------------------------------------------------------------------
 class Window;
 class Time;
 
-class Renderer
+//----------------------------------------------------------------------------------------------------
+class Renderer : public RenderSystem
 {
 public:
 	struct Statistics
@@ -29,25 +31,24 @@ public:
 		inline static bool VSync = false;
 	};
 
-	Renderer(const Application& Application, Window& Window);
-	~Renderer();
+	Renderer(Window* pWindow);
 
 	void SetScene(Scene* pScene);
 
-	void Update(const Time& Time);
-	void RenderGui();
-	void Render();
+	virtual void OnInitialize() override;
+	virtual void OnHandleMouse(int X, int Y, float DeltaTime) override;
+	virtual void OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
+	virtual void OnUpdate(const Time& Time) override;
+	virtual void OnRender() override;
+	virtual void OnResize(uint32_t Width, uint32_t Height) override;
+	virtual void OnDestroy() override;
 private:
-	void Resize(UINT Width, UINT Height);
-
-	const Window* pWindow;
-	EventReceiver m_EventReceiver;
-
+	void RenderGui();
+	
 	DXGIManager m_DXGIManager;
 
 	// Swapchain resources
 	static constexpr DXGI_FORMAT SwapChainBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	float m_AspectRatio;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 
 	std::string AdapterDescription;
