@@ -1,6 +1,9 @@
 #pragma once
 #include "RenderDevice.h"
 
+/*
+	High level command context
+*/
 class RenderContext
 {
 public:
@@ -17,7 +20,7 @@ public:
 
 	inline auto GetCommandContext() const { return m_pCommandContext; }
 
-	inline auto GetCurrentSwapChainResourceHandle() const 
+	inline auto GetCurrentSwapChainResourceHandle() const
 	{
 		return m_pRenderDevice->SwapChainTextures[m_pRenderDevice->FrameIndex];
 	}
@@ -25,19 +28,19 @@ public:
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle) const { return m_pRenderDevice->GetBuffer(Handle); }
 	[[nodiscard]] inline auto GetTexture(RenderResourceHandle Handle) const { return m_pRenderDevice->GetTexture(Handle); }
 
-	Descriptor GetSRV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const
+	Descriptor GetShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const
 	{
 		return m_pRenderDevice->GetShaderResourceView(RenderResourceHandle, MostDetailedMip, MipLevels);
 	}
-	Descriptor GetUAV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const
+	Descriptor GetUnorderedAccessView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const
 	{
 		return m_pRenderDevice->GetUnorderedAccessView(RenderResourceHandle, ArraySlice, MipSlice);
 	}
-	Descriptor GetRTV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const
+	Descriptor GetRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const
 	{
 		return m_pRenderDevice->GetRenderTargetView(RenderResourceHandle, ArraySlice, MipSlice, ArraySize);
 	}
-	Descriptor GetDSV(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const
+	Descriptor GetDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const
 	{
 		return m_pRenderDevice->GetDepthStencilView(RenderResourceHandle, ArraySlice, MipSlice, ArraySize);
 	}
@@ -62,11 +65,13 @@ public:
 
 	void SetRootShaderResourceView(UINT RootParameterIndex, RenderResourceHandle BufferHandle);
 
-	void DispatchRays(
+	void DispatchRays
+	(
 		RenderResourceHandle RayGenerationShaderTable,
 		RenderResourceHandle MissShaderTable,
 		RenderResourceHandle HitGroupShaderTable,
-		UINT Width, UINT Height, UINT Depth = 1);
+		UINT Width, UINT Height, UINT Depth = 1
+	);
 
 	auto operator->() const { return m_pCommandContext; }
 private:

@@ -31,7 +31,7 @@ ModelInstance& Scene::AddModelInstance(ModelInstance&& ModelInstance)
 	return ModelInstances.back();
 }
 
-UINT CullModels(const Camera* pCamera, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices)
+uint32_t CullModels(const Camera* pCamera, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices)
 {
 	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
 	frustum.Transform(frustum, pCamera->Transform.Matrix());
@@ -51,7 +51,7 @@ UINT CullModels(const Camera* pCamera, const Scene::ModelInstanceList& ModelInst
 	return numVisible;
 }
 
-UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices)
+uint32_t CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices)
 {
 	using namespace DirectX;
 
@@ -87,7 +87,7 @@ UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, 
 	return numVisible;
 }
 
-UINT CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& MeshInstances, std::vector<UINT>& Indices)
+uint32_t CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& MeshInstances, std::vector<uint32_t>& Indices)
 {
 	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
 	frustum.Transform(frustum, pCamera->Transform.Matrix());
@@ -107,7 +107,7 @@ UINT CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& MeshInst
 	return numVisible;
 }
 
-UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<MeshInstance>& MeshInstances, std::vector<UINT>& Indices)
+uint32_t CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<MeshInstance>& MeshInstances, std::vector<uint32_t>& Indices)
 {
 	using namespace DirectX;
 

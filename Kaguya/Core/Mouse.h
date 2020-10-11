@@ -69,14 +69,14 @@ public:
 	bool RawDeltaBufferIsEmpty() const;
 private:
 	static constexpr unsigned int s_BufferSize = 16u;
-	int m_X;
-	int m_Y;
-	bool m_LeftMouseButtonIsPressed;
-	bool m_MiddleMouseButtonIsPressed;
-	bool m_RightMouseButtonIsPressed;
-	bool m_IsInWindow;
-	int m_WheelDeltaCarry;
-	bool m_RawInputEnabled;
+	std::atomic<int> m_X;
+	std::atomic<int> m_Y;
+	std::atomic<bool> m_LeftMouseButtonIsPressed;
+	std::atomic<bool> m_MiddleMouseButtonIsPressed;
+	std::atomic<bool> m_RightMouseButtonIsPressed;
+	std::atomic<bool> m_IsInWindow;
+	std::atomic<int> m_WheelDeltaCarry;
+	std::atomic<bool> m_RawInputEnabled;
 	ThreadSafeQueue<Mouse::Event> m_MouseBuffer;
 	ThreadSafeQueue<RawDelta> m_RawDeltaBuffer;
 

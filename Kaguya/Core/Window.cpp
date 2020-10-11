@@ -9,6 +9,8 @@ Window::Window(LPCWSTR WindowName,
 	int Width, int Height,
 	int X, int Y)
 {
+	m_DefaultCursor = ::LoadCursor(nullptr, IDC_ARROW);
+
 	m_CursorEnabled = true;
 	m_WindowHandle = nullptr;
 	// Generate a unique name for our window class (This name has to be unique, Win32 API requirements)
@@ -48,7 +50,7 @@ Window::Window(LPCWSTR WindowName,
 	windowClass.cbWndExtra = 0;
 	windowClass.hInstance = hInstance;
 	windowClass.hIcon = NULL;
-	windowClass.hCursor = ::LoadCursor(nullptr, IDC_ARROW);
+	windowClass.hCursor = m_DefaultCursor;
 	windowClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
 	windowClass.lpszMenuName = NULL;
 	windowClass.lpszClassName = m_ClassName.data();
@@ -117,9 +119,13 @@ void Window::AppendToTitle(std::wstring Message)
 
 LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle, uMsg, wParam, lParam))
-		return true;
-	const ImGuiIO& imio = ImGui::GetIO();
+	const ImGuiIO* pImGuiIO = nullptr;
+	if (ImGui::GetCurrentContext() != nullptr)
+	{
+		pImGuiIO = &ImGui::GetIO();
+		if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle, uMsg, wParam, lParam))
+			return true;
+	}
 
 	switch (uMsg)
 	{
@@ -145,7 +151,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		// Stifle this mouse message if imgui wants to capture
-		if (imio.WantCaptureMouse)
+		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
 		// Within the range of our window dimension -> log move, and log enter + capture mouse (if not previously in window)
@@ -183,7 +189,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			HideCursor();
 		}
 		// Stifle this mouse message if imgui wants to capture
-		if (imio.WantCaptureMouse)
+		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
 		Mouse.OnLMBPress(pt.x, pt.y);
@@ -192,7 +198,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_RBUTTONDOWN:
 	{
 		// Stifle this mouse message if imgui wants to capture
-		if (imio.WantCaptureMouse)
+		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
 		Mouse.OnRMBPress(pt.x, pt.y);
@@ -201,7 +207,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONUP:
 	{
 		// Stifle this mouse message if imgui wants to capture
-		if (imio.WantCaptureMouse)
+		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
 		Mouse.OnLMBRelease(pt.x, pt.y);
@@ -216,7 +222,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_RBUTTONUP:
 	{
 		// Stifle this mouse message if imgui wants to capture
-		if (imio.WantCaptureMouse)
+		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
 		Mouse.OnRMBRelease(pt.x, pt.y);
@@ -231,7 +237,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEWHEEL:
 	{
 		// Stifle this mouse message if imgui wants to capture
-		if (imio.WantCaptureMouse)
+		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
 		const POINTS pt = MAKEPOINTS(lParam);
 		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
@@ -252,7 +258,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			CORE_ERROR("GetRawInputData Error: ", ::GetLastError());
 			break;
 		}
-		BYTE* rawBuffer = (BYTE*)alloca(size);
+		BYTE* rawBuffer = (BYTE*)_malloca(size);
 		// Read in the input data
 		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, rawBuffer, &size, sizeof(RAWINPUTHEADER)) != size)
 		{
@@ -266,6 +272,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			Mouse.OnRawDelta(rawInput.data.mouse.lLastX, rawInput.data.mouse.lLastY);
 		}
+		_freea(rawBuffer);
 	}
 	break;
 #pragma endregion
@@ -283,7 +290,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SYSKEYDOWN:
 	{
 		// Stifle this keyboard message if imgui wants to capture
-		if (imio.WantCaptureKeyboard)
+		if (pImGuiIO && pImGuiIO->WantCaptureKeyboard)
 			break;
 		if (!(lParam & (1 << 30)) || Keyboard.AutoRepeatEnabled())
 			Keyboard.OnKeyPress(static_cast<unsigned char>(wParam));
@@ -294,7 +301,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SYSKEYUP:
 	{
 		// Stifle this keyboard message if imgui wants to capture
-		if (imio.WantCaptureKeyboard)
+		if (pImGuiIO && pImGuiIO->WantCaptureKeyboard)
 			break;
 		Keyboard.OnKeyRelease(static_cast<unsigned char>(wParam));
 	}
@@ -303,7 +310,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_CHAR:
 	{
 		// Stifle this keyboard message if imgui wants to capture
-		if (imio.WantCaptureKeyboard)
+		if (pImGuiIO && pImGuiIO->WantCaptureKeyboard)
 			break;
 		Keyboard.OnChar(static_cast<unsigned char>(wParam));
 	}
@@ -398,12 +405,14 @@ void Window::FreeCursor()
 
 void Window::ShowCursor()
 {
-	while (::ShowCursor(TRUE) < 0);
+	SetCursor(m_DefaultCursor);
+	//while (::ShowCursor(TRUE) < 0);
 }
 
 void Window::HideCursor()
 {
-	while (::ShowCursor(FALSE) >= 0);
+	SetCursor(NULL);
+	//while (::ShowCursor(FALSE) >= 0);
 }
 
 Window::ImGuiContextManager::ImGuiContextManager()

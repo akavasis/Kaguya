@@ -76,11 +76,13 @@ void RenderContext::SetRootShaderResourceView(UINT RootParameterIndex, RenderRes
 	}
 }
 
-void RenderContext::DispatchRays(
+void RenderContext::DispatchRays
+(
 	RenderResourceHandle RayGenerationShaderTable,
 	RenderResourceHandle MissShaderTable,
 	RenderResourceHandle HitGroupShaderTable,
-	UINT Width, UINT Height, UINT Depth)
+	UINT Width, UINT Height, UINT Depth
+)
 {
 	auto pRayGenerationShaderTable = m_pRenderDevice->GetBuffer(RayGenerationShaderTable);
 	auto pMissShaderTable = m_pRenderDevice->GetBuffer(MissShaderTable);
@@ -132,30 +134,30 @@ void RenderContext::SetRaytracingPSO(RaytracingPipelineState* pRaytracingPipelin
 
 void RenderContext::BindGraphicsShaderLayoutResource(const RootSignature* pRootSignature)
 {
-	const size_t rootParameterOffset = pRootSignature->GetD3DRootSignatureDesc().NumParameters - RootParameters::ShaderLayout::NumRootParameters;
+	const size_t RootParameterOffset = pRootSignature->GetD3DRootSignatureDesc().NumParameters - RootParameters::ShaderLayout::NumRootParameters;
 
 	Descriptor ShaderResourceDescriptorFromStart = m_pRenderDevice->GetGpuDescriptorHeapSRDescriptorFromStart();
 	Descriptor UnorderedAccessDescriptorFromStart = m_pRenderDevice->GetGpuDescriptorHeapUADescriptorFromStart();
 	Descriptor SamplerDescriptorFromStart = m_pRenderDevice->GetSamplerDescriptorHeapDescriptorFromStart();
 
 	if (m_pGpuData)
-		m_pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + rootParameterOffset, m_pGpuData->GetGpuVirtualAddressAt(m_RenderPassIndex));
-	m_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + rootParameterOffset, ShaderResourceDescriptorFromStart.GPUHandle);
-	m_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + rootParameterOffset, UnorderedAccessDescriptorFromStart.GPUHandle);
-	m_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + rootParameterOffset, SamplerDescriptorFromStart.GPUHandle);
+		m_pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameterOffset, m_pGpuData->GetGpuVirtualAddressAt(m_RenderPassIndex));
+	m_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GPUHandle);
+	m_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GPUHandle);
+	m_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GPUHandle);
 }
 
 void RenderContext::BindComputeShaderLayoutResource(const RootSignature* pRootSignature)
 {
-	const size_t rootParameterOffset = pRootSignature->GetD3DRootSignatureDesc().NumParameters - RootParameters::ShaderLayout::NumRootParameters;
+	const size_t RootParameterOffset = pRootSignature->GetD3DRootSignatureDesc().NumParameters - RootParameters::ShaderLayout::NumRootParameters;
 
 	Descriptor ShaderResourceDescriptorFromStart = m_pRenderDevice->GetGpuDescriptorHeapSRDescriptorFromStart();
 	Descriptor UnorderedAccessDescriptorFromStart = m_pRenderDevice->GetGpuDescriptorHeapUADescriptorFromStart();
 	Descriptor SamplerDescriptorFromStart = m_pRenderDevice->GetSamplerDescriptorHeapDescriptorFromStart();
 
 	if (m_pGpuData)
-		m_pCommandContext->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + rootParameterOffset, m_pGpuData->GetGpuVirtualAddressAt(m_RenderPassIndex));
-	m_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + rootParameterOffset, ShaderResourceDescriptorFromStart.GPUHandle);
-	m_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + rootParameterOffset, UnorderedAccessDescriptorFromStart.GPUHandle);
-	m_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + rootParameterOffset, SamplerDescriptorFromStart.GPUHandle);
+		m_pCommandContext->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameterOffset, m_pGpuData->GetGpuVirtualAddressAt(m_RenderPassIndex));
+	m_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GPUHandle);
+	m_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GPUHandle);
+	m_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GPUHandle);
 }

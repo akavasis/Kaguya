@@ -161,9 +161,9 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 	Data.AORadius = Settings.AORadius;
 	Data.NumAORaysPerPixel = Settings.NumAORaysPerPixel;
 
-	Data.InputWorldPositionIndex = RenderContext.GetSRV(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldPosition]).HeapIndex;
-	Data.InputWorldNormalIndex = RenderContext.GetSRV(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldNormal]).HeapIndex;
-	Data.OutputIndex = RenderContext.GetUAV(Resources[EResources::RenderTarget]).HeapIndex;
+	Data.InputWorldPositionIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldPosition]).HeapIndex;
+	Data.InputWorldNormalIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldNormal]).HeapIndex;
+	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 	RenderContext.UpdateRenderPassData<AmbientOcclusionData>(Data);
 
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);

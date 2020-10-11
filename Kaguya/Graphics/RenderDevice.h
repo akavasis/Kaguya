@@ -56,6 +56,8 @@ public:
 	inline auto GetSamplerDescriptorHeapDescriptorFromStart() const { return m_SamplerDescriptorHeap.GetDescriptorFromStart(); }
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
+	void ResetDescriptor();
+
 	// Shader compilation
 	[[nodiscard]] Shader CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
 	[[nodiscard]] Library CompileLibrary(const std::filesystem::path& Path);
@@ -99,8 +101,8 @@ public:
 
 	Device Device;
 	CommandQueue GraphicsQueue;
-	CommandQueue ComputeQueue;
-	CommandQueue CopyQueue;
+	CommandQueue ComputeQueue;	// TODO: Add asynchronous work submission using this queue
+	CommandQueue CopyQueue;		// TODO: Add asynchronous work submission using this queue
 	ResourceStateTracker GlobalResourceStateTracker;
 
 	UINT FrameIndex;

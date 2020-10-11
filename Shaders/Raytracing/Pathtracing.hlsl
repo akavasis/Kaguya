@@ -34,7 +34,7 @@ struct Lambertian
 	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
 	{
 		float3 direction = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
-		RayDesc ray = { si.position, 0.00001f, direction, 100000.0f };
+		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
 		
 		attenuation = Albedo;
 		scatteredRay = ray;
@@ -57,7 +57,7 @@ struct Glossy
 		reflected = normalize(lerp(reflected, diffuse, Roughness * Roughness));
 		
 		float3 direction = lerp(diffuse, reflected, doSpecular);
-		RayDesc ray = { si.position, 0.00001f, direction, 100000.0f };
+		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
 		
 		attenuation = lerp(Albedo, Specular, doSpecular);
 		scatteredRay = ray;
@@ -74,7 +74,7 @@ struct Metal
 		Fuzziness = Fuzziness < 1.0f ? Fuzziness : 1.0f;
 		
 		float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal) + Fuzziness * RandomInUnitSphere(rayPayload.Seed);
-		RayDesc ray = { si.position, 0.00001f, reflected, 100000.0f };
+		RayDesc ray = { si.position, 0.0001f, reflected, 100000.0f };
 		
 		attenuation = Albedo;
 		scatteredRay = ray;
@@ -90,7 +90,7 @@ struct Dielectric
 	void Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
 	{
 		attenuation = float3(1.0f, 1.0f, 1.0f);
-		RayDesc ray = { si.position, 0.00001f, float3(0.0f, 0.0f, 0.0f), 100000.0f };
+		RayDesc ray = { si.position, 0.0001f, float3(0.0f, 0.0f, 0.0f), 100000.0f };
 		
 		si.bsdf.normal = si.frontFace ? si.bsdf.normal : -si.bsdf.normal;
 		float etaI_Over_etaT = si.frontFace ? (1.0f / IndexOfRefraction) : IndexOfRefraction;
@@ -128,7 +128,7 @@ struct DiffuseLight
 		si.bsdf.normal = si.frontFace ? si.bsdf.normal : -si.bsdf.normal;
 		
 		float3 direction = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
-		RayDesc ray = { si.position, 0.00001f, direction, 100000.0f };
+		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
 		
 		attenuation = float3(0.0f, 0.0f, 0.0f);
 		scatteredRay = ray;
@@ -142,26 +142,34 @@ void RayGeneration()
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
 	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassData.GlobalConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
-	// Calculate subpixel camera jitter for anti aliasing
-	const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
-	const float2 pixel = (float2(launchIndex) + 0.5f + jitter) / float2(launchDimensions); // Convert from discrete to continuous
+	float3 color = float3(0.0f, 0.0f, 0.0f);
+	for (int sample = 0; sample < RenderPassData.GlobalConstants.NumSamplesPerPixel; ++sample)
+	{
+		// Calculate subpixel camera jitter for anti aliasing
+		const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
+		const float2 pixel = (float2(launchIndex) + jitter) / float2(launchDimensions); // Convert from discrete to continuous
+
+		const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
+
+		// Initialize ray
+		RayDesc ray = GenerateCameraRay(ndc, seed, RenderPassData.GlobalConstants);
+		// Initialize payload
+		RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
+		// Trace the ray
+		const uint flags = RAY_FLAG_NONE;
+		const uint mask = 0xffffffff;
+		const uint hitGroupIndex = RayTypePrimary;
+		const uint hitGroupIndexMultiplier = NumRayTypes;
+		const uint missShaderIndex = RayTypePrimary;
+		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 	
-	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
-	
-	// Initialize ray
-	RayDesc ray = GenerateCameraRay(ndc, seed, RenderPassData.GlobalConstants);
-	// Initialize payload
-	RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
-	// Trace the ray
-	const uint flags = RAY_FLAG_NONE;
-	const uint mask = 0xffffffff;
-	const uint hitGroupIndex = RayTypePrimary;
-	const uint hitGroupIndexMultiplier = NumRayTypes;
-	const uint missShaderIndex = RayTypePrimary;
-	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
-	
+		color += rayPayload.Radiance;
+	}
+	float scale = 1.0f / (float)RenderPassData.GlobalConstants.NumSamplesPerPixel;
+	color *= scale;
+
 	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.OutputIndex];
-	RenderTarget[launchIndex] = float4(rayPayload.Radiance, 1.0f);
+	RenderTarget[launchIndex] = float4(color, 1.0f);
 }
 
 [shader("miss")]

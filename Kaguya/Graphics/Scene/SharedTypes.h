@@ -32,7 +32,8 @@ struct GlobalConstants
 
 	DirectionalLight Sun;
 
-	uint MaxDepth;
+	int NumSamplesPerPixel;
+	int MaxDepth;
 	float FocalLength;
 	float LensRadius;
 };

@@ -68,9 +68,10 @@ private:
 	unsigned int m_WindowWidth;
 	unsigned int m_WindowHeight;
 	HWND m_WindowHandle;
+	HCURSOR m_DefaultCursor;
 	std::wstring m_ClassName;
 	std::wstring m_WindowName;
-	bool m_CursorEnabled;
+	std::atomic<bool> m_CursorEnabled;
 
 	ImGuiContextManager m_ImGuiContextManager;
 };

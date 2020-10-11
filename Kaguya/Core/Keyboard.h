@@ -45,7 +45,7 @@ public:
 private:
 	static constexpr unsigned int s_BufferSize = 16u;
 	static constexpr unsigned int s_NumKeyStates = 256u;
-	bool m_AutoRepeat;
+	std::atomic<bool> m_AutoRepeat;
 	std::atomic<bool> m_KeyStates[s_NumKeyStates];
 	ThreadSafeQueue<Keyboard::Event> m_KeyBuffer;
 	ThreadSafeQueue<unsigned char> m_CharBuffer;

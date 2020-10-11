@@ -2,7 +2,6 @@
 #include <stdint.h>
 
 //----------------------------------------------------------------------------------------------------
-class Mouse;
 class Keyboard;
 class Time;
 
@@ -19,7 +18,7 @@ public:
 	virtual ~RenderSystem() {}
 
 	virtual void OnInitialize() = 0;
-	virtual void OnHandleMouse(int X, int Y, float DeltaTime) = 0;
+	virtual void OnHandleMouse(int32_t X, int32_t Y, float DeltaTime) = 0;
 	virtual void OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime) = 0;
 	virtual void OnUpdate(const Time& Time) = 0;
 	virtual void OnRender() = 0;

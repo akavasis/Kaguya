@@ -96,7 +96,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 			float omegaP = 4.0 * s_PI / (6.0f * dimension * dimension);
 			// Biased (+1.0) mip level for better result
 			float mipLevel = Roughness == 0.0 ? 0.0 : max(0.5 * log2(omegaS / omegaP) + 1.0, 0.0f);
-			prefilteredColor += Cubemap.SampleLevel(SamplerLinearClamp, L, mipLevel).rgb.rgb * NdotL;
+			prefilteredColor += Cubemap.SampleLevel(SamplerLinearClamp, L, mipLevel).rgb * NdotL;
 			totalWeight += NdotL;
 		}
 	}

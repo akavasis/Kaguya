@@ -18,11 +18,11 @@ class Renderer : public RenderSystem
 public:
 	struct Statistics
 	{
-		inline static UINT64 TotalFrameCount = 0;
-		inline static UINT64 FrameCount = 0;
-		inline static DOUBLE TimeElapsed = 0.0;
-		inline static DOUBLE FPS = 0.0;
-		inline static DOUBLE FPMS = 0.0;
+		inline static uint64_t TotalFrameCount = 0;
+		inline static uint64_t FrameCount = 0;
+		inline static double TimeElapsed = 0.0;
+		inline static double FPS = 0.0;
+		inline static double FPMS = 0.0;
 	};
 
 	struct Settings
@@ -35,7 +35,7 @@ public:
 	void SetScene(Scene* pScene);
 
 	virtual void OnInitialize() override;
-	virtual void OnHandleMouse(int X, int Y, float DeltaTime) override;
+	virtual void OnHandleMouse(int32_t X, int32_t Y, float DeltaTime) override;
 	virtual void OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
 	virtual void OnUpdate(const Time& Time) override;
 	virtual void OnRender() override;

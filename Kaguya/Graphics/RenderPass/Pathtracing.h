@@ -15,6 +15,7 @@ public:
 
 	struct SSettings
 	{
+		int NumSamplesPerPixel = 1;
 		int MaxDepth = 4;
 	};
 

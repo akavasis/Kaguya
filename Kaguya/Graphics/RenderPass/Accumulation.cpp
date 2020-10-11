@@ -48,9 +48,9 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Accumulation");
 
-	//auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
+	auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
 	//auto pRaytraceGBufferRenderPass = pRenderGraph->GetRenderPass<RaytraceGBuffer>();
-	auto pAmbientOcclusionRenderPass = pRenderGraph->GetRenderPass<AmbientOcclusion>();
+	//auto pAmbientOcclusionRenderPass = pRenderGraph->GetRenderPass<AmbientOcclusion>();
 
 	struct AccumulationData
 	{
@@ -58,10 +58,10 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 		uint OutputIndex;
 	} Data;
 
-	//Data.InputIndex = RenderContext.GetSRV(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]).HeapIndex;
-	//Data.InputIndex = RenderContext.GetSRV(pRaytraceGBufferRenderPass->Resources[pRaytraceGBufferRenderPass->GetSettings().GBuffer]).HeapIndex;
-	Data.InputIndex = RenderContext.GetSRV(pAmbientOcclusionRenderPass->Resources[AmbientOcclusion::EResources::RenderTarget]).HeapIndex;
-	Data.OutputIndex = RenderContext.GetUAV(Resources[EResources::RenderTarget]).HeapIndex;
+	Data.InputIndex = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]).HeapIndex;
+	//Data.InputIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[pRaytraceGBufferRenderPass->GetSettings().GBuffer]).HeapIndex;
+	//Data.InputIndex = RenderContext.GetShaderResourceView(pAmbientOcclusionRenderPass->Resources[AmbientOcclusion::EResources::RenderTarget]).HeapIndex;
+	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 	RenderContext.UpdateRenderPassData<AccumulationData>(Data);
 
 	// If the camera has moved

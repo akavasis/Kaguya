@@ -30,7 +30,7 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 
 	// Models
 	auto& floor = scene.AddModel(CreateGrid(500.0f, 500.0f, 10, 10));
-	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere.obj"));
 
 	// Model instances
 	auto& floorInstance = scene.AddModelInstance({ &floor, &defaultMaterial });
@@ -132,6 +132,63 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 	return scene;
 }
 
+Scene CornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
+{
+	Scene scene;
+
+	// Materials
+	auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
+	defaultMat.Model = LambertianModel;
+
+	auto& leftWallMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	leftWallMat.Albedo = { 0.7f, 0.1f, 0.1f };
+	leftWallMat.Model = LambertianModel;
+
+	auto& rightWallMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	rightWallMat.Albedo = { 0.1f, 0.7f, 0.1f };
+	rightWallMat.Model = LambertianModel;
+
+	auto& lightMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	lightMat.Albedo = { 0.0f, 0.0f, 0.0f };
+	lightMat.Emissive = { 15.0f, 15.0f, 15.0f };
+	lightMat.Model = DiffuseLightModel;
+
+	// Models
+	auto& box = scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f, 1));
+	auto& rect = scene.AddModel(CreateGrid(10.0f, 10.0f, 2, 2));
+	auto& light = scene.AddModel(CreateGrid(3.0f, 3.0f, 2, 2));
+
+	// Model instances
+	auto& leftboxInstance = scene.AddModelInstance({ &box, &defaultMat });
+	leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
+	leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
+	leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
+
+	auto& rightboxInstance = scene.AddModelInstance({ &box, &defaultMat });
+	rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
+	rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
+	rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
+
+	auto& floorInstance = scene.AddModelInstance({ &rect, &defaultMat });
+	auto& ceilingInstance = scene.AddModelInstance({ &rect, &defaultMat });
+	ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
+	ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
+	auto& backwallInstance = scene.AddModelInstance({ &rect, &defaultMat });
+	backwallInstance.Translate(0.0f, 5.0f, 5.0f);
+	backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
+	auto& leftwallInstance = scene.AddModelInstance({ &rect, &leftWallMat });
+	leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
+	leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
+	auto& rightwallInstance = scene.AddModelInstance({ &rect, &rightWallMat });
+	rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
+	rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
+	auto& lightInstance = scene.AddModelInstance({ &light, &lightMat });
+	lightInstance.Translate(0.0f, 5.9f, -1.0f);
+
+	return scene;
+}
+
 void AddCornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader, Scene* pScene)
 {
 	assert(pScene != nullptr);
@@ -193,7 +250,7 @@ Scene LambertianSpheresInCornellBox(const MaterialLoader& MaterialLoader, const 
 	rightSphereMaterial.Model = LambertianModel;
 
 	// Models
-	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere.obj"));
 
 	// Model instances
 	auto& leftSphereInstance = scene.AddModelInstance({ &sphere, &leftSphereMaterial });
@@ -252,7 +309,7 @@ Scene GlossySpheresInCornellBox(const MaterialLoader& MaterialLoader, const Mode
 	}
 
 	// Models
-	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere.obj"));
 
 	// Model instances
 	auto& leftSphereInstance = scene.AddModelInstance({ &sphere, &leftSphereMaterial });
@@ -313,7 +370,7 @@ Scene TransparentSpheresOfIncreasingIoR(const MaterialLoader& MaterialLoader, co
 	auto& floor = scene.AddModel(CreateGrid(30.0f, 10.0f, 10, 10));
 	auto& ceiling = scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
 	auto& light = scene.AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
-	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere/Sphere.obj"));
+	auto& sphere = scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere.obj"));
 
 	// Model instances
 	auto& floorInstance = scene.AddModelInstance({ &floor, &defaultMat });
@@ -363,7 +420,7 @@ int main(int argc, char** argv)
 		MaterialLoader materialLoader(Application::ExecutableFolderPath);
 		ModelLoader modelLoader(Application::ExecutableFolderPath);
 
-		scene = GlossySpheresInCornellBox(materialLoader, modelLoader);
+		scene = CornellBox(materialLoader, modelLoader);
 		scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
 
 		scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);

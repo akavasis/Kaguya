@@ -1,13 +1,15 @@
 #include "pch.h"
 #include "Application.h"
+#include "Time.h"
+
 #include <windowsx.h>
 #include <shellapi.h>
 #include <shellscalingapi.h>
 #pragma comment(lib, "shcore.lib")
 
 void Application::Initialize(LPCWSTR WindowName,
-	int Width /*= CW_USEDEFAULT*/, int Height /*= CW_USEDEFAULT*/,
-	int X /*= CW_USEDEFAULT*/, int Y /*= CW_USEDEFAULT*/)
+	int32_t Width /*= CW_USEDEFAULT*/, int32_t Height /*= CW_USEDEFAULT*/,
+	int32_t X /*= CW_USEDEFAULT*/, int32_t Y /*= CW_USEDEFAULT*/)
 {
 	Log::Create();
 

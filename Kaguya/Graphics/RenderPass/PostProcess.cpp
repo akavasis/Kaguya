@@ -106,7 +106,7 @@ void PostProcess::ApplyBloom(RenderContext& RenderContext, RenderGraph* pRenderG
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom");
 
 	auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
-	Descriptor InputSRV = RenderContext.GetSRV(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
+	Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
 
 	const UINT bloomWidth = Properties.Width > 2560u ? 1280u : 640u;
 	const UINT bloomHeight = Properties.Height > 1440u ? 768u : 384u;
@@ -126,7 +126,7 @@ void PostProcess::ApplyBloom(RenderContext& RenderContext, RenderGraph* pRenderG
 		settings.InverseOutputSize = { 1.0f / bloomWidth, 1.0f / bloomHeight };
 		settings.Threshold = Settings.Bloom.Threshold;
 		settings.InputIndex = InputSRV.HeapIndex;
-		settings.OutputIndex = RenderContext.GetUAV(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
+		settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
 
 		RenderContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
@@ -156,11 +156,11 @@ void PostProcess::ApplyBloom(RenderContext& RenderContext, RenderGraph* pRenderG
 		} settings;
 
 		settings.InverseOutputSize = { 1.0f / bloomWidth, 1.0f / bloomHeight };
-		settings.BloomIndex = RenderContext.GetSRV(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
-		settings.Output1Index = RenderContext.GetUAV(Resources[EResources::BloomRenderTarget2a]).HeapIndex;
-		settings.Output2Index = RenderContext.GetUAV(Resources[EResources::BloomRenderTarget3a]).HeapIndex;
-		settings.Output3Index = RenderContext.GetUAV(Resources[EResources::BloomRenderTarget4a]).HeapIndex;
-		settings.Output4Index = RenderContext.GetUAV(Resources[EResources::BloomRenderTarget5a]).HeapIndex;
+		settings.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
+		settings.Output1Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget2a]).HeapIndex;
+		settings.Output2Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget3a]).HeapIndex;
+		settings.Output3Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget4a]).HeapIndex;
+		settings.Output4Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget5a]).HeapIndex;
 
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget2a], Resource::State::UnorderedAccess);
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget3a], Resource::State::UnorderedAccess);
@@ -207,8 +207,8 @@ void PostProcess::ApplyBloom(RenderContext& RenderContext, RenderGraph* pRenderG
 		settings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
 		settings.Intensity = Settings.Bloom.Intensity;
 		settings.InputIndex = InputSRV.HeapIndex;
-		settings.BloomIndex = RenderContext.GetSRV(Resources[EResources::BloomRenderTarget1b]).HeapIndex;
-		settings.OutputIndex = RenderContext.GetUAV(Resources[EResources::RenderTarget]).HeapIndex;
+		settings.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1b]).HeapIndex;
+		settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 
 		RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);
 
@@ -234,11 +234,11 @@ void PostProcess::ApplyTonemappingToSwapChain(RenderContext& RenderContext, Rend
 		uint InputIndex;
 	} settings;
 	settings.Exposure = Settings.Tonemapping.Exposure;
-	settings.InputIndex = Settings.ApplyBloom ? RenderContext.GetSRV(Resources[EResources::RenderTarget]).HeapIndex :
-		RenderContext.GetSRV(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]).HeapIndex;
+	settings.InputIndex = Settings.ApplyBloom ? RenderContext.GetShaderResourceView(Resources[EResources::RenderTarget]).HeapIndex :
+		RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]).HeapIndex;
 
 	auto pDestination = RenderContext.GetTexture(RenderContext.GetCurrentSwapChainResourceHandle());
-	auto DestinationRTV = RenderContext.GetRTV(RenderContext.GetCurrentSwapChainResourceHandle());
+	auto DestinationRTV = RenderContext.GetRenderTargetView(RenderContext.GetCurrentSwapChainResourceHandle());
 
 	RenderContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
 
@@ -281,8 +281,8 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 		uint OutputIndex;
 	} settings;
 	settings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
-	settings.InputIndex = RenderContext.GetSRV(Resources[Input]).HeapIndex;
-	settings.OutputIndex = RenderContext.GetUAV(Resources[Output]).HeapIndex;
+	settings.InputIndex = RenderContext.GetShaderResourceView(Resources[Input]).HeapIndex;
+	settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
 
 	RenderContext.TransitionBarrier(Resources[Input], Resource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[Output], Resource::State::UnorderedAccess);
@@ -312,9 +312,9 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 	} settings;
 	settings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
 	settings.UpsampleInterpolationFactor = 1.0f;
-	settings.HighResolutionIndex = RenderContext.GetSRV(Resources[HighResolution]).HeapIndex;
-	settings.LowResolutionIndex = RenderContext.GetSRV(Resources[LowResolution]).HeapIndex;
-	settings.OutputIndex = RenderContext.GetUAV(Resources[Output]).HeapIndex;
+	settings.HighResolutionIndex = RenderContext.GetShaderResourceView(Resources[HighResolution]).HeapIndex;
+	settings.LowResolutionIndex = RenderContext.GetShaderResourceView(Resources[LowResolution]).HeapIndex;
+	settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
 
 	RenderContext.TransitionBarrier(Resources[HighResolution], Resource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[LowResolution], Resource::State::NonPixelShaderResource);

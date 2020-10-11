@@ -4,9 +4,9 @@
 #include "Core/Window.h"
 #include "Core/Time.h"
 
-// Render passes
 #include "RendererRegistry.h"
 
+// Render passes
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/RaytraceGBuffer.h"
 #include "RenderPass/AmbientOcclusion.h"
@@ -37,7 +37,6 @@ Renderer::Renderer(Window* pWindow)
 	// Create swap chain after command objects have been created
 	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), *pWindow, RendererFormats::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 
-	// Initialize Non-transient resources
 	for (size_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
@@ -45,13 +44,6 @@ Renderer::Renderer(Window* pWindow)
 		m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
 		m_RenderDevice.CreateRenderTargetView(m_RenderDevice.SwapChainTextures[i]);
 	}
-
-	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
-	m_RenderGraph.AddRenderPass(new RaytraceGBuffer(Width, Height));
-	m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
-	m_RenderGraph.AddRenderPass(new Accumulation(Width, Height));
-	m_RenderGraph.AddRenderPass(new PostProcess(Width, Height));
-	m_RenderGraph.Initialize();
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -67,18 +59,23 @@ void Renderer::SetScene(Scene* pScene)
 	m_RenderDevice.BindUniversalGpuDescriptorHeap(UploadRenderContext.GetCommandContext());
 	m_GpuScene.Commit(UploadRenderContext);
 	m_RenderDevice.ExecuteRenderCommandContexts(1, &pUploadCommandContext);
-
-	m_RenderGraph.InitializeScene(&m_GpuScene);
 }
 
 //----------------------------------------------------------------------------------------------------
 void Renderer::OnInitialize()
 {
-	
+	m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
+	//m_RenderGraph.AddRenderPass(new RaytraceGBuffer(Width, Height));
+	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
+	m_RenderGraph.AddRenderPass(new Accumulation(Width, Height));
+	m_RenderGraph.AddRenderPass(new PostProcess(Width, Height));
+	m_RenderGraph.Initialize();
+
+	m_RenderGraph.InitializeScene(&m_GpuScene);
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::OnHandleMouse(int X, int Y, float DeltaTime)
+void Renderer::OnHandleMouse(int32_t X, int32_t Y, float DeltaTime)
 {
 	Scene& scene = *m_GpuScene.pScene;
 
@@ -133,8 +130,8 @@ void Renderer::OnRender()
 	m_RenderGraph.Execute();
 	m_RenderGraph.ExecuteCommandContexts(&m_Gui);
 
-	UINT syncInterval = Renderer::Settings::VSync ? 1u : 0u;
-	UINT presentFlags = (m_DXGIManager.TearingSupport() && !Renderer::Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
+	UINT syncInterval = Settings::VSync ? 1u : 0u;
+	UINT presentFlags = (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
 	DXGI_PRESENT_PARAMETERS presentParameters = { 0u, NULL, NULL, NULL };
 	HRESULT hr = m_pSwapChain->Present1(syncInterval, presentFlags, &presentParameters);
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
@@ -200,19 +197,17 @@ void Renderer::RenderGui()
 {
 	m_Gui.BeginFrame(); // End frame will be called at the end of the Render method by RenderGraph
 
-	if (ImGui::Begin("Adapter Info"))
+	if (ImGui::Begin(AdapterDescription.data()))
 	{
 		auto localVideoMemoryInfo = m_DXGIManager.QueryLocalVideoMemoryInfo();
 		auto usageInMiB = ToMiB(localVideoMemoryInfo.CurrentUsage);
 
-		ImGui::Text("Description: %s", AdapterDescription.data());
 		ImGui::Text("Current Usage: %d Mib", usageInMiB);
 	}
 	ImGui::End();
 
 	if (ImGui::Begin("Renderer"))
 	{
-		ImGui::Text("Statistics");
 		ImGui::Text("Total Frame Count: %d", Statistics::TotalFrameCount);
 		ImGui::Text("FPS: %f", Statistics::FPS);
 		ImGui::Text("FPMS: %f", Statistics::FPMS);

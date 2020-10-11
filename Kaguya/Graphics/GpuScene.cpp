@@ -225,11 +225,7 @@ void GpuScene::Update()
 size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer)
 {
 	auto pair = Allocators[Type].Allocate(ByteSize);
-	if (!pair.has_value())
-	{
-		CORE_WARN("{} : Unable to allocate data, consider increasing memory", __FUNCTION__);
-		assert(false);
-	}
+	assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
 	auto [offset, size] = pair.value();
 
 	// Stage vertex

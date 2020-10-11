@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #include <list>
 #include "Skybox.h"
 #include "Camera.h"
@@ -41,7 +42,7 @@ struct Scene
 	ModelInstance& AddModelInstance(ModelInstance&& ModelInstance);
 };
 
-UINT CullModels(const Camera* pCamera, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices);
-UINT CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices);
-UINT CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& MeshInstances, std::vector<UINT>& Indices);
-UINT CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<MeshInstance>& MeshInstances, std::vector<UINT>& Indices);
+uint32_t CullModels(const Camera* pCamera, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices);
+uint32_t CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices);
+uint32_t CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& MeshInstances, std::vector<uint32_t>& Indices);
+uint32_t CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<MeshInstance>& MeshInstances, std::vector<uint32_t>& Indices);

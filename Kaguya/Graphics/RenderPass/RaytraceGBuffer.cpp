@@ -156,13 +156,13 @@ void RaytraceGBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRender
 	globalConstants.LensRadius = pGpuScene->pScene->Camera.Aperture;
 
 	Data.GlobalConstants = globalConstants;
-	Data.OutputWorldPositionIndex = RenderContext.GetUAV(Resources[EResources::WorldPosition]).HeapIndex;
-	Data.OutputWorldNormalIndex = RenderContext.GetUAV(Resources[EResources::WorldNormal]).HeapIndex;
-	Data.OutputMaterialAlbedoIndex = RenderContext.GetUAV(Resources[EResources::MaterialAlbedo]).HeapIndex;
-	Data.OutputMaterialEmissiveIndex = RenderContext.GetUAV(Resources[EResources::MaterialEmissive]).HeapIndex;
-	Data.OutputMaterialSpecularIndex = RenderContext.GetUAV(Resources[EResources::MaterialSpecular]).HeapIndex;
-	Data.OutputMaterialRefractionIndex = RenderContext.GetUAV(Resources[EResources::MaterialRefraction]).HeapIndex;
-	Data.OutputMaterialExtraIndex = RenderContext.GetUAV(Resources[EResources::MaterialExtra]).HeapIndex;
+	Data.OutputWorldPositionIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::WorldPosition]).HeapIndex;
+	Data.OutputWorldNormalIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::WorldNormal]).HeapIndex;
+	Data.OutputMaterialAlbedoIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::MaterialAlbedo]).HeapIndex;
+	Data.OutputMaterialEmissiveIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::MaterialEmissive]).HeapIndex;
+	Data.OutputMaterialSpecularIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::MaterialSpecular]).HeapIndex;
+	Data.OutputMaterialRefractionIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::MaterialRefraction]).HeapIndex;
+	Data.OutputMaterialExtraIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::MaterialExtra]).HeapIndex;
 
 	RenderContext.UpdateRenderPassData<RaytraceGBufferData>(Data);
 

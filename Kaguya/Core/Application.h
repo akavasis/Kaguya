@@ -1,9 +1,8 @@
 #pragma once
 #include <thread>
 #include <filesystem>
-#include "RenderSystem.h"
 #include "Window.h"
-#include "Time.h"
+#include "RenderSystem.h"
 
 //----------------------------------------------------------------------------------------------------
 class Application
@@ -16,8 +15,8 @@ public:
 	inline static std::atomic<bool>				ExitRenderThread		= false;
 
 	static void Initialize(LPCWSTR WindowName,
-		int Width = CW_USEDEFAULT, int Height = CW_USEDEFAULT,
-		int X = CW_USEDEFAULT, int Y = CW_USEDEFAULT);
+		int32_t Width = CW_USEDEFAULT, int32_t Height = CW_USEDEFAULT,
+		int32_t X = CW_USEDEFAULT, int32_t Y = CW_USEDEFAULT);
 
 	static int Run(RenderSystem* pRenderSystem);
 private:

@@ -106,15 +106,16 @@ void Pathtracing::RenderGui()
 {
 	if (ImGui::TreeNode("Path tracing"))
 	{
+		int Dirty = 0;
 		if (ImGui::Button("Restore Defaults"))
 		{
 			Settings = SSettings();
 			Refresh = true;
 		}
-		if (ImGui::SliderInt("Max Depth", &Settings.MaxDepth, 1, 7))
-		{
-			Refresh = true;
-		}
+		Dirty |= (int)ImGui::SliderInt("Num Samples Per Pixel", &Settings.NumSamplesPerPixel, 1, 10);
+		Dirty |= (int)ImGui::SliderInt("Max Depth", &Settings.MaxDepth, 1, 7);
+		
+		if (Dirty) Refresh = true;
 		ImGui::TreePop();
 	}
 }
@@ -143,12 +144,13 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 
 	globalConstants.Sun = pGpuScene->pScene->Sun;
 
+	globalConstants.NumSamplesPerPixel = Settings.NumSamplesPerPixel;
 	globalConstants.MaxDepth = Settings.MaxDepth;
 	globalConstants.FocalLength = pGpuScene->pScene->Camera.FocalLength;
 	globalConstants.LensRadius = pGpuScene->pScene->Camera.Aperture;
 
 	Data.GlobalConstants = globalConstants;
-	Data.OutputIndex = RenderContext.GetUAV(Resources[EResources::RenderTarget]).HeapIndex;
+	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 	RenderContext.UpdateRenderPassData<PathtracingData>(Data);
 
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);

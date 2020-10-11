@@ -30,10 +30,12 @@ public:
 	// throws if no free elements remain
 	size_t Allocate();
 	void Free(size_t Index);
+
+	void Reset();
 private:
-	std::array<Element, Size> m_Elements;
-	size_t m_FreeStart;
-	size_t m_NumActiveElements;
+	std::array<Element, Size> Elements;
+	size_t FreeStart;
+	size_t NumActiveElements;
 };
 
 #include "Pool.inl"
