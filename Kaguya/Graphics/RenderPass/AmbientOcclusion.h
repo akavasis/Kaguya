@@ -20,7 +20,6 @@ public:
 	};
 
 	AmbientOcclusion(UINT Width, UINT Height);
-	virtual ~AmbientOcclusion() override;
 protected:
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;

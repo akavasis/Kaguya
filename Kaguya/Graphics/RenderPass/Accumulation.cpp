@@ -12,11 +12,6 @@ Accumulation::Accumulation(UINT Width, UINT Height)
 
 }
 
-Accumulation::~Accumulation()
-{
-
-}
-
 void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)

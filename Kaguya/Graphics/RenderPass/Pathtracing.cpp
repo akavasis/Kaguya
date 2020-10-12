@@ -9,11 +9,6 @@ Pathtracing::Pathtracing(UINT Width, UINT Height)
 
 }
 
-Pathtracing::~Pathtracing()
-{
-
-}
-
 void Pathtracing::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
@@ -106,12 +101,13 @@ void Pathtracing::RenderGui()
 {
 	if (ImGui::TreeNode("Path tracing"))
 	{
-		int Dirty = 0;
 		if (ImGui::Button("Restore Defaults"))
 		{
 			Settings = SSettings();
 			Refresh = true;
 		}
+
+		int Dirty = 0;
 		Dirty |= (int)ImGui::SliderInt("Num Samples Per Pixel", &Settings.NumSamplesPerPixel, 1, 10);
 		Dirty |= (int)ImGui::SliderInt("Max Depth", &Settings.MaxDepth, 1, 7);
 		

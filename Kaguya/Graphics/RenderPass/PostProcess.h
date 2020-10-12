@@ -38,7 +38,6 @@ public:
 	};
 
 	PostProcess(UINT Width, UINT Height);
-	virtual ~PostProcess() override;
 protected:
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;

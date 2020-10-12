@@ -26,11 +26,11 @@ public:
 
 	void Update();
 
-	inline auto GetMaterialTableHandle() const { return ResourceTables[MaterialTable]; }
-	inline auto GetVertexBufferHandle() const { return ResourceTables[VertexBuffer]; }
-	inline auto GetIndexBufferHandle() const { return ResourceTables[IndexBuffer]; }
-	inline auto GetGeometryInfoTableHandle() const { return ResourceTables[GeometryInfoTable]; }
-	inline auto GetRTTLASResourceHandle() const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
+	inline auto GetMaterialTableHandle()		const		{ return ResourceTables[MaterialTable]; }
+	inline auto GetVertexBufferHandle()			const		{ return ResourceTables[VertexBuffer]; }
+	inline auto GetIndexBufferHandle()			const		{ return ResourceTables[IndexBuffer]; }
+	inline auto GetGeometryInfoTableHandle()	const		{ return ResourceTables[GeometryInfoTable]; }
+	inline auto GetRTTLASResourceHandle()		const		{ return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
 
 	Scene* pScene;
 	GpuTextureAllocator GpuTextureAllocator;

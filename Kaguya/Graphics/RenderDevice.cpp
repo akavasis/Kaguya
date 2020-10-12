@@ -20,10 +20,10 @@ CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
 	CommandQueue* pCommandQueue = nullptr;
 	switch (Type)
 	{
-	case CommandContext::Type::Direct: pCommandQueue = &GraphicsQueue; break;
-	case CommandContext::Type::Compute: pCommandQueue = &ComputeQueue; break;
-	case CommandContext::Type::Copy: pCommandQueue = &CopyQueue; break;
-	default: throw std::logic_error("Unsupported command list type"); break;
+	case CommandContext::Type::Direct:	pCommandQueue = &GraphicsQueue; break;
+	case CommandContext::Type::Compute: pCommandQueue = &ComputeQueue;	break;
+	case CommandContext::Type::Copy:	pCommandQueue = &CopyQueue;		break;
+	default: assert(pCommandQueue && "Unsupported command list type");	break;
 	}
 	m_RenderCommandContexts[Type].push_back(std::make_unique<CommandContext>(&Device, pCommandQueue, Type));
 	return m_RenderCommandContexts[Type].back().get();

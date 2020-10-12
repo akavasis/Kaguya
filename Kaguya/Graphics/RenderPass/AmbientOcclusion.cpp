@@ -11,11 +11,6 @@ AmbientOcclusion::AmbientOcclusion(UINT Width, UINT Height)
 
 }
 
-AmbientOcclusion::~AmbientOcclusion()
-{
-
-}
-
 void AmbientOcclusion::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)

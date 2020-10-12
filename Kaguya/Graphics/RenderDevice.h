@@ -99,41 +99,41 @@ public:
 	Descriptor GetRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 	Descriptor GetDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 
-	Device Device;
-	CommandQueue GraphicsQueue;
-	CommandQueue ComputeQueue;	// TODO: Add asynchronous work submission using this queue
-	CommandQueue CopyQueue;		// TODO: Add asynchronous work submission using this queue
-	ResourceStateTracker GlobalResourceStateTracker;
+	Device					Device;
+	CommandQueue			GraphicsQueue;
+	CommandQueue			ComputeQueue;	// TODO: Add asynchronous work submission using this queue
+	CommandQueue			CopyQueue;		// TODO: Add asynchronous work submission using this queue
+	ResourceStateTracker	GlobalResourceStateTracker;
 
-	UINT FrameIndex;
-	RenderResourceHandle SwapChainTextures[NumSwapChainBuffers];
+	UINT					FrameIndex;
+	RenderResourceHandle	SwapChainTextures[NumSwapChainBuffers];
 private:
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 
-	ShaderCompiler m_ShaderCompiler;
-	std::vector<std::unique_ptr<CommandContext>> m_RenderCommandContexts[CommandContext::NumTypes];
+	ShaderCompiler																			m_ShaderCompiler;
+	std::vector<std::unique_ptr<CommandContext>>											m_RenderCommandContexts[CommandContext::NumTypes];
 
-	RenderResourceContainer<RenderResourceType::Buffer, Buffer> m_Buffers;
-	RenderResourceContainer<RenderResourceType::Texture, Texture> m_Textures;
+	RenderResourceContainer<RenderResourceType::Buffer, Buffer>								m_Buffers;
+	RenderResourceContainer<RenderResourceType::Texture, Texture>							m_Textures;
 
-	RenderResourceContainer<RenderResourceType::Heap, Heap> m_Heaps;
-	RenderResourceContainer<RenderResourceType::RootSignature, RootSignature> m_RootSignatures;
-	RenderResourceContainer<RenderResourceType::GraphicsPSO, GraphicsPipelineState> m_GraphicsPipelineStates;
-	RenderResourceContainer<RenderResourceType::ComputePSO, ComputePipelineState> m_ComputePipelineStates;
-	RenderResourceContainer<RenderResourceType::RaytracingPSO, RaytracingPipelineState> m_RaytracingPipelineStates;
+	RenderResourceContainer<RenderResourceType::Heap, Heap>									m_Heaps;
+	RenderResourceContainer<RenderResourceType::RootSignature, RootSignature>				m_RootSignatures;
+	RenderResourceContainer<RenderResourceType::GraphicsPSO, GraphicsPipelineState>			m_GraphicsPipelineStates;
+	RenderResourceContainer<RenderResourceType::ComputePSO, ComputePipelineState>			m_ComputePipelineStates;
+	RenderResourceContainer<RenderResourceType::RaytracingPSO, RaytracingPipelineState>		m_RaytracingPipelineStates;
 
-	CBSRUADescriptorHeap m_CBSRUADescriptorHeap;
-	SamplerDescriptorHeap m_SamplerDescriptorHeap;
-	RenderTargetDescriptorHeap m_RenderTargetDescriptorHeap;
-	DepthStencilDescriptorHeap m_DepthStencilDescriptorHeap;
+	CBSRUADescriptorHeap																	m_CBSRUADescriptorHeap;
+	SamplerDescriptorHeap																	m_SamplerDescriptorHeap;
+	RenderTargetDescriptorHeap																m_RenderTargetDescriptorHeap;
+	DepthStencilDescriptorHeap																m_DepthStencilDescriptorHeap;
 
-	Pool<void, NumConstantBufferDescriptors> m_ConstantBufferDescriptorIndexPool;
-	Pool<void, NumShaderResourceDescriptors> m_ShaderResourceDescriptorIndexPool;
-	Pool<void, NumUnorderedAccessDescriptors> m_UnorderedAccessDescriptorIndexPool;
-	Pool<void, NumSamplerDescriptors> m_SamplerDescriptorIndexPool;
-	Pool<void, NumRenderTargetDescriptors> m_RenderTargetDescriptorIndexPool;
-	Pool<void, NumDepthStencilDescriptors> m_DepthStencilDescriptorIndexPool;
+	Pool<void, NumConstantBufferDescriptors>												m_ConstantBufferDescriptorIndexPool;
+	Pool<void, NumShaderResourceDescriptors>												m_ShaderResourceDescriptorIndexPool;
+	Pool<void, NumUnorderedAccessDescriptors>												m_UnorderedAccessDescriptorIndexPool;
+	Pool<void, NumSamplerDescriptors>														m_SamplerDescriptorIndexPool;
+	Pool<void, NumRenderTargetDescriptors>													m_RenderTargetDescriptorIndexPool;
+	Pool<void, NumDepthStencilDescriptors>													m_DepthStencilDescriptorIndexPool;
 
-	std::unordered_map<RenderResourceHandle, RenderBuffer> m_RenderBuffers;
-	std::unordered_map<RenderResourceHandle, RenderTexture> m_RenderTextures;
+	std::unordered_map<RenderResourceHandle, RenderBuffer>									m_RenderBuffers;
+	std::unordered_map<RenderResourceHandle, RenderTexture>									m_RenderTextures;
 };

@@ -14,16 +14,16 @@ struct HLSLMaterial
 	float	IndexOfRefraction;
 	uint	Model;
 
-	int TextureIndices[NumTextureTypes];
+	int		TextureIndices[NumTextureTypes];
 };
 
 namespace
 {
-	static constexpr size_t NumMaterials = 50000;
-	static constexpr size_t MaterialBufferByteSize = NumMaterials * sizeof(HLSLMaterial);
-	static constexpr size_t VertexBufferByteSize = 50_MiB;
-	static constexpr size_t IndexBufferByteSize = 50_MiB;
-	static constexpr size_t GeometryInfoBufferByteSize = 50_MiB;
+	static constexpr size_t NumMaterials				= 50000;
+	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSLMaterial);
+	static constexpr size_t VertexBufferByteSize		= 50_MiB;
+	static constexpr size_t IndexBufferByteSize			= 50_MiB;
+	static constexpr size_t GeometryInfoBufferByteSize	= 50_MiB;
 }
 
 GpuScene::GpuScene(RenderDevice* pRenderDevice)
@@ -286,7 +286,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 			m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(desc);
 
 			instanceID++;
-			hitGroupIndex += 1;
+			hitGroupIndex++;
 		}
 	}
 

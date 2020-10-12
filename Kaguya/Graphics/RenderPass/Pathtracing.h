@@ -15,12 +15,11 @@ public:
 
 	struct SSettings
 	{
-		int NumSamplesPerPixel = 1;
-		int MaxDepth = 4;
+		int NumSamplesPerPixel	= 1;
+		int MaxDepth			= 4;
 	};
 
 	Pathtracing(UINT Width, UINT Height);
-	virtual ~Pathtracing() override;
 protected:
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;

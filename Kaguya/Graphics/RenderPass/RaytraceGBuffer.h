@@ -25,7 +25,6 @@ public:
 	};
 
 	RaytraceGBuffer(UINT Width, UINT Height);
-	virtual ~RaytraceGBuffer() override;
 
 	inline auto GetSettings() const { return Settings; }
 protected:

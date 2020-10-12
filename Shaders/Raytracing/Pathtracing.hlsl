@@ -31,13 +31,14 @@ struct Lambertian
 {
 	float3 Albedo;
 	
-	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay)
+	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay, out float pdf)
 	{
 		float3 direction = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
 		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
 		
 		attenuation = Albedo;
 		scatteredRay = ray;
+		pdf = dot(si.bsdf.normal, scatteredRay.Direction) / s_PI;
 		return true;
 	}
 };
@@ -188,13 +189,14 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	
 	float3 attentuation;
 	RayDesc ray;
+	float pdf;
 	bool shouldScatter;
 	switch (si.material.Model)
 	{
 		case LambertianModel:
 		{
 			Lambertian lambertian = { si.material.Albedo };
-			shouldScatter = lambertian.Scatter(si, rayPayload, attentuation, ray);
+			shouldScatter = lambertian.Scatter(si, rayPayload, attentuation, ray, pdf);
 		}
 		break;
 		

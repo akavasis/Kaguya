@@ -13,6 +13,8 @@
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 
+#include "Scene/SampleScene.h"
+
 //----------------------------------------------------------------------------------------------------
 Renderer::Renderer(Window* pWindow)
 	: RenderSystem(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()),
@@ -21,18 +23,11 @@ Renderer::Renderer(Window* pWindow)
 	m_GpuScene(&m_RenderDevice),
 	m_RenderGraph(&m_RenderDevice),
 
-	pUploadCommandContext(m_RenderDevice.AllocateContext(CommandContext::Direct)),
-	UploadRenderContext(0, nullptr, &m_RenderDevice, pUploadCommandContext)
+	m_pUploadCommandContext(m_RenderDevice.AllocateContext(CommandContext::Direct)),
+	m_UploadRenderContext(0, nullptr, &m_RenderDevice, m_pUploadCommandContext)
 {
-	auto adapterDesc = m_DXGIManager.GetAdapterDesc();
-	AdapterDescription = UTF16ToUTF8(adapterDesc.Description);
-
-	Shaders::Register(&m_RenderDevice, Application::ExecutableFolderPath);
-	Libraries::Register(&m_RenderDevice, Application::ExecutableFolderPath);
-	RootSignatures::Register(&m_RenderDevice);
-	GraphicsPSOs::Register(&m_RenderDevice);
-	ComputePSOs::Register(&m_RenderDevice);
-	RaytracingPSOs::Register(&m_RenderDevice);
+	auto adapterDesc	= m_DXGIManager.GetAdapterDesc();
+	m_AdapterDescription	= UTF16ToUTF8(adapterDesc.Description);
 
 	// Create swap chain after command objects have been created
 	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), *pWindow, RendererFormats::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
@@ -47,23 +42,17 @@ Renderer::Renderer(Window* pWindow)
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::SetScene(Scene* pScene)
-{
-	PIXCapture();
-
-	m_GpuScene.pScene = pScene;
-
-	m_GpuScene.UploadMaterials();
-	m_GpuScene.UploadModels();
-	m_GpuScene.UploadModelInstances();
-	m_RenderDevice.BindUniversalGpuDescriptorHeap(UploadRenderContext.GetCommandContext());
-	m_GpuScene.Commit(UploadRenderContext);
-	m_RenderDevice.ExecuteRenderCommandContexts(1, &pUploadCommandContext);
-}
-
-//----------------------------------------------------------------------------------------------------
 void Renderer::OnInitialize()
 {
+	Shaders::Register(&m_RenderDevice, Application::ExecutableFolderPath);
+	Libraries::Register(&m_RenderDevice, Application::ExecutableFolderPath);
+	RootSignatures::Register(&m_RenderDevice);
+	GraphicsPSOs::Register(&m_RenderDevice);
+	ComputePSOs::Register(&m_RenderDevice);
+	RaytracingPSOs::Register(&m_RenderDevice);
+
+	SetScene(GenerateScene(SampleScene::CornellBox));
+
 	m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new RaytraceGBuffer(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
@@ -108,9 +97,9 @@ void Renderer::OnUpdate(const Time& Time)
 	Statistics::FrameCount++;
 	if (Time.TotalTime() - Statistics::TimeElapsed >= 1.0)
 	{
-		Statistics::FPS = static_cast<DOUBLE>(Statistics::FrameCount);
-		Statistics::FPMS = 1000.0 / Statistics::FPS;
-		Statistics::FrameCount = 0;
+		Statistics::FPS			= static_cast<DOUBLE>(Statistics::FrameCount);
+		Statistics::FPMS		= 1000.0 / Statistics::FPS;
+		Statistics::FrameCount	= 0;
 		Statistics::TimeElapsed += 1.0;
 	}
 
@@ -158,16 +147,16 @@ void Renderer::OnResize(uint32_t Width, uint32_t Height)
 		}
 
 		// Resize backbuffer
-		constexpr UINT NodeMask = 0;
-		UINT nodes[RenderDevice::NumSwapChainBuffers];
-		IUnknown* commandQueues[RenderDevice::NumSwapChainBuffers];
+		constexpr UINT	NodeMask = 0;
+		UINT			Nodes[RenderDevice::NumSwapChainBuffers];
+		IUnknown*		CommandQueues[RenderDevice::NumSwapChainBuffers];
 		for (UINT i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
-			nodes[i] = NodeMask;
-			commandQueues[i] = m_RenderDevice.GraphicsQueue.GetD3DCommandQueue();
+			Nodes[i]			= NodeMask;
+			CommandQueues[i]	= m_RenderDevice.GraphicsQueue.GetD3DCommandQueue();
 		}
-		UINT swapChainFlags = m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(0, Width, Height, DXGI_FORMAT_UNKNOWN, swapChainFlags, nodes, commandQueues));
+		UINT swapChainFlags		= m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(0, Width, Height, DXGI_FORMAT_UNKNOWN, swapChainFlags, Nodes, CommandQueues));
 
 		// Recreate descriptors
 		for (size_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
@@ -193,11 +182,31 @@ void Renderer::OnDestroy()
 }
 
 //----------------------------------------------------------------------------------------------------
+void Renderer::SetScene(Scene Scene)
+{
+	PIXCapture();
+	m_Scene				= std::move(Scene);
+	m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
+
+	m_Scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
+	m_Scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
+
+	m_GpuScene.pScene = &m_Scene;
+
+	m_GpuScene.UploadMaterials();
+	m_GpuScene.UploadModels();
+	m_GpuScene.UploadModelInstances();
+	m_RenderDevice.BindUniversalGpuDescriptorHeap(m_UploadRenderContext.GetCommandContext());
+	m_GpuScene.Commit(m_UploadRenderContext);
+	m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
+}
+
+//----------------------------------------------------------------------------------------------------
 void Renderer::RenderGui()
 {
 	m_Gui.BeginFrame(); // End frame will be called at the end of the Render method by RenderGraph
 
-	if (ImGui::Begin(AdapterDescription.data()))
+	if (ImGui::Begin(m_AdapterDescription.data()))
 	{
 		auto localVideoMemoryInfo = m_DXGIManager.QueryLocalVideoMemoryInfo();
 		auto usageInMiB = ToMiB(localVideoMemoryInfo.CurrentUsage);

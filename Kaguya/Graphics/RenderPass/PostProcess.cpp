@@ -10,11 +10,6 @@ PostProcess::PostProcess(UINT Width, UINT Height)
 
 }
 
-PostProcess::~PostProcess()
-{
-
-}
-
 void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)

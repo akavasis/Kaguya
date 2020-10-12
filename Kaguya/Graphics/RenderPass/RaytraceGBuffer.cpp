@@ -9,11 +9,6 @@ RaytraceGBuffer::RaytraceGBuffer(UINT Width, UINT Height)
 
 }
 
-RaytraceGBuffer::~RaytraceGBuffer()
-{
-
-}
-
 void RaytraceGBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	for (size_t i = 0; i < EResources::NumResources; ++i)
