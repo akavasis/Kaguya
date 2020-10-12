@@ -10,6 +10,8 @@ StructuredBuffer<uint> IndexBuffer                              : register(t2, s
 StructuredBuffer<GeometryInfo> GeometryInfoBuffer               : register(t3, space0);
 StructuredBuffer<Material> Materials							: register(t4, space0);
 
+SamplerState SamplerLinearWrap									: register(s0, space0);
+
 Triangle GetTriangle()
 {
 	GeometryInfo info = GeometryInfoBuffer[InstanceID()];

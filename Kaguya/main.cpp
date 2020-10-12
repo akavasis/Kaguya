@@ -184,7 +184,7 @@ Scene CornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelL
 	rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
 	rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
 	auto& lightInstance = scene.AddModelInstance({ &light, &lightMat });
-	lightInstance.Translate(0.0f, 5.9f, -1.0f);
+	lightInstance.Translate(0.0f, 9.9f, 0.0f);
 
 	return scene;
 }

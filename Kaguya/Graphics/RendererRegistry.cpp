@@ -195,11 +195,13 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	// Global RS
 	Raytracing::Global = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootSRVParameter(RootSRV(0, 0)); // BVH,					t0 | s0
-		proxy.AddRootSRVParameter(RootSRV(1, 0)); // Vertex Buffer,			t1 | s0
-		proxy.AddRootSRVParameter(RootSRV(2, 0)); // Index Buffer,			t2 | s0
-		proxy.AddRootSRVParameter(RootSRV(3, 0)); // Geometry info Buffer,	t3 | s0
-		proxy.AddRootSRVParameter(RootSRV(4, 0)); // Material Buffer,		t4 | s0
+		proxy.AddRootSRVParameter(RootSRV(0, 0));	// BVH,						t0 | space0
+		proxy.AddRootSRVParameter(RootSRV(1, 0));	// Vertex Buffer,			t1 | space0
+		proxy.AddRootSRVParameter(RootSRV(2, 0));	// Index Buffer,			t2 | space0
+		proxy.AddRootSRVParameter(RootSRV(3, 0));	// Geometry info Buffer,	t3 | space0
+		proxy.AddRootSRVParameter(RootSRV(4, 0));	// Material Buffer,			t4 | space0
+
+		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);	// SamplerLinearWrap	s0 | space0;
 	});
 }
 

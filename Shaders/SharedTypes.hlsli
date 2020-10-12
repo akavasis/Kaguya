@@ -36,6 +36,8 @@ struct GlobalConstants
 	int MaxDepth;
 	float FocalLength;
 	float LensRadius;
+	
+	int SkyboxIndex;
 };
 
 struct GeometryInfo

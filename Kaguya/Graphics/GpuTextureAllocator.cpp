@@ -172,6 +172,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 	});
 
 	EquirectangularToCubemap(RendererReseveredTextures[SkyboxEquirectangularMap], RendererReseveredTextures[SkyboxCubemap], RenderContext);
+	pRenderDevice->CreateShaderResourceView(RendererReseveredTextures[SkyboxCubemap]);
 
 	//// Create temporary srv for the cubemap and generate convolutions
 	//pRenderDevice->CreateSRV(RendererReseveredTextures[SkyboxCubemap]);
