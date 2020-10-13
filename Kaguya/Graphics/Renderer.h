@@ -27,7 +27,7 @@ public:
 
 	struct Settings
 	{
-		inline static bool VSync = false;
+		inline static bool		VSync = false;
 	};
 
 	Renderer(Window* pWindow);
