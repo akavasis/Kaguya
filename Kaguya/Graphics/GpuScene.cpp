@@ -218,8 +218,9 @@ void GpuScene::Commit(RenderContext& RenderContext)
 	GpuTextureAllocator.Stage(*pScene, RenderContext);
 }
 
-void GpuScene::Update()
+void GpuScene::Update(float AspectRatio)
 {
+	pScene->Camera.SetAspectRatio(AspectRatio);
 }
 
 size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer)

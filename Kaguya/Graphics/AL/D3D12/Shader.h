@@ -34,7 +34,7 @@ public:
 	inline auto GetShaderReflection() const { return m_ShaderReflection.Get(); }
 	inline D3D12_SHADER_BYTECODE GetD3DShaderBytecode() const { return { m_DxcBlob->GetBufferPointer(), m_DxcBlob->GetBufferSize() }; }
 private:
-	Type m_Type;
-	Microsoft::WRL::ComPtr<IDxcBlob> m_DxcBlob;
-	Microsoft::WRL::ComPtr<ID3D12ShaderReflection> m_ShaderReflection;
+	Type											m_Type;
+	Microsoft::WRL::ComPtr<IDxcBlob>				m_DxcBlob;
+	Microsoft::WRL::ComPtr<ID3D12ShaderReflection>	m_ShaderReflection;
 };

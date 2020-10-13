@@ -129,14 +129,6 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	switch (uMsg)
 	{
-	case WM_PAINT:
-	{
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(m_WindowHandle, &ps);
-		EndPaint(m_WindowHandle, &ps);
-	}
-	break;
-
 #pragma region Mouse Event
 	case WM_MOUSEMOVE:
 	{
@@ -278,7 +270,10 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 #pragma endregion
 
 #pragma region Keyboard Event
-	case WM_SYSCHAR: {} break;
+	case WM_SYSCHAR:
+	{
+	}
+	break;
 
 	case WM_KILLFOCUS:
 	{
@@ -319,22 +314,20 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 #pragma region Resize Message
 	case WM_SIZE:
-	case WM_ENTERSIZEMOVE: // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
-	case WM_EXITSIZEMOVE: // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
+	case WM_ENTERSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+	case WM_EXITSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
 	{
-		RECT clientRect = {};
-		::GetWindowRect(m_WindowHandle, &clientRect);
-		m_WindowWidth = Math::Max<unsigned int>(1u, clientRect.right - clientRect.left);
-		m_WindowHeight = Math::Max<unsigned int>(1u, clientRect.bottom - clientRect.top);
+		RECT WindowRect = {}; ::GetWindowRect(m_WindowHandle, &WindowRect);
+		m_WindowWidth = Math::Max<unsigned int>(1u, WindowRect.right - WindowRect.left);
+		m_WindowHeight = Math::Max<unsigned int>(1u, WindowRect.bottom - WindowRect.top);
 
-		Window::Message windowMessage;
-		windowMessage.type = Message::Type::Resize;
-		windowMessage.data.Width = m_WindowWidth;
-		windowMessage.data.Height = m_WindowHeight;
-		MessageQueue.push(windowMessage);
+		Window::Message WindowMessage;
+		WindowMessage.type = Message::Type::Resize;
+		WindowMessage.data.Width = m_WindowWidth;
+		WindowMessage.data.Height = m_WindowHeight;
+		MessageQueue.push(WindowMessage);
 	}
 	break;
-
 #pragma endregion
 
 	case WM_ACTIVATE:
@@ -368,21 +361,21 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 LRESULT CALLBACK Window::WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	Window* self;
+	Window* pWindow = nullptr;
 	if (uMsg == WM_NCCREATE)
 	{
 		LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
-		self = reinterpret_cast<Window*>(lpcs->lpCreateParams);
-		self->m_WindowHandle = hwnd;
-		::SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LPARAM>(self));
+		pWindow = reinterpret_cast<Window*>(lpcs->lpCreateParams);
+		pWindow->m_WindowHandle = hwnd;
+		::SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LPARAM>(pWindow));
 	}
 	else
 	{
-		self = reinterpret_cast<Window*>(::GetWindowLongPtr(hwnd, GWLP_USERDATA));
+		pWindow = reinterpret_cast<Window*>(::GetWindowLongPtr(hwnd, GWLP_USERDATA));
 	}
-	if (self)
+	if (pWindow)
 	{
-		return self->DispatchEvent(uMsg, wParam, lParam);
+		return pWindow->DispatchEvent(uMsg, wParam, lParam);
 	}
 	else
 	{
@@ -392,10 +385,9 @@ LRESULT CALLBACK Window::WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 
 void Window::ConfineCursor()
 {
-	RECT rect;
-	::GetClientRect(m_WindowHandle, &rect);
-	::MapWindowPoints(m_WindowHandle, nullptr, reinterpret_cast<POINT*>(&rect), 2);
-	::ClipCursor(&rect);
+	RECT ClientRect = {}; ::GetClientRect(m_WindowHandle, &ClientRect);
+	::MapWindowPoints(m_WindowHandle, nullptr, reinterpret_cast<POINT*>(&ClientRect), 2);
+	::ClipCursor(&ClientRect);
 }
 
 void Window::FreeCursor()
@@ -405,14 +397,12 @@ void Window::FreeCursor()
 
 void Window::ShowCursor()
 {
-	SetCursor(m_DefaultCursor);
-	//while (::ShowCursor(TRUE) < 0);
+	while (::ShowCursor(TRUE) < 0);
 }
 
 void Window::HideCursor()
 {
-	SetCursor(NULL);
-	//while (::ShowCursor(FALSE) >= 0);
+	while (::ShowCursor(FALSE) >= 0);
 }
 
 Window::ImGuiContextManager::ImGuiContextManager()

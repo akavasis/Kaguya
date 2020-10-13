@@ -25,15 +25,15 @@ public:
 
 	struct SSettings
 	{
-		bool ApplyBloom = true;
+		bool			ApplyBloom	= true;
 		struct Bloom
 		{
-			float Threshold = 4.0f;
-			float Intensity = 0.03f;
+			float		Threshold	= 4.0f;
+			float		Intensity	= 0.03f;
 		} Bloom;
 		struct Tonemapping
 		{
-			float Exposure = 0.5f;
+			float		Exposure	= 0.5f;
 		} Tonemapping;
 	};
 

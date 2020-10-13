@@ -35,7 +35,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 	try
 	{
 		if (!pRenderSystem)
-			throw;
+			throw std::exception("Null RenderSystem");
 
 		// Begin our render thread
 		Application::pRenderSystem = pRenderSystem;
@@ -49,6 +49,32 @@ int Application::Run(RenderSystem* pRenderSystem)
 			{
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
+			}
+			else
+			{
+				while (!pWindow->Keyboard.KeyBufferIsEmpty())
+				{
+					auto e = pWindow->Keyboard.ReadKey();
+					if (e.type != Keyboard::Event::Type::Press)
+						continue;
+					switch (e.data.Code)
+					{
+					case VK_ESCAPE:
+					{
+						if (pWindow->CursorEnabled())
+						{
+							pWindow->DisableCursor();
+							pWindow->Mouse.EnableRawInput();
+						}
+						else
+						{
+							pWindow->EnableCursor();
+							pWindow->Mouse.DisableRawInput();
+						}
+					}
+					break;
+					}
+				}
 			}
 		}
 
@@ -129,31 +155,6 @@ void Application::RenderThreadMain()
 
 		// Process mouse & keyboard events
 		{
-			// Handle input
-			while (!pWindow->Keyboard.KeyBufferIsEmpty())
-			{
-				auto e = pWindow->Keyboard.ReadKey();
-				if (e.type != Keyboard::Event::Type::Press)
-					continue;
-				switch (e.data.Code)
-				{
-				case VK_ESCAPE:
-				{
-					if (pWindow->CursorEnabled())
-					{
-						pWindow->DisableCursor();
-						pWindow->Mouse.EnableRawInput();
-					}
-					else
-					{
-						pWindow->EnableCursor();
-						pWindow->Mouse.DisableRawInput();
-					}
-				}
-				break;
-				}
-			}
-
 			// Handle render system mouse events
 			while (!pWindow->Mouse.RawDeltaBufferIsEmpty())
 			{

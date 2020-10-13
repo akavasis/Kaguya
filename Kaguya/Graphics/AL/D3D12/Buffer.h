@@ -19,12 +19,6 @@ public:
 	Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy);
 	~Buffer() override;
 
-	Buffer(Buffer&&) noexcept = default;
-	Buffer& operator=(Buffer&&) noexcept = default;
-
-	Buffer(const Buffer&) = delete;
-	Buffer& operator=(const Buffer&) = delete;
-
 	inline auto GetStride() const { return m_Stride; }
 	inline auto GetCpuAccess() const { return m_CpuAccess; }
 
@@ -46,7 +40,7 @@ public:
 		memcpy(&m_pMappedData[ElementIndex * m_Stride], &Data, sizeof(T));
 	}
 private:
-	UINT m_Stride;
-	CpuAccess m_CpuAccess;
-	BYTE* m_pMappedData;
+	UINT		m_Stride;
+	CpuAccess	m_CpuAccess;
+	BYTE*		m_pMappedData;
 };

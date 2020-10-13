@@ -3,19 +3,19 @@
 #include "Device.h"
 
 CommandQueue::CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
-	: m_FenceValue(0),
-	m_AllocatorPool(pDevice, Type)
+	: m_CommandAllocatorPool(pDevice, Type)
 {
 	auto pD3DDevice = pDevice->GetD3DDevice();
 
-	D3D12_COMMAND_QUEUE_DESC commandQueueDesc;
-	commandQueueDesc.Type = Type;
-	commandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-	commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	commandQueueDesc.NodeMask = 0;
-	ThrowCOMIfFailed(pD3DDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&m_pCommandQueue)));
-	ThrowCOMIfFailed(hr = pD3DDevice->CreateFence(m_FenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
-	m_EventHandle = ::CreateEvent(nullptr, false, false, nullptr);
+	D3D12_COMMAND_QUEUE_DESC CommandQueueDesc	= {};
+	CommandQueueDesc.Type						= Type;
+	CommandQueueDesc.Priority					= D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
+	CommandQueueDesc.Flags						= D3D12_COMMAND_QUEUE_FLAG_NONE;
+	CommandQueueDesc.NodeMask					= 0;
+	ThrowCOMIfFailed(pD3DDevice->CreateCommandQueue(&CommandQueueDesc, IID_PPV_ARGS(&m_pCommandQueue)));
+	ThrowCOMIfFailed(pD3DDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
+	m_EventHandle								= ::CreateEvent(nullptr, false, false, nullptr);
+	m_FenceValue								= 0;
 }
 
 CommandQueue::~CommandQueue()
@@ -28,9 +28,9 @@ UINT64 CommandQueue::Signal()
 {
 	// Signals the command queue to update the pFence's internal value on the GPU side
 	// once commands have been finished for execution for that frame
-	UINT64 fenceToWaitFor = ++m_FenceValue;
-	m_pCommandQueue->Signal(m_pFence.Get(), fenceToWaitFor);
-	return fenceToWaitFor;
+	UINT64 FenceToWaitFor = ++m_FenceValue;
+	m_pCommandQueue->Signal(m_pFence.Get(), FenceToWaitFor);
+	return FenceToWaitFor;
 }
 
 void CommandQueue::Flush()
@@ -42,8 +42,8 @@ bool CommandQueue::IsFenceValueReached(UINT64 FenceValue)
 {
 	// Retrives current value for the fence and compare it against the argument, it will be updated by the ID3D12CommandQueue::Signal
 	// once it has been signaled
-	const UINT64 completedValue = m_pFence->GetCompletedValue();
-	return completedValue >= FenceValue;
+	const UINT64 CompletedValue = m_pFence->GetCompletedValue();
+	return CompletedValue >= FenceValue;
 }
 
 void CommandQueue::WaitForFenceValue(UINT64 FenceValue)
@@ -71,10 +71,10 @@ void CommandQueue::WaitForIdle()
 ID3D12CommandAllocator* CommandQueue::RequestAllocator()
 {
 	UINT64 CompletedFence = m_pFence->GetCompletedValue();
-	return m_AllocatorPool.RequestAllocator(CompletedFence);
+	return m_CommandAllocatorPool.RequestAllocator(CompletedFence);
 }
 
 void CommandQueue::MarkAllocatorAsActive(UINT64 FenceValueForReset, ID3D12CommandAllocator* Allocator)
 {
-	m_AllocatorPool.MarkAllocatorAsActive(FenceValueForReset, Allocator);
+	m_CommandAllocatorPool.MarkAllocatorAsActive(FenceValueForReset, Allocator);
 }

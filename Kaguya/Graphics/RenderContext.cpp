@@ -134,7 +134,7 @@ void RenderContext::SetRaytracingPSO(RaytracingPipelineState* pRaytracingPipelin
 
 void RenderContext::BindGraphicsShaderLayoutResource(const RootSignature* pRootSignature)
 {
-	const size_t RootParameterOffset = pRootSignature->GetD3DRootSignatureDesc().NumParameters - RootParameters::ShaderLayout::NumRootParameters;
+	const size_t RootParameterOffset = pRootSignature->NumParameters - RootParameters::ShaderLayout::NumRootParameters;
 
 	Descriptor ShaderResourceDescriptorFromStart = m_pRenderDevice->GetGpuDescriptorHeapSRDescriptorFromStart();
 	Descriptor UnorderedAccessDescriptorFromStart = m_pRenderDevice->GetGpuDescriptorHeapUADescriptorFromStart();
@@ -149,7 +149,7 @@ void RenderContext::BindGraphicsShaderLayoutResource(const RootSignature* pRootS
 
 void RenderContext::BindComputeShaderLayoutResource(const RootSignature* pRootSignature)
 {
-	const size_t RootParameterOffset = pRootSignature->GetD3DRootSignatureDesc().NumParameters - RootParameters::ShaderLayout::NumRootParameters;
+	const size_t RootParameterOffset = pRootSignature->NumParameters - RootParameters::ShaderLayout::NumRootParameters;
 
 	Descriptor ShaderResourceDescriptorFromStart = m_pRenderDevice->GetGpuDescriptorHeapSRDescriptorFromStart();
 	Descriptor UnorderedAccessDescriptorFromStart = m_pRenderDevice->GetGpuDescriptorHeapUADescriptorFromStart();

@@ -112,9 +112,8 @@ void Renderer::OnRender()
 	RenderGui();
 
 	//PIXCapture();
-	m_GpuScene.pScene->Camera.SetAspectRatio(AspectRatio);
 
-	m_GpuScene.Update();
+	m_GpuScene.Update(AspectRatio);
 	m_RenderGraph.RenderGui();
 	m_RenderGraph.Execute();
 	m_RenderGraph.ExecuteCommandContexts(&m_Gui);

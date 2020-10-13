@@ -24,10 +24,10 @@ protected:
 private:
 	std::vector<std::wstring> BuildShaderExportList();
 
-	std::vector<DXILLibrary> m_Libraries;
-	std::vector<HitGroup> m_HitGroups;
-	std::vector<RootSignatureAssociation> m_RootSignatureAssociations;
-	const RootSignature* m_pGlobalRootSignature;
-	RaytracingPipelineState::ShaderConfig m_ShaderConfig;
-	RaytracingPipelineState::PipelineConfig m_PipelineConfig;
+	std::vector<DXILLibrary>				m_Libraries;
+	std::vector<HitGroup>					m_HitGroups;
+	std::vector<RootSignatureAssociation>	m_RootSignatureAssociations;
+	const RootSignature*					m_pGlobalRootSignature;
+	D3D12_RAYTRACING_SHADER_CONFIG			m_ShaderConfig;
+	D3D12_RAYTRACING_PIPELINE_CONFIG		m_PipelineConfig;
 };

@@ -5,14 +5,14 @@
 CommandContext::CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, Type Type)
 	: m_Type(Type)
 {
-	pOwningCommandQueue = pCommandQueue;
+	pOwningCommandQueue			= pCommandQueue;
 
-	m_pCurrentAllocator = pOwningCommandQueue->RequestAllocator();
-	m_pCurrentPendingAllocator = pOwningCommandQueue->RequestAllocator();
+	m_pCurrentAllocator			= pOwningCommandQueue->RequestAllocator();
+	m_pCurrentPendingAllocator	= pOwningCommandQueue->RequestAllocator();
 
-	D3D12_COMMAND_LIST_TYPE type = GetD3DCommandListType(Type);
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, type, m_pCurrentAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, type, m_pCurrentPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
+	D3D12_COMMAND_LIST_TYPE CommandListType = GetD3DCommandListType(Type);
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, CommandListType, m_pCurrentAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, CommandListType, m_pCurrentPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
 }
 
 bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
@@ -50,14 +50,12 @@ void CommandContext::SetPipelineState(const PipelineState* pPipelineState)
 
 void CommandContext::SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorHeap, SamplerDescriptorHeap* pSamplerDescriptorHeap)
 {
-	UINT numDescriptorHeaps = 0;
-	ID3D12DescriptorHeap* pDescriptorHeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
-	if (pCBSRUADescriptorHeap)
-		pDescriptorHeapsToBind[numDescriptorHeaps++] = pCBSRUADescriptorHeap->GetD3DDescriptorHeap();
-	if (pSamplerDescriptorHeap)
-		pDescriptorHeapsToBind[numDescriptorHeaps++] = pSamplerDescriptorHeap->GetD3DDescriptorHeap();
-	if (numDescriptorHeaps > 0)
-		m_pCommandList->SetDescriptorHeaps(numDescriptorHeaps, pDescriptorHeapsToBind);
+	UINT					NumDescriptorHeaps												= 0;
+	ID3D12DescriptorHeap*	pDescriptorHeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES]	= {};
+	if (pCBSRUADescriptorHeap)	pDescriptorHeapsToBind[NumDescriptorHeaps++] = pCBSRUADescriptorHeap->GetD3DDescriptorHeap();
+	if (pSamplerDescriptorHeap) pDescriptorHeapsToBind[NumDescriptorHeaps++] = pSamplerDescriptorHeap->GetD3DDescriptorHeap();
+	if (NumDescriptorHeaps > 0)
+		m_pCommandList->SetDescriptorHeaps(NumDescriptorHeaps, pDescriptorHeapsToBind);
 }
 
 void CommandContext::TransitionBarrier(Resource* pResource, Resource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
@@ -173,9 +171,9 @@ D3D12_COMMAND_LIST_TYPE GetD3DCommandListType(CommandContext::Type Type)
 {
 	switch (Type)
 	{
-	case CommandContext::Type::Direct: return D3D12_COMMAND_LIST_TYPE_DIRECT;
+	case CommandContext::Type::Direct:	return D3D12_COMMAND_LIST_TYPE_DIRECT;
 	case CommandContext::Type::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-	case CommandContext::Type::Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
+	case CommandContext::Type::Copy:	return D3D12_COMMAND_LIST_TYPE_COPY;
+	default:							return D3D12_COMMAND_LIST_TYPE(-1);
 	}
-	return D3D12_COMMAND_LIST_TYPE(-1);
 }

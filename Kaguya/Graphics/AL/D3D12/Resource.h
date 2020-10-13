@@ -62,12 +62,6 @@ public:
 	Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy);
 	virtual ~Resource() = 0;
 
-	Resource(Resource&&) noexcept = default;
-	Resource& operator=(Resource&&) noexcept = default;
-
-	Resource(const Resource&) = delete;
-	Resource& operator=(const Resource&) = delete;
-
 	inline auto GetD3DResource() const { return m_pResource.Get(); }
 	inline auto GetType() const { return m_Type; }
 	inline auto GetBindFlags() const { return m_BindFlags; }
@@ -82,14 +76,14 @@ public:
 		m_pResource->SetName(Name);
 	}
 protected:
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_pResource;
-	Type m_Type;
-	BindFlags m_BindFlags;
-	UINT m_NumSubresources;
-	UINT64 m_MemoryRequested;
-	UINT64 m_SizeInBytes;
-	UINT64 m_Alignment;
-	UINT64 m_HeapOffset;
+	Microsoft::WRL::ComPtr<ID3D12Resource>	m_pResource;
+	Type									m_Type;
+	BindFlags								m_BindFlags;
+	UINT									m_NumSubresources;
+	UINT64									m_MemoryRequested;
+	UINT64									m_SizeInBytes;
+	UINT64									m_Alignment;
+	UINT64									m_HeapOffset;
 };
 
 ENABLE_BITMASK_OPERATORS(Resource::BindFlags);

@@ -32,12 +32,6 @@ public:
 	Heap() = default;
 	Heap(const Device* pDevice, HeapProxy& Proxy);
 
-	Heap(Heap&&) noexcept = default;
-	Heap& operator=(Heap&&) noexcept = default;
-
-	Heap(const Heap&) = delete;
-	Heap& operator=(const Heap&) = delete;
-
 	inline auto GetD3DHeap() const { return m_pHeap.Get(); }
 	inline auto GetSizeInBytes() const { return m_SizeInBytes; }
 	inline auto GetType() const { return m_Type; }

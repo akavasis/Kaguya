@@ -99,19 +99,19 @@ public:
 	Descriptor GetRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 	Descriptor GetDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 
-	Device					Device;
-	CommandQueue			GraphicsQueue;
-	CommandQueue			ComputeQueue;	// TODO: Add asynchronous work submission using this queue
-	CommandQueue			CopyQueue;		// TODO: Add asynchronous work submission using this queue
-	ResourceStateTracker	GlobalResourceStateTracker;
+	Device																					Device;
+	CommandQueue																			GraphicsQueue;
+	CommandQueue																			ComputeQueue;	// TODO: Add asynchronous work submission using this queue
+	CommandQueue																			CopyQueue;		// TODO: Add asynchronous work submission using this queue
+	ResourceStateTracker																	GlobalResourceStateTracker;
 
-	UINT					FrameIndex;
-	RenderResourceHandle	SwapChainTextures[NumSwapChainBuffers];
+	UINT																					FrameIndex;
+	RenderResourceHandle																	SwapChainTextures[NumSwapChainBuffers];
 private:
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 
 	ShaderCompiler																			m_ShaderCompiler;
-	std::vector<std::unique_ptr<CommandContext>>											m_RenderCommandContexts[CommandContext::NumTypes];
+	std::vector<std::unique_ptr<CommandContext>>											m_CommandContexts[CommandContext::NumTypes];
 
 	RenderResourceContainer<RenderResourceType::Buffer, Buffer>								m_Buffers;
 	RenderResourceContainer<RenderResourceType::Texture, Texture>							m_Textures;

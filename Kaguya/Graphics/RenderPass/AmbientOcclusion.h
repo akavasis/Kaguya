@@ -15,8 +15,8 @@ public:
 
 	struct SSettings
 	{
-		float AORadius = 1.0f;
-		int NumAORaysPerPixel = 1;
+		float	AORadius			= 1.0f;
+		int		NumAORaysPerPixel	= 1;
 	};
 
 	AmbientOcclusion(UINT Width, UINT Height);

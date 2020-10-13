@@ -3,11 +3,13 @@
 #include "Device.h"
 #include "../Proxy/RaytracingPipelineStateProxy.h"
 
+//----------------------------------------------------------------------------------------------------
 DXILLibrary::DXILLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols)
 	: pLibrary(pLibrary), Symbols(Symbols)
 {
 }
 
+//----------------------------------------------------------------------------------------------------
 HitGroup::HitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol)
 	: HitGroupName(pHitGroupName ? pHitGroupName : L""),
 	AnyHitSymbol(pAnyHitSymbol ? pAnyHitSymbol : L""),
@@ -16,11 +18,13 @@ HitGroup::HitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pCloses
 {
 }
 
+//----------------------------------------------------------------------------------------------------
 RootSignatureAssociation::RootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
 	: pRootSignature(pRootSignature), Symbols(Symbols)
 {
 }
 
+//----------------------------------------------------------------------------------------------------
 RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, RaytracingPipelineStateProxy& Proxy)
 {
 	Proxy.Link();

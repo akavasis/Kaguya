@@ -46,9 +46,9 @@ public:
 	void SetTitle(std::wstring Title);
 	void AppendToTitle(std::wstring Message);
 
-	Mouse Mouse;
-	Keyboard Keyboard;
-	ThreadSafeQueue<Message> MessageQueue;
+	Mouse						Mouse;
+	Keyboard					Keyboard;
+	ThreadSafeQueue<Message>	MessageQueue;
 private:
 	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -65,13 +65,13 @@ private:
 		~ImGuiContextManager();
 	};
 
-	unsigned int m_WindowWidth;
-	unsigned int m_WindowHeight;
-	HWND m_WindowHandle;
-	HCURSOR m_DefaultCursor;
-	std::wstring m_ClassName;
-	std::wstring m_WindowName;
-	std::atomic<bool> m_CursorEnabled;
+	unsigned int				m_WindowWidth;
+	unsigned int				m_WindowHeight;
+	HWND						m_WindowHandle;
+	HCURSOR						m_DefaultCursor;
+	std::wstring				m_ClassName;
+	std::wstring				m_WindowName;
+	std::atomic<bool>			m_CursorEnabled;
 
-	ImGuiContextManager m_ImGuiContextManager;
+	ImGuiContextManager			m_ImGuiContextManager;
 };

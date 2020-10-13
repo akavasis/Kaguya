@@ -1,6 +1,6 @@
 // main.cpp : Defines the entry point for the application.
 //
-#if _DEBUG
+#if defined(_DEBUG)
 // memory leak
 #define _CRTDBG_MAP_ALLOC
 #include <cstdlib>

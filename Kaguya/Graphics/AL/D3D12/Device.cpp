@@ -4,17 +4,17 @@
 Device::Device(IDXGIAdapter4* pAdapter)
 {
 #if defined(_DEBUG)
-	constexpr BOOL gpuBasedValidation = FALSE; // Enabling this will cause texture copying to copy black pixels, also disables you from binding acceleration structure because its in the wrong state
+	constexpr BOOL GPUBasedValidation = FALSE; // Enabling this will cause texture copying to copy black pixels, also disables you from binding acceleration structure because its in the wrong state
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
 	Microsoft::WRL::ComPtr<ID3D12Debug1> pDebug1;
 	ThrowCOMIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(pDebug1.ReleaseAndGetAddressOf())));
 	pDebug1->EnableDebugLayer();
-	pDebug1->SetEnableGPUBasedValidation(gpuBasedValidation);
+	pDebug1->SetEnableGPUBasedValidation(GPUBasedValidation);
 #endif
 
-	constexpr D3D_FEATURE_LEVEL minimumFeatureLevel = D3D_FEATURE_LEVEL_12_1;
+	constexpr D3D_FEATURE_LEVEL MinimumFeatureLevel = D3D_FEATURE_LEVEL_12_1;
 	// Create our virtual device used for interacting with the GPU so we can create resources
-	ThrowCOMIfFailed(::D3D12CreateDevice(pAdapter, minimumFeatureLevel, IID_PPV_ARGS(m_pDevice5.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(::D3D12CreateDevice(pAdapter, MinimumFeatureLevel, IID_PPV_ARGS(m_pDevice5.ReleaseAndGetAddressOf())));
 
 	// Check for different features
 	CheckRS_1_1Support();

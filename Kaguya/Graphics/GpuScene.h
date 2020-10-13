@@ -24,7 +24,7 @@ public:
 	void UploadModelInstances();
 	void Commit(RenderContext& RenderContext);
 
-	void Update();
+	void Update(float AspectRatio);
 
 	inline auto GetMaterialTableHandle()		const		{ return ResourceTables[MaterialTable]; }
 	inline auto GetVertexBufferHandle()			const		{ return ResourceTables[VertexBuffer]; }

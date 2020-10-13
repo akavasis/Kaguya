@@ -13,12 +13,6 @@ public:
 	Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy);
 	~Texture() override;
 
-	Texture(Texture&&) noexcept = default;
-	Texture& operator=(Texture&&) noexcept = default;
-
-	Texture(const Texture&) = delete;
-	Texture& operator=(const Texture&) = delete;
-
 	inline auto GetFormat() const { return m_Format; }
 	inline auto GetWidth() const { return m_Width; }
 	inline auto GetHeight() const { return m_Height; }
@@ -28,8 +22,8 @@ public:
 	bool IsArray() const;
 private:
 	DXGI_FORMAT m_Format;
-	UINT64 m_Width;
-	UINT m_Height;
-	UINT16 m_DepthOrArraySize;
-	UINT16 m_MipLevels;
+	UINT64		m_Width;
+	UINT		m_Height;
+	UINT16		m_DepthOrArraySize;
+	UINT16		m_MipLevels;
 };

@@ -2,9 +2,11 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
+//----------------------------------------------------------------------------------------------------
 class Device;
 class RootSignatureProxy;
 
+//----------------------------------------------------------------------------------------------------
 class RootParameter
 {
 public:
@@ -24,6 +26,7 @@ protected:
 	D3D12_ROOT_PARAMETER1 m_RootParameter;
 };
 
+//----------------------------------------------------------------------------------------------------
 struct DescriptorRange
 {
 	enum class Type
@@ -54,6 +57,7 @@ struct DescriptorRange
 	UINT OffsetInDescriptorsFromTableStart;
 };
 
+//----------------------------------------------------------------------------------------------------
 class RootDescriptorTable : public RootParameter
 {
 public:
@@ -66,6 +70,7 @@ private:
 	std::vector<D3D12_DESCRIPTOR_RANGE1> m_DescriptorRanges;
 };
 
+//----------------------------------------------------------------------------------------------------
 template<typename T>
 class RootConstants : public RootParameter
 {
@@ -79,6 +84,7 @@ public:
 	}
 };
 
+//----------------------------------------------------------------------------------------------------
 template<>
 class RootConstants<void> : public RootParameter
 {
@@ -92,6 +98,7 @@ public:
 	}
 };
 
+//----------------------------------------------------------------------------------------------------
 class RootCBV : public RootParameter
 {
 public:
@@ -104,6 +111,7 @@ public:
 	}
 };
 
+//----------------------------------------------------------------------------------------------------
 class RootSRV : public RootParameter
 {
 public:
@@ -116,6 +124,7 @@ public:
 	}
 };
 
+//----------------------------------------------------------------------------------------------------
 class RootUAV : public RootParameter
 {
 public:
@@ -128,6 +137,7 @@ public:
 	}
 };
 
+//----------------------------------------------------------------------------------------------------
 class RootSignature
 {
 public:
@@ -135,17 +145,16 @@ public:
 
 	RootSignature() = default;
 	RootSignature(const Device* pDevice, RootSignatureProxy& Proxy);
-	~RootSignature();
 
-	RootSignature(RootSignature&&) noexcept;
-	RootSignature& operator=(RootSignature&&) noexcept;
+	RootSignature(RootSignature&&) noexcept = default;
+	RootSignature& operator=(RootSignature&&) = default;
 
 	RootSignature(const RootSignature&) = delete;
 	RootSignature& operator=(const RootSignature&) = delete;
 
 	inline auto GetD3DRootSignature() const { return m_RootSignature.Get(); }
-	inline const auto& GetD3DRootSignatureDesc() const { return m_RootSignatureDesc; }
+	UINT NumParameters;
+	UINT NumStaticSamplers;
 private:
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
-	D3D12_ROOT_SIGNATURE_DESC1 m_RootSignatureDesc;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature>	m_RootSignature;
 };
