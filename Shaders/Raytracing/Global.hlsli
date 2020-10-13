@@ -1,6 +1,7 @@
 // This file defines global root signature for raytracing shaders
 #include "../HLSLCommon.hlsli"
 #include "../Random.hlsli"
+#include "../Sampling.hlsli"
 #include "../BxDF.hlsli"
 #include "Common.hlsli"
 

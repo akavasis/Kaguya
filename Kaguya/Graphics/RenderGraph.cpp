@@ -4,7 +4,7 @@
 RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties)
 	: Enabled(true),
 	Refresh(false),
-	Name(Name),
+	Name(std::move(Name)),
 	Properties(Properties)
 {
 

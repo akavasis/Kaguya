@@ -33,12 +33,17 @@ struct Lambertian
 	
 	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay, out float pdf)
 	{
-		float3 direction = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
+		float2 u;
+		u[0] = RandomFloat01(rayPayload.Seed);
+		u[1] = RandomFloat01(rayPayload.Seed);
+
+		ONB onb = InitONB(si.bsdf.normal);
+		float3 direction = onb.InverseTransform(CosineSampleHemisphere(u));
 		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
 		
 		attenuation = Albedo;
 		scatteredRay = ray;
-		pdf = dot(si.bsdf.normal, scatteredRay.Direction) / s_PI;
+		pdf = CosineHemispherePdf(dot(onb.normal, scatteredRay.Direction));
 		return true;
 	}
 
@@ -208,7 +213,8 @@ void RayGeneration()
 [shader("miss")]
 void Miss(inout RayPayload rayPayload)
 {
-	rayPayload.Radiance += TextureCubeTable[RenderPassData.GlobalConstants.SkyboxIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
+	//rayPayload.Radiance += TextureCubeTable[RenderPassData.GlobalConstants.SkyboxIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
+	rayPayload.Throughput *= float3(0.0f, 0.0f, 0.0f);
 }
 
 [shader("closesthit")]

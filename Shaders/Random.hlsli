@@ -49,6 +49,12 @@ float3 RandomInUnitSphere(inout uint seed)
 	}
 }
 
+float3 RandomInHemisphere(inout uint seed, in float3 normal)
+{
+	float3 p = RandomInUnitSphere(seed);
+	return dot(p, normal) > 0.0f ? p : -p;
+}
+
 float3 PerpendicularVector(in float3 v)
 {
 	float3 a = abs(v);
@@ -70,7 +76,7 @@ float3 CosHemisphereSample(inout uint seed, in float3 normal)
 	float phi = 2.0f * 3.14159265f * randVal.y;
 
 	// Get our cosine-weighted hemisphere lobe sample direction
-	return tangent * (r * cos(phi).x) + bitangent * (r * sin(phi)) + normal.xyz * sqrt(1 - randVal.x);
+	return tangent * (r * cos(phi)) + bitangent * (r * sin(phi)) + normal.xyz * sqrt(1 - randVal.x);
 }
 
 #endif

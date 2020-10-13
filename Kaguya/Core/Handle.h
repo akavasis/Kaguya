@@ -1,7 +1,8 @@
 #pragma once
 #include <compare>
 
-#define HANDLE_MAX_BITFIELD_SIZE (sizeof(size_t) * 8)
+// 64 bits
+static constexpr size_t HANDLE_MAX_BITFIELD_SIZE = (sizeof(size_t) * 8);
 
 template<typename Type, size_t TypeBitField, typename Flags, size_t FlagsBitField>
 struct Handle
@@ -16,9 +17,9 @@ struct Handle
 		return Data != 0;
 	}
 
-	Type Type : TypeBitField;
-	Flags Flags : FlagsBitField;
-	size_t Data : HANDLE_MAX_BITFIELD_SIZE - TypeBitField - FlagsBitField;
+	Type	Type	: TypeBitField;
+	Flags	Flags	: FlagsBitField;
+	size_t	Data	: HANDLE_MAX_BITFIELD_SIZE - TypeBitField - FlagsBitField;
 };
 
 #define DECL_HANDLE(Name, Type, TypeBitField, Flags, FlagsBitField)					\
