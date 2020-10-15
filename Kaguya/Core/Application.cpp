@@ -38,9 +38,9 @@ int Application::Run(RenderSystem* pRenderSystem)
 			throw std::exception("Null RenderSystem");
 
 		// Begin our render thread
-		Application::pRenderSystem = pRenderSystem;
-		ExitRenderThread = false;
-		RenderThread = new std::thread(RenderThreadMain);
+		Application::pRenderSystem	= pRenderSystem;
+		ExitRenderThread			= false;
+		RenderThread				= new std::thread(RenderThreadMain);
 
 		MSG msg = {};
 		while (msg.message != WM_QUIT)
@@ -83,10 +83,12 @@ int Application::Run(RenderSystem* pRenderSystem)
 	catch (std::exception& e)
 	{
 		ExitCode = EXIT_FAILURE;
+		MessageBoxA(nullptr, e.what(), "Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
 	catch (...)
 	{
 		ExitCode = EXIT_FAILURE;
+		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
 
 	if (RenderThread)

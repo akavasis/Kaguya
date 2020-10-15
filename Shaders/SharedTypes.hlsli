@@ -1,15 +1,9 @@
 #ifndef __SHARED_TYPES_HLSLI__
 #define __SHARED_TYPES_HLSLI__
+
 #include "SharedDefines.hlsli"
 #include "Light.hlsli"
 #include "Material.hlsli"
-
-struct ObjectConstants
-{
-	matrix World;
-	uint MaterialIndex;
-	float3 _padding;
-};
 
 struct GlobalConstants
 {
@@ -30,8 +24,6 @@ struct GlobalConstants
 	float3 EyePosition;
 	uint TotalFrameCount;
 
-	DirectionalLight Sun;
-	
 	int NumSamplesPerPixel;
 	int MaxDepth;
 	float FocalLength;
@@ -47,4 +39,5 @@ struct GeometryInfo
 	uint MaterialIndex;
 	matrix World;
 };
+
 #endif

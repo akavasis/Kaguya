@@ -8,48 +8,45 @@
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 
-static constexpr size_t SizeOfBuiltInTriangleIntersectionAttributes = 2 * sizeof(float);
-static constexpr size_t SizeOfHLSLBooleanType = sizeof(int);
-
-#define ENUM_TO_LSTR(Enum) L#Enum
-
 void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
 {
 	// Load VS
 	{
-		VS::Quad = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Quad.hlsl", L"main", {});
-		VS::Skybox = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Sky.hlsl", L"main", {});
+		VS::Quad	= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Quad.hlsl", L"main", {});
+		VS::Skybox	= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Sky.hlsl", L"main", {});
+		VS::GBuffer = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBuffer.hlsl", L"VSMain", {});
 	}
 
 	// Load PS
 	{
-		PS::BRDFIntegration = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_BRDFIntegration.hlsl", L"main", {});
-		PS::ConvolutionIrradiance = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
-		PS::ConvolutionPrefilter = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
+		PS::BRDFIntegration			= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_BRDFIntegration.hlsl", L"main", {});
+		PS::ConvolutionIrradiance	= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
+		PS::ConvolutionPrefilter	= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
+		PS::GBuffer					= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBuffer.hlsl", L"PSMain", {});
 
 		PS::PostProcess_Tonemapping = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl", L"main", {});
 	}
 
 	// Load CS
 	{
-		CS::EquirectangularToCubemap = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/CS_EquirectangularToCubemap.hlsl", L"main", {});
-		CS::GenerateMips = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/CS_GenerateMips.hlsl", L"main", {});
+		CS::EquirectangularToCubemap					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/CS_EquirectangularToCubemap.hlsl", L"main", {});
+		CS::GenerateMips								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/CS_GenerateMips.hlsl", L"main", {});
 
-		CS::Accumulation = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Raytracing/Accumulation.hlsl", L"main", {});
+		CS::Accumulation								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Raytracing/Accumulation.hlsl", L"main", {});
 
-		CS::PostProcess_BloomMask = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl", L"main", {});
-		CS::PostProcess_BloomDownsample = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl", L"main", {});
-		CS::PostProcess_BloomBlur = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl", L"main", {});
-		CS::PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl", L"main", {});
-		CS::PostProcess_BloomComposition = pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl", L"main", {});
+		CS::PostProcess_BloomMask						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl", L"main", {});
+		CS::PostProcess_BloomDownsample					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl", L"main", {});
+		CS::PostProcess_BloomBlur						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl", L"main", {});
+		CS::PostProcess_BloomUpsampleBlurAccumulation	= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl", L"main", {});
+		CS::PostProcess_BloomComposition				= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl", L"main", {});
 	}
 }
 
 void Libraries::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
 {
-	Pathtracing = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
-	RaytraceGBuffer = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/RaytraceGBuffer.hlsl");
-	AmbientOcclusion = pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
+	Pathtracing			= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
+	RaytraceGBuffer		= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/RaytraceGBuffer.hlsl");
+	AmbientOcclusion	= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
@@ -115,72 +112,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	Skybox = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		proxy.AllowInputLayout();
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
-	PostProcess_BloomMask = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 5));
-
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
-
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
-	PostProcess_BloomDownsample = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 7));
-
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
-
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
-	PostProcess_BloomBlur = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 4));
-
-		proxy.AllowInputLayout();
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
-	PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
-
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
-
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
-	PostProcess_BloomComposition = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
-
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
-
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
-	PostProcess_Tonemapping = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 3));
-
-		proxy.AllowInputLayout();
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
-	Raytracing::Accumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
-	{
-		proxy.AddRootConstantsParameter(RootConstants<Accumulation::SSettings>(0, 0));
-
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
@@ -253,17 +184,6 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 		case Prefilter: ConvolutionPrefilter = handle; break;
 		}
 	}
-
-	// PostProcess_Tonemapping
-	PostProcess_Tonemapping = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
-	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemapping);
-		proxy.pVS = &Shaders::VS::Quad;
-		proxy.pPS = &Shaders::PS::PostProcess_Tonemapping;
-
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-		proxy.AddRenderTargetFormat(RendererFormats::SwapChainBufferFormat);
-	});
 }
 
 void ComputePSOs::Register(RenderDevice* pRenderDevice)
@@ -278,224 +198,5 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap);
 		proxy.pCS = &Shaders::CS::EquirectangularToCubemap;
-	});
-
-	Accumulation = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
-	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Accumulation);
-		proxy.pCS = &Shaders::CS::Accumulation;
-	});
-
-	PostProcess_BloomMask = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
-	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomMask);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomMask;
-	});
-
-	PostProcess_BloomDownsample = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
-	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomDownsample);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomDownsample;
-	});
-
-	PostProcess_BloomBlur = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
-	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomBlur);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomBlur;
-	});
-
-	PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
-	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomUpsampleBlurAccumulation;
-	});
-
-	PostProcess_BloomComposition = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
-	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomComposition);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomComposition;
-	});
-}
-
-void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
-{
-	Pathtracing = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
-	{
-		enum Symbols
-		{
-			RayGeneration,
-			Miss,
-			ClosestHit,
-			NumSymbols
-		};
-
-		const LPCWSTR symbols[NumSymbols] =
-		{
-			ENUM_TO_LSTR(RayGeneration),
-			ENUM_TO_LSTR(Miss),
-			ENUM_TO_LSTR(ClosestHit)
-		};
-
-		enum HitGroups
-		{
-			Default,
-			NumHitGroups
-		};
-
-		const LPCWSTR hitGroups[NumHitGroups] =
-		{
-			ENUM_TO_LSTR(Default)
-		};
-
-		const Library* pRaytraceLibrary = &Libraries::Pathtracing;
-
-		proxy.AddLibrary(pRaytraceLibrary,
-			{
-				symbols[RayGeneration],
-				symbols[Miss],
-				symbols[ClosestHit]
-			});
-
-		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
-
-		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
-
-		// The following section associates the root signature to each shader. Note
-		// that we can explicitly show that some shaders share the same root signature
-		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
-		// to as hit groups, meaning that the underlying intersection, any-hit and
-		// closest-hit shaders share the same root signature.
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
-			{
-				symbols[RayGeneration],
-				symbols[Miss],
-				hitGroups[Default]
-			});
-
-		proxy.SetGlobalRootSignature(pGlobalRootSignature);
-
-		proxy.SetRaytracingShaderConfig(6 * sizeof(float) + 2 * sizeof(unsigned int), SizeOfBuiltInTriangleIntersectionAttributes);
-		proxy.SetRaytracingPipelineConfig(8);
-	});
-
-	RaytraceGBuffer = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
-	{
-		enum Symbols
-		{
-			RayGeneration,
-			Miss,
-			ClosestHit,
-			NumSymbols
-		};
-
-		const LPCWSTR symbols[NumSymbols] =
-		{
-			ENUM_TO_LSTR(RayGeneration),
-			ENUM_TO_LSTR(Miss),
-			ENUM_TO_LSTR(ClosestHit)
-		};
-
-		enum HitGroups
-		{
-			Default,
-			NumHitGroups
-		};
-
-		const LPCWSTR hitGroups[NumHitGroups] =
-		{
-			ENUM_TO_LSTR(Default)
-		};
-
-		const Library* pRaytraceLibrary = &Libraries::RaytraceGBuffer;
-
-		proxy.AddLibrary(pRaytraceLibrary,
-			{
-				symbols[RayGeneration],
-				symbols[Miss],
-				symbols[ClosestHit]
-			});
-
-		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
-
-		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
-
-		// The following section associates the root signature to each shader. Note
-		// that we can explicitly show that some shaders share the same root signature
-		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
-		// to as hit groups, meaning that the underlying intersection, any-hit and
-		// closest-hit shaders share the same root signature.
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
-			{
-				symbols[RayGeneration],
-				symbols[Miss],
-				hitGroups[Default]
-			});
-
-		proxy.SetGlobalRootSignature(pGlobalRootSignature);
-
-		proxy.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
-		proxy.SetRaytracingPipelineConfig(2);
-	});
-
-	AmbientOcclusion = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
-	{
-		enum Symbols
-		{
-			RayGeneration,
-			Miss,
-			ClosestHit,
-			NumSymbols
-		};
-
-		const LPCWSTR symbols[NumSymbols] =
-		{
-			ENUM_TO_LSTR(RayGeneration),
-			ENUM_TO_LSTR(Miss),
-			ENUM_TO_LSTR(ClosestHit)
-		};
-
-		enum HitGroups
-		{
-			Default,
-			NumHitGroups
-		};
-
-		const LPCWSTR hitGroups[NumHitGroups] =
-		{
-			ENUM_TO_LSTR(Default)
-		};
-
-		const Library* pRaytraceLibrary = &Libraries::AmbientOcclusion;
-
-		proxy.AddLibrary(pRaytraceLibrary,
-			{
-				symbols[RayGeneration],
-				symbols[Miss],
-				symbols[ClosestHit]
-			});
-
-		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
-
-		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
-
-		// The following section associates the root signature to each shader. Note
-		// that we can explicitly show that some shaders share the same root signature
-		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
-		// to as hit groups, meaning that the underlying intersection, any-hit and
-		// closest-hit shaders share the same root signature.
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
-			{
-				symbols[RayGeneration],
-				symbols[Miss],
-				hitGroups[Default]
-			});
-
-		proxy.SetGlobalRootSignature(pGlobalRootSignature);
-
-		proxy.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
-		proxy.SetRaytracingPipelineConfig(2);
 	});
 }

@@ -2,6 +2,10 @@
 #include "GpuScene.h"
 #include "RendererRegistry.h"
 
+#define RAYTRACING_INSTANCEMASK_ALL 	(0xff)
+#define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
+#define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
+
 struct HLSLMaterial
 {
 	float3	Albedo;
@@ -19,7 +23,10 @@ struct HLSLMaterial
 
 namespace
 {
+	static constexpr size_t NumLights					= 10000;
 	static constexpr size_t NumMaterials				= 50000;
+
+	static constexpr size_t LightBufferByteSize			= NumLights * sizeof(PolygonalLight);
 	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSLMaterial);
 	static constexpr size_t VertexBufferByteSize		= 50_MiB;
 	static constexpr size_t IndexBufferByteSize			= 50_MiB;
@@ -32,8 +39,8 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	GpuTextureAllocator(pRenderDevice)
 {
 	// Resource
-	size_t resourceTablesMemorySizeInBytes[NumResources] = { MaterialBufferByteSize, VertexBufferByteSize, IndexBufferByteSize, GeometryInfoBufferByteSize };
-	size_t resourceTablesMemoryStrides[NumResources] = { sizeof(HLSLMaterial), sizeof(Vertex), sizeof(unsigned int), sizeof(GeometryInfo) };
+	size_t resourceTablesMemorySizeInBytes[NumResources] = { LightBufferByteSize, MaterialBufferByteSize, VertexBufferByteSize, IndexBufferByteSize, GeometryInfoBufferByteSize };
+	size_t resourceTablesMemoryStrides[NumResources] = { sizeof(PolygonalLight), sizeof(HLSLMaterial), sizeof(Vertex), sizeof(unsigned int), sizeof(GeometryInfo) };
 
 	for (size_t i = 0; i < NumResources; ++i)
 	{
@@ -51,6 +58,21 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 		});
 		Allocators[i].Reset(resourceTablesMemorySizeInBytes[i]);
 	}
+}
+
+void GpuScene::UploadLights()
+{
+	auto pUploadLightTable = pRenderDevice->GetBuffer(UploadResourceTables[LightTable]);
+
+	size_t index = 0;
+
+	std::vector<PolygonalLight> lights(pScene->Lights.size());
+	for (auto iter : pScene->Lights)
+	{
+		lights[index++] = iter;
+	}
+
+	Upload(LightTable, lights.data(), lights.size() * sizeof(PolygonalLight), pUploadLightTable);
 }
 
 void GpuScene::UploadMaterials()
@@ -126,18 +148,18 @@ void GpuScene::UploadModels()
 		for (auto& mesh : model.Meshes)
 		{
 			// Update mesh's BLAS Index
-			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
+			mesh.BottomLevelAccelerationStructureIndex	= m_RaytracingBottomLevelAccelerationStructures.size();
 
 			RaytracingGeometryDesc geometryDesc = {};
-			geometryDesc.pVertexBuffer = pVertexBuffer;
-			geometryDesc.VertexStride = sizeof(Vertex);
-			geometryDesc.pIndexBuffer = pIndexBuffer;
-			geometryDesc.IndexStride = sizeof(unsigned int);
-			geometryDesc.IsOpaque = true;
-			geometryDesc.NumVertices = mesh.VertexCount;
-			geometryDesc.VertexOffset = mesh.BaseVertexLocation;
-			geometryDesc.NumIndices = mesh.IndexCount;
-			geometryDesc.IndexOffset = mesh.StartIndexLocation;
+			geometryDesc.pVertexBuffer			= pVertexBuffer;
+			geometryDesc.VertexStride			= sizeof(Vertex);
+			geometryDesc.pIndexBuffer			= pIndexBuffer;
+			geometryDesc.IndexStride			= sizeof(unsigned int);
+			geometryDesc.IsOpaque				= true;
+			geometryDesc.NumVertices			= mesh.VertexCount;
+			geometryDesc.VertexOffset			= mesh.BaseVertexLocation;
+			geometryDesc.NumIndices				= mesh.IndexCount;
+			geometryDesc.IndexOffset			= mesh.StartIndexLocation;
 
 			rtblas.BLAS.AddGeometry(geometryDesc);
 		}
@@ -149,11 +171,14 @@ void GpuScene::UploadModelInstances()
 {
 	auto pUploadGeometryInfoTable = pRenderDevice->GetBuffer(UploadResourceTables[GeometryInfoTable]);
 
+	size_t instanceID = 0;
 	std::vector<GeometryInfo> geometryInfos;
 	for (auto& modelInstance : pScene->ModelInstances)
 	{
 		for (auto& meshInstance : modelInstance.MeshInstances)
 		{
+			meshInstance.InstanceID = instanceID++;
+
 			GeometryInfo info;
 			info.VertexOffset = meshInstance.pMesh->BaseVertexLocation;
 			info.IndexOffset = meshInstance.pMesh->StartIndexLocation;
@@ -203,17 +228,15 @@ void GpuScene::Commit(RenderContext& RenderContext)
 	auto pVertexBuffer = pRenderDevice->GetBuffer(ResourceTables[VertexBuffer]);
 	auto pIndexBuffer = pRenderDevice->GetBuffer(ResourceTables[IndexBuffer]);
 
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-	vertexBufferView.BufferLocation = pVertexBuffer->GetGpuVirtualAddress();
-	vertexBufferView.SizeInBytes = Allocators[VertexBuffer].GetCurrentSize();
-	vertexBufferView.StrideInBytes = sizeof(Vertex);
-	RenderContext->SetVertexBuffers(0, 1, &vertexBufferView);
+	VertexBufferView.BufferLocation = pVertexBuffer->GetGpuVirtualAddress();
+	VertexBufferView.SizeInBytes = Allocators[VertexBuffer].GetCurrentSize();
+	VertexBufferView.StrideInBytes = sizeof(Vertex);
+	RenderContext->SetVertexBuffers(0, 1, &VertexBufferView);
 
-	D3D12_INDEX_BUFFER_VIEW indexBufferView;
-	indexBufferView.BufferLocation = pIndexBuffer->GetGpuVirtualAddress();
-	indexBufferView.SizeInBytes = Allocators[IndexBuffer].GetCurrentSize();
-	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	RenderContext->SetIndexBuffer(&indexBufferView);
+	IndexBufferView.BufferLocation = pIndexBuffer->GetGpuVirtualAddress();
+	IndexBufferView.SizeInBytes = Allocators[IndexBuffer].GetCurrentSize();
+	IndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	RenderContext->SetIndexBuffer(&IndexBufferView);
 
 	GpuTextureAllocator.Stage(*pScene, RenderContext);
 }
@@ -225,15 +248,19 @@ void GpuScene::Update(float AspectRatio)
 
 size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer)
 {
-	auto pair = Allocators[Type].Allocate(ByteSize);
-	assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
-	auto [offset, size] = pair.value();
+	if (pData && ByteSize != 0)
+	{
+		auto pair = Allocators[Type].Allocate(ByteSize);
+		assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
+		auto [offset, size] = pair.value();
 
-	// Stage vertex
-	auto pGPU = pUploadBuffer->Map();
-	auto pCPU = pData;
-	memcpy(&pGPU[offset], pCPU, size);
-	return offset;
+		// Stage vertex
+		auto pGPU = pUploadBuffer->Map();
+		auto pCPU = pData;
+		memcpy(&pGPU[offset], pCPU, size);
+		return offset;
+	}
+	return 0;
 }
 
 void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
@@ -268,7 +295,6 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 
 void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 {
-	size_t instanceID = 0;
 	size_t hitGroupIndex = 0;
 	for (const auto& modelInstance : pScene->ModelInstances)
 	{
@@ -280,13 +306,13 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 			RaytracingInstanceDesc desc = {};
 			desc.AccelerationStructure = blas->GetGpuVirtualAddress();
 			desc.Transform = meshInstance.Transform.Matrix();
-			desc.InstanceID = instanceID;
+			desc.InstanceID = meshInstance.InstanceID;
+			desc.InstanceMask = RAYTRACING_INSTANCEMASK_OPAQUE;
 
 			desc.HitGroupIndex = hitGroupIndex;
 
 			m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(desc);
 
-			instanceID++;
 			hitGroupIndex++;
 		}
 	}

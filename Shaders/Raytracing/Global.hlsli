@@ -1,3 +1,6 @@
+#ifndef __GLOBAL_HLSLI__
+#define __GLOBAL_HLSLI__
+
 // This file defines global root signature for raytracing shaders
 #include "../HLSLCommon.hlsli"
 #include "../Random.hlsli"
@@ -5,13 +8,17 @@
 #include "../BxDF.hlsli"
 #include "Common.hlsli"
 
-RaytracingAccelerationStructure SceneBVH                        : register(t0, space0);
-StructuredBuffer<Vertex> VertexBuffer                           : register(t1, space0);
-StructuredBuffer<uint> IndexBuffer                              : register(t2, space0);
-StructuredBuffer<GeometryInfo> GeometryInfoBuffer               : register(t3, space0);
-StructuredBuffer<Material> Materials							: register(t4, space0);
+#define RAYTRACING_INSTANCEMASK_ALL 	(0xff)
+#define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
+#define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
-SamplerState SamplerLinearWrap									: register(s0, space0);
+RaytracingAccelerationStructure SceneBVH			: register(t0, space0);
+StructuredBuffer<Vertex>		VertexBuffer		: register(t1, space0);
+StructuredBuffer<uint>			IndexBuffer			: register(t2, space0);
+StructuredBuffer<GeometryInfo>	GeometryInfoBuffer	: register(t3, space0);
+StructuredBuffer<Material>		Materials			: register(t4, space0);
+
+SamplerState					SamplerLinearWrap	: register(s0, space0);
 
 Triangle GetTriangle()
 {
@@ -90,3 +97,5 @@ RayDesc GenerateCameraRay(in float2 ndc, inout uint seed, in GlobalConstants glo
 	RayDesc ray = { origin, 0.0f, direction, 1e+38f };
 	return ray;
 }
+
+#endif

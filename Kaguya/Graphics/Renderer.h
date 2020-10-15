@@ -46,8 +46,6 @@ private:
 	DXGIManager								m_DXGIManager;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 
-	std::string								m_AdapterDescription;
-
 	RenderDevice							m_RenderDevice;
 	Gui										m_Gui;
 	Scene									m_Scene;

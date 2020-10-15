@@ -1,6 +1,11 @@
 #pragma once
 #include "RenderDevice.h"
 
+static constexpr size_t SizeOfBuiltInTriangleIntersectionAttributes = 2 * sizeof(float);
+static constexpr size_t SizeOfHLSLBooleanType = sizeof(int);
+
+#define ENUM_TO_LSTR(Enum) L#Enum
+
 enum CubemapConvolution
 {
 	Irradiance,
@@ -64,12 +69,12 @@ struct EquirectangularToCubemapData
 
 struct RendererFormats
 {
-	static constexpr DXGI_FORMAT SwapChainBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	static constexpr DXGI_FORMAT HDRBufferFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	static constexpr DXGI_FORMAT DepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	static constexpr DXGI_FORMAT BRDFLUTFormat = DXGI_FORMAT_R16G16_FLOAT;
-	static constexpr DXGI_FORMAT IrradianceFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	static constexpr DXGI_FORMAT PrefilterFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	static constexpr DXGI_FORMAT SwapChainBufferFormat	= DXGI_FORMAT_R8G8B8A8_UNORM;
+	static constexpr DXGI_FORMAT HDRBufferFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
+	static constexpr DXGI_FORMAT DepthStencilFormat		= DXGI_FORMAT_D24_UNORM_S8_UINT;
+	static constexpr DXGI_FORMAT BRDFLUTFormat			= DXGI_FORMAT_R16G16_FLOAT;
+	static constexpr DXGI_FORMAT IrradianceFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
+	static constexpr DXGI_FORMAT PrefilterFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
 };
 
 struct RootParameters
@@ -102,6 +107,7 @@ struct Shaders
 	{
 		inline static Shader Quad;
 		inline static Shader Skybox;
+		inline static Shader GBuffer;
 	};
 
 	struct PS
@@ -109,6 +115,7 @@ struct Shaders
 		inline static Shader BRDFIntegration;
 		inline static Shader ConvolutionIrradiance;
 		inline static Shader ConvolutionPrefilter;
+		inline static Shader GBuffer;
 
 		inline static Shader PostProcess_Tonemapping;
 	};
@@ -148,13 +155,14 @@ struct RootSignatures
 	inline static RenderResourceHandle EquirectangularToCubemap;
 
 	inline static RenderResourceHandle Skybox;
+	inline static RenderResourceHandle GBuffer;
 
+	inline static RenderResourceHandle PostProcess_Tonemapping;
 	inline static RenderResourceHandle PostProcess_BloomMask;
 	inline static RenderResourceHandle PostProcess_BloomDownsample;
 	inline static RenderResourceHandle PostProcess_BloomBlur;
 	inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
 	inline static RenderResourceHandle PostProcess_BloomComposition;
-	inline static RenderResourceHandle PostProcess_Tonemapping;
 
 	struct Raytracing
 	{
@@ -172,6 +180,8 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle BRDFIntegration;
 	inline static RenderResourceHandle ConvolutionIrradiace;
 	inline static RenderResourceHandle ConvolutionPrefilter;
+
+	inline static RenderResourceHandle GBuffer;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 
@@ -199,6 +209,4 @@ struct RaytracingPSOs
 	inline static RenderResourceHandle Pathtracing;
 	inline static RenderResourceHandle RaytraceGBuffer;
 	inline static RenderResourceHandle AmbientOcclusion;
-
-	static void Register(RenderDevice* pRenderDevice);
 };

@@ -336,14 +336,19 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 	UINT mostDetailedMip = MostDetailedMip.value_or(0);
 	UINT mipLevels = MipLevels.value_or(pTexture->GetMipLevels());
 
-	auto getValidSRVFormat = [](DXGI_FORMAT Format)
+	auto GetValidSRVFormat = [](DXGI_FORMAT Format)
 	{
-		if (Format == DXGI_FORMAT_R32_TYPELESS)
-			return DXGI_FORMAT_R32_FLOAT;
-		return Format;
+		switch (Format)
+		{
+		case DXGI_FORMAT_R32_TYPELESS:		return DXGI_FORMAT_R32_FLOAT;
+		case DXGI_FORMAT_D24_UNORM_S8_UINT: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
+		default:
+			return Format;
+		}
 	};
 
-	desc.Format = getValidSRVFormat(pTexture->GetFormat());
+	desc.Format = GetValidSRVFormat(pTexture->GetFormat());
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	switch (pTexture->GetType())
 	{
@@ -588,7 +593,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 		default: return DXGI_FORMAT_UNKNOWN;
 		}
 	};
-	
+
 	desc.Format = getValidDSVFormat(pTexture->GetFormat());
 	desc.Flags = D3D12_DSV_FLAG_NONE;
 

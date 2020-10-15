@@ -10,6 +10,8 @@ public:
 	enum EResources
 	{
 		RenderTarget,
+
+		// a/b is used to ping pong
 		BloomRenderTarget1a,	// 1
 		BloomRenderTarget1b,	// 1
 		BloomRenderTarget2a,	// 1/2
@@ -39,6 +41,7 @@ public:
 
 	PostProcess(UINT Width, UINT Height);
 protected:
+	virtual void InitializePipeline(RenderDevice* pRenderDevice) override;
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
 	virtual void RenderGui() override;

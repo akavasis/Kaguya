@@ -10,6 +10,107 @@ PostProcess::PostProcess(UINT Width, UINT Height)
 
 }
 
+void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
+{
+	RootSignatures::PostProcess_Tonemapping = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 3));
+
+		proxy.AllowInputLayout();
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
+
+	RootSignatures::PostProcess_BloomMask = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 5));
+
+		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
+
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
+
+	RootSignatures::PostProcess_BloomDownsample = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 7));
+
+		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
+
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
+
+	RootSignatures::PostProcess_BloomBlur = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 4));
+
+		proxy.AllowInputLayout();
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
+
+	RootSignatures::PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
+
+		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
+
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
+
+	RootSignatures::PostProcess_BloomComposition = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
+
+		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
+
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
+
+	GraphicsPSOs::PostProcess_Tonemapping = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
+	{
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemapping);
+		proxy.pVS = &Shaders::VS::Quad;
+		proxy.pPS = &Shaders::PS::PostProcess_Tonemapping;
+
+		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
+		proxy.AddRenderTargetFormat(RendererFormats::SwapChainBufferFormat);
+	});
+
+	ComputePSOs::PostProcess_BloomMask = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	{
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomMask);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomMask;
+	});
+
+	ComputePSOs::PostProcess_BloomDownsample = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	{
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomDownsample);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomDownsample;
+	});
+
+	ComputePSOs::PostProcess_BloomBlur = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	{
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomBlur);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomBlur;
+	});
+
+	ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	{
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomUpsampleBlurAccumulation;
+	});
+
+	ComputePSOs::PostProcess_BloomComposition = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	{
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomComposition);
+		proxy.pCS = &Shaders::CS::PostProcess_BloomComposition;
+	});
+}
+
 void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
@@ -257,7 +358,7 @@ void PostProcess::ApplyTonemappingToSwapChain(RenderContext& RenderContext, Rend
 	RenderContext->SetViewports(1, &vp);
 	RenderContext->SetScissorRects(1, &sr);
 
-	RenderContext->SetRenderTargets(1, DestinationRTV, TRUE, Descriptor());
+	RenderContext->SetRenderTargets(1, &DestinationRTV, TRUE, Descriptor());
 	RenderContext->DrawInstanced(3, 1, 0, 0);
 
 	RenderContext->TransitionBarrier(pDestination, Resource::State::Present);

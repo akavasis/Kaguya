@@ -4,22 +4,32 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
-class Pathtracing : public RenderPass
+class GBuffer : public RenderPass
 {
 public:
 	enum EResources
 	{
-		RenderTarget,
+		WorldPosition,
+		WorldNormal,
+		MaterialAlbedo,
+		MaterialEmissive,
+		MaterialSpecular,
+		MaterialRefraction,
+		MaterialExtra,
+
+		DepthStencil,
+
 		NumResources
 	};
 
 	struct SSettings
 	{
-		int NumSamplesPerPixel	= 1;
-		int MaxDepth			= 4;
+		int GBuffer = 0;
 	};
 
-	Pathtracing(UINT Width, UINT Height);
+	GBuffer(UINT Width, UINT Height);
+
+	inline auto GetSettings() const { return Settings; }
 protected:
 	virtual void InitializePipeline(RenderDevice* pRenderDevice) override;
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
@@ -30,8 +40,4 @@ protected:
 private:
 	SSettings Settings;
 	GpuScene* pGpuScene;
-
-	RenderResourceHandle m_RayGenerationShaderTable;
-	RenderResourceHandle m_MissShaderTable;
-	RenderResourceHandle m_HitGroupShaderTable;
 };

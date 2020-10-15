@@ -23,6 +23,7 @@ void RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 
 	m_ResourceScheduler.m_pCurrentRenderPass = renderPass.get();
 
+	renderPass->OnInitializePipeline(pRenderDevice);
 	renderPass->OnScheduleResource(&m_ResourceScheduler);
 
 	m_RenderPasses.emplace_back(std::move(renderPass));
@@ -170,6 +171,16 @@ void RenderGraph::CreateResourceViews()
 			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::UnorderedAccess))
 			{
 				pRenderDevice->CreateUnorderedAccessView(handle);
+			}
+
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::RenderTarget))
+			{
+				pRenderDevice->CreateRenderTargetView(handle);
+			}
+
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::DepthStencil))
+			{
+				pRenderDevice->CreateDepthStencilView(handle);
 			}
 		}
 	}

@@ -146,7 +146,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 
 		Descriptor RTV = pRenderDevice->GetRenderTargetView(RendererReseveredTextures[BRDFLUT]);
 
-		RenderContext->SetRenderTargets(1, RTV, TRUE, Descriptor());
+		RenderContext->SetRenderTargets(1, &RTV, TRUE, Descriptor());
 		RenderContext->SetViewports(1, &vp);
 		RenderContext->SetScissorRects(1, &sr);
 		RenderContext->DrawInstanced(3, 1, 0, 0);

@@ -58,11 +58,17 @@ inline void CommandContext::SetScissorRects(UINT NumRects, const D3D12_RECT* pRe
 	m_pCommandList->RSSetScissorRects(NumRects, pRects);
 }
 
-inline void CommandContext::SetRenderTargets(UINT NumRenderTargetDescriptors, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange, Descriptor DepthStencilDescriptor)
+inline void CommandContext::SetRenderTargets(UINT NumRenderTargetDescriptors, Descriptor* pRenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange, Descriptor DepthStencilDescriptor)
 {
-	const D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescriptors = NumRenderTargetDescriptors > 0 ? &RenderTargetDescriptors.CPUHandle : nullptr;
-	const D3D12_CPU_DESCRIPTOR_HANDLE* pDepthStencilDescriptor = DepthStencilDescriptor.IsValid() ? &DepthStencilDescriptor.CPUHandle : nullptr;
-	m_pCommandList->OMSetRenderTargets(NumRenderTargetDescriptors, pRenderTargetDescriptors, RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
+	D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetDescriptors[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+
+	for (UINT i = 0; i < NumRenderTargetDescriptors; ++i)
+	{
+		RenderTargetDescriptors[i] = pRenderTargetDescriptors[i].CPUHandle;
+	}
+
+	m_pCommandList->OMSetRenderTargets(NumRenderTargetDescriptors, RenderTargetDescriptors, RTsSingleHandleToDescriptorRange,
+		DepthStencilDescriptor.IsValid() ? &DepthStencilDescriptor.CPUHandle : nullptr);
 }
 
 inline void CommandContext::ClearRenderTarget(Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects)

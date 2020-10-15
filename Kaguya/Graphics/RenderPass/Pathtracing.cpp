@@ -9,6 +9,69 @@ Pathtracing::Pathtracing(UINT Width, UINT Height)
 
 }
 
+void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
+{
+	RaytracingPSOs::Pathtracing = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateProxy& proxy)
+	{
+		enum Symbols
+		{
+			RayGeneration,
+			Miss,
+			ClosestHit,
+			NumSymbols
+		};
+
+		const LPCWSTR symbols[NumSymbols] =
+		{
+			ENUM_TO_LSTR(RayGeneration),
+			ENUM_TO_LSTR(Miss),
+			ENUM_TO_LSTR(ClosestHit)
+		};
+
+		enum HitGroups
+		{
+			Default,
+			NumHitGroups
+		};
+
+		const LPCWSTR hitGroups[NumHitGroups] =
+		{
+			ENUM_TO_LSTR(Default)
+		};
+
+		const Library* pRaytraceLibrary = &Libraries::Pathtracing;
+
+		proxy.AddLibrary(pRaytraceLibrary,
+			{
+				symbols[RayGeneration],
+				symbols[Miss],
+				symbols[ClosestHit]
+			});
+
+		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
+
+		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
+		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
+
+		// The following section associates the root signature to each shader. Note
+		// that we can explicitly show that some shaders share the same root signature
+		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
+		// to as hit groups, meaning that the underlying intersection, any-hit and
+		// closest-hit shaders share the same root signature.
+		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
+			{
+				symbols[RayGeneration],
+				symbols[Miss],
+				hitGroups[Default]
+			});
+
+		proxy.SetGlobalRootSignature(pGlobalRootSignature);
+
+		proxy.SetRaytracingShaderConfig(6 * sizeof(float) + 2 * sizeof(unsigned int), SizeOfBuiltInTriangleIntersectionAttributes);
+		proxy.SetRaytracingPipelineConfig(8);
+	});
+}
+
 void Pathtracing::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
@@ -137,8 +200,6 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	XMStoreFloat4x4(&globalConstants.ViewProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewProjectionMatrix()));
 	globalConstants.EyePosition = pGpuScene->pScene->Camera.Transform.Position;
 	globalConstants.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
-
-	globalConstants.Sun = pGpuScene->pScene->Sun;
 
 	globalConstants.NumSamplesPerPixel = Settings.NumSamplesPerPixel;
 	globalConstants.MaxDepth = Settings.MaxDepth;

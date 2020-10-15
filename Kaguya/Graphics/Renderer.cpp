@@ -7,6 +7,7 @@
 #include "RendererRegistry.h"
 
 // Render passes
+#include "RenderPass/GBuffer.h"
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/RaytraceGBuffer.h"
 #include "RenderPass/AmbientOcclusion.h"
@@ -26,9 +27,6 @@ Renderer::Renderer(Window* pWindow)
 	m_pUploadCommandContext(m_RenderDevice.AllocateContext(CommandContext::Direct)),
 	m_UploadRenderContext(0, nullptr, &m_RenderDevice, m_pUploadCommandContext)
 {
-	auto adapterDesc	= m_DXGIManager.GetAdapterDesc();
-	m_AdapterDescription	= UTF16ToUTF8(adapterDesc.Description);
-
 	// Create swap chain after command objects have been created
 	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), *pWindow, RendererFormats::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 
@@ -49,10 +47,10 @@ void Renderer::OnInitialize()
 	RootSignatures::Register(&m_RenderDevice);
 	GraphicsPSOs::Register(&m_RenderDevice);
 	ComputePSOs::Register(&m_RenderDevice);
-	RaytracingPSOs::Register(&m_RenderDevice);
 
 	SetScene(GenerateScene(SampleScene::CornellBox));
 
+	m_RenderGraph.AddRenderPass(new GBuffer(Width, Height));
 	m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new RaytraceGBuffer(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
@@ -110,8 +108,6 @@ void Renderer::OnUpdate(const Time& Time)
 void Renderer::OnRender()
 {
 	RenderGui();
-
-	//PIXCapture();
 
 	m_GpuScene.Update(AspectRatio);
 	m_RenderGraph.RenderGui();
@@ -192,6 +188,7 @@ void Renderer::SetScene(Scene Scene)
 
 	m_GpuScene.pScene = &m_Scene;
 
+	m_GpuScene.UploadLights();
 	m_GpuScene.UploadMaterials();
 	m_GpuScene.UploadModels();
 	m_GpuScene.UploadModelInstances();
@@ -205,17 +202,13 @@ void Renderer::RenderGui()
 {
 	m_Gui.BeginFrame(); // End frame will be called at the end of the Render method by RenderGraph
 
-	if (ImGui::Begin(m_AdapterDescription.data()))
+	if (ImGui::Begin("Renderer"))
 	{
 		auto localVideoMemoryInfo = m_DXGIManager.QueryLocalVideoMemoryInfo();
 		auto usageInMiB = ToMiB(localVideoMemoryInfo.CurrentUsage);
+		ImGui::Text("VRAM Usage: %d Mib", usageInMiB);
 
-		ImGui::Text("Current Usage: %d Mib", usageInMiB);
-	}
-	ImGui::End();
-
-	if (ImGui::Begin("Renderer"))
-	{
+		ImGui::Text("");
 		ImGui::Text("Total Frame Count: %d", Statistics::TotalFrameCount);
 		ImGui::Text("FPS: %f", Statistics::FPS);
 		ImGui::Text("FPMS: %f", Statistics::FPMS);

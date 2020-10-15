@@ -53,7 +53,7 @@ public:
 
 	inline void SetViewports(UINT NumViewports, const D3D12_VIEWPORT* pViewports);
 	inline void SetScissorRects(UINT NumRects, const D3D12_RECT* pRects);
-	inline void SetRenderTargets(UINT NumRenderTargetDescriptors, Descriptor RenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange, Descriptor DepthStencilDescriptor);
+	inline void SetRenderTargets(UINT NumRenderTargetDescriptors, Descriptor* pRenderTargetDescriptors, BOOL RTsSingleHandleToDescriptorRange, Descriptor DepthStencilDescriptor);
 	inline void ClearRenderTarget(Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects);
 	inline void ClearDepthStencil(Descriptor DepthStencilDescriptor, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT* pRects);
 

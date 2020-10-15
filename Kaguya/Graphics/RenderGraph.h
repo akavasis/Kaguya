@@ -32,6 +32,7 @@ public:
 	RenderPass(std::string Name, RenderTargetProperties Properties);
 	virtual ~RenderPass() = default;
 
+	void OnInitializePipeline(RenderDevice* pRenderDevice) { return InitializePipeline(pRenderDevice); }
 	void OnScheduleResource(ResourceScheduler* pResourceScheduler) { return ScheduleResource(pResourceScheduler); }
 	void OnInitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return InitializeScene(pGpuScene, pRenderDevice); }
 	void OnRenderGui() { return RenderGui(); }
@@ -44,6 +45,7 @@ public:
 	RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Resources;
 protected:
+	virtual void InitializePipeline(RenderDevice* pRenderDevice) = 0;
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) = 0;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
 	virtual void RenderGui() = 0;

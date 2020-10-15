@@ -14,32 +14,22 @@
 
 struct Scene
 {
-	using PointLightList = std::list<PointLight>;
-	using SpotLightList = std::list<SpotLight>;
-	using MaterialList = std::list<Material>;
-	using ModelList = std::list<Model>;
+	using LightList			= std::list<PolygonalLight>;
+	using MaterialList		= std::list<Material>;
+	using ModelList			= std::list<Model>;
 	using ModelInstanceList = std::list<ModelInstance>;
 
-	Skybox Skybox;
-	PerspectiveCamera Camera;
-	DirectionalLight Sun;
-	PointLightList PointLights;
-	SpotLightList SpotLights;
-	MaterialList Materials;
-	ModelList Models;
-	ModelInstanceList ModelInstances;
+	Skybox				Skybox;
+	PerspectiveCamera	Camera;
+	LightList			Lights;
+	MaterialList		Materials;
+	ModelList			Models;
+	ModelInstanceList	ModelInstances;
 
-	Scene() = default;
-	Scene(const Scene&) = delete;
-	Scene& operator=(const Scene&) = delete;
-	Scene(Scene&&) = default;
-	Scene& operator=(Scene&&) = default;
-
-	PointLight& AddPointLight(PointLight&& PointLight);
-	SpotLight& AddSpotLight(SpotLight&& SpotLight);
-	Material& AddMaterial(Material&& Material);
-	Model& AddModel(Model&& Model);
-	ModelInstance& AddModelInstance(ModelInstance&& ModelInstance);
+	PolygonalLight&	AddLight();
+	Material&		AddMaterial(Material&& Material);
+	Model&			AddModel(Model&& Model);
+	ModelInstance&	AddModelInstance(ModelInstance&& ModelInstance);
 };
 
 uint32_t CullModels(const Camera* pCamera, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices);

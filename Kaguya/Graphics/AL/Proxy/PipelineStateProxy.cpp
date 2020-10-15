@@ -33,6 +33,7 @@ GraphicsPipelineStateProxy::GraphicsPipelineStateProxy()
 
 void GraphicsPipelineStateProxy::AddRenderTargetFormat(DXGI_FORMAT Format)
 {
+	assert(m_NumRenderTargets < 8 && "Max Render Target Reached");
 	m_RTVFormats[m_NumRenderTargets++] = Format;
 }
 

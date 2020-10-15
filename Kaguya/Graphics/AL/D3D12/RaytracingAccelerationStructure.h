@@ -48,6 +48,7 @@ struct RaytracingInstanceDesc
 	D3D12_GPU_VIRTUAL_ADDRESS AccelerationStructure;
 	DirectX::XMMATRIX Transform;
 	UINT InstanceID;
+	UINT InstanceMask;
 
 	UINT HitGroupIndex;
 };

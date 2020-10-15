@@ -1,11 +1,7 @@
-struct Vertex
-{
-    float3 Position;
-    float2 Texture;
-    float3 Normal;
-    float3 Tangent;
-    float3 Bitangent;
-};
+#ifndef __COMMON_HLSLI__
+#define __COMMON_HLSLI__
+
+#include "../Vertex.hlsli"
 
 struct Triangle
 {
@@ -55,3 +51,5 @@ Vertex BarycentricInterpolation(in Triangle t, in float3 barycentric)
 // Attributes output by the raytracing when hitting a surface,
 // here the barycentric coordinates, using hlsl predefined struct
 typedef BuiltInTriangleIntersectionAttributes HitAttributes;
+
+#endif

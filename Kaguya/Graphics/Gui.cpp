@@ -34,7 +34,7 @@ void Gui::EndFrame(Texture* pDestination, Descriptor DestinationRTV, CommandCont
 
 	pCommandContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
 
-	pCommandContext->SetRenderTargets(1, DestinationRTV, TRUE, Descriptor());
+	pCommandContext->SetRenderTargets(1, &DestinationRTV, TRUE, Descriptor());
 	pCommandContext->SetDescriptorHeaps(&DescriptorHeap, nullptr);
 	ImGui::Render();
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandContext->GetD3DCommandList());

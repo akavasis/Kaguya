@@ -1,16 +1,11 @@
 #include "pch.h"
 #include "Scene.h"
+using namespace DirectX;
 
-PointLight& Scene::AddPointLight(PointLight&& PointLight)
+PolygonalLight& Scene::AddLight()
 {
-	PointLights.push_back(std::move(PointLight));
-	return PointLights.back();
-}
-
-SpotLight& Scene::AddSpotLight(SpotLight&& SpotLight)
-{
-	SpotLights.push_back(std::move(SpotLight));
-	return SpotLights.back();
+	Lights.emplace_back();
+	return Lights.back();
 }
 
 Material& Scene::AddMaterial(Material&& Material)
@@ -53,21 +48,19 @@ uint32_t CullModels(const Camera* pCamera, const Scene::ModelInstanceList& Model
 
 uint32_t CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices)
 {
-	using namespace DirectX;
-
-	DirectX::XMVECTOR mins = DirectX::XMVectorSet(Camera.ViewLeft(), Camera.ViewBottom(), Camera.NearZ(), 1.0f);
-	DirectX::XMVECTOR maxes = DirectX::XMVectorSet(Camera.ViewRight(), Camera.ViewTop(), Camera.FarZ(), 1.0f);
+	XMVECTOR mins = XMVectorSet(Camera.ViewLeft(), Camera.ViewBottom(), Camera.NearZ(), 1.0f);
+	XMVECTOR maxes = XMVectorSet(Camera.ViewRight(), Camera.ViewTop(), Camera.FarZ(), 1.0f);
 	if (IgnoreNearZ)
 	{
 		mins = XMVectorSet(XMVectorGetX(mins), XMVectorGetY(mins), XMVectorGetX(g_XMNegInfinity.v), 1.0f);
 	}
 
-	DirectX::XMVECTOR extents = (maxes - mins) * 0.5f;
-	DirectX::XMVECTOR center = mins + extents;
+	XMVECTOR extents = (maxes - mins) * 0.5f;
+	XMVECTOR center = mins + extents;
 	center = XMVector3TransformCoord(center, XMMatrixRotationQuaternion(XMLoadFloat4(&Camera.Transform.Orientation)));
 	center += XMLoadFloat3(&Camera.Transform.Position);
 
-	DirectX::BoundingOrientedBox obb;
+	BoundingOrientedBox obb;
 	XMStoreFloat3(&obb.Extents, extents);
 	XMStoreFloat3(&obb.Center, center);
 	obb.Orientation = Camera.Transform.Orientation;
@@ -76,9 +69,9 @@ uint32_t CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNea
 	for (auto iter = ModelInstances.begin(); iter != ModelInstances.end(); ++iter)
 	{
 		auto& model = (*iter);
-		DirectX::BoundingBox aabb;
+		BoundingBox aabb;
 		model.BoundingBox.Transform(aabb, model.Transform.Matrix());
-		if (obb.Contains(aabb) != DirectX::ContainmentType::DISJOINT)
+		if (obb.Contains(aabb) != ContainmentType::DISJOINT)
 		{
 			Indices[numVisible++] = &(*iter);
 		}
@@ -89,16 +82,16 @@ uint32_t CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNea
 
 uint32_t CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& MeshInstances, std::vector<uint32_t>& Indices)
 {
-	DirectX::BoundingFrustum frustum(pCamera->ProjectionMatrix());
+	BoundingFrustum frustum(pCamera->ProjectionMatrix());
 	frustum.Transform(frustum, pCamera->Transform.Matrix());
 
 	UINT numVisible = 0;
 	for (size_t i = 0, numMeshes = MeshInstances.size(); i < numMeshes; ++i)
 	{
 		auto& mesh = MeshInstances[i];
-		DirectX::BoundingBox aabb;
+		BoundingBox aabb;
 		mesh.BoundingBox.Transform(aabb, mesh.Transform.Matrix());
-		if (frustum.Contains(aabb) != DirectX::ContainmentType::DISJOINT)
+		if (frustum.Contains(aabb) != ContainmentType::DISJOINT)
 		{
 			Indices[numVisible++] = i;
 		}
@@ -109,21 +102,19 @@ uint32_t CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& Mesh
 
 uint32_t CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<MeshInstance>& MeshInstances, std::vector<uint32_t>& Indices)
 {
-	using namespace DirectX;
-
-	DirectX::XMVECTOR mins = DirectX::XMVectorSet(Camera.ViewLeft(), Camera.ViewBottom(), Camera.NearZ(), 1.0f);
-	DirectX::XMVECTOR maxes = DirectX::XMVectorSet(Camera.ViewRight(), Camera.ViewTop(), Camera.FarZ(), 1.0f);
+	XMVECTOR mins = XMVectorSet(Camera.ViewLeft(), Camera.ViewBottom(), Camera.NearZ(), 1.0f);
+	XMVECTOR maxes = XMVectorSet(Camera.ViewRight(), Camera.ViewTop(), Camera.FarZ(), 1.0f);
 	if (IgnoreNearZ)
 	{
 		mins = XMVectorSet(XMVectorGetX(mins), XMVectorGetY(mins), XMVectorGetX(g_XMNegInfinity.v), 1.0f);
 	}
 
-	DirectX::XMVECTOR extents = (maxes - mins) / 2.0f;
-	DirectX::XMVECTOR center = mins + extents;
+	XMVECTOR extents = (maxes - mins) / 2.0f;
+	XMVECTOR center = mins + extents;
 	center = XMVector3TransformCoord(center, XMMatrixRotationQuaternion(XMLoadFloat4(&Camera.Transform.Orientation)));
 	center += XMLoadFloat3(&Camera.Transform.Position);
 
-	DirectX::BoundingOrientedBox obb;
+	BoundingOrientedBox obb;
 	XMStoreFloat3(&obb.Extents, extents);
 	XMStoreFloat3(&obb.Center, center);
 	obb.Orientation = Camera.Transform.Orientation;
@@ -132,9 +123,9 @@ uint32_t CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNea
 	for (size_t i = 0, numMeshes = MeshInstances.size(); i < numMeshes; ++i)
 	{
 		auto& mesh = MeshInstances[i];
-		DirectX::BoundingBox aabb;
+		BoundingBox aabb;
 		mesh.BoundingBox.Transform(aabb, mesh.Transform.Matrix());
-		if (obb.Contains(aabb) != DirectX::ContainmentType::DISJOINT)
+		if (obb.Contains(aabb) != ContainmentType::DISJOINT)
 		{
 			Indices[numVisible++] = i;
 		}

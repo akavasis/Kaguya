@@ -23,6 +23,7 @@ public:
 
 	Accumulation(UINT Width, UINT Height);
 protected:
+	virtual void InitializePipeline(RenderDevice* pRenderDevice) override;
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
 	virtual void RenderGui() override;

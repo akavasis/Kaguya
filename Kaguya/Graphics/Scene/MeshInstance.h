@@ -3,7 +3,8 @@
 
 struct MeshInstance
 {
-	const Mesh* pMesh;
-	Transform Transform;
-	DirectX::BoundingBox BoundingBox;
+	const Mesh*				pMesh;
+	Transform				Transform;
+	DirectX::BoundingBox	BoundingBox;
+	size_t					InstanceID;
 };

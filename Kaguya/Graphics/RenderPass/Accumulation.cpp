@@ -12,6 +12,23 @@ Accumulation::Accumulation(UINT Width, UINT Height)
 
 }
 
+void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
+{
+	RootSignatures::Raytracing::Accumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	{
+		proxy.AddRootConstantsParameter(RootConstants<Accumulation::SSettings>(0, 0));
+
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
+
+	ComputePSOs::Accumulation = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	{
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Accumulation);
+		proxy.pCS = &Shaders::CS::Accumulation;
+	});
+}
+
 void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)

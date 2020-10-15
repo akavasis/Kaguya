@@ -162,7 +162,7 @@ struct DiffuseLight
 		// Need to provide initialized value here or DXC complains
 		RayDesc ray = { float3(0.0f, 0.0f, 0.0f), 0.0f, float3(0.0f, 0.0f, 0.0f), 0.0f };
 
-		attenuation = float3(1.0f, 1.0f, 1.0f);
+		attenuation = float3(0.0f, 0.0f, 0.0f);
 		scatteredRay = ray;
 		pdf = 1.0f;
 		return false;
@@ -170,9 +170,35 @@ struct DiffuseLight
 
 	float ScatteringPDF(in SurfaceInteraction si, in RayDesc scatteredRay)
 	{
-		return 1.0f;
+		return 0.0f;
 	}
 };
+
+struct CosinePdf
+{
+	ONB onb;
+
+	float Value(in float3 direction)
+	{
+		return CosineHemispherePdf(dot(onb.normal, direction));
+	}
+
+	float3 Generate(inout uint seed)
+	{
+		float2 u;
+		u[0] = RandomFloat01(seed);
+		u[1] = RandomFloat01(seed);
+
+		return onb.InverseTransform(CosineSampleHemisphere(u));
+	}
+};
+
+CosinePdf InitCosinePdf(in float3 w)
+{
+	CosinePdf cosinePdf;
+	cosinePdf.onb = InitONB(w);
+	return cosinePdf;
+}
 
 [shader("raygeneration")]
 void RayGeneration()
@@ -276,8 +302,15 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		}
 		break;
 	}
+
+	if (shouldScatter)
+	{
+		CosinePdf cosinePdf = InitCosinePdf(si.bsdf.normal);
+		ray.Direction = cosinePdf.Generate(rayPayload.Seed);
+		pdf = cosinePdf.Value(ray.Direction);
+	}
 	
-	rayPayload.Radiance += si.material.Emissive * rayPayload.Throughput * scatteringPDF / pdf;
+	rayPayload.Radiance += si.material.Emissive * rayPayload.Throughput / pdf;
 	rayPayload.Throughput *= attentuation;
 	
 	// Path trace

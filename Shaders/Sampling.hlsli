@@ -60,14 +60,14 @@ float2 ConcentricSampleDisk(in float2 u)
 // Section 13.6.3
 float3 CosineSampleHemisphere(in float2 u)
 {
-    float2 d = UniformSampleDisk(u);
+    float2 d = ConcentricSampleDisk(u);
     float z = sqrt(max(0.0f, 1.0f - d.x * d.x - d.y * d.y));
     return float3(d.x, d.y, z);
 }
 
 float CosineHemispherePdf(float cosTheta)
 {
-    // Clamp this to 0.001f to avoid NAN when dividing by pdfs
+    // Clamp this to 0.001f to avoid NAN values when dividing by pdf
     return max(0.001f, cosTheta * s_1DIVPI);
 }
 

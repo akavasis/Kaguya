@@ -4,13 +4,6 @@
 #include "Light.h"
 #include "Material.h"
 
-struct ObjectConstants
-{
-	matrix World;
-	uint MaterialIndex;
-	float3 _padding;
-};
-
 struct GlobalConstants
 {
 	float3 CameraU;
@@ -29,8 +22,6 @@ struct GlobalConstants
 	matrix ViewProjection;
 	float3 EyePosition;
 	uint TotalFrameCount;
-
-	DirectionalLight Sun;
 
 	int NumSamplesPerPixel;
 	int MaxDepth;
