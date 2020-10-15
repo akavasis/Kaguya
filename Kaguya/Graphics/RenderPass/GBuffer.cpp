@@ -187,7 +187,7 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 			RenderContext.SetRoot32BitConstants(0, 1, &MeshInstance.InstanceID, 0);
 
 			/*
-				This piece of code might be confusing here. Heres the explanation: In the shader we use SV_VertexID (No need to bind VB or IB because it is already a StructuredBuffer)
+				In the shader we use SV_VertexID (No need to bind VB or IB because it is already a StructuredBuffer)
 				to draw objects and in MSDN: VertexID is a 32-bit unsigned integer scalar counter value coming out of Draw*() calls identifying to Shaders each vertex. 
 				This value can be declared(22.3.11) for input by the Vertex Shader only.
 

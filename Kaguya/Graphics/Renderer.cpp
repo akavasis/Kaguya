@@ -195,6 +195,7 @@ void Renderer::SetScene(Scene Scene)
 	m_RenderDevice.BindUniversalGpuDescriptorHeap(m_UploadRenderContext.GetCommandContext());
 	m_GpuScene.Commit(m_UploadRenderContext);
 	m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
+	m_GpuScene.DisposeResources();
 }
 
 //----------------------------------------------------------------------------------------------------

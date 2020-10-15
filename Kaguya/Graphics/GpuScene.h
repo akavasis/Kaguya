@@ -25,6 +25,7 @@ public:
 	void UploadModels();
 	void UploadModelInstances();
 	void Commit(RenderContext& RenderContext);
+	void DisposeResources();
 
 	void Update(float AspectRatio);
 

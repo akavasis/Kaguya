@@ -271,6 +271,22 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 	}
 }
 
+void GpuTextureAllocator::DisposeResources()
+{
+	for (auto iter : m_UnstagedTextures)
+	{
+		RenderResourceHandle handle = iter.first;
+		pRenderDevice->Destroy(&handle);
+	}
+	m_UnstagedTextures.clear();
+
+	for (auto& handle : m_TemporaryResources)
+	{
+		pRenderDevice->Destroy(&handle);
+	}
+	m_TemporaryResources.clear();
+}
+
 RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips)
 {
 	if (auto iter = TextureHandles.find(Path.generic_string());

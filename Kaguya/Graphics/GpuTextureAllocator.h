@@ -30,6 +30,7 @@ public:
 	GpuTextureAllocator(RenderDevice* pRenderDevice);
 
 	void Stage(Scene& Scene, RenderContext& RenderContext);
+	void DisposeResources();
 private:
 	struct Status
 	{

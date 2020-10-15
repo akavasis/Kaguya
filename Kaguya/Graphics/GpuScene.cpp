@@ -39,8 +39,8 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	GpuTextureAllocator(pRenderDevice)
 {
 	// Resource
-	size_t resourceTablesMemorySizeInBytes[NumResources] = { LightBufferByteSize, MaterialBufferByteSize, VertexBufferByteSize, IndexBufferByteSize, GeometryInfoBufferByteSize };
-	size_t resourceTablesMemoryStrides[NumResources] = { sizeof(PolygonalLight), sizeof(HLSLMaterial), sizeof(Vertex), sizeof(unsigned int), sizeof(GeometryInfo) };
+	size_t resourceTablesMemorySizeInBytes[NumResources]	= { LightBufferByteSize, MaterialBufferByteSize, VertexBufferByteSize, IndexBufferByteSize, GeometryInfoBufferByteSize };
+	size_t resourceTablesMemoryStrides[NumResources]		= { sizeof(PolygonalLight), sizeof(HLSLMaterial), sizeof(Vertex), sizeof(unsigned int), sizeof(GeometryInfo) };
 
 	for (size_t i = 0; i < NumResources; ++i)
 	{
@@ -239,6 +239,19 @@ void GpuScene::Commit(RenderContext& RenderContext)
 	RenderContext->SetIndexBuffer(&IndexBufferView);
 
 	GpuTextureAllocator.Stage(*pScene, RenderContext);
+}
+
+void GpuScene::DisposeResources()
+{
+	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
+	{
+		pRenderDevice->Destroy(&rtblas.Handles.Scratch);
+	}
+
+	pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
+	pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
+
+	GpuTextureAllocator.DisposeResources();
 }
 
 void GpuScene::Update(float AspectRatio)
