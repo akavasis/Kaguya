@@ -51,6 +51,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
+			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(Properties.Format, DirectX::Colors::Black));
 			proxy.BindFlags = Resource::BindFlags::RenderTarget;
 			proxy.InitialState = Resource::State::RenderTarget;
 		});
@@ -61,6 +62,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 		proxy.SetFormat(RendererFormats::DepthStencilFormat);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
+		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0));
 		proxy.BindFlags = Resource::BindFlags::DepthStencil;
 		proxy.InitialState = Resource::State::DepthWrite;
 	});
@@ -90,15 +92,6 @@ void GBuffer::RenderGui()
 void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"GBuffer");
-
-	const Scene& Scene = *pGpuScene->pScene;
-	std::vector<const ModelInstance*> visibleModelInstanceIndices;
-	std::unordered_map<const ModelInstance*, std::vector<UINT>> visibleMeshesIndices;
-	visibleModelInstanceIndices.resize(Scene.ModelInstances.size());
-	for (const auto& modelInstance : Scene.ModelInstances)
-	{
-		visibleMeshesIndices[&modelInstance].resize(modelInstance.MeshInstances.size());
-	}
 
 	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
 	{
@@ -138,17 +131,8 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetGeometryInfoTableHandle());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
 
-	D3D12_VIEWPORT vp;
-	vp.TopLeftX = vp.TopLeftY = 0.0f;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.Width = Properties.Width;
-	vp.Height = Properties.Height;
-
-	D3D12_RECT sr;
-	sr.left = sr.top = 0;
-	sr.right = Properties.Width;
-	sr.bottom = Properties.Height;
+	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
+	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
 
 	RenderContext->SetViewports(1, &vp);
 	RenderContext->SetScissorRects(1, &sr);
@@ -173,6 +157,32 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	}
 	RenderContext->ClearDepthStencil(DepthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
+	RenderMeshes(RenderContext);
+
+	for (size_t i = 0; i < EResources::NumResources; ++i)
+	{
+		RenderContext.TransitionBarrier(Resources[i], Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
+	}
+}
+
+void GBuffer::StateRefresh()
+{
+
+}
+
+void GBuffer::RenderMeshes(RenderContext& RenderContext)
+{
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Meshes");
+
+	const Scene& Scene = *pGpuScene->pScene;
+	std::vector<const ModelInstance*> visibleModelInstanceIndices;
+	std::unordered_map<const ModelInstance*, std::vector<UINT>> visibleMeshesIndices;
+	visibleModelInstanceIndices.resize(Scene.ModelInstances.size());
+	for (const auto& modelInstance : Scene.ModelInstances)
+	{
+		visibleMeshesIndices[&modelInstance].resize(modelInstance.MeshInstances.size());
+	}
+
 	const uint32_t numVisibleModels = CullModels(&Scene.Camera, Scene.ModelInstances, visibleModelInstanceIndices);
 	for (uint32_t i = 0; i < numVisibleModels; ++i)
 	{
@@ -188,10 +198,10 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 			/*
 				In the shader we use SV_VertexID (No need to bind VB or IB because it is already a StructuredBuffer)
-				to draw objects and in MSDN: VertexID is a 32-bit unsigned integer scalar counter value coming out of Draw*() calls identifying to Shaders each vertex. 
+				to draw objects and in MSDN: VertexID is a 32-bit unsigned integer scalar counter value coming out of Draw*() calls identifying to Shaders each vertex.
 				This value can be declared(22.3.11) for input by the Vertex Shader only.
 
-				For Draw() and DrawInstanced(), VertexID starts at 0, and it increments for every vertex. Across instances in DrawInstanced(), 
+				For Draw() and DrawInstanced(), VertexID starts at 0, and it increments for every vertex. Across instances in DrawInstanced(),
 				the count resets back to the start value. Should the 32-bit VertexID calculation overflow, it simply wraps.
 
 				For DrawIndexed() and DrawIndexedInstanced(), VertexID represents the index value.
@@ -199,14 +209,10 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 			RenderContext->DrawInstanced(MeshInstance.pMesh->IndexCount, 1, MeshInstance.pMesh->BaseVertexLocation, 0);
 		}
 	}
-
-	for (size_t i = 0; i < EResources::NumResources; ++i)
-	{
-		RenderContext.TransitionBarrier(Resources[i], Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
-	}
 }
 
-void GBuffer::StateRefresh()
+void GBuffer::RenderLights(RenderContext& RenderContext)
 {
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Lights");
 
 }

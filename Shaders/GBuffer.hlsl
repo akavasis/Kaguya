@@ -1,17 +1,5 @@
 #include "HLSLCommon.hlsli"
 
-enum GBufferTypes
-{
-	WorldPosition,
-	WorldNormal,
-	MaterialAlbedo,
-	MaterialEmissive,
-	MaterialSpecular,
-	MaterialRefraction,
-	MaterialExtra,
-	NumGBufferTypes
-};
-
 cbuffer RootConstants
 {
 	uint InstanceID;
@@ -30,23 +18,11 @@ struct GBufferData
 #define RenderPassDataType GBufferData
 #include "ShaderLayout.hlsli"
 
-struct VSInput
-{
-	float3 PositionL	: POSITION;
-	float2 TextureCoord : TEXCOORD;
-	float3 NormalL		: NORMAL;
-	float3 TangentL		: TANGENT;
-	float3 BitangentL	: BITANGENT;
-};
-
 struct VSOutput
 {
 	float4		PositionH		: SV_POSITION;
 	float3		PositionW		: POSITION;
 	float2		TextureCoord	: TEXCOORD;
-	float3		NormalW			: NORMAL;
-	float3		TangentW		: TANGENT;
-	float3		BitangentW		: BITANGENT;
 	float3x3	TBNMatrix		: TBNBASIS;
 	float		Depth			: DEPTH;
 };
@@ -59,7 +35,7 @@ struct PSOutput
 	float4 Emissive		: SV_TARGET3;
 	float4 Specular		: SV_TARGET4;
 	float4 Refraction	: SV_TARGET5;
-	float4 Extra		: SV_TARGET7;
+	float4 Extra		: SV_TARGET6;
 };
 
 VSOutput VSMain(uint VertexID : SV_VertexID)
@@ -80,13 +56,8 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 		// Transform normal and tangent to world space
 		// Build orthonormal basis.
 		float3 N = normalize(mul(Vertex.Normal, (float3x3) INFO.World));
-		float3 T = normalize(mul(Vertex.Tangent, (float3x3) INFO.World));
-		float3 B = normalize(mul(Vertex.Bitangent, (float3x3) INFO.World));
 	
-		OUT.NormalW = N;
-		OUT.TangentW = T;
-		OUT.BitangentW = B;
-		OUT.TBNMatrix = float3x3(T, B, N);
+		OUT.TBNMatrix = GetTBNMatrix(N);
 		OUT.Depth = OUT.PositionH.w;
 	}
 	return OUT;
@@ -100,7 +71,7 @@ PSOutput PSMain(VSOutput IN)
 		Material		MATERIAL	= Materials[INFO.MaterialIndex];
 	
 		OUT.Position				= float4(IN.PositionW, 1.0f);
-		OUT.Normal					= float4(IN.NormalW, 0.0f);
+		OUT.Normal					= float4(IN.TBNMatrix[2][0], IN.TBNMatrix[2][1], IN.TBNMatrix[2][2], 0.0f);
 		OUT.Albedo					= float4(MATERIAL.Albedo, MATERIAL.SpecularChance);
 		OUT.Emissive				= float4(MATERIAL.Emissive, MATERIAL.Roughness);
 		OUT.Specular				= float4(MATERIAL.Specular, MATERIAL.Fuzziness);

@@ -359,7 +359,6 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	Buffer* pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Result);
 	Buffer* pInstanceDescs = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
 
-	pScratch->SetDebugName(L"RTTLAS Scratch");
 	pResult->SetDebugName(L"RTTLAS Result");
 
 	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);

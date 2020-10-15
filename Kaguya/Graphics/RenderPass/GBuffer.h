@@ -38,6 +38,9 @@ protected:
 	virtual void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
 	virtual void StateRefresh() override;
 private:
+	void RenderMeshes(RenderContext& RenderContext);
+	void RenderLights(RenderContext& RenderContext);
+
 	SSettings Settings;
 	GpuScene* pGpuScene;
 };

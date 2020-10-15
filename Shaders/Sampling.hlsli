@@ -75,12 +75,12 @@ float CosineHemispherePdf(float cosTheta)
 struct ONB
 {
     float3 tangent;
-    float3 binormal;
+    float3 bitangent;
     float3 normal;
 
     float3 InverseTransform(in float3 p)
     {
-        return p.x * tangent + p.y * binormal + p.z * normal;
+        return p.x * tangent + p.y * bitangent + p.z * normal;
     }
 };
 
@@ -90,19 +90,19 @@ ONB InitONB(in float3 normal)
     onb.normal = normalize(normal);
     if (abs(onb.normal.x) > abs(onb.normal.z))
     {
-        onb.binormal.x = -onb.normal.y;
-        onb.binormal.y = onb.normal.x;
-        onb.binormal.z = 0.0f;
+        onb.bitangent.x = -onb.normal.y;
+        onb.bitangent.y = onb.normal.x;
+        onb.bitangent.z = 0.0f;
     }
     else
     {
-        onb.binormal.x = 0.0f;
-        onb.binormal.y = -onb.normal.z;
-        onb.binormal.z = onb.normal.y;
+        onb.bitangent.x = 0.0f;
+        onb.bitangent.y = -onb.normal.z;
+        onb.bitangent.z = onb.normal.y;
     }
 
-    onb.binormal = normalize(onb.binormal);
-    onb.tangent = cross(onb.binormal, onb.normal);
+    onb.bitangent = normalize(onb.bitangent);
+    onb.tangent = cross(onb.bitangent, onb.normal);
 
     return onb;
 }

@@ -37,8 +37,6 @@ Vertex BarycentricInterpolation(in Vertex v0, in Vertex v1, in Vertex v2, in flo
     vertex.Position     = BarycentricInterpolation(v0.Position, v1.Position, v2.Position, barycentric);
     vertex.Texture      = BarycentricInterpolation(v0.Texture, v1.Texture, v2.Texture, barycentric);
     vertex.Normal       = BarycentricInterpolation(v0.Normal, v1.Normal, v2.Normal, barycentric);
-    vertex.Tangent      = BarycentricInterpolation(v0.Tangent, v1.Tangent, v2.Tangent, barycentric);
-	vertex.Bitangent    = BarycentricInterpolation(v0.Bitangent, v1.Bitangent, v2.Bitangent, barycentric);
 
     return vertex;
 }

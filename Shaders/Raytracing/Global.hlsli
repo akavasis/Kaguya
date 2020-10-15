@@ -59,19 +59,18 @@ SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib)
 	SurfaceInteraction si;
 	
 	GeometryInfo info = GeometryInfoBuffer[InstanceID()];
-	Vertex hitSurface = GetInterpolatedVertex(attrib);
+	Vertex vertex = GetInterpolatedVertex(attrib);
 	Material material = Materials[info.MaterialIndex];
 	
-	hitSurface.Tangent = mul(float4(hitSurface.Tangent, 0.0f), info.World).xyz;
-	hitSurface.Bitangent = mul(float4(hitSurface.Bitangent, 0.0f), info.World).xyz;
-	hitSurface.Normal = mul(float4(hitSurface.Normal, 0.0f), info.World).xyz;
+	vertex.Normal = normalize(mul(vertex.Normal, (float3x3) info.World));
+	ONB onb = InitONB(vertex.Normal);
 	
-	si.frontFace = dot(WorldRayDirection(), hitSurface.Normal) < 0.0f;
+	si.frontFace = dot(WorldRayDirection(), vertex.Normal) < 0.0f;
 	si.position = WorldRayOrigin() + (WorldRayDirection() * RayTCurrent());
-	si.uv = hitSurface.Texture;
-	si.bsdf.tangent = hitSurface.Tangent;
-	si.bsdf.bitangent = hitSurface.Bitangent;
-	si.bsdf.normal = hitSurface.Normal;
+	si.uv = vertex.Texture;
+	si.bsdf.tangent = onb.tangent;
+	si.bsdf.bitangent = onb.bitangent;
+	si.bsdf.normal = onb.normal;
 	//si.bsdf.brdf = InitMicrofacetBRDF(Rd, InitTrowbridgeReitzDistribution(alpha, alpha), InitFresnelDielectric(1.0f, 1.0f)); // Not used yet, still reading Physically Based Rendering
 	si.material = material;
 	

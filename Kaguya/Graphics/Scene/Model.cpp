@@ -16,27 +16,19 @@ Vertex MidPoint(const Vertex& v0, const Vertex& v1)
 	XMVECTOR n0 = XMLoadFloat3(&v0.Normal);
 	XMVECTOR n1 = XMLoadFloat3(&v1.Normal);
 
-	XMVECTOR tan0 = XMLoadFloat3(&v0.Tangent);
-	XMVECTOR tan1 = XMLoadFloat3(&v1.Tangent);
-
 	XMVECTOR tex0 = XMLoadFloat2(&v0.Texture);
 	XMVECTOR tex1 = XMLoadFloat2(&v1.Texture);
 
 	// Compute the midpoints of all the attributes.  Vectors need to be normalized 
 	// since linear interpolating can make them not unit length.   
 	XMVECTOR pos = XMVectorReplicate(0.5f) * (p0 + p1); // 0.5f * (p0 + p1) 
-	XMVECTOR normal = XMVectorReplicate(0.5f) * (n0 + n1); // 0.5f * (n0 + n1) 
-	normal = XMVector3Normalize(normal);
-
-	XMVECTOR tangent = XMVectorReplicate(0.5f) * (tan0 + tan1); // 0.5f * (tan0 + tan1) 
-	tangent = XMVector3Normalize(tangent);
+	XMVECTOR normal = XMVector3Normalize(XMVectorReplicate(0.5f) * (n0 + n1)); // 0.5f * (n0 + n1) 
 
 	XMVECTOR tex = XMVectorReplicate(0.5f) * (tex0 + tex1); // 0.5f * (tex0 + tex1) 
 
 	Vertex v;
 	XMStoreFloat3(&v.Position, pos);
 	XMStoreFloat3(&v.Normal, normal);
-	XMStoreFloat3(&v.Tangent, tangent);
 	XMStoreFloat2(&v.Texture, tex);
 	return v;
 }
@@ -130,7 +122,6 @@ Model CreateTriangle()
 	v[2].Texture = XMFLOAT2(1.0f, 0.0f);
 
 	v[0].Normal = v[1].Normal = v[2].Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
-	v[0].Tangent = v[1].Tangent = v[2].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 	meshData.Vertices.assign(&v[0], &v[2]);
 
@@ -150,40 +141,40 @@ Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions)
 
 	Vertex v[24];
 	// Fill in the front face vertex data. 
-	v[0] = Vertex{ { -w2, -h2, -d2 }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f } };
-	v[1] = Vertex{ { -w2, +h2, -d2 }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f } };
-	v[2] = Vertex{ { +w2, +h2, -d2 }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f } };
-	v[3] = Vertex{ { +w2, -h2, -d2 }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f } };
+	v[0] = Vertex{ { -w2, -h2, -d2 }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } };
+	v[1] = Vertex{ { -w2, +h2, -d2 }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
+	v[2] = Vertex{ { +w2, +h2, -d2 }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
+	v[3] = Vertex{ { +w2, -h2, -d2 }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } };
 
 	// Fill in the back face vertex data. 
-	v[4] = Vertex{ { -w2, -h2, +d2 }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } };
-	v[5] = Vertex{ { +w2, -h2, +d2 }, { 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } };
-	v[6] = Vertex{ { +w2, +h2, +d2 }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } };
-	v[7] = Vertex{ { -w2, +h2, +d2 }, { 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } };
+	v[4] = Vertex{ { -w2, -h2, +d2 }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } };
+	v[5] = Vertex{ { +w2, -h2, +d2 }, { 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } };
+	v[6] = Vertex{ { +w2, +h2, +d2 }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
+	v[7] = Vertex{ { -w2, +h2, +d2 }, { 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
 
 	// Fill in the top face vertex data. 
-	v[8] = Vertex{ { -w2, +h2, -d2 }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } };
-	v[9] = Vertex{ { -w2, +h2, +d2 }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } };
-	v[10] = Vertex{ { +w2, +h2, +d2 }, { 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } };
-	v[11] = Vertex{ { +w2, +h2, -d2 }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } };
+	v[8] = Vertex{ { -w2, +h2, -d2 }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } };
+	v[9] = Vertex{ { -w2, +h2, +d2 }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } };
+	v[10] = Vertex{ { +w2, +h2, +d2 }, { 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } };
+	v[11] = Vertex{ { +w2, +h2, -d2 }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } };
 
 	// Fill in the bottom face vertex data. 
-	v[12] = Vertex{ { -w2, -h2, -d2 }, { 1.0f, 1.0f }, { 0.0f, -1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } };
-	v[13] = Vertex{ { +w2, -h2, -d2 }, { 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } };
-	v[14] = Vertex{ { +w2, -h2, +d2 }, { 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } };
-	v[15] = Vertex{ { -w2, -h2, +d2 }, { 1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } };
+	v[12] = Vertex{ { -w2, -h2, -d2 }, { 1.0f, 1.0f }, { 0.0f, -1.0f, 0.0f } };
+	v[13] = Vertex{ { +w2, -h2, -d2 }, { 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f } };
+	v[14] = Vertex{ { +w2, -h2, +d2 }, { 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } };
+	v[15] = Vertex{ { -w2, -h2, +d2 }, { 1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } };
 
 	// Fill in the left face vertex data. 
-	v[16] = Vertex{ { -w2, -h2, +d2 }, { 0.0f, 1.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
-	v[17] = Vertex{ { -w2, +h2, +d2 }, { 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
-	v[18] = Vertex{ { -w2, +h2, -d2 }, { 1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
-	v[19] = Vertex{ { -w2, -h2, -d2 }, { 1.0f, 1.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
+	v[16] = Vertex{ { -w2, -h2, +d2 }, { 0.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } };
+	v[17] = Vertex{ { -w2, +h2, +d2 }, { 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } };
+	v[18] = Vertex{ { -w2, +h2, -d2 }, { 1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } };
+	v[19] = Vertex{ { -w2, -h2, -d2 }, { 1.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } };
 
 	// Fill in the right face vertex data. 
-	v[20] = Vertex{ { +w2, -h2, -d2 }, { 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
-	v[21] = Vertex{ { +w2, +h2, -d2 }, { 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
-	v[22] = Vertex{ { +w2, +h2, +d2 }, { 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
-	v[23] = Vertex{ { +w2, -h2, +d2 }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
+	v[20] = Vertex{ { +w2, -h2, -d2 }, { 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } };
+	v[21] = Vertex{ { +w2, +h2, -d2 }, { 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } };
+	v[22] = Vertex{ { +w2, +h2, +d2 }, { 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } };
+	v[23] = Vertex{ { +w2, -h2, +d2 }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } };
 
 	meshData.Vertices.assign(&v[0], &v[24]);
 
@@ -250,7 +241,6 @@ Model CreateGrid(float Width, float Depth, UINT M, UINT N)
 
 			meshData.Vertices[size_t(i) * N + size_t(j)].Position = DirectX::XMFLOAT3(x, 0.0f, z);
 			meshData.Vertices[size_t(i) * N + size_t(j)].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-			meshData.Vertices[size_t(i) * N + size_t(j)].Tangent = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 			// Stretch texture over grid.
 			meshData.Vertices[size_t(i) * M + size_t(j)].Texture.x = j * du;

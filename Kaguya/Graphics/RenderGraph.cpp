@@ -37,8 +37,10 @@ void RenderGraph::Initialize()
 
 	m_GpuData = pRenderDevice->CreateBuffer([numRenderPasses = m_RenderPasses.size()](BufferProxy& Proxy)
 	{
-		Proxy.SetSizeInBytes(numRenderPasses* Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-		Proxy.SetStride(Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
+		UINT64 AlignedStride = Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+
+		Proxy.SetSizeInBytes(numRenderPasses * AlignedStride);
+		Proxy.SetStride(AlignedStride);
 		Proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
