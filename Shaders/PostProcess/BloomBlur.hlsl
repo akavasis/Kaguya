@@ -79,7 +79,7 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex, RWTexture2D<float4> out
 }
 
 [numthreads(8, 8, 1)]
-void main(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)
+void CSMain(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)
 {
 	Texture2D Input = Texture2DTable[InputIndex];
 	RWTexture2D<float4> Output = RWTexture2DTable[OutputIndex];

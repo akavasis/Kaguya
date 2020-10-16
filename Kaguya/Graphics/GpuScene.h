@@ -42,7 +42,7 @@ public:
 	Scene* pScene;
 	GpuTextureAllocator GpuTextureAllocator;
 private:
-	size_t Upload(EResource Type, const void* pData, size_t ByteSize, Buffer* pUploadBuffer);
+	size_t Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer);
 	void CreateBottomLevelAS(RenderContext& RenderContext);
 	void CreateTopLevelAS(RenderContext& RenderContext);
 

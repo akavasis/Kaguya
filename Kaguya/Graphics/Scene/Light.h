@@ -4,8 +4,8 @@
 
 struct PolygonalLight
 {
+	matrix	World;
 	float3	Color;
-	matrix	Transform;
 	float	Width;
 	float	Height;
 };

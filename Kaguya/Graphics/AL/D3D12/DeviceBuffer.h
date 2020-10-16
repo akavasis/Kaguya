@@ -1,10 +1,10 @@
 #pragma once
-#include "Resource.h"
+#include "DeviceResource.h"
 
 class Device;
-class BufferProxy;
+class DeviceBufferProxy;
 
-class Buffer : public Resource
+class DeviceBuffer : public DeviceResource
 {
 public:
 	enum class CpuAccess
@@ -14,10 +14,10 @@ public:
 		Read	// The buffer can be mapped for CPU reads
 	};
 
-	Buffer() = default;
-	Buffer(const Device* pDevice, BufferProxy& Proxy);
-	Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy);
-	~Buffer() override;
+	DeviceBuffer() = default;
+	DeviceBuffer(const Device* pDevice, DeviceBufferProxy& Proxy);
+	DeviceBuffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceBufferProxy& Proxy);
+	~DeviceBuffer() override;
 
 	inline auto GetStride() const { return m_Stride; }
 	inline auto GetCpuAccess() const { return m_CpuAccess; }

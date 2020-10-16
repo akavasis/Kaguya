@@ -40,7 +40,7 @@ private:
 	struct StagingTexture
 	{
 		std::string path;															// file path
-		Texture texture;															// gpu upload buffer
+		DeviceTexture texture;															// gpu upload buffer
 		std::size_t numSubresources;												// number of subresources
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> placedSubresourceLayouts;	// footprint is synonymous to layout
 		std::size_t mipLevels;														// indicates what mip levels this texture should have

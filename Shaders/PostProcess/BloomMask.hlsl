@@ -18,7 +18,7 @@ float RGBToLuminance(float3 x)
 }
 
 [numthreads(8, 8, 1)]
-void main(uint3 DTid : SV_DispatchThreadID)
+void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
 	Texture2D Input = Texture2DTable[InputIndex];
 	RWTexture2D<float4> Output = RWTexture2DTable[OutputIndex];

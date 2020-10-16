@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include "Shader.h"
-#include "Buffer.h"
+#include "DeviceBuffer.h"
 
 // ShaderRecord = {{Shader Identifier}, {RootArguments}}
 template<typename TRootArguments>
@@ -60,7 +60,7 @@ public:
 		*pShaderTableSizeInBytes = shaderTableSizeInBytes;
 	}
 
-	void Generate(Buffer* pShaderTableBuffer)
+	void Generate(DeviceBuffer* pShaderTableBuffer)
 	{
 		BYTE* pData = pShaderTableBuffer->Map();
 
@@ -123,7 +123,7 @@ public:
 		*pShaderTableSizeInBytes = shaderTableSizeInBytes;
 	}
 
-	void Generate(Buffer* pShaderTableBuffer)
+	void Generate(DeviceBuffer* pShaderTableBuffer)
 	{
 		BYTE* pData = pShaderTableBuffer->Map();
 

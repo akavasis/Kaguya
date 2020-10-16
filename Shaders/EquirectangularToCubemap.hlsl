@@ -71,7 +71,7 @@ static const float3x3 RotateUV[6] =
 };
 
 [numthreads(BLOCK_SIZE, BLOCK_SIZE, 1)]
-void main(ComputeShaderInput IN)
+void CSMain(ComputeShaderInput IN)
 {
     // Cubemap texture coords.
 	uint3 texCoord = IN.DispatchThreadID;

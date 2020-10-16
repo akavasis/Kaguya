@@ -1,5 +1,6 @@
 #include "HLSLCommon.hlsli"
 
+//----------------------------------------------------------------------------------------------------
 cbuffer RootConstants
 {
 	uint InstanceID;
@@ -24,7 +25,6 @@ struct VSOutput
 	float3		PositionW		: POSITION;
 	float2		TextureCoord	: TEXCOORD;
 	float3x3	TBNMatrix		: TBNBASIS;
-	float		Depth			: DEPTH;
 };
 
 struct PSOutput
@@ -42,23 +42,21 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 {
 	VSOutput OUT;
 	{
-		GeometryInfo INFO = GeometryInfoBuffer[InstanceID];
-	
-		uint Index = IndexBuffer[INFO.IndexOffset + VertexID];
-		Vertex Vertex = VertexBuffer[INFO.VertexOffset + Index];
+		GeometryInfo	INFO	= GeometryInfoBuffer[InstanceID];
+		uint			Index	= IndexBuffer[INFO.IndexOffset + VertexID];
+		Vertex			Vertex	= VertexBuffer[INFO.VertexOffset + Index];
 		
 		// Transform to world space
-		OUT.PositionW = mul(float4(Vertex.Position, 1.0f), INFO.World).xyz;
+		OUT.PositionW			= mul(float4(Vertex.Position, 1.0f), INFO.World).xyz;
 		// Transform to homogeneous/clip space
-		OUT.PositionH = mul(float4(OUT.PositionW, 1.0f), RenderPassData.GlobalConstants.ViewProjection);
+		OUT.PositionH			= mul(float4(OUT.PositionW, 1.0f), RenderPassData.GlobalConstants.ViewProjection);
 	
-		OUT.TextureCoord = Vertex.Texture;
-		// Transform normal and tangent to world space
+		OUT.TextureCoord		= Vertex.Texture;
+		// Transform normal to world space
 		// Build orthonormal basis.
-		float3 N = normalize(mul(Vertex.Normal, (float3x3) INFO.World));
+		float3 N				= normalize(mul(Vertex.Normal, (float3x3) INFO.World));
 	
-		OUT.TBNMatrix = GetTBNMatrix(N);
-		OUT.Depth = OUT.PositionH.w;
+		OUT.TBNMatrix			= GetTBNMatrix(N);
 	}
 	return OUT;
 }

@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Texture.h"
+#include "DeviceTexture.h"
 #include "Device.h"
-#include "../Proxy/TextureProxy.h"
+#include "../Proxy/DeviceTextureProxy.h"
 
-Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
-	: Resource(ExistingID3D12Resource),
+DeviceTexture::DeviceTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
+	: DeviceResource(ExistingID3D12Resource),
 	m_Format(ExistingID3D12Resource->GetDesc().Format),
 	m_Width(ExistingID3D12Resource->GetDesc().Width),
 	m_Height(ExistingID3D12Resource->GetDesc().Height),
@@ -13,8 +13,8 @@ Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 {
 }
 
-Texture::Texture(const Device* pDevice, TextureProxy& Proxy)
-	: Resource(pDevice, Proxy),
+DeviceTexture::DeviceTexture(const Device* pDevice, DeviceTextureProxy& Proxy)
+	: DeviceResource(pDevice, Proxy),
 	m_Format(Proxy.m_Format),
 	m_Width(Proxy.m_Width),
 	m_Height(Proxy.m_Height),
@@ -24,8 +24,8 @@ Texture::Texture(const Device* pDevice, TextureProxy& Proxy)
 	m_MipLevels = m_pResource->GetDesc().MipLevels;
 }
 
-Texture::Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy)
-	: Resource(pDevice, pHeap, HeapOffset, Proxy),
+DeviceTexture::DeviceTexture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceTextureProxy& Proxy)
+	: DeviceResource(pDevice, pHeap, HeapOffset, Proxy),
 	m_Format(Proxy.m_Format),
 	m_Width(Proxy.m_Width),
 	m_Height(Proxy.m_Height),
@@ -35,11 +35,11 @@ Texture::Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, Te
 	m_MipLevels = m_pResource->GetDesc().MipLevels;
 }
 
-Texture::~Texture()
+DeviceTexture::~DeviceTexture()
 {
 }
 
-bool Texture::IsArray() const
+bool DeviceTexture::IsArray() const
 {
-	return (m_Type == Resource::Type::Texture1D || m_Type == Resource::Type::Texture2D || m_Type == Resource::Type::TextureCube) && m_DepthOrArraySize > 1;
+	return (m_Type == DeviceResource::Type::Texture1D || m_Type == DeviceResource::Type::Texture2D || m_Type == DeviceResource::Type::TextureCube) && m_DepthOrArraySize > 1;
 }

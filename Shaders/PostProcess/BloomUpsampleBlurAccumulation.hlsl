@@ -95,7 +95,7 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex, RWTexture2D<float4> out
 }
 
 [numthreads(8, 8, 1)]
-void main(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID)
+void CSMain(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 {
 	Texture2D HighResolution = Texture2DTable[HighResolutionIndex];
 	Texture2D LowResolution = Texture2DTable[LowResolutionIndex];

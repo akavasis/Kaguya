@@ -34,7 +34,7 @@ Renderer::Renderer(Window* pWindow)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-		m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
+		m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateDeviceTexture(pBackBuffer, DeviceResource::State::Common);
 		m_RenderDevice.CreateRenderTargetView(m_RenderDevice.SwapChainTextures[i]);
 	}
 }
@@ -158,7 +158,7 @@ void Renderer::OnResize(uint32_t Width, uint32_t Height)
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-			m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateTexture(pBackBuffer, Resource::State::Common);
+			m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateDeviceTexture(pBackBuffer, DeviceResource::State::Common);
 			m_RenderDevice.CreateRenderTargetView(m_RenderDevice.SwapChainTextures[i]);
 		}
 

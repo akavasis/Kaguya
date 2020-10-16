@@ -58,7 +58,7 @@ void CommandContext::SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorH
 		m_pCommandList->SetDescriptorHeaps(NumDescriptorHeaps, pDescriptorHeapsToBind);
 }
 
-void CommandContext::TransitionBarrier(Resource* pResource, Resource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
+void CommandContext::TransitionBarrier(DeviceResource* pResource, DeviceResource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
 {
 #define D3D12_RESOURCE_STATE_UNKNOWN (static_cast<D3D12_RESOURCE_STATES>(-1))
 	// Transition barriers indicate that a set of subresources transition between different usages.  
@@ -73,7 +73,7 @@ void CommandContext::TransitionBarrier(Resource* pResource, Resource::State Tran
 #undef D3D12_RESOURCE_STATE_UNKNOWN
 }
 
-void CommandContext::AliasingBarrier(Resource* pBeforeResource, Resource* pAfterResource)
+void CommandContext::AliasingBarrier(DeviceResource* pBeforeResource, DeviceResource* pAfterResource)
 {
 	// Aliasing barriers indicate a transition between usages of two different resources which have mappings into the same heap.  
 	// The application can specify both the before and the after resource.  
@@ -83,7 +83,7 @@ void CommandContext::AliasingBarrier(Resource* pBeforeResource, Resource* pAfter
 	m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Aliasing(before, after));
 }
 
-void CommandContext::UAVBarrier(Resource* pResource)
+void CommandContext::UAVBarrier(DeviceResource* pResource)
 {
 	// A UAV barrier indicates that all UAV accesses, both read or write,  
 	// to a particular resource must complete between any future UAV accesses, both read or write.  
@@ -101,11 +101,11 @@ void CommandContext::FlushResourceBarriers()
 	m_ResourceStateTracker.FlushResourceBarriers(m_pCommandList.Get());
 }
 
-void CommandContext::CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset, Buffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
+void CommandContext::CopyBufferRegion(DeviceBuffer* pDstBuffer, UINT64 DstOffset, DeviceBuffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
 {
-	TransitionBarrier(pDstBuffer, Resource::State::CopyDest);
-	if (!(pSrcBuffer->GetCpuAccess() == Buffer::CpuAccess::Write)) // Upload resources have to be in D3D12_RESOURCE_STATE_GENERIC_READ so dont need to transition them
-		TransitionBarrier(pSrcBuffer, Resource::State::CopySource);
+	TransitionBarrier(pDstBuffer, DeviceResource::State::CopyDest);
+	if (!(pSrcBuffer->GetCpuAccess() == DeviceBuffer::CpuAccess::Write)) // Upload resources have to be in D3D12_RESOURCE_STATE_GENERIC_READ so dont need to transition them
+		TransitionBarrier(pSrcBuffer, DeviceResource::State::CopySource);
 	FlushResourceBarriers();
 	m_pCommandList->CopyBufferRegion(pDstBuffer->GetD3DResource(), DstOffset, pSrcBuffer->GetD3DResource(), SrcOffset, NumBytes);
 }
@@ -115,10 +115,10 @@ void CommandContext::CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION* pDst, 
 	m_pCommandList->CopyTextureRegion(pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
 }
 
-void CommandContext::CopyResource(Resource* pDstResource, Resource* pSrcResource)
+void CommandContext::CopyResource(DeviceResource* pDstResource, DeviceResource* pSrcResource)
 {
-	TransitionBarrier(pDstResource, Resource::State::CopyDest);
-	TransitionBarrier(pSrcResource, Resource::State::CopySource);
+	TransitionBarrier(pDstResource, DeviceResource::State::CopyDest);
+	TransitionBarrier(pSrcResource, DeviceResource::State::CopySource);
 	FlushResourceBarriers();
 	m_pCommandList->CopyResource(pDstResource->GetD3DResource(), pSrcResource->GetD3DResource());
 }

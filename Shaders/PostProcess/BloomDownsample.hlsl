@@ -15,7 +15,7 @@ SamplerState BiLinearClamp : register(s0);
 groupshared float4 g_Tile[64]; // 8x8 input pixels
 
 [numthreads(8, 8, 1)]
-void main(uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID)
+void CSMain(uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID)
 {
 	Texture2D Bloom = Texture2DTable[BloomIndex];
 	RWTexture2D<float4> Output1 = RWTexture2DTable[Output1Index];

@@ -1,12 +1,12 @@
 #pragma once
-#include "ResourceProxy.h"
-#include "../D3D12/Texture.h"
+#include "DeviceResourceProxy.h"
+#include "../D3D12/DeviceTexture.h"
 
-class TextureProxy : public ResourceProxy
+class DeviceTextureProxy : public DeviceResourceProxy
 {
 public:
-	friend class Texture;
-	TextureProxy(Resource::Type Type);
+	friend class DeviceTexture;
+	DeviceTextureProxy(DeviceResource::Type Type);
 
 	void SetFormat(DXGI_FORMAT Format);
 	void SetWidth(UINT64 Width);

@@ -56,17 +56,17 @@ protected:
 class ResourceScheduler
 {
 public:
-	void AllocateBuffer(std::function<void(BufferProxy&)> Configurator)
+	void AllocateBuffer(std::function<void(DeviceBufferProxy&)> Configurator)
 	{
-		BufferProxy proxy;
+		DeviceBufferProxy proxy;
 		Configurator(proxy);
 
 		m_BufferRequests[m_pCurrentRenderPass].push_back(proxy);
 	}
 
-	void AllocateTexture(Resource::Type Type, std::function<void(TextureProxy&)> Configurator)
+	void AllocateTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
 	{
-		TextureProxy proxy(Type);
+		DeviceTextureProxy proxy(Type);
 		Configurator(proxy);
 
 		m_TextureRequests[m_pCurrentRenderPass].push_back(proxy);
@@ -75,8 +75,8 @@ private:
 	friend class RenderGraph;
 
 	RenderPass* m_pCurrentRenderPass;
-	std::unordered_map<RenderPass*, std::vector<BufferProxy>> m_BufferRequests;
-	std::unordered_map<RenderPass*, std::vector<TextureProxy>> m_TextureRequests;
+	std::unordered_map<RenderPass*, std::vector<DeviceBufferProxy>> m_BufferRequests;
+	std::unordered_map<RenderPass*, std::vector<DeviceTextureProxy>> m_TextureRequests;
 };
 
 class RenderGraph

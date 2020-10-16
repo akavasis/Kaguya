@@ -35,13 +35,13 @@ void RenderGraph::Initialize()
 {
 	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); // This command context is for Gui
 
-	m_GpuData = pRenderDevice->CreateBuffer([numRenderPasses = m_RenderPasses.size()](BufferProxy& Proxy)
+	m_GpuData = pRenderDevice->CreateDeviceBuffer([numRenderPasses = m_RenderPasses.size()](DeviceBufferProxy& Proxy)
 	{
 		UINT64 AlignedStride = Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
 		Proxy.SetSizeInBytes(numRenderPasses * AlignedStride);
 		Proxy.SetStride(AlignedStride);
-		Proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		Proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
 	});
 
 	CreaterResources();
@@ -139,7 +139,7 @@ void RenderGraph::CreaterResources()
 	{
 		for (const auto& bufferProxy : bufferRequest.second)
 		{
-			bufferRequest.first->Resources.push_back(pRenderDevice->CreateBuffer([&](BufferProxy& proxy)
+			bufferRequest.first->Resources.push_back(pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
 			{
 				proxy = bufferProxy;
 			}));
@@ -150,7 +150,7 @@ void RenderGraph::CreaterResources()
 	{
 		for (const auto& textureProxy : textureRequest.second)
 		{
-			textureRequest.first->Resources.push_back(pRenderDevice->CreateTexture(Resource::Type::Unknown, [&](TextureProxy& proxy)
+			textureRequest.first->Resources.push_back(pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Unknown, [&](DeviceTextureProxy& proxy)
 			{
 				proxy = textureProxy;
 			}));
@@ -170,17 +170,17 @@ void RenderGraph::CreateResourceViews()
 			pRenderDevice->CreateShaderResourceView(handle);
 
 			auto texture = pRenderDevice->GetTexture(handle);
-			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::UnorderedAccess))
+			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::UnorderedAccess))
 			{
 				pRenderDevice->CreateUnorderedAccessView(handle);
 			}
 
-			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::RenderTarget))
+			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::RenderTarget))
 			{
 				pRenderDevice->CreateRenderTargetView(handle);
 			}
 
-			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::DepthStencil))
+			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::DepthStencil))
 			{
 				pRenderDevice->CreateDepthStencilView(handle);
 			}

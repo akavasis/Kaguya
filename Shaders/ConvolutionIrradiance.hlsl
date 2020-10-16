@@ -1,7 +1,7 @@
 #include "HLSLCommon.hlsli"
 
-static float DeltaPhi = 2.0f * s_PI / 180.0f;
-static float DeltaTheta = 0.5f * s_PI / 64.0f;
+static float DeltaPhi	= s_2PI / 180.0f;
+static float DeltaTheta = s_PIDIV2 / 64.0f;
 
 cbuffer Settings : register(b0)
 {
@@ -10,19 +10,13 @@ cbuffer Settings : register(b0)
 
 SamplerState SamplerLinearClamp : register(s0);
 
-// Shader layout define and include
-#include "ShaderLayout.hlsli"
+#include "Skybox.hlsl"
 
-struct OutputVertex
-{
-	float4 positionH : SV_POSITION;
-	float3 textureCoord : TEXCOORD;
-};
-float4 main(OutputVertex inputPixel) : SV_TARGET
+float4 PSMain(VSOutput IN) : SV_TARGET
 {
 	TextureCube Cubemap = TextureCubeTable[CubemapIndex];
 
-	float3 normal = normalize(inputPixel.textureCoord);
+	float3 normal = normalize(IN.TextureCoord);
 	float3 up = float3(0.0f, 1.0f, 0.0f);
 	float3 right = normalize(cross(up, normal));
 	up = normalize(cross(normal, right));

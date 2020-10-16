@@ -1,6 +1,6 @@
+// Credit: https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/GenerateMipsCS.hlsli
 /**
  * Compute shader to generate mipmaps for a given texture.
- * Source: https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/GenerateMipsCS.hlsli
  */
 
 #define BLOCK_SIZE 8
@@ -97,7 +97,7 @@ float4 PackColor(float4 x)
 }
 
 [numthreads(BLOCK_SIZE, BLOCK_SIZE, 1)]
-void main(ComputeShaderInput IN)
+void CSMain(ComputeShaderInput IN)
 {
 	Texture2D SrcMip = Texture2DTable[InputIndex];
 

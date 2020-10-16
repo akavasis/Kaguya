@@ -12,33 +12,35 @@ void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path Execut
 {
 	// Load VS
 	{
-		VS::Quad	= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Quad.hlsl", L"main", {});
-		VS::Skybox	= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/VS_Sky.hlsl", L"main", {});
-		VS::GBuffer = pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBuffer.hlsl", L"VSMain", {});
+		VS::Quad										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",			L"VSMain", {});
+		VS::Skybox										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Skybox.hlsl",			L"VSMain", {});
+		VS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",	L"VSMain", {});
+		VS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",	L"VSMain", {});
 	}
 
 	// Load PS
 	{
-		PS::BRDFIntegration			= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_BRDFIntegration.hlsl", L"main", {});
-		PS::ConvolutionIrradiance	= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionIrradiance.hlsl", L"main", {});
-		PS::ConvolutionPrefilter	= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PS_ConvolutionPrefilter.hlsl", L"main", {});
-		PS::GBuffer					= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBuffer.hlsl", L"PSMain", {});
+		PS::BRDFIntegration								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/BRDFIntegration.hlsl",			L"PSMain", {});
+		PS::ConvolutionIrradiance						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionIrradiance.hlsl",	L"PSMain", {});
+		PS::ConvolutionPrefilter						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",	L"PSMain", {});
+		PS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			L"PSMain", {});
+		PS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",			L"PSMain", {});
 
-		PS::PostProcess_Tonemapping = pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl", L"main", {});
+		PS::PostProcess_Tonemapping						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl",	L"PSMain", {});
 	}
 
 	// Load CS
 	{
-		CS::EquirectangularToCubemap					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/CS_EquirectangularToCubemap.hlsl", L"main", {});
-		CS::GenerateMips								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/CS_GenerateMips.hlsl", L"main", {});
+		CS::EquirectangularToCubemap					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/EquirectangularToCubemap.hlsl",					L"CSMain", {});
+		CS::GenerateMips								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/GenerateMips.hlsl",								L"CSMain", {});
 
-		CS::Accumulation								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Raytracing/Accumulation.hlsl", L"main", {});
+		CS::Accumulation								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Raytracing/Accumulation.hlsl",					L"CSMain", {});
 
-		CS::PostProcess_BloomMask						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl", L"main", {});
-		CS::PostProcess_BloomDownsample					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl", L"main", {});
-		CS::PostProcess_BloomBlur						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl", L"main", {});
-		CS::PostProcess_BloomUpsampleBlurAccumulation	= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl", L"main", {});
-		CS::PostProcess_BloomComposition				= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl", L"main", {});
+		CS::PostProcess_BloomMask						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl",						L"CSMain", {});
+		CS::PostProcess_BloomDownsample					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl",				L"CSMain", {});
+		CS::PostProcess_BloomBlur						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl",						L"CSMain", {});
+		CS::PostProcess_BloomUpsampleBlurAccumulation	= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl", L"CSMain", {});
+		CS::PostProcess_BloomComposition				= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl",				L"CSMain", {});
 	}
 }
 
@@ -51,7 +53,6 @@ void Libraries::Register(RenderDevice* pRenderDevice, std::filesystem::path Exec
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
-	// BRDFIntegration RS, this is just a empty root signature
 	BRDFIntegration = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
 		proxy.DenyTessellationShaderAccess();
@@ -63,17 +64,16 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	{
 		RenderResourceHandle rootSignatureHandle = pRenderDevice->CreateRootSignature([i](RootSignatureProxy& proxy)
 		{
-			D3D12_DESCRIPTOR_RANGE_FLAGS volatileFlag = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
+			UINT Num32BitValues = i == Irradiance ? sizeof(ConvolutionIrradianceSettings) / 4 : sizeof(ConvolutionPrefilterSettings) / 4;
 
-			if (i == Irradiance)
-				proxy.AddRootConstantsParameter(RootConstants<ConvolutionIrradianceSetting>(0, 0));
-			else
-				proxy.AddRootConstantsParameter(RootConstants<ConvolutionPrefilterSetting>(0, 0));
-			proxy.AddRootCBVParameter(RootCBV(1, 100)); // Camera projection matrix
+			proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, Num32BitValues));	// Settings					b0 | space0
+			proxy.AddRootConstantsParameter(RootConstants<void>(1, 0, 1));				// RootConstants			b1 | space0
+			proxy.AddRootSRVParameter(RootSRV(0, 0));									// Vertex Buffer			t1 | space0
+			proxy.AddRootSRVParameter(RootSRV(1, 0));									// Index Buffer				t2 | space0
+			proxy.AddRootSRVParameter(RootSRV(2, 0));									// Geometry info Buffer		t3 | space0
 
 			proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
 
-			proxy.AllowInputLayout();
 			proxy.DenyTessellationShaderAccess();
 			proxy.DenyGSAccess();
 		});
@@ -111,7 +111,8 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	Skybox = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		proxy.AllowInputLayout();
+		proxy.AddRootConstantsParameter(RootConstants<void>(1, 0, 1)); // RootConstants b1 | space0
+
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
@@ -138,14 +139,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 {
-	GraphicsPipelineStateProxy inputLayoutProxy;
-	inputLayoutProxy.InputLayout.AddVertexLayoutElement("POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
-	inputLayoutProxy.InputLayout.AddVertexLayoutElement("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, -1);
-	inputLayoutProxy.InputLayout.AddVertexLayoutElement("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
-	inputLayoutProxy.InputLayout.AddVertexLayoutElement("TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
-	inputLayoutProxy.InputLayout.AddVertexLayoutElement("BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, -1);
-
-	// BRDFIntegration
 	BRDFIntegration = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration);
@@ -155,7 +148,6 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 		proxy.AddRenderTargetFormat(RendererFormats::BRDFLUTFormat);
 	});
 
-	// Cubemap convolutions PSO
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
 		const RootSignature* pRS = i == CubemapConvolution::Irradiance ? pRenderDevice->GetRootSignature(RootSignatures::ConvolutionIrradiace)
@@ -166,8 +158,6 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 
 		RenderResourceHandle handle = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
 		{
-			proxy = inputLayoutProxy;
-
 			proxy.pRootSignature = pRS;
 			proxy.pVS = pVS;
 			proxy.pPS = pPS;

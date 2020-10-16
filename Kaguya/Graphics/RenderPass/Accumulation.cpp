@@ -31,13 +31,13 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 
 void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
-	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-		proxy.InitialState = Resource::State::UnorderedAccess;
+		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+		proxy.InitialState = DeviceResource::State::UnorderedAccess;
 	});
 }
 
@@ -89,7 +89,7 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 	}
 
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);
+	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
 
 	// Bind Pipeline
 	RenderContext.SetPipelineState(ComputePSOs::Accumulation);
@@ -104,7 +104,7 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 
 	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
 
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::NonPixelShaderResource);
 }
 
 void Accumulation::StateRefresh()

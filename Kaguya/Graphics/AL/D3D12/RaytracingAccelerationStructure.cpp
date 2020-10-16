@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "RaytracingAccelerationStructure.h"
 #include "Device.h"
-#include "Buffer.h"
+#include "DeviceBuffer.h"
 #include "CommandContext.h"
 
 BottomLevelAccelerationStructure::BottomLevelAccelerationStructure()
@@ -59,7 +59,7 @@ void BottomLevelAccelerationStructure::ComputeMemoryRequirements(const Device* p
 	*pResultSizeInBytes = ResultSizeInBytes;
 }
 
-void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult, bool UpdateOnly /*= false*/, Buffer* pSource /*= nullptr*/)
+void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext, DeviceBuffer* pScratch, DeviceBuffer* pResult, bool UpdateOnly /*= false*/, DeviceBuffer* pSource /*= nullptr*/)
 {
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = BuildFlags;
 
@@ -169,7 +169,7 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDev
 	*pInstanceDescsSizeInBytes = InstanceDescsSizeInBytes;
 }
 
-void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult, Buffer* pInstanceDescs, bool UpdateOnly /*= false*/, Buffer* pSource /*= nullptr*/)
+void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, DeviceBuffer* pScratch, DeviceBuffer* pResult, DeviceBuffer* pInstanceDescs, bool UpdateOnly /*= false*/, DeviceBuffer* pSource /*= nullptr*/)
 {
 	D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDesc = nullptr;
 	pInstanceDescs->GetD3DResource()->Map(0, nullptr, reinterpret_cast<void**>(&pInstanceDesc));

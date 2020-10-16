@@ -12,8 +12,8 @@
 #include "AL/D3D12/CommandContext.h"
 #include "AL/D3D12/RaytracingAccelerationStructure.h"
 
-#include "AL/Proxy/BufferProxy.h"
-#include "AL/Proxy/TextureProxy.h"
+#include "AL/Proxy/DeviceBufferProxy.h"
+#include "AL/Proxy/DeviceTextureProxy.h"
 #include "AL/Proxy/HeapProxy.h"
 #include "AL/Proxy/RootSignatureProxy.h"
 #include "AL/Proxy/PipelineStateProxy.h"
@@ -63,12 +63,12 @@ public:
 	[[nodiscard]] Library CompileLibrary(const std::filesystem::path& Path);
 
 	// Resource creation
-	[[nodiscard]] RenderResourceHandle CreateBuffer(std::function<void(BufferProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateDeviceBuffer(std::function<void(DeviceBufferProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateDeviceBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceBufferProxy&)> Configurator);
 
-	[[nodiscard]] RenderResourceHandle CreateTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
-	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateDeviceTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, DeviceResource::State InitialState);
+	[[nodiscard]] RenderResourceHandle CreateDeviceTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator);
+	[[nodiscard]] RenderResourceHandle CreateDeviceTexture(DeviceResource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceTextureProxy&)> Configurator);
 
 	[[nodiscard]] RenderResourceHandle CreateHeap(std::function<void(HeapProxy&)> Configurator);
 
@@ -113,8 +113,8 @@ private:
 	ShaderCompiler																			m_ShaderCompiler;
 	std::vector<std::unique_ptr<CommandContext>>											m_CommandContexts[CommandContext::NumTypes];
 
-	RenderResourceContainer<RenderResourceType::Buffer, Buffer>								m_Buffers;
-	RenderResourceContainer<RenderResourceType::Texture, Texture>							m_Textures;
+	RenderResourceContainer<RenderResourceType::Buffer, DeviceBuffer>								m_Buffers;
+	RenderResourceContainer<RenderResourceType::Texture, DeviceTexture>							m_Textures;
 
 	RenderResourceContainer<RenderResourceType::Heap, Heap>									m_Heaps;
 	RenderResourceContainer<RenderResourceType::RootSignature, RootSignature>				m_RootSignatures;

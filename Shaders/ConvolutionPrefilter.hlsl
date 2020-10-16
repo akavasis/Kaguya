@@ -1,18 +1,5 @@
 #include "HLSLCommon.hlsli"
 
-static uint NumSamples = 32;
-
-cbuffer Settings : register(b0)
-{
-	float Roughness;
-	int CubemapIndex;
-}
-
-SamplerState SamplerLinearClamp : register(s0);
-
-// Shader layout define and include
-#include "ShaderLayout.hlsli"
-
 // Radical inverse based on http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 float RadicalInverse_VDC(uint Bits)
 {
@@ -58,16 +45,23 @@ float NDF_TrowbridgeReitzGGX(in float cosLh, in float Roughness)
 	return alphaSq / (s_PI * denominator * denominator);
 }
 
-struct OutputVertex
+static uint NumSamples = 32;
+
+cbuffer Settings : register(b0)
 {
-	float4 positionH : SV_POSITION;
-	float3 textureCoord : TEXCOORD;
-};
-float4 main(OutputVertex inputPixel) : SV_TARGET
+	float Roughness;
+	int CubemapIndex;
+}
+
+SamplerState SamplerLinearClamp : register(s0);
+
+#include "Skybox.hlsl"
+
+float4 PSMain(VSOutput IN) : SV_TARGET
 {
 	TextureCube Cubemap = TextureCubeTable[CubemapIndex];
 
-	float3 N = normalize(inputPixel.textureCoord);
+	float3 N = normalize(IN.TextureCoord);
 	float3 R = N;
 	float3 V = R;
 	float3 prefilteredColor = float3(0.0f, 0.0f, 0.0f);
@@ -90,7 +84,7 @@ float4 main(OutputVertex inputPixel) : SV_TARGET
 
 			// Probability Distribution Function
 			float pdf = NDF_TrowbridgeReitzGGX(dotNH, Roughness) * dotNH / (4.0f * dotVH) + 0.0001;
-			// Slid angle of current smple
+			// Solid angle of current smple
 			float omegaS = 1.0 / (float(NumSamples) * pdf);
 			// Solid angle of 1 pixel across all cube faces
 			float omegaP = 4.0 * s_PI / (6.0f * dimension * dimension);

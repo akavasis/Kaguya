@@ -76,13 +76,13 @@ void RaytraceGBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	for (size_t i = 0; i < EResources::NumResources; ++i)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-			proxy.InitialState = Resource::State::UnorderedAccess;
+			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.InitialState = DeviceResource::State::UnorderedAccess;
 		});
 	}
 }
@@ -102,14 +102,14 @@ void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRender
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		m_RayGenerationShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		m_RayGenerationShaderTable = pRenderDevice->CreateDeviceBuffer([shaderTableSizeInBytes, stride](DeviceBufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+			proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
 		});
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_RayGenerationShaderTable);
+		DeviceBuffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_RayGenerationShaderTable);
 		shaderTable.Generate(pShaderTableBuffer);
 	}
 
@@ -122,14 +122,14 @@ void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRender
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		m_MissShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		m_MissShaderTable = pRenderDevice->CreateDeviceBuffer([shaderTableSizeInBytes, stride](DeviceBufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+			proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
 		});
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_MissShaderTable);
+		DeviceBuffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_MissShaderTable);
 		shaderTable.Generate(pShaderTableBuffer);
 	}
 
@@ -151,14 +151,14 @@ void RaytraceGBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRender
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		m_HitGroupShaderTable = pRenderDevice->CreateBuffer([shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		m_HitGroupShaderTable = pRenderDevice->CreateDeviceBuffer([shaderTableSizeInBytes, stride](DeviceBufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+			proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
 		});
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_HitGroupShaderTable);
+		DeviceBuffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_HitGroupShaderTable);
 		shaderTable.Generate(pShaderTableBuffer);
 	}
 }
@@ -236,13 +236,8 @@ void RaytraceGBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRender
 		Properties.Width,
 		Properties.Height);
 
-	RenderContext.UAVBarrier(Resources[EResources::WorldPosition]);
-	RenderContext.UAVBarrier(Resources[EResources::WorldNormal]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialAlbedo]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialEmissive]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialSpecular]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialRefraction]);
-	RenderContext.UAVBarrier(Resources[EResources::MaterialExtra]);
+	for (size_t i = 0; i < EResources::NumResources; ++i)
+		RenderContext.UAVBarrier(Resources[i]);
 }
 
 void RaytraceGBuffer::StateRefresh()

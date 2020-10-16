@@ -5,9 +5,9 @@
 #include "Heap.h"
 
 class Device;
-class ResourceProxy;
+class DeviceResourceProxy;
 
-class Resource
+class DeviceResource
 {
 public:
 	enum class Type
@@ -56,11 +56,11 @@ public:
 		Predication				= 1 << 21
 	};
 
-	Resource() = default;
-	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
-	Resource(const Device* pDevice, ResourceProxy& Proxy);
-	Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy);
-	virtual ~Resource() = 0;
+	DeviceResource() = default;
+	DeviceResource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
+	DeviceResource(const Device* pDevice, DeviceResourceProxy& Proxy);
+	DeviceResource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceResourceProxy& Proxy);
+	virtual ~DeviceResource() = 0;
 
 	inline auto GetD3DResource() const { return m_pResource.Get(); }
 	inline auto GetType() const { return m_Type; }
@@ -86,9 +86,9 @@ protected:
 	UINT64									m_HeapOffset;
 };
 
-ENABLE_BITMASK_OPERATORS(Resource::BindFlags);
-ENABLE_BITMASK_OPERATORS(Resource::State);
+ENABLE_BITMASK_OPERATORS(DeviceResource::BindFlags);
+ENABLE_BITMASK_OPERATORS(DeviceResource::State);
 
-D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type);
-D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::BindFlags Flags);
-D3D12_RESOURCE_STATES GetD3DResourceStates(Resource::State State);
+D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(DeviceResource::Type Type);
+D3D12_RESOURCE_FLAGS GetD3DResourceFlags(DeviceResource::BindFlags Flags);
+D3D12_RESOURCE_STATES GetD3DResourceStates(DeviceResource::State State);

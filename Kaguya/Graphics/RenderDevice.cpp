@@ -79,22 +79,22 @@ Library RenderDevice::CompileLibrary(const std::filesystem::path& Path)
 	return m_ShaderCompiler.CompileLibrary(Path.c_str());
 }
 
-RenderResourceHandle RenderDevice::CreateBuffer(std::function<void(BufferProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateDeviceBuffer(std::function<void(DeviceBufferProxy&)> Configurator)
 {
-	BufferProxy proxy;
+	DeviceBufferProxy proxy;
 	Configurator(proxy);
 
 	auto [handle, buffer] = m_Buffers.CreateResource(&Device, proxy);
 
 	// No need to track resources that have preinitialized states
-	if (buffer->GetCpuAccess() == Buffer::CpuAccess::None)
+	if (buffer->GetCpuAccess() == DeviceBuffer::CpuAccess::None)
 		GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateDeviceBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceBufferProxy&)> Configurator)
 {
-	BufferProxy proxy;
+	DeviceBufferProxy proxy;
 	Configurator(proxy);
 
 	const auto pHeap = this->GetHeap(HeapHandle);
@@ -103,16 +103,16 @@ RenderResourceHandle RenderDevice::CreateBuffer(RenderResourceHandle HeapHandle,
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState)
+RenderResourceHandle RenderDevice::CreateDeviceTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, DeviceResource::State InitialState)
 {
 	auto [handle, texture] = m_Textures.CreateResource(ExistingResource);
 	GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3DResourceStates(InitialState));
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, std::function<void(TextureProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateDeviceTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
 {
-	TextureProxy proxy(Type);
+	DeviceTextureProxy proxy(Type);
 	Configurator(proxy);
 
 	auto [handle, texture] = m_Textures.CreateResource(&Device, proxy);
@@ -120,9 +120,9 @@ RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, std::funct
 	return handle;
 }
 
-RenderResourceHandle RenderDevice::CreateTexture(Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator)
+RenderResourceHandle RenderDevice::CreateDeviceTexture(DeviceResource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceTextureProxy&)> Configurator)
 {
-	TextureProxy proxy(Type);
+	DeviceTextureProxy proxy(Type);
 	Configurator(proxy);
 
 	const auto pHeap = this->GetHeap(HeapHandle);
@@ -289,7 +289,7 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceH
 		else
 		{
 			// First-time request
-			Buffer* pBuffer = GetBuffer(RenderResourceHandle);
+			DeviceBuffer* pBuffer = GetBuffer(RenderResourceHandle);
 			assert(pBuffer && "Could not find buffer given the handle");
 
 			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
@@ -330,7 +330,7 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceH
 		else
 		{
 			// First-time request
-			Texture* pTexture = GetTexture(RenderResourceHandle);
+			DeviceTexture* pTexture = GetTexture(RenderResourceHandle);
 			assert(pTexture && "Could not find texture given the handle");
 
 			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
@@ -375,7 +375,7 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResource
 		else
 		{
 			// First-time request
-			Buffer* pBuffer = GetBuffer(RenderResourceHandle);
+			DeviceBuffer* pBuffer = GetBuffer(RenderResourceHandle);
 			assert(pBuffer && "Could not find buffer given the handle");
 
 			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
@@ -416,7 +416,7 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResource
 		else
 		{
 			// First-time request
-			Texture* pTexture = GetTexture(RenderResourceHandle);
+			DeviceTexture* pTexture = GetTexture(RenderResourceHandle);
 			assert(pTexture && "Could not find texture given the handle");
 
 			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
@@ -468,7 +468,7 @@ void RenderDevice::CreateRenderTargetView(RenderResourceHandle RenderResourceHan
 	else
 	{
 		// First-time request
-		Texture* pTexture = GetTexture(RenderResourceHandle);
+		DeviceTexture* pTexture = GetTexture(RenderResourceHandle);
 		assert(pTexture && "Could not find texture given the handle");
 
 		size_t HeapIndex = m_RenderTargetDescriptorIndexPool.Allocate();
@@ -523,7 +523,7 @@ void RenderDevice::CreateDepthStencilView(RenderResourceHandle RenderResourceHan
 	else
 	{
 		// First-time request
-		Texture* pTexture = GetTexture(RenderResourceHandle);
+		DeviceTexture* pTexture = GetTexture(RenderResourceHandle);
 		assert(pTexture && "Could not find texture given the handle");
 
 		size_t HeapIndex = m_DepthStencilDescriptorIndexPool.Allocate();

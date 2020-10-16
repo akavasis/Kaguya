@@ -9,7 +9,7 @@ public:
 	~Gui();
 
 	void BeginFrame();
-	void EndFrame(Texture* pDestination, Descriptor DestinationRTV, CommandContext* pCommandContext);
+	void EndFrame(DeviceTexture* pDestination, Descriptor DestinationRTV, CommandContext* pCommandContext);
 private:
 	CBSRUADescriptorHeap DescriptorHeap;
 };

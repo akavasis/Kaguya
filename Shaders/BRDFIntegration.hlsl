@@ -1,5 +1,7 @@
 #include "HLSLCommon.hlsli"
 
+#include "ShaderLayout.hlsli"
+
 float RadicalInverse_VDC(uint Bits)
 {
 	Bits = (Bits << 16u) | (Bits >> 16u);
@@ -48,7 +50,7 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 
 	return nom / denom;
 }
-// ----------------------------------------------------------------------------
+
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 {
 	float NdotV = max(dot(N, V), 0.0);
@@ -59,12 +61,18 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 	return ggx1 * ggx2;
 }
 
-float2 IntegrateBRDF(float NdotV, float roughness)
+#include "Quad.hlsl"
+
+float4 PSMain(VSOutput IN) : SV_TARGET
 {
+	float2 I = float2(0, 0);
+	float NoV = IN.Texture.x;
+	float Roughness = 1.0f - IN.Texture.y; // Flip Y
+	
 	float3 V;
-	V.x = sqrt(1.0f - NdotV * NdotV);
+	V.x = sqrt(1.0f - NoV * NoV);
 	V.y = 0.0f;
-	V.z = NdotV;
+	V.z = NoV;
 
 	float A = 0.0f;
 	float B = 0.0f;
@@ -75,35 +83,25 @@ float2 IntegrateBRDF(float NdotV, float roughness)
 	for (uint i = 0u; i < SAMPLE_COUNT; ++i)
 	{
 		float2 Xi = Hammersley(i, SAMPLE_COUNT);
-		float3 H = ImportanceSampleGGX(Xi, N, roughness);
+		float3 H = ImportanceSampleGGX(Xi, N, Roughness);
 		float3 L = normalize(2.0 * dot(V, H) * H - V);
 
-		float NdotL = max(L.z, 0.0);
-		float NdotH = max(H.z, 0.0);
-		float VdotH = max(dot(V, H), 0.0);
+		float NoL = max(L.z, 0.0);
+		float NoH = max(H.z, 0.0);
+		float VoH = max(dot(V, H), 0.0);
 
-		if (NdotL > 0.0)
+		if (NoL > 0.0)
 		{
-			float G = GeometrySmith(N, V, L, roughness);
-			float G_Vis = (G * VdotH) / (NdotH * NdotV);
-			float Fc = pow(1.0 - VdotH, 5.0);
+			float G = GeometrySmith(N, V, L, Roughness);
+			float G_Vis = (G * VoH) / (NoH * NoV);
+			float Fc = pow(1.0 - VoH, 5.0);
 
 			A += (1.0 - Fc) * G_Vis;
 			B += Fc * G_Vis;
 		}
 	}
-	A /= float(SAMPLE_COUNT);
-	B /= float(SAMPLE_COUNT);
-	return float2(A, B);
-}
-
-struct VSInput
-{
-	float4 Position : SV_Position;
-	float2 Texture : TEXCOORD0;
-};
-float4 main(VSInput pixel) : SV_TARGET
-{
-	// Flip Y
-	return float4(IntegrateBRDF(pixel.Texture.x, 1.0f - pixel.Texture.y), 0.0f, 0.0f);
+	
+	I = float2(A, B) / float(SAMPLE_COUNT);
+	
+	return float4(I, 0.0f, 0.0f);
 }

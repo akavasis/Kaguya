@@ -164,6 +164,16 @@ Scene CornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelL
 {
 	Scene scene;
 
+	Transform t;
+	t.Position = { 0, 2, 0 };
+	//t.Rotate(XM_PIDIV2, 0, 0);
+
+	auto& light1 = scene.AddLight();
+	XMStoreFloat4x4(&light1.World, XMMatrixTranspose(t.Matrix()));
+	light1.Width = 8;
+	light1.Height = 8;
+	
+
 	// Materials
 	auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 	defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };

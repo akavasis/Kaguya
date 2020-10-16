@@ -6,22 +6,22 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice)
 {
 	// Create BRDF LUT
-	RendererReseveredTextures[BRDFLUT] = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	RendererReseveredTextures[BRDFLUT] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(RendererFormats::BRDFLUTFormat);
 		proxy.SetWidth(Resolutions::BRDFLUT);
 		proxy.SetHeight(Resolutions::BRDFLUT);
-		proxy.BindFlags = Resource::BindFlags::RenderTarget;
-		proxy.InitialState = Resource::State::RenderTarget;
+		proxy.BindFlags = DeviceResource::BindFlags::RenderTarget;
+		proxy.InitialState = DeviceResource::State::RenderTarget;
 	});
 
-	m_CubemapCamerasUploadBufferHandle = pRenderDevice->CreateBuffer([](BufferProxy& proxy)
+	m_CubemapCamerasUploadBufferHandle = pRenderDevice->CreateDeviceBuffer([](DeviceBufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(6 * Math::AlignUp<UINT64>(sizeof(GlobalConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
 		proxy.SetStride(Math::AlignUp<UINT64>(sizeof(GlobalConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
 	});
-	Buffer* pCubemapCameras = pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
+	DeviceBuffer* pCubemapCameras = pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
 	pCubemapCameras->Map();
 
 	// TODO: MOVE THIS INTO CONSTANTS IN HLSL CODE
@@ -137,7 +137,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		sr.left = sr.top = 0;
 		sr.right = sr.bottom = Resolutions::BRDFLUT;
 
-		RenderContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), Resource::State::RenderTarget);
+		RenderContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), DeviceResource::State::RenderTarget);
 
 		RenderContext.SetPipelineState(GraphicsPSOs::BRDFIntegration);
 		RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -151,7 +151,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		RenderContext->SetScissorRects(1, &sr);
 		RenderContext->DrawInstanced(3, 1, 0, 0);
 
-		RenderContext.TransitionBarrier(RendererReseveredTextures[BRDFLUT], Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+		RenderContext.TransitionBarrier(RendererReseveredTextures[BRDFLUT], DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 	}
 
 	// Generate skybox first
@@ -160,15 +160,15 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 	StageTexture(RendererReseveredTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
 
 	// Generate cubemap for equirectangular map
-	Texture* pEquirectangularMap = pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxEquirectangularMap]);
-	RendererReseveredTextures[SkyboxCubemap] = pRenderDevice->CreateTexture(Resource::Type::TextureCube, [&](TextureProxy& proxy)
+	DeviceTexture* pEquirectangularMap = pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxEquirectangularMap]);
+	RendererReseveredTextures[SkyboxCubemap] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::TextureCube, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(pEquirectangularMap->GetFormat());
 		proxy.SetWidth(1024);
 		proxy.SetHeight(1024);
 		proxy.SetMipLevels(0);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-		proxy.InitialState = Resource::State::Common;
+		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+		proxy.InitialState = DeviceResource::State::Common;
 	});
 
 	EquirectangularToCubemap(RendererReseveredTextures[SkyboxEquirectangularMap], RendererReseveredTextures[SkyboxCubemap], RenderContext);
@@ -339,44 +339,44 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	{
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
 	{
-		handle = pRenderDevice->CreateTexture(Resource::Type::Texture1D, [&](TextureProxy& proxy)
+		handle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture1D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(metadata.format);
 			proxy.SetWidth(static_cast<UINT64>(metadata.width));
 			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.arraySize));
 			proxy.SetMipLevels(mipLevels);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-			proxy.InitialState = Resource::State::CopyDest;
+			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
 	}
 	break;
 
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
 	{
-		handle = pRenderDevice->CreateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+		handle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(metadata.format);
 			proxy.SetWidth(static_cast<UINT64>(metadata.width));
 			proxy.SetHeight(static_cast<UINT>(metadata.height));
 			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.arraySize));
 			proxy.SetMipLevels(mipLevels);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-			proxy.InitialState = Resource::State::CopyDest;
+			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
 	}
 	break;
 
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
 	{
-		handle = pRenderDevice->CreateTexture(Resource::Type::Texture3D, [&](TextureProxy& proxy)
+		handle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture3D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(metadata.format);
 			proxy.SetWidth(static_cast<UINT64>(metadata.width));
 			proxy.SetHeight(static_cast<UINT>(metadata.height));
 			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.depth));
 			proxy.SetMipLevels(mipLevels);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-			proxy.InitialState = Resource::State::CopyDest;
+			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
 	}
 	break;
@@ -387,7 +387,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	}
 	}
 
-	Texture* pTexture = pRenderDevice->GetTexture(handle);
+	DeviceTexture* pTexture = pRenderDevice->GetTexture(handle);
 #ifdef _DEBUG
 	pTexture->GetD3DResource()->SetName(Path.generic_wstring().data());
 #endif
@@ -447,7 +447,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	StagingTexture stagingTexture;
 	stagingTexture.path = Path.generic_string();
-	stagingTexture.texture = Texture(stagingResource);
+	stagingTexture.texture = DeviceTexture(stagingResource);
 	stagingTexture.numSubresources = NumSubresources;
 	stagingTexture.placedSubresourceLayouts = std::move(placedSubresourceLayouts);
 	stagingTexture.mipLevels = mipLevels;
@@ -486,11 +486,11 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 
 void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
 {
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-	Texture* pStagingResourceTexture = &StagingTexture.texture;
+	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
+	DeviceTexture* pStagingResourceTexture = &StagingTexture.texture;
 
 	// Stage texture
-	RenderContext->TransitionBarrier(pTexture, Resource::State::CopyDest);
+	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::CopyDest);
 	for (std::size_t subresourceIndex = 0; subresourceIndex < StagingTexture.numSubresources; ++subresourceIndex)
 	{
 		D3D12_TEXTURE_COPY_LOCATION destination;
@@ -510,7 +510,7 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 		GenerateMips(TextureHandle, RenderContext);
 	}
 
-	RenderContext->TransitionBarrier(pTexture, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 
 	TextureHandles[StagingTexture.path] = TextureHandle;
 	CORE_INFO("{} Loaded", StagingTexture.path);
@@ -518,7 +518,7 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 
 void GpuTextureAllocator::GenerateMips(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
+	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 	if (IsUAVCompatable(pTexture->GetFormat()))
 	{
 		GenerateMipsUAV(TextureHandle, RenderContext);
@@ -534,7 +534,7 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
 	pRenderDevice->CreateShaderResourceView(TextureHandle);
 
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
+	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
 	RenderContext.SetPipelineState(ComputePSOs::GenerateMips);
 
@@ -597,10 +597,10 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 		generateMipsData.Output3Index = outputIndices[2];
 		generateMipsData.Output4Index = outputIndices[3];
 
-		RenderContext->TransitionBarrier(pTexture, Resource::State::NonPixelShaderResource, srcMip);
+		RenderContext->TransitionBarrier(pTexture, DeviceResource::State::NonPixelShaderResource, srcMip);
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			RenderContext->TransitionBarrier(pTexture, Resource::State::UnorderedAccess, srcMip + mip + 1);
+			RenderContext->TransitionBarrier(pTexture, DeviceResource::State::UnorderedAccess, srcMip + mip + 1);
 		}
 
 		RenderContext->SetComputeRoot32BitConstants(0, sizeof(GenerateMipsData) / 4, &generateMipsData, 0);
@@ -616,20 +616,20 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 
 void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
+	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
-	RenderResourceHandle textureCopyHandle = pRenderDevice->CreateTexture(pTexture->GetType(), [&](TextureProxy& proxy)
+	RenderResourceHandle textureCopyHandle = pRenderDevice->CreateDeviceTexture(pTexture->GetType(), [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(pTexture->GetFormat());
 		proxy.SetWidth(pTexture->GetWidth());
 		proxy.SetHeight(pTexture->GetHeight());
 		proxy.SetDepthOrArraySize(pTexture->GetDepthOrArraySize());
 		proxy.SetMipLevels(pTexture->GetMipLevels());
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-		proxy.InitialState = Resource::State::CopyDest;
+		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+		proxy.InitialState = DeviceResource::State::CopyDest;
 	});
 
-	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
+	DeviceTexture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
 
 	RenderContext->CopyResource(pDstTexture, pTexture);
 
@@ -642,7 +642,7 @@ void GpuTextureAllocator::GenerateMipsSRGB(RenderResourceHandle TextureHandle, R
 
 void GpuTextureAllocator::EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
-	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
+	DeviceTexture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 	if (IsUAVCompatable(pCubemap->GetFormat()))
 	{
 		EquirectangularToCubemapUAV(EquirectangularMap, Cubemap, RenderContext);
@@ -657,8 +657,8 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 {
 	pRenderDevice->CreateShaderResourceView(EquirectangularMap);
 
-	Texture* pEquirectangularMap = pRenderDevice->GetTexture(EquirectangularMap);
-	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
+	DeviceTexture* pEquirectangularMap = pRenderDevice->GetTexture(EquirectangularMap);
+	DeviceTexture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 	auto resourceDesc = pCubemap->GetD3DResource()->GetDesc();
 
 	RenderContext.SetPipelineState(ComputePSOs::EquirectangularToCubemap);
@@ -693,10 +693,10 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 		equirectangylarToCubemapData.Output4Index = outputIndices[3];
 		equirectangylarToCubemapData.Output5Index = outputIndices[4];
 
-		RenderContext->TransitionBarrier(pEquirectangularMap, Resource::State::NonPixelShaderResource);
+		RenderContext->TransitionBarrier(pEquirectangularMap, DeviceResource::State::NonPixelShaderResource);
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
-			RenderContext->TransitionBarrier(pCubemap, Resource::State::UnorderedAccess);
+			RenderContext->TransitionBarrier(pCubemap, DeviceResource::State::UnorderedAccess);
 		}
 
 		RenderContext->SetComputeRoot32BitConstants(0, sizeof(EquirectangularToCubemapData) / 4, &equirectangylarToCubemapData, 0);
@@ -712,20 +712,20 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 
 void GpuTextureAllocator::EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
-	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
+	DeviceTexture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 
-	RenderResourceHandle textureCopyHandle = pRenderDevice->CreateTexture(pCubemap->GetType(), [&](TextureProxy& proxy)
+	RenderResourceHandle textureCopyHandle = pRenderDevice->CreateDeviceTexture(pCubemap->GetType(), [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(pCubemap->GetFormat());
 		proxy.SetWidth(pCubemap->GetWidth());
 		proxy.SetHeight(pCubemap->GetHeight());
 		proxy.SetDepthOrArraySize(pCubemap->GetDepthOrArraySize());
 		proxy.SetMipLevels(pCubemap->GetMipLevels());
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
-		proxy.InitialState = Resource::State::CopyDest;
+		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+		proxy.InitialState = DeviceResource::State::CopyDest;
 	});
 
-	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
+	DeviceTexture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
 
 	RenderContext->CopyResource(pDstTexture, pCubemap);
 

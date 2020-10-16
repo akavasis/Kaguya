@@ -28,16 +28,16 @@ void Gui::BeginFrame()
 #endif
 }
 
-void Gui::EndFrame(Texture* pDestination, Descriptor DestinationRTV, CommandContext* pCommandContext)
+void Gui::EndFrame(DeviceTexture* pDestination, Descriptor DestinationRTV, CommandContext* pCommandContext)
 {
 	PIXMarker(pCommandContext->GetD3DCommandList(), L"ImGui Render");
 
-	pCommandContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
+	pCommandContext->TransitionBarrier(pDestination, DeviceResource::State::RenderTarget);
 
 	pCommandContext->SetRenderTargets(1, &DestinationRTV, TRUE, Descriptor());
 	pCommandContext->SetDescriptorHeaps(&DescriptorHeap, nullptr);
 	ImGui::Render();
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandContext->GetD3DCommandList());
 
-	pCommandContext->TransitionBarrier(pDestination, Resource::State::Present);
+	pCommandContext->TransitionBarrier(pDestination, DeviceResource::State::Present);
 }

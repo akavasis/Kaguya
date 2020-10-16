@@ -14,7 +14,7 @@ struct AccumulationData
 #include "../ShaderLayout.hlsli"
 
 [numthreads(16, 16, 1)]
-void main(uint3 DTid : SV_DispatchThreadID)
+void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
 	Texture2D Input = Texture2DTable[RenderPassData.InputIndex];
 	RWTexture2D<float4> Output = RWTexture2DTable[RenderPassData.OutputIndex];

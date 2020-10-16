@@ -12,7 +12,7 @@ cbuffer Settings : register(b0)
 SamplerState LinearSampler : register(s0);
 
 [numthreads(8, 8, 1)]
-void main(uint3 DTid : SV_DispatchThreadID)
+void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
 	Texture2D Input = Texture2DTable[InputIndex];
 	Texture2D Bloom = Texture2DTable[BloomIndex];

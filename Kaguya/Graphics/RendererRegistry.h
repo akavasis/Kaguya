@@ -20,12 +20,12 @@ struct Resolutions
 	static constexpr UINT64 Prefilter = 512;
 };
 
-struct ConvolutionIrradianceSetting
+struct ConvolutionIrradianceSettings
 {
 	int CubemapIndex;
 };
 
-struct ConvolutionPrefilterSetting
+struct ConvolutionPrefilterSettings
 {
 	float Roughness;
 	int CubemapIndex;
@@ -107,7 +107,8 @@ struct Shaders
 	{
 		inline static Shader Quad;
 		inline static Shader Skybox;
-		inline static Shader GBuffer;
+		inline static Shader GBufferMeshes;
+		inline static Shader GBufferLights;
 	};
 
 	struct PS
@@ -115,7 +116,8 @@ struct Shaders
 		inline static Shader BRDFIntegration;
 		inline static Shader ConvolutionIrradiance;
 		inline static Shader ConvolutionPrefilter;
-		inline static Shader GBuffer;
+		inline static Shader GBufferMeshes;
+		inline static Shader GBufferLights;
 
 		inline static Shader PostProcess_Tonemapping;
 	};
@@ -155,7 +157,8 @@ struct RootSignatures
 	inline static RenderResourceHandle EquirectangularToCubemap;
 
 	inline static RenderResourceHandle Skybox;
-	inline static RenderResourceHandle GBuffer;
+	inline static RenderResourceHandle GBufferMeshes;
+	inline static RenderResourceHandle GBufferLights;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 	inline static RenderResourceHandle PostProcess_BloomMask;
@@ -181,7 +184,8 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle ConvolutionIrradiace;
 	inline static RenderResourceHandle ConvolutionPrefilter;
 
-	inline static RenderResourceHandle GBuffer;
+	inline static RenderResourceHandle GBufferMeshes;
+	inline static RenderResourceHandle GBufferLights;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 
