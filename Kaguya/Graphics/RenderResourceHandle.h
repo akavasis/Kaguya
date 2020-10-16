@@ -9,8 +9,8 @@
 enum class RenderResourceType : size_t
 {
 	Unknown,
-	Buffer,
-	Texture,
+	DeviceBuffer,
+	DeviceTexture,
 	Heap,
 	RootSignature,
 	GraphicsPSO,

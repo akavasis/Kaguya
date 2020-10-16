@@ -86,8 +86,8 @@ public:
 	void CreateDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 
 	// Returns nullptr if a resource is not found
-	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) { return m_Buffers.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle) { return m_Textures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) { return m_DeviceBuffers.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle) { return m_DeviceTextures.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle) { return m_Heaps.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle) { return m_RootSignatures.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
@@ -113,8 +113,8 @@ private:
 	ShaderCompiler																			m_ShaderCompiler;
 	std::vector<std::unique_ptr<CommandContext>>											m_CommandContexts[CommandContext::NumTypes];
 
-	RenderResourceContainer<RenderResourceType::Buffer, DeviceBuffer>								m_Buffers;
-	RenderResourceContainer<RenderResourceType::Texture, DeviceTexture>							m_Textures;
+	RenderResourceContainer<RenderResourceType::DeviceBuffer, DeviceBuffer>					m_DeviceBuffers;
+	RenderResourceContainer<RenderResourceType::DeviceTexture, DeviceTexture>				m_DeviceTextures;
 
 	RenderResourceContainer<RenderResourceType::Heap, Heap>									m_Heaps;
 	RenderResourceContainer<RenderResourceType::RootSignature, RootSignature>				m_RootSignatures;

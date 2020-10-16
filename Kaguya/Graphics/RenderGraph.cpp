@@ -164,7 +164,7 @@ void RenderGraph::CreateResourceViews()
 	{
 		for (auto handle : renderPass->Resources)
 		{
-			if (handle.Type == RenderResourceType::Buffer)
+			if (handle.Type == RenderResourceType::DeviceBuffer)
 				continue;
 
 			pRenderDevice->CreateShaderResourceView(handle);

@@ -273,11 +273,6 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 
 void GpuTextureAllocator::DisposeResources()
 {
-	for (auto iter : m_UnstagedTextures)
-	{
-		RenderResourceHandle handle = iter.first;
-		pRenderDevice->Destroy(&handle);
-	}
 	m_UnstagedTextures.clear();
 
 	for (auto& handle : m_TemporaryResources)

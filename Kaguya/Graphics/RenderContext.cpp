@@ -6,11 +6,11 @@ void RenderContext::TransitionBarrier(RenderResourceHandle ResourceHandle, Devic
 {
 	switch (ResourceHandle.Type)
 	{
-	case RenderResourceType::Buffer:
+	case RenderResourceType::DeviceBuffer:
 		SV_pCommandContext->TransitionBarrier(SV_pRenderDevice->GetBuffer(ResourceHandle), TransitionState, Subresource);
 		break;
 
-	case RenderResourceType::Texture:
+	case RenderResourceType::DeviceTexture:
 		SV_pCommandContext->TransitionBarrier(SV_pRenderDevice->GetTexture(ResourceHandle), TransitionState, Subresource);
 		break;
 	}
@@ -26,11 +26,11 @@ void RenderContext::UAVBarrier(RenderResourceHandle ResourceHandle)
 {
 	switch (ResourceHandle.Type)
 	{
-	case RenderResourceType::Buffer:
+	case RenderResourceType::DeviceBuffer:
 		SV_pCommandContext->UAVBarrier(SV_pRenderDevice->GetBuffer(ResourceHandle));
 		break;
 
-	case RenderResourceType::Texture:
+	case RenderResourceType::DeviceTexture:
 		SV_pCommandContext->UAVBarrier(SV_pRenderDevice->GetTexture(ResourceHandle));
 		break;
 	}
@@ -74,7 +74,7 @@ void RenderContext::SetRoot32BitConstants(UINT RootParameterIndex, UINT Num32Bit
 
 void RenderContext::SetRootShaderResourceView(UINT RootParameterIndex, RenderResourceHandle BufferHandle)
 {
-	assert(BufferHandle.Type == RenderResourceType::Buffer);
+	assert(BufferHandle.Type == RenderResourceType::DeviceBuffer);
 
 	auto pBuffer = SV_pRenderDevice->GetBuffer(BufferHandle);
 

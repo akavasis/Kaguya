@@ -84,7 +84,7 @@ RenderResourceHandle RenderDevice::CreateDeviceBuffer(std::function<void(DeviceB
 	DeviceBufferProxy proxy;
 	Configurator(proxy);
 
-	auto [handle, buffer] = m_Buffers.CreateResource(&Device, proxy);
+	auto [handle, buffer] = m_DeviceBuffers.CreateResource(&Device, proxy);
 
 	// No need to track resources that have preinitialized states
 	if (buffer->GetCpuAccess() == DeviceBuffer::CpuAccess::None)
@@ -98,14 +98,14 @@ RenderResourceHandle RenderDevice::CreateDeviceBuffer(RenderResourceHandle HeapH
 	Configurator(proxy);
 
 	const auto pHeap = this->GetHeap(HeapHandle);
-	auto [handle, buffer] = m_Buffers.CreateResource(&Device, pHeap, HeapOffset, proxy);
+	auto [handle, buffer] = m_DeviceBuffers.CreateResource(&Device, pHeap, HeapOffset, proxy);
 	GlobalResourceStateTracker.AddResourceState(buffer->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
 
 RenderResourceHandle RenderDevice::CreateDeviceTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, DeviceResource::State InitialState)
 {
-	auto [handle, texture] = m_Textures.CreateResource(ExistingResource);
+	auto [handle, texture] = m_DeviceTextures.CreateResource(ExistingResource);
 	GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3DResourceStates(InitialState));
 	return handle;
 }
@@ -115,7 +115,7 @@ RenderResourceHandle RenderDevice::CreateDeviceTexture(DeviceResource::Type Type
 	DeviceTextureProxy proxy(Type);
 	Configurator(proxy);
 
-	auto [handle, texture] = m_Textures.CreateResource(&Device, proxy);
+	auto [handle, texture] = m_DeviceTextures.CreateResource(&Device, proxy);
 	GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
@@ -129,7 +129,7 @@ RenderResourceHandle RenderDevice::CreateDeviceTexture(DeviceResource::Type Type
 	assert(pHeap->GetType() != Heap::Type::Upload && "Heap cannot be type upload");
 	assert(pHeap->GetType() != Heap::Type::Readback && "Heap cannot be type readback");
 
-	auto [handle, texture] = m_Textures.CreateResource(&Device, pHeap, HeapOffset, proxy);
+	auto [handle, texture] = m_DeviceTextures.CreateResource(&Device, pHeap, HeapOffset, proxy);
 	GlobalResourceStateTracker.AddResourceState(texture->GetD3DResource(), GetD3DResourceStates(proxy.InitialState));
 	return handle;
 }
@@ -192,9 +192,9 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 
 	switch (pRenderResourceHandle->Type)
 	{
-	case RenderResourceType::Buffer:
+	case RenderResourceType::DeviceBuffer:
 	{
-		auto buffer = m_Buffers.GetResource(*pRenderResourceHandle);
+		auto buffer = m_DeviceBuffers.GetResource(*pRenderResourceHandle);
 		// Remove from GRST
 		GlobalResourceStateTracker.RemoveResourceState(buffer->GetD3DResource());
 
@@ -214,12 +214,12 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 		}
 
 		// Finally, remove the actual resource
-		m_Buffers.Destroy(pRenderResourceHandle);
+		m_DeviceBuffers.Destroy(pRenderResourceHandle);
 	}
 	break;
-	case RenderResourceType::Texture:
+	case RenderResourceType::DeviceTexture:
 	{
-		auto texture = m_Textures.GetResource(*pRenderResourceHandle);
+		auto texture = m_DeviceTextures.GetResource(*pRenderResourceHandle);
 		// Remove from GRST
 		GlobalResourceStateTracker.RemoveResourceState(texture->GetD3DResource());
 
@@ -247,7 +247,7 @@ void RenderDevice::Destroy(RenderResourceHandle* pRenderResourceHandle)
 		}
 
 		// Finally, remove the actual resource
-		m_Textures.Destroy(pRenderResourceHandle);
+		m_DeviceTextures.Destroy(pRenderResourceHandle);
 	}
 	break;
 	case RenderResourceType::Heap: m_Heaps.Destroy(pRenderResourceHandle); break;
@@ -265,7 +265,7 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceH
 {
 	switch (RenderResourceHandle.Type)
 	{
-	case RenderResourceType::Buffer:
+	case RenderResourceType::DeviceBuffer:
 	{
 		if (auto iter = m_RenderBuffers.find(RenderResourceHandle);
 			iter != m_RenderBuffers.end())
@@ -304,7 +304,7 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceH
 	}
 	break;
 
-	case RenderResourceType::Texture:
+	case RenderResourceType::DeviceTexture:
 	{
 		if (auto iter = m_RenderTextures.find(RenderResourceHandle);
 			iter != m_RenderTextures.end())
@@ -351,7 +351,7 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResource
 {
 	switch (RenderResourceHandle.Type)
 	{
-	case RenderResourceType::Buffer:
+	case RenderResourceType::DeviceBuffer:
 	{
 		if (auto iter = m_RenderBuffers.find(RenderResourceHandle);
 			iter != m_RenderBuffers.end())
@@ -390,7 +390,7 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResource
 	}
 	break;
 
-	case RenderResourceType::Texture:
+	case RenderResourceType::DeviceTexture:
 	{
 		if (auto iter = m_RenderTextures.find(RenderResourceHandle);
 			iter != m_RenderTextures.end())
@@ -547,7 +547,7 @@ Descriptor RenderDevice::GetShaderResourceView(RenderResourceHandle RenderResour
 {
 	switch (RenderResourceHandle.Type)
 	{
-	case RenderResourceType::Buffer:
+	case RenderResourceType::DeviceBuffer:
 	{
 		if (auto iter = m_RenderBuffers.find(RenderResourceHandle);
 			iter != m_RenderBuffers.end())
@@ -560,7 +560,7 @@ Descriptor RenderDevice::GetShaderResourceView(RenderResourceHandle RenderResour
 	}
 	break;
 
-	case RenderResourceType::Texture:
+	case RenderResourceType::DeviceTexture:
 	{
 		if (auto iter = m_RenderTextures.find(RenderResourceHandle);
 			iter != m_RenderTextures.end())
@@ -582,7 +582,7 @@ Descriptor RenderDevice::GetUnorderedAccessView(RenderResourceHandle RenderResou
 {
 	switch (RenderResourceHandle.Type)
 	{
-	case RenderResourceType::Buffer:
+	case RenderResourceType::DeviceBuffer:
 	{
 		if (auto iter = m_RenderBuffers.find(RenderResourceHandle);
 			iter != m_RenderBuffers.end())
@@ -595,7 +595,7 @@ Descriptor RenderDevice::GetUnorderedAccessView(RenderResourceHandle RenderResou
 	}
 	break;
 
-	case RenderResourceType::Texture:
+	case RenderResourceType::DeviceTexture:
 	{
 		if (auto iter = m_RenderTextures.find(RenderResourceHandle);
 			iter != m_RenderTextures.end())
