@@ -4,26 +4,27 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include <DirectXTex.h>
+#include <Core/Allocator/VariableSizedAllocator.h>
 
 #include "RenderDevice.h"
 #include "RenderContext.h"
-#include "../Core/Allocator/VariableSizedAllocator.h"
 #include "Scene/Scene.h"
 
 class GpuTextureAllocator
 {
 public:
-	enum RendererReseveredTextures
+	enum SystemReservedTextures
 	{
 		BRDFLUT,
+		LTCLUT1,
+		LTCLUT2,
 		SkyboxEquirectangularMap,
 		SkyboxCubemap,
 		//SkyboxIrradianceCubemap,
 		//SkyboxPrefilteredCubemap,
-		NumAssetTextures
+		NumSystemReservedTextures
 	};
-	RenderResourceHandle RendererReseveredTextures[NumAssetTextures];
+	RenderResourceHandle SystemReservedTextures[NumSystemReservedTextures];
 
 	std::unordered_map<std::string, RenderResourceHandle> TextureHandles;
 
@@ -35,17 +36,19 @@ private:
 	struct Status
 	{
 		inline static bool BRDFGenerated = false;
+		inline static bool LTCLUT1Generated = false;
+		inline static bool LTCLUT2Generated = false;
 	};
 
 	struct StagingTexture
 	{
-		std::string path;															// file path
-		DeviceTexture texture;															// gpu upload buffer
-		std::size_t numSubresources;												// number of subresources
+		std::string										path;						// file path
+		DeviceTexture									texture;					// gpu upload buffer
+		std::size_t										numSubresources;			// number of subresources
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> placedSubresourceLayouts;	// footprint is synonymous to layout
-		std::size_t mipLevels;														// indicates what mip levels this texture should have
-		bool generateMips;															// indicates whether or not we should generate mips for the staged texture
-		bool isMasked;																// indicates whether or not alpha is masked
+		std::size_t										mipLevels;					// indicates what mip levels this texture should have
+		bool											generateMips;				// indicates whether or not we should generate mips for the staged texture
+		bool											isMasked;					// indicates whether or not alpha is masked
 	};
 
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);

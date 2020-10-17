@@ -1,11 +1,11 @@
 #ifndef __HLSL_COMMON_HLSLI__
 #define __HLSL_COMMON_HLSLI__
+
 #include "Vertex.hlsli"
 #include "Material.hlsli"
 #include "Light.hlsli"
 #include "SharedTypes.hlsli"
 #include "Constants.hlsli"
-#include "Quaternion.hlsli"
 #include "Sampling.hlsli"
 
 float3 CartesianToSpherical(float x, float y, float z)

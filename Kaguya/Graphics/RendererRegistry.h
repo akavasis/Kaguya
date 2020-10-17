@@ -118,6 +118,7 @@ struct Shaders
 		inline static Shader ConvolutionPrefilter;
 		inline static Shader GBufferMeshes;
 		inline static Shader GBufferLights;
+		inline static Shader LTC;
 
 		inline static Shader PostProcess_Tonemapping;
 	};
@@ -159,6 +160,7 @@ struct RootSignatures
 	inline static RenderResourceHandle Skybox;
 	inline static RenderResourceHandle GBufferMeshes;
 	inline static RenderResourceHandle GBufferLights;
+	inline static RenderResourceHandle LTC;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 	inline static RenderResourceHandle PostProcess_BloomMask;
@@ -186,6 +188,7 @@ struct GraphicsPSOs
 
 	inline static RenderResourceHandle GBufferMeshes;
 	inline static RenderResourceHandle GBufferLights;
+	inline static RenderResourceHandle LTC;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 

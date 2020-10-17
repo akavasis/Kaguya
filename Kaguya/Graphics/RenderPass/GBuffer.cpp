@@ -33,10 +33,10 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 
 		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 
-		for (size_t i = 0; i < EResources::NumResources - 1; ++i)
-		{
-			proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
-		}
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Position
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Normal
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
 
 		proxy.SetDepthStencilFormat(RendererFormats::DepthStencilFormat);
 	});
@@ -60,10 +60,10 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 
 		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 
-		for (size_t i = 0; i < EResources::NumResources - 1; ++i)
-		{
-			proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
-		}
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Position
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Normal
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
 
 		proxy.SetDepthStencilFormat(RendererFormats::DepthStencilFormat);
 	});
@@ -71,14 +71,21 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 
 void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
+	DXGI_FORMAT Formats[EResources::NumResources - 1] =
+	{
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		DXGI_FORMAT_R8_UINT
+	};
 	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
 	{
 		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
-			proxy.SetFormat(Properties.Format);
+			proxy.SetFormat(Formats[i]);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(Properties.Format, DirectX::Colors::Black));
+			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(Formats[i], DirectX::Colors::Black));
 			proxy.BindFlags = DeviceResource::BindFlags::RenderTarget;
 			proxy.InitialState = DeviceResource::State::RenderTarget;
 		});
@@ -109,7 +116,7 @@ void GBuffer::RenderGui()
 			Settings = SSettings();
 		}
 
-		const char* GBufferOutputs[] = { "Position", "Normal", "Albedo", "Emissive", "Specular", "Refraction", "Extra" };
+		const char* GBufferOutputs[] = { "Position", "Normal", "Albedo", "TypeAndIndex" };
 		ImGui::Combo("GBuffer Outputs", &Settings.GBuffer, GBufferOutputs, ARRAYSIZE(GBufferOutputs), ARRAYSIZE(GBufferOutputs));
 
 		ImGui::TreePop();
@@ -159,13 +166,10 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	Descriptor RenderTargetViews[] =
 	{
-		RenderContext.GetRenderTargetView(Resources[WorldPosition]),
-		RenderContext.GetRenderTargetView(Resources[WorldNormal]),
-		RenderContext.GetRenderTargetView(Resources[MaterialAlbedo]),
-		RenderContext.GetRenderTargetView(Resources[MaterialEmissive]),
-		RenderContext.GetRenderTargetView(Resources[MaterialSpecular]),
-		RenderContext.GetRenderTargetView(Resources[MaterialRefraction]),
-		RenderContext.GetRenderTargetView(Resources[MaterialExtra])
+		RenderContext.GetRenderTargetView(Resources[Position]),
+		RenderContext.GetRenderTargetView(Resources[Normal]),
+		RenderContext.GetRenderTargetView(Resources[Albedo]),
+		RenderContext.GetRenderTargetView(Resources[TypeAndIndex])
 	};
 	Descriptor DepthStencilView = RenderContext.GetDepthStencilView(Resources[EResources::DepthStencil]);
 
@@ -196,7 +200,7 @@ void GBuffer::StateRefresh()
 void GBuffer::RenderMeshes(RenderContext& RenderContext)
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Meshes");
-	
+
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferMeshes);
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());

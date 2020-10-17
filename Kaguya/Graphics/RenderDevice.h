@@ -1,5 +1,6 @@
 #pragma once
-#include "Template/Pool.h"
+#include <functional>
+#include <Template/Pool.h>
 #include "RenderBuffer.h"
 #include "RenderTexture.h"
 #include "RenderResourceContainer.h"
@@ -86,13 +87,13 @@ public:
 	void CreateDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 
 	// Returns nullptr if a resource is not found
-	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle) { return m_DeviceBuffers.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle) { return m_DeviceTextures.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle) { return m_Heaps.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle) { return m_RootSignatures.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle) { return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle) { return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle) { return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle)			{ return m_DeviceBuffers.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle)			{ return m_DeviceTextures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle)			{ return m_Heaps.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle)	{ return m_RootSignatures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle)		{ return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle)		{ return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle)	{ return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
 
 	Descriptor GetShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const;
 	Descriptor GetUnorderedAccessView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;

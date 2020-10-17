@@ -8,42 +8,42 @@ void AddCornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& Mode
 {
 	assert(pScene != nullptr);
 	// Materials
-	auto& defaultMat		= pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-	defaultMat.Albedo		= { 0.7f, 0.7f, 0.7f };
-	defaultMat.Model		= LambertianModel;
+	auto& defaultMat = pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
+	defaultMat.Model = LambertianModel;
 
-	auto& leftWallMat		= pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-	leftWallMat.Albedo		= { 0.7f, 0.1f, 0.1f };
-	leftWallMat.Model		= LambertianModel;
+	auto& leftWallMat = pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	leftWallMat.Albedo = { 0.7f, 0.1f, 0.1f };
+	leftWallMat.Model = LambertianModel;
 
-	auto& rightWallMat		= pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-	rightWallMat.Albedo		= { 0.1f, 0.7f, 0.1f };
-	rightWallMat.Model		= LambertianModel;
+	auto& rightWallMat = pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	rightWallMat.Albedo = { 0.1f, 0.7f, 0.1f };
+	rightWallMat.Model = LambertianModel;
 
-	auto& lightMat			= pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-	lightMat.Albedo			= { 0.0f, 0.0f, 0.0f };
+	auto& lightMat = pScene->AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+	lightMat.Albedo = { 0.0f, 0.0f, 0.0f };
 	XMStoreFloat3(&lightMat.Emissive, XMVectorSet(1.0f, 0.9f, 0.7f, 0.0f) * 20.0f);
-	lightMat.Model			= DiffuseLightModel;
+	lightMat.Model = DiffuseLightModel;
 
 	// Models
-	auto& rect	= pScene->AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+	auto& rect = pScene->AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
 	auto& light = pScene->AddModel(CreateGrid(5.0f, 5.0f, 10, 10));
 
 	// Model instances
-	auto& floorInstance		= pScene->AddModelInstance({ &rect, &defaultMat });
-	auto& ceilingInstance	= pScene->AddModelInstance({ &rect, &defaultMat });
+	auto& floorInstance = pScene->AddModelInstance({ &rect, &defaultMat });
+	auto& ceilingInstance = pScene->AddModelInstance({ &rect, &defaultMat });
 	ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
 	ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
-	auto& backwallInstance	= pScene->AddModelInstance({ &rect, &defaultMat });
+	auto& backwallInstance = pScene->AddModelInstance({ &rect, &defaultMat });
 	backwallInstance.Translate(0.0f, 5.0f, 5.0f);
 	backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
-	auto& leftwallInstance	= pScene->AddModelInstance({ &rect, &leftWallMat });
+	auto& leftwallInstance = pScene->AddModelInstance({ &rect, &leftWallMat });
 	leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
 	leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
-	auto& rightwallInstance	= pScene->AddModelInstance({ &rect, &rightWallMat });
+	auto& rightwallInstance = pScene->AddModelInstance({ &rect, &rightWallMat });
 	rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
 	rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
-	auto& lightInstance		= pScene->AddModelInstance({ &light, &lightMat });
+	auto& lightInstance = pScene->AddModelInstance({ &light, &lightMat });
 	lightInstance.Translate(0.0f, 9.9f, 0.0f);
 }
 
@@ -163,67 +163,57 @@ Scene RandomScene(const MaterialLoader& MaterialLoader, const ModelLoader& Model
 Scene CornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
 {
 	Scene scene;
+	{
+		// Materials
+		auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
+		defaultMat.Model = LambertianModel;
 
-	Transform t;
-	t.Position = { 0, 2, 0 };
-	//t.Rotate(XM_PIDIV2, 0, 0);
+		auto& leftWallMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		leftWallMat.Albedo = { 0.7f, 0.1f, 0.1f };
+		leftWallMat.Model = LambertianModel;
 
-	auto& light1 = scene.AddLight();
-	XMStoreFloat4x4(&light1.World, XMMatrixTranspose(t.Matrix()));
-	light1.Width = 8;
-	light1.Height = 8;
-	
+		auto& rightWallMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		rightWallMat.Albedo = { 0.1f, 0.7f, 0.1f };
+		rightWallMat.Model = LambertianModel;
 
-	// Materials
-	auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-	defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
-	defaultMat.Model = LambertianModel;
+		auto& lightMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		lightMat.Albedo = { 0.0f, 0.0f, 0.0f };
+		lightMat.Emissive = { 15.0f, 15.0f, 15.0f };
+		lightMat.Model = DiffuseLightModel;
 
-	auto& leftWallMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-	leftWallMat.Albedo = { 0.7f, 0.1f, 0.1f };
-	leftWallMat.Model = LambertianModel;
+		// Models
+		auto& box = scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f, 1));
+		auto& rect = scene.AddModel(CreateGrid(10.0f, 10.0f, 2, 2));
+		auto& light = scene.AddModel(CreateGrid(3.0f, 3.0f, 2, 2));
 
-	auto& rightWallMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-	rightWallMat.Albedo = { 0.1f, 0.7f, 0.1f };
-	rightWallMat.Model = LambertianModel;
+		// Model instances
+		auto& leftboxInstance = scene.AddModelInstance({ &box, &defaultMat });
+		leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
+		leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
+		leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
 
-	auto& lightMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-	lightMat.Albedo = { 0.0f, 0.0f, 0.0f };
-	lightMat.Emissive = { 15.0f, 15.0f, 15.0f };
-	lightMat.Model = DiffuseLightModel;
+		auto& rightboxInstance = scene.AddModelInstance({ &box, &defaultMat });
+		rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
+		rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
+		rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
 
-	// Models
-	auto& box = scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f, 1));
-	auto& rect = scene.AddModel(CreateGrid(10.0f, 10.0f, 2, 2));
-	auto& light = scene.AddModel(CreateGrid(3.0f, 3.0f, 2, 2));
-
-	// Model instances
-	auto& leftboxInstance = scene.AddModelInstance({ &box, &defaultMat });
-	leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
-	leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
-	leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
-
-	auto& rightboxInstance = scene.AddModelInstance({ &box, &defaultMat });
-	rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
-	rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
-	rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
-
-	auto& floorInstance = scene.AddModelInstance({ &rect, &defaultMat });
-	auto& ceilingInstance = scene.AddModelInstance({ &rect, &defaultMat });
-	ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
-	ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
-	auto& backwallInstance = scene.AddModelInstance({ &rect, &defaultMat });
-	backwallInstance.Translate(0.0f, 5.0f, 5.0f);
-	backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
-	auto& leftwallInstance = scene.AddModelInstance({ &rect, &leftWallMat });
-	leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
-	leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
-	auto& rightwallInstance = scene.AddModelInstance({ &rect, &rightWallMat });
-	rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
-	rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
-	auto& lightInstance = scene.AddModelInstance({ &light, &lightMat });
-	lightInstance.Translate(0.0f, 9.9f, 0.0f);
-
+		auto& floorInstance = scene.AddModelInstance({ &rect, &defaultMat });
+		auto& ceilingInstance = scene.AddModelInstance({ &rect, &defaultMat });
+		ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
+		ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
+		auto& backwallInstance = scene.AddModelInstance({ &rect, &defaultMat });
+		backwallInstance.Translate(0.0f, 5.0f, 5.0f);
+		backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
+		auto& leftwallInstance = scene.AddModelInstance({ &rect, &leftWallMat });
+		leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
+		leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
+		auto& rightwallInstance = scene.AddModelInstance({ &rect, &rightWallMat });
+		rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
+		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
+		auto& lightInstance = scene.AddModelInstance({ &light, &lightMat });
+		lightInstance.Translate(0.0f, 9.9f, 0.0f);
+	}
 	return scene;
 }
 
@@ -387,19 +377,49 @@ Scene CornellBoxTransparentSpheres(const MaterialLoader& MaterialLoader, const M
 	return scene;
 }
 
+Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
+{
+	Scene scene;
+	{
+		Transform t;
+		t.Position = { 0, 5, 3 };
+		t.Rotate(XM_PI - 0.5f, 0, 0);
+
+		auto& light1 = scene.AddLight();
+		XMStoreFloat4x4(&light1.World, XMMatrixTranspose(t.Matrix()));
+		light1.Width = 4;
+		light1.Height = 4;
+		light1.Color = { 1.0f, 1.0f, 1.0f };
+
+		// Materials
+		auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
+		defaultMat.Model = LambertianModel;
+
+		// Models
+		auto& rect = scene.AddModel(CreateGrid(100.0f, 100.0f, 2, 2));
+
+		// Model instances
+		auto& floorInstance = scene.AddModelInstance({ &rect, &defaultMat });
+	}
+	return scene;
+}
+
 Scene GenerateScene(SampleScene SampleScene)
 {
-	MaterialLoader	materialLoader	= MaterialLoader(Application::ExecutableFolderPath);
-	ModelLoader		modelLoader		= ModelLoader(Application::ExecutableFolderPath);
+	MaterialLoader	materialLoader = MaterialLoader(Application::ExecutableFolderPath);
+	ModelLoader		modelLoader = ModelLoader(Application::ExecutableFolderPath);
 
 	switch (SampleScene)
 	{
-		case SampleScene::Random:						return RandomScene(materialLoader, modelLoader);
-		case SampleScene::CornellBox:					return CornellBox(materialLoader, modelLoader);
-		case SampleScene::CornellBoxLambertianSpheres:	return CornellBoxLambertianSpheres(materialLoader, modelLoader);
-		case SampleScene::CornellBoxGlossySpheres:		return CornellBoxGlossySpheres(materialLoader, modelLoader);
-		case SampleScene::CornellBoxTransparentSpheres:	return CornellBoxTransparentSpheres(materialLoader, modelLoader);
-		default:										assert(false && "Unknown Sample Scene");
+	case SampleScene::Random:						return RandomScene(materialLoader, modelLoader);
+	case SampleScene::CornellBox:					return CornellBox(materialLoader, modelLoader);
+	case SampleScene::CornellBoxLambertianSpheres:	return CornellBoxLambertianSpheres(materialLoader, modelLoader);
+	case SampleScene::CornellBoxGlossySpheres:		return CornellBoxGlossySpheres(materialLoader, modelLoader);
+	case SampleScene::CornellBoxTransparentSpheres:	return CornellBoxTransparentSpheres(materialLoader, modelLoader);
+
+	case SampleScene::PlaneWithLights:				return PlaneWithLights(materialLoader, modelLoader);
+	default:										assert(false && "Unknown Sample Scene");
 	}
 	return Scene();
 }

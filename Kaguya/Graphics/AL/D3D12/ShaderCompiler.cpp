@@ -6,18 +6,18 @@ std::wstring ShaderProfileString(Shader::Type Type, ShaderCompiler::Profile Prof
 	std::wstring profileString;
 	switch (Type)
 	{
-	case Shader::Type::Vertex:		profileString = L"vs_"; break;
-	case Shader::Type::Hull:		profileString = L"hs_"; break;
-	case Shader::Type::Domain:		profileString = L"ds_"; break;
-	case Shader::Type::Geometry:	profileString = L"gs_"; break;
-	case Shader::Type::Pixel:		profileString = L"ps_"; break;
-	case Shader::Type::Compute:		profileString = L"cs_"; break;
+	case Shader::Type::Vertex:					profileString = L"vs_"; break;
+	case Shader::Type::Hull:					profileString = L"hs_"; break;
+	case Shader::Type::Domain:					profileString = L"ds_"; break;
+	case Shader::Type::Geometry:				profileString = L"gs_"; break;
+	case Shader::Type::Pixel:					profileString = L"ps_"; break;
+	case Shader::Type::Compute:					profileString = L"cs_"; break;
 	}
 
 	switch (Profile)
 	{
-	case ShaderCompiler::Profile::Profile_6_3: profileString += L"6_3"; break;
-	case ShaderCompiler::Profile::Profile_6_4: profileString += L"6_4"; break;
+	case ShaderCompiler::Profile::Profile_6_3:	profileString += L"6_3"; break;
+	case ShaderCompiler::Profile::Profile_6_4:	profileString += L"6_4"; break;
 	}
 
 	return profileString;
@@ -28,8 +28,8 @@ std::wstring LibraryProfileString(ShaderCompiler::Profile Profile)
 	std::wstring profileString = L"lib_";
 	switch (Profile)
 	{
-	case ShaderCompiler::Profile::Profile_6_3: profileString += L"6_3"; break;
-	case ShaderCompiler::Profile::Profile_6_4: profileString += L"6_4"; break;
+	case ShaderCompiler::Profile::Profile_6_3:	profileString += L"6_3"; break;
+	case ShaderCompiler::Profile::Profile_6_4:	profileString += L"6_4"; break;
 	}
 
 	return profileString;

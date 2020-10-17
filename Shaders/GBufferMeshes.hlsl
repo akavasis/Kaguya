@@ -1,4 +1,5 @@
 #include "HLSLCommon.hlsli"
+#include "GBuffer.hlsli"
 
 //----------------------------------------------------------------------------------------------------
 cbuffer RootConstants
@@ -25,17 +26,6 @@ struct VSOutput
 	float3		PositionW		: POSITION;
 	float2		TextureCoord	: TEXCOORD;
 	float3x3	TBNMatrix		: TBNBASIS;
-};
-
-struct PSOutput
-{
-	float4 Position		: SV_TARGET0;
-	float4 Normal		: SV_TARGET1;
-	float4 Albedo		: SV_TARGET2;
-	float4 Emissive		: SV_TARGET3;
-	float4 Specular		: SV_TARGET4;
-	float4 Refraction	: SV_TARGET5;
-	float4 Extra		: SV_TARGET6;
 };
 
 VSOutput VSMain(uint VertexID : SV_VertexID)
@@ -67,14 +57,14 @@ PSOutput PSMain(VSOutput IN)
 	{
 		GeometryInfo	INFO		= GeometryInfoBuffer[InstanceID];
 		Material		MATERIAL	= Materials[INFO.MaterialIndex];
-	
-		OUT.Position				= float4(IN.PositionW, 1.0f);
-		OUT.Normal					= float4(IN.TBNMatrix[2][0], IN.TBNMatrix[2][1], IN.TBNMatrix[2][2], 0.0f);
-		OUT.Albedo					= float4(MATERIAL.Albedo, MATERIAL.SpecularChance);
-		OUT.Emissive				= float4(MATERIAL.Emissive, MATERIAL.Roughness);
-		OUT.Specular				= float4(MATERIAL.Specular, MATERIAL.Fuzziness);
-		OUT.Refraction				= float4(MATERIAL.Refraction, MATERIAL.IndexOfRefraction);
-		OUT.Extra					= float4(MATERIAL.Model, 0.0f, 0.0f, 0.0f);
+		
+		GBufferMesh GBufferMesh;
+		GBufferMesh.Position		= IN.PositionW;
+		GBufferMesh.Normal			= float3(IN.TBNMatrix[2][0], IN.TBNMatrix[2][1], IN.TBNMatrix[2][2]);
+		GBufferMesh.Albedo			= float3(MATERIAL.Albedo);
+		GBufferMesh.MaterialIndex	= INFO.MaterialIndex;
+		
+		OUT = GetGBufferMeshPSOutput(GBufferMesh);
 	}
 	return OUT;
 }

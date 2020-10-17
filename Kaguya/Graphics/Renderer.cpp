@@ -8,6 +8,7 @@
 
 // Render passes
 #include "RenderPass/GBuffer.h"
+#include "RenderPass/LTC.h"
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/RaytraceGBuffer.h"
 #include "RenderPass/AmbientOcclusion.h"
@@ -48,9 +49,10 @@ void Renderer::OnInitialize()
 	GraphicsPSOs::Register(&m_RenderDevice);
 	ComputePSOs::Register(&m_RenderDevice);
 
-	SetScene(GenerateScene(SampleScene::CornellBox));
+	SetScene(GenerateScene(SampleScene::PlaneWithLights));
 
 	m_RenderGraph.AddRenderPass(new GBuffer(Width, Height));
+	m_RenderGraph.AddRenderPass(new LTC(Width, Height));
 	m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new RaytraceGBuffer(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));

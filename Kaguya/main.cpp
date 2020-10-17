@@ -13,8 +13,8 @@
 #endif
 #include <exception>
 
-#include "Core/Application.h"
-#include "Graphics/Renderer.h"
+#include <Core/Application.h>
+#include <Graphics/Renderer.h>
 
 int main(int argc, char** argv)
 {

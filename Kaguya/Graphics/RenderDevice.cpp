@@ -660,9 +660,10 @@ void RenderDevice::AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatur
 	// ShaderResource
 	RootDescriptorTable ShaderResourceDescriptorTable;
 	ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, flag, 0)); // Texture2DTable
-	ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, flag, 0)); // Texture2DArrayTable
-	ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 102, flag, 0)); // TextureCubeTable
-	ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 103, flag, 0)); // RawBufferTable
+	ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, flag, 0)); // Texture2DUINT4Table
+	ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 102, flag, 0)); // Texture2DArrayTable
+	ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 103, flag, 0)); // TextureCubeTable
+	ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 104, flag, 0)); // RawBufferTable
 	RootSignatureProxy.AddRootDescriptorTableParameter(ShaderResourceDescriptorTable);
 
 	// UnorderedAccess

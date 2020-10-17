@@ -1,4 +1,5 @@
 #include "HLSLCommon.hlsli"
+#include "GBuffer.hlsli"
 
 // This creates a quad facing the positive z
 void GetLightVertexWS(PolygonalLight light, uint vertexId, out float3 worldSpaceCoord, out float2 localSpaceCoord)
@@ -23,7 +24,7 @@ void GetLightVertexWS(PolygonalLight light, uint vertexId, out float3 worldSpace
 //----------------------------------------------------------------------------------------------------
 cbuffer RootConstants
 {
-	uint LightID;
+	uint LightIndex;
 };
 
 StructuredBuffer<PolygonalLight> Lights : register(t0, space0);
@@ -32,7 +33,6 @@ struct GBufferData
 {
 	GlobalConstants GlobalConstants;
 };
-
 #define RenderPassDataType GBufferData
 #include "ShaderLayout.hlsli"
 
@@ -44,17 +44,6 @@ struct VSOutput
 	float2		Dimension		: DIMENSION;
 };
 
-struct PSOutput
-{
-	float4 Position		: SV_TARGET0;
-	float4 Normal		: SV_TARGET1;
-	float4 Albedo		: SV_TARGET2;
-	float4 Emissive		: SV_TARGET3;
-	float4 Specular		: SV_TARGET4;
-	float4 Refraction	: SV_TARGET5;
-	float4 Extra		: SV_TARGET6;
-};
-
 VSOutput VSMain(uint VertexID : SV_VertexID)
 {
 	VSOutput OUT;
@@ -64,7 +53,7 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 		LightVertexIndex = LightVertexIndex == 4 ? 3 : LightVertexIndex;
 		LightVertexIndex = LightVertexIndex == 5 ? 0 : LightVertexIndex;
 		
-		PolygonalLight Light = Lights[LightID];
+		PolygonalLight Light = Lights[LightIndex];
 		
 		float2 localSpacePosition;
 		GetLightVertexWS(Light, LightVertexIndex, OUT.PositionW, localSpacePosition);
@@ -82,7 +71,10 @@ PSOutput PSMain(VSOutput IN)
 {
 	PSOutput OUT;
 	{
-		OUT.Position				= float4(IN.PositionW, 1.0f);
+		GBufferLight GBufferLight;
+		GBufferLight.LightIndex = LightIndex;
+		
+		OUT = GetGBufferLightPSOutput(GBufferLight);
 	}
 	return OUT;
 }

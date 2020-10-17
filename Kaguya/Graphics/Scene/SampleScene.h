@@ -8,6 +8,8 @@ enum class SampleScene
 	CornellBoxLambertianSpheres,
 	CornellBoxGlossySpheres,
 	CornellBoxTransparentSpheres,
+
+	PlaneWithLights
 };
 
 Scene GenerateScene(SampleScene SampleScene);

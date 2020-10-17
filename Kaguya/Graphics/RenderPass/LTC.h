@@ -4,29 +4,16 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
-class GBuffer : public RenderPass
+class LTC : public RenderPass
 {
 public:
 	enum EResources
 	{
-		Position,
-		Normal,
-		Albedo,
-		TypeAndIndex,
-
-		DepthStencil,
-
+		RenderTarget,
 		NumResources
 	};
 
-	struct SSettings
-	{
-		int GBuffer = 0;
-	};
-
-	GBuffer(UINT Width, UINT Height);
-
-	inline auto GetSettings() const { return Settings; }
+	LTC(UINT Width, UINT Height);
 protected:
 	virtual void InitializePipeline(RenderDevice* pRenderDevice) override;
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
@@ -35,9 +22,5 @@ protected:
 	virtual void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
 	virtual void StateRefresh() override;
 private:
-	void RenderMeshes(RenderContext& RenderContext);
-	void RenderLights(RenderContext& RenderContext);
-
-	SSettings Settings;
 	GpuScene* pGpuScene;
 };

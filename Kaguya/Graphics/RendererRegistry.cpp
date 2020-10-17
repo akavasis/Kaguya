@@ -25,6 +25,7 @@ void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path Execut
 		PS::ConvolutionPrefilter						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",	L"PSMain", {});
 		PS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			L"PSMain", {});
 		PS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",			L"PSMain", {});
+		PS::LTC											= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/LTC.hlsl",						L"PSMain", {});
 
 		PS::PostProcess_Tonemapping						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl",	L"PSMain", {});
 	}

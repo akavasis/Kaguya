@@ -7,13 +7,10 @@
 class Accumulation : public RenderPass
 {
 public:
-	struct EResources
+	enum EResources
 	{
-		enum
-		{
-			RenderTarget,
-			NumResources
-		};
+		RenderTarget,
+		NumResources
 	};
 
 	struct SSettings

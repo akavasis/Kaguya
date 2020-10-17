@@ -278,6 +278,8 @@ size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, Devi
 
 void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 {
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Bottom Level AS Generation");
+
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
 		UINT64 scratchSizeInBytes, resultSizeInBytes;
@@ -308,6 +310,8 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 
 void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 {
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Top Level AS Generation");
+
 	size_t hitGroupIndex = 0;
 	for (const auto& modelInstance : pScene->ModelInstances)
 	{

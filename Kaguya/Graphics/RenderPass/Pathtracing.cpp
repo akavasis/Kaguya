@@ -206,7 +206,7 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	globalConstants.FocalLength = pGpuScene->pScene->Camera.FocalLength;
 	globalConstants.LensRadius = pGpuScene->pScene->Camera.Aperture;
 
-	globalConstants.SkyboxIndex = RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.RendererReseveredTextures[GpuTextureAllocator::SkyboxCubemap]).HeapIndex;
+	globalConstants.SkyboxIndex = RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.SystemReservedTextures[GpuTextureAllocator::SkyboxCubemap]).HeapIndex;
 
 	Data.GlobalConstants = globalConstants;
 	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;

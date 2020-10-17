@@ -1,12 +1,13 @@
 #include "pch.h"
 #include "GpuTextureAllocator.h"
 #include "RendererRegistry.h"
+#include <Core/Application.h>
 
 GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice)
 {
 	// Create BRDF LUT
-	RendererReseveredTextures[BRDFLUT] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	SystemReservedTextures[BRDFLUT] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(RendererFormats::BRDFLUTFormat);
 		proxy.SetWidth(Resolutions::BRDFLUT);
@@ -127,6 +128,8 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 	{
 		Status::BRDFGenerated = true;
 
+		PIXMarker(RenderContext->GetD3DCommandList(), L"Integrate BRDF");
+
 		D3D12_VIEWPORT vp;
 		vp.TopLeftX = vp.TopLeftY = 0.0f;
 		vp.MinDepth = 0.0f;
@@ -137,31 +140,46 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		sr.left = sr.top = 0;
 		sr.right = sr.bottom = Resolutions::BRDFLUT;
 
-		RenderContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[BRDFLUT]), DeviceResource::State::RenderTarget);
+		RenderContext->TransitionBarrier(pRenderDevice->GetTexture(SystemReservedTextures[BRDFLUT]), DeviceResource::State::RenderTarget);
 
 		RenderContext.SetPipelineState(GraphicsPSOs::BRDFIntegration);
 		RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		pRenderDevice->CreateRenderTargetView(RendererReseveredTextures[BRDFLUT]);
+		pRenderDevice->CreateRenderTargetView(SystemReservedTextures[BRDFLUT]);
 
-		Descriptor RTV = pRenderDevice->GetRenderTargetView(RendererReseveredTextures[BRDFLUT]);
+		Descriptor RTV = pRenderDevice->GetRenderTargetView(SystemReservedTextures[BRDFLUT]);
 
 		RenderContext->SetRenderTargets(1, &RTV, TRUE, Descriptor());
 		RenderContext->SetViewports(1, &vp);
 		RenderContext->SetScissorRects(1, &sr);
 		RenderContext->DrawInstanced(3, 1, 0, 0);
 
-		RenderContext.TransitionBarrier(RendererReseveredTextures[BRDFLUT], DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
+		RenderContext.TransitionBarrier(SystemReservedTextures[BRDFLUT], DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
+	}
+
+	// Load LTCLUT1
+	if (!Status::LTCLUT1Generated)
+	{
+		Status::LTCLUT1Generated = true;
+		SystemReservedTextures[LTCLUT1] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_mat.dds", false, false);
+		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[LTCLUT1]);
+	}
+
+	if (!Status::LTCLUT2Generated)
+	{
+		Status::LTCLUT2Generated = true;
+		SystemReservedTextures[LTCLUT2] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_amp.dds", false, false);
+		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[LTCLUT2]);
 	}
 
 	// Generate skybox first
-	RendererReseveredTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
-	auto& stagingTexture = m_UnstagedTextures[RendererReseveredTextures[SkyboxEquirectangularMap]];
-	StageTexture(RendererReseveredTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
+	SystemReservedTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
+	auto& stagingTexture = m_UnstagedTextures[SystemReservedTextures[SkyboxEquirectangularMap]];
+	StageTexture(SystemReservedTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
 
 	// Generate cubemap for equirectangular map
-	DeviceTexture* pEquirectangularMap = pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxEquirectangularMap]);
-	RendererReseveredTextures[SkyboxCubemap] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::TextureCube, [&](DeviceTextureProxy& proxy)
+	DeviceTexture* pEquirectangularMap = pRenderDevice->GetTexture(SystemReservedTextures[SkyboxEquirectangularMap]);
+	SystemReservedTextures[SkyboxCubemap] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::TextureCube, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(pEquirectangularMap->GetFormat());
 		proxy.SetWidth(1024);
@@ -171,8 +189,8 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		proxy.InitialState = DeviceResource::State::Common;
 	});
 
-	EquirectangularToCubemap(RendererReseveredTextures[SkyboxEquirectangularMap], RendererReseveredTextures[SkyboxCubemap], RenderContext);
-	pRenderDevice->CreateShaderResourceView(RendererReseveredTextures[SkyboxCubemap]);
+	EquirectangularToCubemap(SystemReservedTextures[SkyboxEquirectangularMap], SystemReservedTextures[SkyboxCubemap], RenderContext);
+	pRenderDevice->CreateShaderResourceView(SystemReservedTextures[SkyboxCubemap]);
 
 	//// Create temporary srv for the cubemap and generate convolutions
 	//pRenderDevice->CreateSRV(RendererReseveredTextures[SkyboxCubemap]);
@@ -264,7 +282,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
 	{
 		// Skybox is already staged, dont need to stage again
-		if (handle == RendererReseveredTextures[SkyboxEquirectangularMap])
+		if (handle == SystemReservedTextures[SkyboxEquirectangularMap])
 			continue;
 
 		StageTexture(handle, stagingTexture, RenderContext);
@@ -411,19 +429,14 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	pD3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(totalBytes), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(stagingResource.ReleaseAndGetAddressOf()));
 
-#ifdef _DEBUG
-	std::wstring stagingName = L"Staging Resource: " + Path.generic_wstring();
-	stagingResource->SetName(stagingName.data());
-#endif
-
 	// CPU Upload
-	BYTE* pData = nullptr;
-	stagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pData));
+	BYTE* pHostMemory = nullptr;
+	stagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory));
 	{
 		for (UINT subresourceIndex = 0; subresourceIndex < NumSubresources; ++subresourceIndex)
 		{
 			D3D12_MEMCPY_DEST memcpyDest;
-			memcpyDest.pData = pData + placedSubresourceLayouts[subresourceIndex].Offset;
+			memcpyDest.pData = pHostMemory + placedSubresourceLayouts[subresourceIndex].Offset;
 			memcpyDest.RowPitch = static_cast<SIZE_T>(placedSubresourceLayouts[subresourceIndex].Footprint.RowPitch);
 			memcpyDest.SlicePitch = static_cast<SIZE_T>(placedSubresourceLayouts[subresourceIndex].Footprint.RowPitch) * static_cast<SIZE_T>(numRows[subresourceIndex]);
 
@@ -472,7 +485,7 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 
 		case TextureFlags::Embedded:
 		{
-			assert(false); // Currently not supported
+			assert(false && "Embedded Texture currently not supported"); // Currently not supported
 		}
 		break;
 		}
@@ -481,6 +494,9 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 
 void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
 {
+	std::wstring Path = UTF8ToUTF16(StagingTexture.path);
+	PIXMarker(RenderContext->GetD3DCommandList(), Path.data());
+
 	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 	DeviceTexture* pStagingResourceTexture = &StagingTexture.texture;
 

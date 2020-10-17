@@ -40,6 +40,7 @@
 
 // third parties
 #include <DirectXTex.h>
+#include "../External/DirectXTex/D3D12/d3dx12.h"
 #include "../External/imgui/imgui.h"
 #include "../External/imgui/imgui_impl_win32.h"
 #include "../External/imgui/imgui_impl_dx12.h"
@@ -47,11 +48,10 @@
 // DX12
 #include <d3d12.h>
 #pragma comment(lib, "d3d12.lib")
-#include "../External/DirectXTex/D3D12/d3dx12.h"
 
-#include "Core/Utility.h"
-#include "Core/Log.h"
-#include "Core/Exception.h"
-#include "Math/MathLibrary.h"
-#include "Graphics/Debug/PIXMarker.h"
-#include "Graphics/Debug/PIXCapture.h"
+#include <Core/Utility.h>
+#include <Core/Log.h>
+#include <Core/Exception.h>
+#include <Math/MathLibrary.h>
+#include <Graphics/Debug/PIXMarker.h>
+#include <Graphics/Debug/PIXCapture.h>
