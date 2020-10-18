@@ -53,10 +53,10 @@ void Renderer::OnInitialize()
 
 	m_RenderGraph.AddRenderPass(new GBuffer(Width, Height));
 	m_RenderGraph.AddRenderPass(new LTC(Width, Height));
-	m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
+	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new RaytraceGBuffer(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
-	m_RenderGraph.AddRenderPass(new Accumulation(Width, Height));
+	//m_RenderGraph.AddRenderPass(new Accumulation(Width, Height));
 	m_RenderGraph.AddRenderPass(new PostProcess(Width, Height));
 	m_RenderGraph.Initialize();
 

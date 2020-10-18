@@ -389,7 +389,7 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		XMStoreFloat4x4(&light1.World, XMMatrixTranspose(t.Matrix()));
 		light1.Width = 4;
 		light1.Height = 4;
-		light1.Color = { 1.0f, 1.0f, 1.0f };
+		light1.Color = { 10.0f, 10.0f, 10.0f };
 
 		// Materials
 		auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));

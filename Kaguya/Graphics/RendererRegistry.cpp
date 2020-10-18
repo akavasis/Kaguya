@@ -20,7 +20,6 @@ void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path Execut
 
 	// Load PS
 	{
-		PS::BRDFIntegration								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/BRDFIntegration.hlsl",			L"PSMain", {});
 		PS::ConvolutionIrradiance						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionIrradiance.hlsl",	L"PSMain", {});
 		PS::ConvolutionPrefilter						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",	L"PSMain", {});
 		PS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			L"PSMain", {});
@@ -54,12 +53,6 @@ void Libraries::Register(RenderDevice* pRenderDevice, std::filesystem::path Exec
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
-	BRDFIntegration = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
-	{
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
 	// Cubemap convolutions RS
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
@@ -140,15 +133,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 {
-	BRDFIntegration = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
-	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::BRDFIntegration);
-		proxy.pVS = &Shaders::VS::Quad;
-		proxy.pPS = &Shaders::PS::BRDFIntegration;
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-		proxy.AddRenderTargetFormat(RendererFormats::BRDFLUTFormat);
-	});
-
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
 		const RootSignature* pRS = i == CubemapConvolution::Irradiance ? pRenderDevice->GetRootSignature(RootSignatures::ConvolutionIrradiace)

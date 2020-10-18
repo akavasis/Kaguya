@@ -6,16 +6,6 @@
 GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice)
 {
-	// Create BRDF LUT
-	SystemReservedTextures[BRDFLUT] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
-	{
-		proxy.SetFormat(RendererFormats::BRDFLUTFormat);
-		proxy.SetWidth(Resolutions::BRDFLUT);
-		proxy.SetHeight(Resolutions::BRDFLUT);
-		proxy.BindFlags = DeviceResource::BindFlags::RenderTarget;
-		proxy.InitialState = DeviceResource::State::RenderTarget;
-	});
-
 	m_CubemapCamerasUploadBufferHandle = pRenderDevice->CreateDeviceBuffer([](DeviceBufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(6 * Math::AlignUp<UINT64>(sizeof(GlobalConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
@@ -123,74 +113,53 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 
 void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 {
-	// Generate BRDF LUT
 	if (!Status::BRDFGenerated)
 	{
 		Status::BRDFGenerated = true;
 
-		PIXMarker(RenderContext->GetD3DCommandList(), L"Integrate BRDF");
-
-		D3D12_VIEWPORT vp;
-		vp.TopLeftX = vp.TopLeftY = 0.0f;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-		vp.Width = vp.Height = Resolutions::BRDFLUT;
-
-		D3D12_RECT sr;
-		sr.left = sr.top = 0;
-		sr.right = sr.bottom = Resolutions::BRDFLUT;
-
-		RenderContext->TransitionBarrier(pRenderDevice->GetTexture(SystemReservedTextures[BRDFLUT]), DeviceResource::State::RenderTarget);
-
-		RenderContext.SetPipelineState(GraphicsPSOs::BRDFIntegration);
-		RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		pRenderDevice->CreateRenderTargetView(SystemReservedTextures[BRDFLUT]);
-
-		Descriptor RTV = pRenderDevice->GetRenderTargetView(SystemReservedTextures[BRDFLUT]);
-
-		RenderContext->SetRenderTargets(1, &RTV, TRUE, Descriptor());
-		RenderContext->SetViewports(1, &vp);
-		RenderContext->SetScissorRects(1, &sr);
-		RenderContext->DrawInstanced(3, 1, 0, 0);
-
-		RenderContext.TransitionBarrier(SystemReservedTextures[BRDFLUT], DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
+		SystemReservedTextures[BRDFLUT] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/BRDF.dds", false, false);
+		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[BRDFLUT]);
 	}
 
-	// Load LTCLUT1
 	if (!Status::LTCLUT1Generated)
 	{
 		Status::LTCLUT1Generated = true;
-		SystemReservedTextures[LTCLUT1] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_mat.dds", false, false);
+
+		SystemReservedTextures[LTCLUT1] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_1.dds", false, false);
 		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[LTCLUT1]);
 	}
 
 	if (!Status::LTCLUT2Generated)
 	{
 		Status::LTCLUT2Generated = true;
-		SystemReservedTextures[LTCLUT2] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_amp.dds", false, false);
+
+		SystemReservedTextures[LTCLUT2] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_2.dds", false, false);
 		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[LTCLUT2]);
 	}
 
-	// Generate skybox first
-	SystemReservedTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
-	auto& stagingTexture = m_UnstagedTextures[SystemReservedTextures[SkyboxEquirectangularMap]];
-	StageTexture(SystemReservedTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
-
-	// Generate cubemap for equirectangular map
-	DeviceTexture* pEquirectangularMap = pRenderDevice->GetTexture(SystemReservedTextures[SkyboxEquirectangularMap]);
-	SystemReservedTextures[SkyboxCubemap] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::TextureCube, [&](DeviceTextureProxy& proxy)
+	if (!Status::SkyboxGenerated)
 	{
-		proxy.SetFormat(pEquirectangularMap->GetFormat());
-		proxy.SetWidth(1024);
-		proxy.SetHeight(1024);
-		proxy.SetMipLevels(0);
-		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-		proxy.InitialState = DeviceResource::State::Common;
-	});
+		Status::SkyboxGenerated = true;
 
-	EquirectangularToCubemap(SystemReservedTextures[SkyboxEquirectangularMap], SystemReservedTextures[SkyboxCubemap], RenderContext);
-	pRenderDevice->CreateShaderResourceView(SystemReservedTextures[SkyboxCubemap]);
+		SystemReservedTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
+		auto& stagingTexture = m_UnstagedTextures[SystemReservedTextures[SkyboxEquirectangularMap]];
+		StageTexture(SystemReservedTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
+
+		// Generate cubemap for equirectangular map
+		DeviceTexture* pEquirectangularMap = pRenderDevice->GetTexture(SystemReservedTextures[SkyboxEquirectangularMap]);
+		SystemReservedTextures[SkyboxCubemap] = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::TextureCube, [&](DeviceTextureProxy& proxy)
+		{
+			proxy.SetFormat(pEquirectangularMap->GetFormat());
+			proxy.SetWidth(1024);
+			proxy.SetHeight(1024);
+			proxy.SetMipLevels(0);
+			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.InitialState = DeviceResource::State::Common;
+		});
+
+		EquirectangularToCubemap(SystemReservedTextures[SkyboxEquirectangularMap], SystemReservedTextures[SkyboxCubemap], RenderContext);
+		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[SkyboxCubemap]);
+	}
 
 	//// Create temporary srv for the cubemap and generate convolutions
 	//pRenderDevice->CreateSRV(RendererReseveredTextures[SkyboxCubemap]);
@@ -395,9 +364,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	break;
 
 	default:
-	{
-		throw std::logic_error("Unknown TEX_DIMENSION");
-	}
+		assert(false && "Unknown DirectX::TEX_DIMENSION");
 	}
 
 	DeviceTexture* pTexture = pRenderDevice->GetTexture(handle);
@@ -431,7 +398,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	// CPU Upload
 	BYTE* pHostMemory = nullptr;
-	stagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory));
+	if (stagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory)) == S_OK)
 	{
 		for (UINT subresourceIndex = 0; subresourceIndex < NumSubresources; ++subresourceIndex)
 		{
@@ -450,8 +417,8 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 				}
 			}
 		}
+		stagingResource->Unmap(0, nullptr);
 	}
-	stagingResource->Unmap(0, nullptr);
 
 	StagingTexture stagingTexture;
 	stagingTexture.path = Path.generic_string();
@@ -518,26 +485,20 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 
 	if (StagingTexture.generateMips)
 	{
-		GenerateMips(TextureHandle, RenderContext);
+		if (IsUAVCompatable(pTexture->GetFormat()))
+		{
+			GenerateMipsUAV(TextureHandle, RenderContext);
+		}
+		else if (IsSRGB(pTexture->GetFormat()))
+		{
+			GenerateMipsSRGB(TextureHandle, RenderContext);
+		}
 	}
 
 	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 
 	TextureHandles[StagingTexture.path] = TextureHandle;
 	CORE_INFO("{} Loaded", StagingTexture.path);
-}
-
-void GpuTextureAllocator::GenerateMips(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
-{
-	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-	if (IsUAVCompatable(pTexture->GetFormat()))
-	{
-		GenerateMipsUAV(TextureHandle, RenderContext);
-	}
-	else if (IsSRGB(pTexture->GetFormat()))
-	{
-		GenerateMipsSRGB(TextureHandle, RenderContext);
-	}
 }
 
 void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
@@ -674,16 +635,16 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 
 	RenderContext.SetPipelineState(ComputePSOs::EquirectangularToCubemap);
 
-	EquirectangularToCubemapData equirectangylarToCubemapData;
+	EquirectangularToCubemapData equirectangularToCubemapData;
 
 	for (uint32_t mipSlice = 0; mipSlice < resourceDesc.MipLevels; )
 	{
 		// Maximum number of mips to generate per pass is 5.
 		uint32_t numMips = std::min<uint32_t>(5, resourceDesc.MipLevels - mipSlice);
 
-		equirectangylarToCubemapData.FirstMip = mipSlice;
-		equirectangylarToCubemapData.CubemapSize = std::max<uint32_t>(static_cast<uint32_t>(resourceDesc.Width), resourceDesc.Height) >> mipSlice;
-		equirectangylarToCubemapData.NumMips = numMips;
+		equirectangularToCubemapData.FirstMip = mipSlice;
+		equirectangularToCubemapData.CubemapSize = std::max<uint32_t>(static_cast<uint32_t>(resourceDesc.Width), resourceDesc.Height) >> mipSlice;
+		equirectangularToCubemapData.NumMips = numMips;
 
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
@@ -696,13 +657,13 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 			outputIndices[mip] = pRenderDevice->GetUnorderedAccessView(Cubemap, {}, mipSlice + mip).HeapIndex;
 		}
 
-		equirectangylarToCubemapData.InputIndex = pRenderDevice->GetShaderResourceView(EquirectangularMap).HeapIndex;
+		equirectangularToCubemapData.InputIndex = pRenderDevice->GetShaderResourceView(EquirectangularMap).HeapIndex;
 
-		equirectangylarToCubemapData.Output1Index = outputIndices[0];
-		equirectangylarToCubemapData.Output2Index = outputIndices[1];
-		equirectangylarToCubemapData.Output3Index = outputIndices[2];
-		equirectangylarToCubemapData.Output4Index = outputIndices[3];
-		equirectangylarToCubemapData.Output5Index = outputIndices[4];
+		equirectangularToCubemapData.Output1Index = outputIndices[0];
+		equirectangularToCubemapData.Output2Index = outputIndices[1];
+		equirectangularToCubemapData.Output3Index = outputIndices[2];
+		equirectangularToCubemapData.Output4Index = outputIndices[3];
+		equirectangularToCubemapData.Output5Index = outputIndices[4];
 
 		RenderContext->TransitionBarrier(pEquirectangularMap, DeviceResource::State::NonPixelShaderResource);
 		for (uint32_t mip = 0; mip < numMips; ++mip)
@@ -710,9 +671,9 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 			RenderContext->TransitionBarrier(pCubemap, DeviceResource::State::UnorderedAccess);
 		}
 
-		RenderContext->SetComputeRoot32BitConstants(0, sizeof(EquirectangularToCubemapData) / 4, &equirectangylarToCubemapData, 0);
+		RenderContext->SetComputeRoot32BitConstants(0, sizeof(EquirectangularToCubemapData) / 4, &equirectangularToCubemapData, 0);
 
-		UINT threadGroupCount = Math::RoundUpAndDivide(equirectangylarToCubemapData.CubemapSize, 16);
+		UINT threadGroupCount = Math::RoundUpAndDivide(equirectangularToCubemapData.CubemapSize, 16);
 		RenderContext->Dispatch(threadGroupCount, threadGroupCount, 6);
 
 		RenderContext->UAVBarrier(pCubemap);

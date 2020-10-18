@@ -38,6 +38,7 @@ private:
 		inline static bool BRDFGenerated = false;
 		inline static bool LTCLUT1Generated = false;
 		inline static bool LTCLUT2Generated = false;
+		inline static bool SkyboxGenerated = false;
 	};
 
 	struct StagingTexture
@@ -54,7 +55,6 @@ private:
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
 	void LoadMaterial(Material& Material);
 	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext);
-	void GenerateMips(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
 	void GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
 	void GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
 	void EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
@@ -69,7 +69,6 @@ private:
 
 	std::unordered_set<DXGI_FORMAT> m_UAVSupportedFormat;
 
-	// TODO: Add method to free them after Stage call
 	std::unordered_map<RenderResourceHandle, StagingTexture> m_UnstagedTextures;
 	std::vector<RenderResourceHandle> m_TemporaryResources;
 

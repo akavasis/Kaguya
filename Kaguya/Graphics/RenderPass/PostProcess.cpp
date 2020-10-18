@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "PostProcess.h"
 
+#include "LTC.h"
 #include "Accumulation.h"
 
 PostProcess::PostProcess(UINT Width, UINT Height)
@@ -172,7 +173,6 @@ void PostProcess::RenderGui()
 		if (ImGui::TreeNode("Tonemapping"))
 		{
 			ImGui::SliderFloat("Exposure", &Settings.Tonemapping.Exposure, 0.1f, 10.0f);
-			//ImGui::SliderFloat("Gamma", &Settings.Tonemapping.Gamma, 0.1f, 4.0f);
 			ImGui::TreePop();
 		}
 
@@ -182,9 +182,15 @@ void PostProcess::RenderGui()
 
 void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	auto pLTCRenderPass = pRenderGraph->GetRenderPass<LTC>();
+	Descriptor InputSRV = RenderContext.GetShaderResourceView(pLTCRenderPass->Resources[LTC::EResources::RenderTarget]);
+
+	//auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
+	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
+
 	if (Settings.ApplyBloom)
-		ApplyBloom(RenderContext, pRenderGraph);
-	ApplyTonemappingToSwapChain(RenderContext, pRenderGraph);
+		ApplyBloom(InputSRV, RenderContext, pRenderGraph);
+	ApplyTonemappingToSwapChain(InputSRV, RenderContext, pRenderGraph);
 }
 
 void PostProcess::StateRefresh()
@@ -192,16 +198,13 @@ void PostProcess::StateRefresh()
 
 }
 
-void PostProcess::ApplyBloom(RenderContext& RenderContext, RenderGraph* pRenderGraph)
+void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
 	/*
 		Bloom PP is based on Microsoft's DirectX-Graphics-Samples's MiniEngine.
 		https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine
 	*/
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom");
-
-	auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
-	Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
 
 	const UINT bloomWidth = Properties.Width > 2560u ? 1280u : 640u;
 	const UINT bloomHeight = Properties.Height > 1440u ? 768u : 384u;
@@ -317,11 +320,9 @@ void PostProcess::ApplyBloom(RenderContext& RenderContext, RenderGraph* pRenderG
 	}
 }
 
-void PostProcess::ApplyTonemappingToSwapChain(RenderContext& RenderContext, RenderGraph* pRenderGraph)
+void PostProcess::ApplyTonemappingToSwapChain(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Tonemap");
-
-	auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
 
 	struct Tonemapping_Settings
 	{
@@ -330,7 +331,7 @@ void PostProcess::ApplyTonemappingToSwapChain(RenderContext& RenderContext, Rend
 	} settings;
 	settings.Exposure = Settings.Tonemapping.Exposure;
 	settings.InputIndex = Settings.ApplyBloom ? RenderContext.GetShaderResourceView(Resources[EResources::RenderTarget]).HeapIndex :
-		RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]).HeapIndex;
+		InputSRV.HeapIndex;
 
 	auto pDestination = RenderContext.GetTexture(RenderContext.GetCurrentSwapChainResourceHandle());
 	auto DestinationRTV = RenderContext.GetRenderTargetView(RenderContext.GetCurrentSwapChainResourceHandle());

@@ -3,8 +3,8 @@
 
 #include "HLSLCommon.hlsli"
 
-static const uint GBufferTypeMesh = 0;
-static const uint GBufferTypeLight = 1;
+static const uint GBufferTypeMesh = 1 << 0;
+static const uint GBufferTypeLight = 1 << 1;
 
 struct GBuffer
 {

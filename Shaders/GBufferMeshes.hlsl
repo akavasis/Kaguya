@@ -16,7 +16,6 @@ struct GBufferData
 {
 	GlobalConstants GlobalConstants;
 };
-
 #define RenderPassDataType GBufferData
 #include "ShaderLayout.hlsli"
 
