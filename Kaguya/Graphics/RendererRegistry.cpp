@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "RendererRegistry.h"
 
+#include <Core/Application.h>
+
 // Render passes
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/RaytraceGBuffer.h"
@@ -8,8 +10,9 @@
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 
-void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
+void Shaders::Register(RenderDevice* pRenderDevice)
 {
+	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 	// Load VS
 	{
 		VS::Quad										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",			L"VSMain", {});
@@ -44,8 +47,9 @@ void Shaders::Register(RenderDevice* pRenderDevice, std::filesystem::path Execut
 	}
 }
 
-void Libraries::Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath)
+void Libraries::Register(RenderDevice* pRenderDevice)
 {
+	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 	Pathtracing			= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
 	RaytraceGBuffer		= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/RaytraceGBuffer.hlsl");
 	AmbientOcclusion	= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");

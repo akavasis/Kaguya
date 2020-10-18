@@ -14,7 +14,8 @@ void LTC::InitializePipeline(RenderDevice* pRenderDevice)
 {
 	RootSignatures::LTC = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootSRVParameter(RootSRV(0, 0));						// Light Buffer, t0 | space0
+		proxy.AddRootSRVParameter(RootSRV(0, 0));						// Light Buffer,	t0 | space0
+		proxy.AddRootSRVParameter(RootSRV(1, 0));						// Material Buffer, t1 | space0
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16); // LinearClamp s0 | space0
 
@@ -108,6 +109,7 @@ void LTC::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	RenderContext.SetPipelineState(GraphicsPSOs::LTC);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetLightTableHandle());
+	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetMaterialTableHandle());
 
 	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
 	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);

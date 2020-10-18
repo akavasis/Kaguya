@@ -16,15 +16,6 @@ class Time;
 class Renderer : public RenderSystem
 {
 public:
-	struct Statistics
-	{
-		inline static uint64_t	TotalFrameCount = 0;
-		inline static uint64_t	FrameCount		= 0;
-		inline static double	TimeElapsed		= 0.0;
-		inline static double	FPS				= 0.0;
-		inline static double	FPMS			= 0.0;
-	};
-
 	struct Settings
 	{
 		inline static bool		VSync = false;
@@ -32,13 +23,14 @@ public:
 
 	Renderer(Window* pWindow);
 
-	virtual void OnInitialize() override;
-	virtual void OnHandleMouse(int32_t X, int32_t Y, float DeltaTime) override;
-	virtual void OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
-	virtual void OnUpdate(const Time& Time) override;
-	virtual void OnRender() override;
-	virtual void OnResize(uint32_t Width, uint32_t Height) override;
-	virtual void OnDestroy() override;
+protected:
+	virtual void Initialize() override;
+	virtual void HandleMouse(int32_t X, int32_t Y, float DeltaTime) override;
+	virtual void HandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
+	virtual void Update(const Time& Time) override;
+	virtual void Render() override;
+	virtual void Resize(uint32_t Width, uint32_t Height) override;
+	virtual void Destroy() override;
 private:
 	void SetScene(Scene Scene);
 	void RenderGui();
@@ -52,6 +44,5 @@ private:
 	GpuScene								m_GpuScene;
 	RenderGraph								m_RenderGraph;
 
-	CommandContext*							m_pUploadCommandContext;
-	RenderContext							m_UploadRenderContext;
+	RenderContext							m_RenderContext; // Used exclusively by the renderer
 };

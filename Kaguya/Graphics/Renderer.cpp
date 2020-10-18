@@ -25,11 +25,21 @@ Renderer::Renderer(Window* pWindow)
 	m_GpuScene(&m_RenderDevice),
 	m_RenderGraph(&m_RenderDevice),
 
-	m_pUploadCommandContext(m_RenderDevice.AllocateContext(CommandContext::Direct)),
-	m_UploadRenderContext(0, nullptr, &m_RenderDevice, m_pUploadCommandContext)
+	m_RenderContext(0, nullptr, &m_RenderDevice, m_RenderDevice.AllocateContext(CommandContext::Direct))
 {
-	// Create swap chain after command objects have been created
 	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), *pWindow, RendererFormats::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
+}
+
+//----------------------------------------------------------------------------------------------------
+void Renderer::Initialize()
+{
+	Shaders::Register(&m_RenderDevice);
+	Libraries::Register(&m_RenderDevice);
+	RootSignatures::Register(&m_RenderDevice);
+	GraphicsPSOs::Register(&m_RenderDevice);
+	ComputePSOs::Register(&m_RenderDevice);
+
+	SetScene(GenerateScene(SampleScene::PlaneWithLights));
 
 	for (size_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 	{
@@ -38,18 +48,6 @@ Renderer::Renderer(Window* pWindow)
 		m_RenderDevice.SwapChainTextures[i] = m_RenderDevice.CreateDeviceTexture(pBackBuffer, DeviceResource::State::Common);
 		m_RenderDevice.CreateRenderTargetView(m_RenderDevice.SwapChainTextures[i]);
 	}
-}
-
-//----------------------------------------------------------------------------------------------------
-void Renderer::OnInitialize()
-{
-	Shaders::Register(&m_RenderDevice, Application::ExecutableFolderPath);
-	Libraries::Register(&m_RenderDevice, Application::ExecutableFolderPath);
-	RootSignatures::Register(&m_RenderDevice);
-	GraphicsPSOs::Register(&m_RenderDevice);
-	ComputePSOs::Register(&m_RenderDevice);
-
-	SetScene(GenerateScene(SampleScene::PlaneWithLights));
 
 	m_RenderGraph.AddRenderPass(new GBuffer(Width, Height));
 	m_RenderGraph.AddRenderPass(new LTC(Width, Height));
@@ -64,7 +62,7 @@ void Renderer::OnInitialize()
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::OnHandleMouse(int32_t X, int32_t Y, float DeltaTime)
+void Renderer::HandleMouse(int32_t X, int32_t Y, float DeltaTime)
 {
 	Scene& scene = *m_GpuScene.pScene;
 
@@ -72,7 +70,7 @@ void Renderer::OnHandleMouse(int32_t X, int32_t Y, float DeltaTime)
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
+void Renderer::HandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 {
 	Scene& scene = *m_GpuScene.pScene;
 
@@ -91,30 +89,21 @@ void Renderer::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::OnUpdate(const Time& Time)
+void Renderer::Update(const Time& Time)
 {
-	Statistics::TotalFrameCount++;
-	Statistics::FrameCount++;
-	if (Time.TotalTime() - Statistics::TimeElapsed >= 1.0)
-	{
-		Statistics::FPS			= static_cast<DOUBLE>(Statistics::FrameCount);
-		Statistics::FPMS		= 1000.0 / Statistics::FPS;
-		Statistics::FrameCount	= 0;
-		Statistics::TimeElapsed += 1.0;
-	}
-
 	m_RenderDevice.FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::OnRender()
+void Renderer::Render()
 {
 	RenderGui();
 
-	m_GpuScene.Update(AspectRatio);
+	m_GpuScene.RenderGui();
+	m_GpuScene.Update(AspectRatio, m_RenderContext);
 	m_RenderGraph.RenderGui();
 	m_RenderGraph.Execute();
-	m_RenderGraph.ExecuteCommandContexts(&m_Gui);
+	m_RenderGraph.ExecuteCommandContexts(m_RenderContext, &m_Gui);
 
 	UINT syncInterval = Settings::VSync ? 1u : 0u;
 	UINT presentFlags = (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
@@ -133,7 +122,7 @@ void Renderer::OnRender()
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::OnResize(uint32_t Width, uint32_t Height)
+void Renderer::Resize(uint32_t Width, uint32_t Height)
 {
 	m_RenderDevice.GraphicsQueue.WaitForIdle();
 	{
@@ -171,7 +160,7 @@ void Renderer::OnResize(uint32_t Width, uint32_t Height)
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::OnDestroy()
+void Renderer::Destroy()
 {
 	m_RenderDevice.GraphicsQueue.WaitForIdle();
 	m_RenderDevice.CopyQueue.WaitForIdle();
@@ -190,13 +179,14 @@ void Renderer::SetScene(Scene Scene)
 
 	m_GpuScene.pScene = &m_Scene;
 
-	m_GpuScene.UploadLights();
-	m_GpuScene.UploadMaterials();
-	m_GpuScene.UploadModels();
-	m_GpuScene.UploadModelInstances();
-	m_RenderDevice.BindUniversalGpuDescriptorHeap(m_UploadRenderContext.GetCommandContext());
-	m_GpuScene.Commit(m_UploadRenderContext);
-	m_RenderDevice.ExecuteRenderCommandContexts(1, &m_pUploadCommandContext);
+	m_RenderDevice.BindUniversalGpuDescriptorHeap(m_RenderContext.GetCommandContext());
+	m_GpuScene.UploadLights(m_RenderContext);
+	m_GpuScene.UploadMaterials(m_RenderContext);
+	m_GpuScene.UploadModels(m_RenderContext);
+	m_GpuScene.UploadModelInstances(m_RenderContext);
+
+	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
+	m_RenderDevice.ExecuteRenderCommandContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
 	m_GpuScene.DisposeResources();
 }
 
@@ -223,22 +213,6 @@ void Renderer::RenderGui()
 				Settings::VSync = false;
 			}
 			ImGui::Checkbox("V-Sync", &Settings::VSync);
-			ImGui::TreePop();
-		}
-	}
-	ImGui::End();
-
-	if (ImGui::Begin("Scene"))
-	{
-		if (ImGui::TreeNode("Camera"))
-		{
-			if (ImGui::Button("Restore Defaults"))
-			{
-				m_GpuScene.pScene->Camera.Aperture = 0.0f;
-				m_GpuScene.pScene->Camera.FocalLength = 10.0f;
-			}
-			ImGui::DragFloat("Aperture", &m_GpuScene.pScene->Camera.Aperture, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat("Focal Length", &m_GpuScene.pScene->Camera.FocalLength, 0.01f, 0.01f, FLT_MAX);
 			ImGui::TreePop();
 		}
 	}

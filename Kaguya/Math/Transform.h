@@ -13,6 +13,7 @@ struct Transform
 	void Translate(float DeltaX, float DeltaY, float DeltaZ);
 	void SetScale(float ScaleX, float ScaleY, float ScaleZ);
 	// Radians
+	void SetOrientation(float AngleX, float AngleY, float AngleZ);
 	void Rotate(float AngleX, float AngleY, float AngleZ);
 
 	DirectX::XMMATRIX Matrix() const;

@@ -20,14 +20,14 @@ public:
 
 	GpuScene(RenderDevice* pRenderDevice);
 
-	void UploadLights();
-	void UploadMaterials();
-	void UploadModels();
-	void UploadModelInstances();
-	void Commit(RenderContext& RenderContext);
+	void UploadLights(RenderContext& RenderContext);
+	void UploadMaterials(RenderContext& RenderContext);
+	void UploadModels(RenderContext& RenderContext);
+	void UploadModelInstances(RenderContext& RenderContext);
 	void DisposeResources();
 
-	void Update(float AspectRatio);
+	void RenderGui();
+	void Update(float AspectRatio, RenderContext& RenderContext);
 
 	inline auto GetLightTableHandle()			const		{ return ResourceTables[LightTable]; }
 	inline auto GetMaterialTableHandle()		const		{ return ResourceTables[MaterialTable]; }
@@ -36,15 +36,13 @@ public:
 	inline auto GetGeometryInfoTableHandle()	const		{ return ResourceTables[GeometryInfoTable]; }
 	inline auto GetRTTLASResourceHandle()		const		{ return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
 
-	inline auto GetVertexBufferView()			const		{ return &VertexBufferView; }
-	inline auto GetIndexBufferView()			const		{ return &IndexBufferView; }
-
 	Scene* pScene;
 	GpuTextureAllocator GpuTextureAllocator;
 private:
 	size_t Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer);
 	void CreateBottomLevelAS(RenderContext& RenderContext);
 	void CreateTopLevelAS(RenderContext& RenderContext);
+	void Update(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer);
 
 	struct RTBLAS
 	{
@@ -63,9 +61,6 @@ private:
 	RenderResourceHandle UploadResourceTables[NumResources];
 	RenderResourceHandle ResourceTables[NumResources];
 	VariableSizedAllocator Allocators[NumResources];
-
-	D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
-	D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 
 	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS m_RaytracingTopLevelAccelerationStructure;

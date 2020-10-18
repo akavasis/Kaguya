@@ -122,8 +122,6 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler)
 		proxy.InitialState = DeviceResource::State::UnorderedAccess;
 	});
 
-	const UINT bloomWidth = Properties.Width > 2560u ? 1280u : 640u;
-	const UINT bloomHeight = Properties.Height > 1440u ? 768u : 384u;
 	UINT denominatorIndex = 0;
 	const UINT denominators[EResources::NumResources / 2] = { 1, 2, 4, 8, 16 };
 	for (size_t i = 1; i < EResources::NumResources; i += 2, denominatorIndex++)
@@ -131,8 +129,8 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler)
 		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
-			proxy.SetWidth(bloomWidth / denominators[denominatorIndex]);
-			proxy.SetHeight(bloomHeight / denominators[denominatorIndex]);
+			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
+			proxy.SetHeight(Properties.Height / denominators[denominatorIndex]);
 			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
 			proxy.InitialState = DeviceResource::State::UnorderedAccess;
 		});
@@ -140,8 +138,8 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler)
 		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
-			proxy.SetWidth(bloomWidth / denominators[denominatorIndex]);
-			proxy.SetHeight(bloomHeight / denominators[denominatorIndex]);
+			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
+			proxy.SetHeight(Properties.Height / denominators[denominatorIndex]);
 			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
 			proxy.InitialState = DeviceResource::State::UnorderedAccess;
 		});
@@ -206,8 +204,6 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 	*/
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom");
 
-	const UINT bloomWidth = Properties.Width > 2560u ? 1280u : 640u;
-	const UINT bloomHeight = Properties.Height > 1440u ? 768u : 384u;
 	// Bloom Mask
 	{
 		PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom Mask");
@@ -221,7 +217,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 			uint InputIndex;
 			uint OutputIndex;
 		} settings;
-		settings.InverseOutputSize = { 1.0f / bloomWidth, 1.0f / bloomHeight };
+		settings.InverseOutputSize = { 1.0f / Properties.Width, 1.0f / Properties.Height };
 		settings.Threshold = Settings.Bloom.Threshold;
 		settings.InputIndex = InputSRV.HeapIndex;
 		settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
@@ -232,7 +228,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 		RenderContext->SetComputeRoot32BitConstants(0, 5, &settings, 0);
 
-		RenderContext->Dispatch2D(bloomWidth, bloomHeight, 8, 8);
+		RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
 
 		RenderContext->TransitionBarrier(pOutput, DeviceResource::State::NonPixelShaderResource);
 	}
@@ -253,7 +249,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 			uint Output4Index;
 		} settings;
 
-		settings.InverseOutputSize = { 1.0f / bloomWidth, 1.0f / bloomHeight };
+		settings.InverseOutputSize = { 1.0f / Properties.Width, 1.0f / Properties.Height };
 		settings.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
 		settings.Output1Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget2a]).HeapIndex;
 		settings.Output2Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget3a]).HeapIndex;
@@ -269,7 +265,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 		RenderContext->SetComputeRoot32BitConstants(0, 7, &settings, 0);
 
-		RenderContext->Dispatch2D(bloomWidth / 2, bloomHeight / 2, 8, 8);
+		RenderContext->Dispatch2D(Properties.Width / 2, Properties.Height / 2, 8, 8);
 
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget2a], DeviceResource::State::NonPixelShaderResource);
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget3a], DeviceResource::State::NonPixelShaderResource);

@@ -101,7 +101,7 @@ public:
 	// Call every frame
 	void RenderGui();
 	void Execute();
-	void ExecuteCommandContexts(Gui* pGui);
+	void ExecuteCommandContexts(RenderContext& RendererRenderContext, Gui* pGui);
 private:
 	void CreaterResources();
 	void CreateResourceViews();

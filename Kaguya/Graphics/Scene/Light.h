@@ -1,13 +1,15 @@
-#ifndef __LIGHT_H__
-#define __LIGHT_H__
+#pragma once
 #include "SharedDefines.h"
+#include "Math/Transform.h"
 
 struct PolygonalLight
 {
-	matrix	World;
-	float3	Color;
-	float	Width;
-	float	Height;
-};
+	Transform	Transform;
+	float3		Color;
+	float		Width;
+	float		Height;
 
-#endif
+	size_t		GpuLightIndex;
+
+	void RenderGui();
+};

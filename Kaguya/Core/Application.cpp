@@ -188,7 +188,6 @@ bool Application::HandleRenderMessage(const Window::Message& Message)
 	{
 	case Window::Message::Type::Resize:
 	{
-		pRenderSystem->UpdateForResize(Message.data.Width, Message.data.Height);
 		pRenderSystem->OnResize(Message.data.Width, Message.data.Height);
 
 		return true;

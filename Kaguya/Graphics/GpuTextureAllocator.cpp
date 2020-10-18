@@ -280,7 +280,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	if (!std::filesystem::exists(Path))
 	{
 		CORE_ERROR("File: {} Not found");
-		assert(false);
+		return RenderResourceHandle();
 	}
 
 	DirectX::ScratchImage scratchImage;

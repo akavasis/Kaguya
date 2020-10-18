@@ -134,7 +134,7 @@ struct Shaders
 		inline static Shader PostProcess_BloomComposition;
 	};
 
-	static void Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath);
+	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct Libraries
@@ -143,7 +143,7 @@ struct Libraries
 	inline static Library RaytraceGBuffer;
 	inline static Library AmbientOcclusion;
 
-	static void Register(RenderDevice* pRenderDevice, std::filesystem::path ExecutableFolderPath);
+	static void Register(RenderDevice* pRenderDevice);
 };
 
 struct RootSignatures

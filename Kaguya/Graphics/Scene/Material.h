@@ -1,9 +1,6 @@
-#ifndef __MATERIAL_H__
-#define __MATERIAL_H__
-#include "SharedDefines.h"
-
-#ifdef __cplusplus
+#pragma once
 #include <filesystem>
+#include "SharedDefines.h"
 
 enum class TextureFlags
 {
@@ -11,7 +8,6 @@ enum class TextureFlags
 	Disk,
 	Embedded
 };
-#endif
 
 enum MaterialModel
 {
@@ -46,7 +42,6 @@ struct Material
 
 	int TextureIndices[NumTextureTypes];
 
-#ifdef __cplusplus
 	struct Texture
 	{
 		std::filesystem::path Path;
@@ -64,6 +59,4 @@ struct Material
 			TextureIndices[i] = -1;
 		}
 	}
-#endif
 };
-#endif

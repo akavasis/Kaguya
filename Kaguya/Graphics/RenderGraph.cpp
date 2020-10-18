@@ -33,8 +33,6 @@ void RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 
 void RenderGraph::Initialize()
 {
-	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct)); // This command context is for Gui
-
 	m_GpuData = pRenderDevice->CreateDeviceBuffer([numRenderPasses = m_RenderPasses.size()](DeviceBufferProxy& Proxy)
 	{
 		UINT64 AlignedStride = Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
@@ -123,14 +121,22 @@ void RenderGraph::Execute()
 	}
 }
 
-void RenderGraph::ExecuteCommandContexts(Gui* pGui)
+void RenderGraph::ExecuteCommandContexts(RenderContext& RendererRenderContext, Gui* pGui)
 {
 	auto frameIndex = pRenderDevice->FrameIndex;
 	auto pDestination = pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[frameIndex]);
 	auto destination = pRenderDevice->GetRenderTargetView(pRenderDevice->SwapChainTextures[frameIndex]);
 
 	pGui->EndFrame(pDestination, destination, m_CommandContexts.back());
-	pRenderDevice->ExecuteRenderCommandContexts(m_CommandContexts.size(), m_CommandContexts.data());
+
+	std::vector<CommandContext*> CommandContexts(m_CommandContexts.size() + 1);
+	CommandContexts[0] = RendererRenderContext.GetCommandContext();
+	for (size_t i = 1; i < CommandContexts.size(); ++i)
+	{
+		CommandContexts[i] = m_CommandContexts[i - 1];
+	}
+
+	pRenderDevice->ExecuteRenderCommandContexts(CommandContexts.size(), CommandContexts.data());
 }
 
 void RenderGraph::CreaterResources()

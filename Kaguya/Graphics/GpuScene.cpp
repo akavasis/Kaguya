@@ -6,6 +6,14 @@
 #define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
 #define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
+struct HLSLPolygonalLight
+{
+	matrix	World;
+	float3	Color;
+	float	Width;
+	float	Height;
+};
+
 struct HLSLMaterial
 {
 	float3	Albedo;
@@ -23,14 +31,49 @@ struct HLSLMaterial
 
 namespace
 {
-	static constexpr size_t NumLights					= 10000;
-	static constexpr size_t NumMaterials				= 50000;
+	static constexpr size_t NumLights = 1000;
+	static constexpr size_t NumMaterials = 1000;
 
-	static constexpr size_t LightBufferByteSize			= NumLights * sizeof(PolygonalLight);
-	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSLMaterial);
-	static constexpr size_t VertexBufferByteSize		= 50_MiB;
-	static constexpr size_t IndexBufferByteSize			= 50_MiB;
-	static constexpr size_t GeometryInfoBufferByteSize	= 50_MiB;
+	static constexpr size_t LightBufferByteSize = NumLights * sizeof(HLSLPolygonalLight);
+	static constexpr size_t MaterialBufferByteSize = NumMaterials * sizeof(HLSLMaterial);
+	static constexpr size_t VertexBufferByteSize = 10_MiB;
+	static constexpr size_t IndexBufferByteSize = 10_MiB;
+	static constexpr size_t GeometryInfoBufferByteSize = 10_MiB;
+}
+
+HLSLPolygonalLight GetShaderLightDesc(const PolygonalLight& Light)
+{
+	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Light.Transform.Matrix()));
+	return
+	{
+		.World = World,
+		.Color = Light.Color,
+		.Width = Light.Width,
+		.Height = Light.Height
+	};
+}
+
+HLSLMaterial GetShaderMaterialDesc(const Material& Material)
+{
+	return {
+		.Albedo = Material.Albedo,
+		.Emissive = Material.Emissive,
+		.Specular = Material.Specular,
+		.Refraction = Material.Refraction,
+		.SpecularChance = Material.SpecularChance,
+		.Roughness = Material.Roughness,
+		.Fuzziness = Material.Fuzziness,
+		.IndexOfRefraction = Material.IndexOfRefraction,
+		.Model = Material.Model,
+		.TextureIndices =
+		{
+			Material.TextureIndices[0],
+			Material.TextureIndices[1],
+			Material.TextureIndices[2],
+			Material.TextureIndices[3],
+			Material.TextureIndices[4]
+		}
+	};
 }
 
 GpuScene::GpuScene(RenderDevice* pRenderDevice)
@@ -39,8 +82,8 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	GpuTextureAllocator(pRenderDevice)
 {
 	// Resource
-	size_t resourceTablesMemorySizeInBytes[NumResources]	= { LightBufferByteSize, MaterialBufferByteSize, VertexBufferByteSize, IndexBufferByteSize, GeometryInfoBufferByteSize };
-	size_t resourceTablesMemoryStrides[NumResources]		= { sizeof(PolygonalLight), sizeof(HLSLMaterial), sizeof(Vertex), sizeof(unsigned int), sizeof(GeometryInfo) };
+	size_t resourceTablesMemorySizeInBytes[NumResources] = { LightBufferByteSize, MaterialBufferByteSize, VertexBufferByteSize, IndexBufferByteSize, GeometryInfoBufferByteSize };
+	size_t resourceTablesMemoryStrides[NumResources] = { sizeof(HLSLPolygonalLight), sizeof(HLSLMaterial), sizeof(Vertex), sizeof(unsigned int), sizeof(GeometryInfo) };
 
 	for (size_t i = 0; i < NumResources; ++i)
 	{
@@ -60,48 +103,55 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	}
 }
 
-void GpuScene::UploadLights()
+void GpuScene::UploadLights(RenderContext& RenderContext)
 {
+	auto pLightTable = pRenderDevice->GetBuffer(ResourceTables[LightTable]);
 	auto pUploadLightTable = pRenderDevice->GetBuffer(UploadResourceTables[LightTable]);
 
 	size_t index = 0;
 
-	std::vector<PolygonalLight> lights(pScene->Lights.size());
-	for (auto iter : pScene->Lights)
+	std::vector<HLSLPolygonalLight> hlslLights(pScene->Lights.size());
+	for (auto& light : pScene->Lights)
 	{
-		lights[index++] = iter;
+		light.GpuLightIndex = index;
+
+		hlslLights[index++] = GetShaderLightDesc(light);
 	}
 
-	Upload(LightTable, lights.data(), lights.size() * sizeof(PolygonalLight), pUploadLightTable);
+	Upload(LightTable, hlslLights.data(), hlslLights.size() * sizeof(HLSLPolygonalLight), pUploadLightTable);
+	RenderContext->CopyResource(pLightTable, pUploadLightTable);
+	RenderContext->TransitionBarrier(pLightTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 }
 
-void GpuScene::UploadMaterials()
+void GpuScene::UploadMaterials(RenderContext& RenderContext)
 {
+	GpuTextureAllocator.Stage(*pScene, RenderContext);
+
+	auto pMaterialTable = pRenderDevice->GetBuffer(ResourceTables[MaterialTable]);
 	auto pUploadMaterialTable = pRenderDevice->GetBuffer(UploadResourceTables[MaterialTable]);
 
 	size_t index = 0;
 
-	std::vector<HLSLMaterial> hlslMaterials;
-	hlslMaterials.reserve(pScene->Materials.size());
+	std::vector<HLSLMaterial> hlslMaterials(pScene->Materials.size());
 	for (auto& material : pScene->Materials)
 	{
-		material.GpuMaterialIndex = index++;
+		material.GpuMaterialIndex = index;
 
-		HLSLMaterial hlslMaterial = {};
-		memcpy(&hlslMaterial, &material, sizeof(hlslMaterial));
-		hlslMaterials.push_back(hlslMaterial);
+		hlslMaterials[index++] = GetShaderMaterialDesc(material);
 	}
 
 	Upload(MaterialTable, hlslMaterials.data(), hlslMaterials.size() * sizeof(HLSLMaterial), pUploadMaterialTable);
+	RenderContext->CopyResource(pMaterialTable, pUploadMaterialTable);
+	RenderContext->TransitionBarrier(pMaterialTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 }
 
-void GpuScene::UploadModels()
+void GpuScene::UploadModels(RenderContext& RenderContext)
 {
-	auto pUploadVertexBuffer = pRenderDevice->GetBuffer(UploadResourceTables[VertexBuffer]);
-	auto pUploadIndexBuffer = pRenderDevice->GetBuffer(UploadResourceTables[IndexBuffer]);
-
 	auto pVertexBuffer = pRenderDevice->GetBuffer(ResourceTables[VertexBuffer]);
+	auto pUploadVertexBuffer = pRenderDevice->GetBuffer(UploadResourceTables[VertexBuffer]);
+
 	auto pIndexBuffer = pRenderDevice->GetBuffer(ResourceTables[IndexBuffer]);
+	auto pUploadIndexBuffer = pRenderDevice->GetBuffer(UploadResourceTables[IndexBuffer]);
 
 	// Upload skybox
 	{
@@ -148,27 +198,34 @@ void GpuScene::UploadModels()
 		for (auto& mesh : model.Meshes)
 		{
 			// Update mesh's BLAS Index
-			mesh.BottomLevelAccelerationStructureIndex	= m_RaytracingBottomLevelAccelerationStructures.size();
+			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
 
 			RaytracingGeometryDesc geometryDesc = {};
-			geometryDesc.pVertexBuffer			= pVertexBuffer;
-			geometryDesc.VertexStride			= sizeof(Vertex);
-			geometryDesc.pIndexBuffer			= pIndexBuffer;
-			geometryDesc.IndexStride			= sizeof(unsigned int);
-			geometryDesc.IsOpaque				= true;
-			geometryDesc.NumVertices			= mesh.VertexCount;
-			geometryDesc.VertexOffset			= mesh.BaseVertexLocation;
-			geometryDesc.NumIndices				= mesh.IndexCount;
-			geometryDesc.IndexOffset			= mesh.StartIndexLocation;
+			geometryDesc.pVertexBuffer = pVertexBuffer;
+			geometryDesc.VertexStride = sizeof(Vertex);
+			geometryDesc.pIndexBuffer = pIndexBuffer;
+			geometryDesc.IndexStride = sizeof(unsigned int);
+			geometryDesc.IsOpaque = true;
+			geometryDesc.NumVertices = mesh.VertexCount;
+			geometryDesc.VertexOffset = mesh.BaseVertexLocation;
+			geometryDesc.NumIndices = mesh.IndexCount;
+			geometryDesc.IndexOffset = mesh.StartIndexLocation;
 
 			rtblas.BLAS.AddGeometry(geometryDesc);
 		}
 		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
 	}
+
+	RenderContext->CopyResource(pVertexBuffer, pUploadVertexBuffer);
+	RenderContext->TransitionBarrier(pVertexBuffer, DeviceResource::State::VertexBuffer | DeviceResource::State::NonPixelShaderResource);
+
+	RenderContext->CopyResource(pIndexBuffer, pUploadIndexBuffer);
+	RenderContext->TransitionBarrier(pIndexBuffer, DeviceResource::State::IndexBuffer | DeviceResource::State::NonPixelShaderResource);
 }
 
-void GpuScene::UploadModelInstances()
+void GpuScene::UploadModelInstances(RenderContext& RenderContext)
 {
+	auto pGeometryInfoTable = pRenderDevice->GetBuffer(ResourceTables[GeometryInfoTable]);
 	auto pUploadGeometryInfoTable = pRenderDevice->GetBuffer(UploadResourceTables[GeometryInfoTable]);
 
 	size_t instanceID = 0;
@@ -190,55 +247,11 @@ void GpuScene::UploadModelInstances()
 	}
 
 	Upload(GeometryInfoTable, geometryInfos.data(), geometryInfos.size() * sizeof(GeometryInfo), pUploadGeometryInfoTable);
-}
-
-void GpuScene::Commit(RenderContext& RenderContext)
-{
-	for (size_t i = 0; i < NumResources; ++i)
-	{
-		auto pUploadBuffer = pRenderDevice->GetBuffer(UploadResourceTables[i]);
-		auto pBuffer = pRenderDevice->GetBuffer(ResourceTables[i]);
-
-		RenderContext->CopyResource(pBuffer, pUploadBuffer);
-
-		switch (i)
-		{
-		case MaterialTable:
-			RenderContext->TransitionBarrier(pBuffer, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
-			break;
-
-		case VertexBuffer:
-			RenderContext->TransitionBarrier(pBuffer, DeviceResource::State::VertexBuffer | DeviceResource::State::NonPixelShaderResource);
-			break;
-
-		case IndexBuffer:
-			RenderContext->TransitionBarrier(pBuffer, DeviceResource::State::IndexBuffer | DeviceResource::State::NonPixelShaderResource);
-			break;
-
-		case GeometryInfoTable:
-			RenderContext->TransitionBarrier(pBuffer, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
-			break;
-		}
-	}
-	RenderContext->FlushResourceBarriers();
+	RenderContext->CopyResource(pGeometryInfoTable, pUploadGeometryInfoTable);
+	RenderContext->TransitionBarrier(pGeometryInfoTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 
 	CreateBottomLevelAS(RenderContext);
 	CreateTopLevelAS(RenderContext);
-
-	auto pVertexBuffer = pRenderDevice->GetBuffer(ResourceTables[VertexBuffer]);
-	auto pIndexBuffer = pRenderDevice->GetBuffer(ResourceTables[IndexBuffer]);
-
-	VertexBufferView.BufferLocation = pVertexBuffer->GetGpuVirtualAddress();
-	VertexBufferView.SizeInBytes = Allocators[VertexBuffer].GetCurrentSize();
-	VertexBufferView.StrideInBytes = sizeof(Vertex);
-	RenderContext->SetVertexBuffers(0, 1, &VertexBufferView);
-
-	IndexBufferView.BufferLocation = pIndexBuffer->GetGpuVirtualAddress();
-	IndexBufferView.SizeInBytes = Allocators[IndexBuffer].GetCurrentSize();
-	IndexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	RenderContext->SetIndexBuffer(&IndexBufferView);
-
-	GpuTextureAllocator.Stage(*pScene, RenderContext);
 }
 
 void GpuScene::DisposeResources()
@@ -254,9 +267,43 @@ void GpuScene::DisposeResources()
 	GpuTextureAllocator.DisposeResources();
 }
 
-void GpuScene::Update(float AspectRatio)
+void GpuScene::RenderGui()
+{
+	if (ImGui::Begin("Scene"))
+	{
+		for (auto& light : pScene->Lights)
+		{
+			light.RenderGui();
+		}
+	}
+	ImGui::End();
+}
+
+void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 {
 	pScene->Camera.SetAspectRatio(AspectRatio);
+
+	{
+		auto pLightTable = pRenderDevice->GetBuffer(ResourceTables[LightTable]);
+		auto pUploadLightTable = pRenderDevice->GetBuffer(UploadResourceTables[LightTable]);
+		for (const auto& light : pScene->Lights)
+		{
+			pUploadLightTable->Update<HLSLPolygonalLight>(light.GpuLightIndex, GetShaderLightDesc(light));
+		}
+		RenderContext->CopyResource(pLightTable, pUploadLightTable);
+		RenderContext->TransitionBarrier(pLightTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
+	}
+
+	{
+		auto pMaterialTable = pRenderDevice->GetBuffer(ResourceTables[MaterialTable]);
+		auto pUploadMaterialTable = pRenderDevice->GetBuffer(UploadResourceTables[MaterialTable]);
+		for (const auto& material : pScene->Materials)
+		{
+			pUploadMaterialTable->Update<HLSLMaterial>(material.GpuMaterialIndex, GetShaderMaterialDesc(material));
+		}
+		RenderContext->CopyResource(pMaterialTable, pUploadMaterialTable);
+		RenderContext->TransitionBarrier(pMaterialTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
+	}
 }
 
 size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer)
@@ -366,4 +413,8 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	pResult->SetDebugName(L"RTTLAS Result");
 
 	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
+}
+
+void GpuScene::Update(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer)
+{
 }

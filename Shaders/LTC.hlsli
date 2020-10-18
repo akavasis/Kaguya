@@ -5,7 +5,7 @@
 
 static const float LUT_SIZE = 64.0f;
 static const float LUT_SCALE = (LUT_SIZE - 1.0f) / LUT_SIZE;
-static const float LUT_BIAS = 0.5 / LUT_SIZE;
+static const float LUT_BIAS = 0.5f / LUT_SIZE;
 
 float IntegrateEdge(float3 v1, float3 v2)
 {
@@ -25,10 +25,10 @@ void ClipQuadToHorizon(inout float3 L[5], out int n)
 {
     // detect clipping config
 	int config = 0;
-	if (L[0].z > 0.0) config += 1;
-	if (L[1].z > 0.0) config += 2;
-	if (L[2].z > 0.0) config += 4;
-	if (L[3].z > 0.0) config += 8;
+	if (L[0].z >= 0.0f) config += 1;
+	if (L[1].z >= 0.0f) config += 2;
+	if (L[2].z >= 0.0f) config += 4;
+	if (L[3].z >= 0.0f) config += 8;
 
     // clip
 	n = 0;
@@ -134,12 +134,16 @@ void ClipQuadToHorizon(inout float3 L[5], out int n)
 
 float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4], bool twoSided)
 {
-    // construct orthonormal basis around N
-	float3x3 TBN = GetTBNMatrix(N);
+    // Rotate area light in (T1, T2, N) basis
+	float3 T1, T2;
+	T1 = normalize(V - N * dot(V, N));
+	T2 = cross(N, T1);
+	float3x3 Rinv = float3x3(T1, T2, N);
+	float3x3 R = transpose(Rinv);
 
 	// MInv matrix is expected to be multiplied by a World to Tangent space matrix 
     // rotate area light in (T1, T2, N) basis
-	Minv = mul(transpose(TBN), Minv);
+	Minv = mul(R, Minv);
 
     // polygon (allocate 5 vertices for clipping)
 	float3 L[5];

@@ -33,6 +33,12 @@ void Transform::SetScale(float ScaleX, float ScaleY, float ScaleZ)
 	Scale.z = ScaleZ;
 }
 
+void Transform::SetOrientation(float AngleX, float AngleY, float AngleZ)
+{
+	XMVECTOR EulerRotation = XMQuaternionRotationRollPitchYaw(AngleX, AngleY, AngleZ);
+	XMStoreFloat4(&Orientation, EulerRotation);
+}
+
 void Transform::Rotate(float AngleX, float AngleY, float AngleZ)
 {
 	XMVECTOR currentRotation = XMLoadFloat4(&Orientation);

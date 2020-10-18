@@ -1,7 +1,8 @@
 #include "GBuffer.hlsli"
 #include "LTC.hlsli"
 
-StructuredBuffer<PolygonalLight> Lights : register(t0, space0);
+StructuredBuffer<PolygonalLight>	Lights		: register(t0, space0);
+StructuredBuffer<Material>			Materials	: register(t1, space0);
 
 struct LTCData
 {
@@ -40,16 +41,15 @@ float4 PSMain(VSOutput IN) : SV_Target
 	if (GBufferType == GBufferTypeMesh)
 	{
 		GBufferMesh GBufferMesh = GetGBufferMesh(GBuffer, pixel);
+		Material	Material	= Materials[GBufferMesh.MaterialIndex];
 		
-		// Only evaluating 1 light
+		// Only evaluating 1 light for now
 		PolygonalLight Light = Lights[0];
 		
 		Texture2D LTCLUT1 = Texture2DTable[RenderPassData.LTCLUT1];
 		Texture2D LTCLUT2 = Texture2DTable[RenderPassData.LTCLUT2];
 	
-		const float roughness = 0.25;
-		const float metalness = 0.25;
-		const float intensity = 4;
+		const float roughness = 0.01f;
 		float3 position = GBufferMesh.Position;
 		float3 normal = GBufferMesh.Normal;
 		float3 albedo = GBufferMesh.Albedo;
@@ -77,8 +77,8 @@ float4 PSMain(VSOutput IN) : SV_Target
 
 		float3 viewDir = normalize(RenderPassData.GlobalConstants.EyePosition - position);
 
-		float ndotv = saturate(dot(normal, viewDir));
-		float2 uv = float2(roughness, sqrt(1 - ndotv));
+		float NoV = saturate(dot(normal, viewDir));
+		float2 uv = float2(roughness, sqrt(1.0f - NoV));
 		uv = uv * LUT_SCALE + LUT_BIAS;
 
 		float4 ltcLookupA = LTCLUT1.SampleLevel(LinearClamp, uv, 0.0f);
@@ -100,8 +100,9 @@ float4 PSMain(VSOutput IN) : SV_Target
 
 		float3 diff = LTC_Evaluate(normal, viewDir, position, identity, points, false);
 		float3 spec = LTC_Evaluate(normal, viewDir, position, Minv, points, false);
+		spec *= ltcLookupB.x + (1.0f - Material.Specular) * ltcLookupB.y;
 
-		color = diff;
+		color = Light.Color * (albedo * diff + spec);
 	}
 	else if (GBufferType == GBufferTypeLight)
 	{

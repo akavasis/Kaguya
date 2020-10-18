@@ -379,30 +379,27 @@ Scene CornellBoxTransparentSpheres(const MaterialLoader& MaterialLoader, const M
 
 Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
 {
-	Scene scene;
+	Scene Scene;
 	{
-		Transform t;
-		t.Position = { 0, 5, 3 };
-		t.Rotate(XM_PI - 0.5f, 0, 0);
-
-		auto& light1 = scene.AddLight();
-		XMStoreFloat4x4(&light1.World, XMMatrixTranspose(t.Matrix()));
+		auto& light1 = Scene.AddLight();
+		light1.Transform.Position = { 0, 5, 3 };
+		light1.Transform.Rotate(XM_PI - 0.5f, 0, 0);
 		light1.Width = 4;
 		light1.Height = 4;
 		light1.Color = { 10.0f, 10.0f, 10.0f };
 
 		// Materials
-		auto& defaultMat = scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		auto& defaultMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
 		defaultMat.Model = LambertianModel;
 
 		// Models
-		auto& rect = scene.AddModel(CreateGrid(100.0f, 100.0f, 2, 2));
+		auto& rect = Scene.AddModel(CreateGrid(100.0f, 100.0f, 2, 2));
 
 		// Model instances
-		auto& floorInstance = scene.AddModelInstance({ &rect, &defaultMat });
+		auto& floorInstance = Scene.AddModelInstance({ &rect, &defaultMat });
 	}
-	return scene;
+	return Scene;
 }
 
 Scene GenerateScene(SampleScene SampleScene)
