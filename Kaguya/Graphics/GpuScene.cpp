@@ -10,6 +10,7 @@ struct HLSLPolygonalLight
 {
 	matrix	World;
 	float3	Color;
+	float	Intensity;
 	float	Width;
 	float	Height;
 };
@@ -44,10 +45,10 @@ namespace
 HLSLPolygonalLight GetShaderLightDesc(const PolygonalLight& Light)
 {
 	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Light.Transform.Matrix()));
-	return
-	{
+	return {
 		.World = World,
 		.Color = Light.Color,
+		.Intensity = Light.Intensity,
 		.Width = Light.Width,
 		.Height = Light.Height
 	};
@@ -65,14 +66,7 @@ HLSLMaterial GetShaderMaterialDesc(const Material& Material)
 		.Fuzziness = Material.Fuzziness,
 		.IndexOfRefraction = Material.IndexOfRefraction,
 		.Model = Material.Model,
-		.TextureIndices =
-		{
-			Material.TextureIndices[0],
-			Material.TextureIndices[1],
-			Material.TextureIndices[2],
-			Material.TextureIndices[3],
-			Material.TextureIndices[4]
-		}
+		.TextureIndices = { -1, -1, -1, -1, -1 }
 	};
 }
 
@@ -275,6 +269,11 @@ void GpuScene::RenderGui()
 		{
 			light.RenderGui();
 		}
+
+		for (auto& material : pScene->Materials)
+		{
+			material.RenderGui();
+		}
 	}
 	ImGui::End();
 }
@@ -288,7 +287,9 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		auto pUploadLightTable = pRenderDevice->GetBuffer(UploadResourceTables[LightTable]);
 		for (const auto& light : pScene->Lights)
 		{
-			pUploadLightTable->Update<HLSLPolygonalLight>(light.GpuLightIndex, GetShaderLightDesc(light));
+			HLSLPolygonalLight hlslPolygonalLight = GetShaderLightDesc(light);
+
+			pUploadLightTable->Update<HLSLPolygonalLight>(light.GpuLightIndex, hlslPolygonalLight);
 		}
 		RenderContext->CopyResource(pLightTable, pUploadLightTable);
 		RenderContext->TransitionBarrier(pLightTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
@@ -297,13 +298,24 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 	{
 		auto pMaterialTable = pRenderDevice->GetBuffer(ResourceTables[MaterialTable]);
 		auto pUploadMaterialTable = pRenderDevice->GetBuffer(UploadResourceTables[MaterialTable]);
-		for (const auto& material : pScene->Materials)
+		for (auto& material : pScene->Materials)
 		{
-			pUploadMaterialTable->Update<HLSLMaterial>(material.GpuMaterialIndex, GetShaderMaterialDesc(material));
+			HLSLMaterial hlslMaterial = GetShaderMaterialDesc(material);
+			for (size_t i = 0; i < NumTextureTypes; ++i)
+			{
+				if (auto iter = GpuTextureAllocator.TextureHandles.find(material.Textures[i].Path.generic_string());
+					iter != GpuTextureAllocator.TextureHandles.end())
+				{
+					hlslMaterial.TextureIndices[i] = pRenderDevice->GetShaderResourceView(iter->second).HeapIndex;
+				}
+			}
+
+			pUploadMaterialTable->Update<HLSLMaterial>(material.GpuMaterialIndex, hlslMaterial);
 		}
 		RenderContext->CopyResource(pMaterialTable, pUploadMaterialTable);
 		RenderContext->TransitionBarrier(pMaterialTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 	}
+	RenderContext->FlushResourceBarriers();
 }
 
 size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer)

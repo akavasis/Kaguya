@@ -18,6 +18,11 @@ public:
 		inline static double	FPMS = 0.0;
 	};
 
+	struct Settings
+	{
+		inline static bool		VSync = false;
+	};
+
 	RenderSystem(uint32_t Width, uint32_t Height);
 	virtual ~RenderSystem();
 

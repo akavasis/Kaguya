@@ -41,7 +41,7 @@ float4 PSMain(VSOutput IN) : SV_Target
 	if (GBufferType == GBufferTypeMesh)
 	{
 		GBufferMesh GBufferMesh = GetGBufferMesh(GBuffer, pixel);
-		Material	Material	= Materials[GBufferMesh.MaterialIndex];
+		Material Material = Materials[GBufferMesh.MaterialIndex];
 		
 		// Only evaluating 1 light for now
 		PolygonalLight Light = Lights[0];
@@ -49,10 +49,10 @@ float4 PSMain(VSOutput IN) : SV_Target
 		Texture2D LTCLUT1 = Texture2DTable[RenderPassData.LTCLUT1];
 		Texture2D LTCLUT2 = Texture2DTable[RenderPassData.LTCLUT2];
 	
-		const float roughness = 0.01f;
 		float3 position = GBufferMesh.Position;
 		float3 normal = GBufferMesh.Normal;
 		float3 albedo = GBufferMesh.Albedo;
+		float roughness = GBufferMesh.Roughness;
 	
 		float halfWidth = Light.Width * 0.5f;
 		float halfHeight = Light.Height * 0.5f;
@@ -102,13 +102,13 @@ float4 PSMain(VSOutput IN) : SV_Target
 		float3 spec = LTC_Evaluate(normal, viewDir, position, Minv, points, false);
 		spec *= ltcLookupB.x + (1.0f - Material.Specular) * ltcLookupB.y;
 
-		color = Light.Color * (albedo * diff + spec);
+		color = (Light.Color * Light.Intensity) * (albedo * diff + spec);
 	}
 	else if (GBufferType == GBufferTypeLight)
 	{
 		GBufferLight GBufferLight = GetGBufferLight(GBuffer, pixel);
 		PolygonalLight Light = Lights[GBufferLight.LightIndex];
-		color = Light.Color;
+		color = Light.Color * Light.Intensity;
 	}
 	
 	return float4(color, 1.0f);

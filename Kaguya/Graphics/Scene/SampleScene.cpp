@@ -384,12 +384,18 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		auto& light1 = Scene.AddLight();
 		light1.Transform.Position = { 0, 5, 3 };
 		light1.Transform.Rotate(XM_PI - 0.5f, 0, 0);
+		light1.Color = { 1, 1, 1 };
+		light1.Intensity = 10;
 		light1.Width = 4;
 		light1.Height = 4;
-		light1.Color = { 10.0f, 10.0f, 10.0f };
 
 		// Materials
-		auto& defaultMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		auto& defaultMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+			"Assets/Textures/Concrete19/Concrete19_col.dds",
+			"Assets/Textures/Concrete19/Concrete19_nrm.dds",
+			"Assets/Textures/Concrete19/Concrete19_rgh.dds",
+			0,
+			0));
 		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
 		defaultMat.Model = LambertianModel;
 

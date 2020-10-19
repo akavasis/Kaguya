@@ -19,6 +19,8 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddRootSRVParameter(RootSRV(2, 0));						// Geometry info Buffer,	t2 | space0
 		proxy.AddRootSRVParameter(RootSRV(3, 0));						// Material Buffer,			t3 | space0
 
+		proxy.AddStaticSampler(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
+
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
@@ -109,18 +111,7 @@ void GBuffer::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 
 void GBuffer::RenderGui()
 {
-	if (ImGui::TreeNode(Name.data()))
-	{
-		if (ImGui::Button("Restore Defaults"))
-		{
-			Settings = SSettings();
-		}
 
-		const char* GBufferOutputs[] = { "Position", "Normal", "Albedo", "TypeAndIndex" };
-		ImGui::Combo("GBuffer Outputs", &Settings.GBuffer, GBufferOutputs, ARRAYSIZE(GBufferOutputs), ARRAYSIZE(GBufferOutputs));
-
-		ImGui::TreePop();
-	}
 }
 
 void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
@@ -252,11 +243,9 @@ void GBuffer::RenderLights(RenderContext& RenderContext)
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetLightTableHandle());
 
 	const Scene& Scene = *pGpuScene->pScene;
-	size_t lightID = 0;
 	for (auto& light : Scene.Lights)
 	{
-		RenderContext.SetRoot32BitConstants(0, 1, &lightID, 0);
+		RenderContext.SetRoot32BitConstants(0, 1, &light.GpuLightIndex, 0);
 		RenderContext->DrawInstanced(6, 1, 0, 0);
-		lightID++;
 	}
 }

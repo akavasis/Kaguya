@@ -43,13 +43,13 @@ private:
 
 	struct StagingTexture
 	{
-		std::string										path;						// file path
-		DeviceTexture									texture;					// gpu upload buffer
-		std::size_t										numSubresources;			// number of subresources
-		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> placedSubresourceLayouts;	// footprint is synonymous to layout
-		std::size_t										mipLevels;					// indicates what mip levels this texture should have
-		bool											generateMips;				// indicates whether or not we should generate mips for the staged texture
-		bool											isMasked;					// indicates whether or not alpha is masked
+		std::string										Path;						// file path
+		DeviceTexture									Texture;					// gpu upload buffer
+		std::size_t										NumSubresources;			// number of subresources
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts;	// footprint is synonymous to layout
+		std::size_t										MipLevels;					// indicates what mip levels this texture should have
+		bool											GenerateMips;				// indicates whether or not we should generate mips for the staged texture
+		bool											IsMasked;					// indicates whether or not alpha is masked
 	};
 
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
@@ -71,6 +71,4 @@ private:
 
 	std::unordered_map<RenderResourceHandle, StagingTexture> m_UnstagedTextures;
 	std::vector<RenderResourceHandle> m_TemporaryResources;
-
-	RenderResourceHandle m_CubemapCamerasUploadBufferHandle;
 };

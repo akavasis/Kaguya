@@ -16,11 +16,6 @@ class Time;
 class Renderer : public RenderSystem
 {
 public:
-	struct Settings
-	{
-		inline static bool		VSync = false;
-	};
-
 	Renderer(Window* pWindow);
 
 protected:

@@ -10,7 +10,7 @@ cbuffer Settings : register(b0)
 
 SamplerState SamplerLinearClamp : register(s0);
 
-#include "Skybox.hlsl"
+#include "Skybox.hlsli"
 
 float4 PSMain(VSOutput IN) : SV_TARGET
 {

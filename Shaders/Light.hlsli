@@ -6,6 +6,7 @@ struct PolygonalLight
 {
 	matrix World;
 	float3 Color;
+	float Intensity;
 	float Width;
 	float Height;
 };

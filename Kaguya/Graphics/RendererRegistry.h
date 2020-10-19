@@ -88,15 +88,6 @@ struct RootParameters
 			NumRootParameters
 		};
 	};
-	struct CubemapConvolution
-	{
-		enum
-		{
-			Setting,
-			RenderPassCBuffer,
-			CubemapSRV
-		};
-	};
 };
 
 struct Shaders

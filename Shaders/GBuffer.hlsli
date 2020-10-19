@@ -20,6 +20,7 @@ struct GBufferMesh
 	float3	Position;
 	float3	Normal;
 	float3	Albedo;
+	float	Roughness;
 	uint	MaterialIndex;
 };
 
@@ -52,7 +53,7 @@ PSOutput GetGBufferMeshPSOutput(GBufferMesh mesh)
 	{
 		OUT.Position		= float4(mesh.Position, 1.0f);
 		OUT.Normal			= float4(EncodeNormal(mesh.Normal), 0.0f);
-		OUT.Albedo			= float4(mesh.Albedo, 0.0f);
+		OUT.Albedo			= float4(mesh.Albedo, mesh.Roughness);
 		OUT.TypeAndIndex	= (GBufferTypeMesh << 4) | (mesh.MaterialIndex & 0x0000000F);
 	}
 	return OUT;
@@ -81,10 +82,12 @@ GBufferMesh GetGBufferMesh(GBuffer gbuffer, uint2 uv)
 	GBufferMesh OUT;
 	{
 		uint3 location = uint3(uv, 0);
+		float4 AlbedoRoughness = gbuffer.Albedo.Load(location);
 		
 		OUT.Position = gbuffer.Position.Load(location).xyz;
 		OUT.Normal = DecodeNormal(gbuffer.Normal.Load(location).xyz);
-		OUT.Albedo = gbuffer.Albedo.Load(location).rgb;
+		OUT.Albedo = AlbedoRoughness.rgb;
+		OUT.Roughness = AlbedoRoughness.a;
 		OUT.MaterialIndex = gbuffer.TypeAndIndex.Load(location).x & 0x0000000F;
 	}
 	return OUT;

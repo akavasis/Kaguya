@@ -1,14 +1,6 @@
 #include "pch.h"
 #include "RendererRegistry.h"
-
 #include <Core/Application.h>
-
-// Render passes
-#include "RenderPass/Pathtracing.h"
-#include "RenderPass/RaytraceGBuffer.h"
-#include "RenderPass/AmbientOcclusion.h"
-#include "RenderPass/Accumulation.h"
-#include "RenderPass/PostProcess.h"
 
 void Shaders::Register(RenderDevice* pRenderDevice)
 {
@@ -16,7 +8,7 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 	// Load VS
 	{
 		VS::Quad										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",			L"VSMain", {});
-		VS::Skybox										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Skybox.hlsl",			L"VSMain", {});
+		VS::Skybox										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Skybox.hlsli",		L"VSMain", {});
 		VS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",	L"VSMain", {});
 		VS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",	L"VSMain", {});
 	}
@@ -109,7 +101,10 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	Skybox = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(1, 0, 1)); // RootConstants b1 | space0
+		proxy.AddRootConstantsParameter(RootConstants<void>(1, 0, 1));				// RootConstants			b1 | space0
+		proxy.AddRootSRVParameter(RootSRV(0, 0));									// Vertex Buffer			t1 | space0
+		proxy.AddRootSRVParameter(RootSRV(1, 0));									// Index Buffer				t2 | space0
+		proxy.AddRootSRVParameter(RootSRV(2, 0));									// Geometry info Buffer		t3 | space0
 
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();

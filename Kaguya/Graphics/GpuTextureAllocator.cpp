@@ -6,53 +6,7 @@
 GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice)
 {
-	m_CubemapCamerasUploadBufferHandle = pRenderDevice->CreateDeviceBuffer([](DeviceBufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(6 * Math::AlignUp<UINT64>(sizeof(GlobalConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-		proxy.SetStride(Math::AlignUp<UINT64>(sizeof(GlobalConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT));
-		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
-	});
-	DeviceBuffer* pCubemapCameras = pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
-	pCubemapCameras->Map();
-
-	// TODO: MOVE THIS INTO CONSTANTS IN HLSL CODE
-	// Create 6 cameras for cube map
-	PerspectiveCamera cameras[6];
-
-	// Look along each coordinate axis.
-	DirectX::XMVECTOR targets[6] =
-	{
-		DirectX::XMVectorSet(+1.0f, 0.0f, 0.0f, 0.0f), // +X
-		DirectX::XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), // -X
-		DirectX::XMVectorSet(0.0f, +1.0f, 0.0f, 0.0f), // +Y
-		DirectX::XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), // -Y
-		DirectX::XMVectorSet(0.0f, 0.0f, +1.0f, 0.0f), // +Z
-		DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)  // -Z
-	};
-
-	// Use world up vector (0,1,0) for all directions except +Y/-Y.  In these cases, we
-	// are looking down +Y or -Y, so we need a different "up" vector.
-	DirectX::XMVECTOR ups[6] =
-	{
-		DirectX::XMVectorSet(0.0f, +1.0f, 0.0f, 0.0f), // +X
-		DirectX::XMVectorSet(0.0f, +1.0f, 0.0f, 0.0f), // -X
-		DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), // +Y
-		DirectX::XMVectorSet(0.0f, 0.0f, +1.0f, 0.0f), // -Y
-		DirectX::XMVectorSet(0.0f, +1.0f, 0.0f, 0.0f), // +Z
-		DirectX::XMVectorSet(0.0f, +1.0f, 0.0f, 0.0f)  // -Z
-	};
-
-	// Update view matrix in upload buffer
-	for (UINT i = 0; i < 6; ++i)
-	{
-		cameras[i].SetLookAt(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), targets[i], ups[i]);
-		cameras[i].SetLens(DirectX::XM_PIDIV2, 1.0f, 0.1f, 1000.0f);
-		GlobalConstants rpcCPU;
-		XMStoreFloat4x4(&rpcCPU.ViewProjection, XMMatrixTranspose(cameras[i].ViewProjectionMatrix()));
-		pCubemapCameras->Update<GlobalConstants>(i, rpcCPU);
-	}
-
-	DXGI_FORMAT optionalFormats[] =
+	DXGI_FORMAT OptionalFormats[] =
 	{
 		DXGI_FORMAT_R16G16B16A16_UNORM,
 		DXGI_FORMAT_R16G16B16A16_SNORM,
@@ -80,11 +34,11 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 		DXGI_FORMAT_B5G5R5A1_UNORM,
 		DXGI_FORMAT_B4G4R4A4_UNORM
 	};
-	const int numOptionalFormats = ARRAYSIZE(optionalFormats);
-	for (int i = 0; i < numOptionalFormats; ++i)
+	const int NumOptionalFormats = ARRAYSIZE(OptionalFormats);
+	for (int i = 0; i < NumOptionalFormats; ++i)
 	{
 		D3D12_FEATURE_DATA_FORMAT_SUPPORT featureDataFormatSupport;
-		featureDataFormatSupport.Format = optionalFormats[i];
+		featureDataFormatSupport.Format = OptionalFormats[i];
 
 		ThrowCOMIfFailed(pRenderDevice->Device.GetD3DDevice()->CheckFeatureSupport(
 			D3D12_FEATURE_FORMAT_SUPPORT,
@@ -106,7 +60,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 
 		if (supportsUAV)
 		{
-			m_UAVSupportedFormat.insert(optionalFormats[i]);
+			m_UAVSupportedFormat.insert(OptionalFormats[i]);
 		}
 	}
 }
@@ -118,7 +72,6 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		Status::BRDFGenerated = true;
 
 		SystemReservedTextures[BRDFLUT] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/BRDF.dds", false, false);
-		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[BRDFLUT]);
 	}
 
 	if (!Status::LTCLUT1Generated)
@@ -126,7 +79,6 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		Status::LTCLUT1Generated = true;
 
 		SystemReservedTextures[LTCLUT1] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_1.dds", false, false);
-		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[LTCLUT1]);
 	}
 
 	if (!Status::LTCLUT2Generated)
@@ -134,7 +86,6 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		Status::LTCLUT2Generated = true;
 
 		SystemReservedTextures[LTCLUT2] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_2.dds", false, false);
-		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[LTCLUT2]);
 	}
 
 	if (!Status::SkyboxGenerated)
@@ -160,87 +111,6 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		EquirectangularToCubemap(SystemReservedTextures[SkyboxEquirectangularMap], SystemReservedTextures[SkyboxCubemap], RenderContext);
 		pRenderDevice->CreateShaderResourceView(SystemReservedTextures[SkyboxCubemap]);
 	}
-
-	//// Create temporary srv for the cubemap and generate convolutions
-	//pRenderDevice->CreateSRV(RendererReseveredTextures[SkyboxCubemap]);
-	//Descriptor skyboxSRV = pRenderDevice->GetSRV(RendererReseveredTextures[SkyboxCubemap]);
-	//pCommandContext->TransitionBarrier(pRenderDevice->GetTexture(RendererReseveredTextures[SkyboxCubemap]), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
-
-	//// Generate cubemap convolutions
-	//for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
-	//{
-	//	const DXGI_FORMAT format = i == CubemapConvolution::Irradiance ? RendererFormats::IrradianceFormat : RendererFormats::PrefilterFormat;
-	//	const UINT64 resolution = i == CubemapConvolution::Irradiance ? Resolutions::Irradiance : Resolutions::Prefilter;
-	//	const UINT16 numMips = static_cast<UINT16>(floor(log2(resolution))) + 1;
-
-	//	// Create cubemap texture
-	//	RenderResourceHandle cubemap = pRenderDevice->CreateTexture(Resource::Type::TextureCube, [&](TextureProxy& proxy)
-	//	{
-	//		proxy.SetFormat(format);
-	//		proxy.SetWidth(resolution);
-	//		proxy.SetHeight(resolution);
-	//		proxy.SetMipLevels(numMips);
-	//		proxy.BindFlags = Resource::BindFlags::RenderTarget;
-	//		proxy.InitialState = Resource::State::RenderTarget;
-	//	});
-
-	//	// Generate cube map
-	//	pCommandContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	//	pCommandContext->SetPipelineState(pRenderDevice->GetGraphicsPSO(i == CubemapConvolution::Irradiance ? GraphicsPSOs::ConvolutionIrradiace : GraphicsPSOs::ConvolutionPrefilter));
-	//	pCommandContext->SetGraphicsRootSignature(pRenderDevice->GetRootSignature(i == CubemapConvolution::Irradiance ? RootSignatures::ConvolutionIrradiace : RootSignatures::ConvolutionPrefilter));
-
-	//	pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::CubemapConvolution::CubemapSRV, skyboxSRV.GPUHandle);
-
-	//	for (UINT mip = 0; mip < numMips; ++mip)
-	//	{
-	//		D3D12_VIEWPORT vp;
-	//		vp.TopLeftX = vp.TopLeftY = 0.0f;
-	//		vp.MinDepth = 0.0f;
-	//		vp.MaxDepth = 1.0f;
-	//		vp.Width = vp.Height = static_cast<FLOAT>(resolution * std::pow(0.5f, mip));
-
-	//		D3D12_RECT sr;
-	//		sr.left = sr.top = 0;
-	//		sr.right = sr.bottom = resolution;
-
-	//		pCommandContext->SetViewports(1, &vp);
-	//		pCommandContext->SetScissorRects(1, &sr);
-	//		for (UINT face = 0; face < 6; ++face)
-	//		{
-	//			UINT renderTargetDescriptorOffset = UINT(INT64(mip) * INT64(6) + INT64(face));
-	//			pRenderDevice->CreateRTV(cubemap, face, mip, 1);
-	//			Descriptor RTV = pRenderDevice->GetRTV(cubemap);
-	//			pCommandContext->SetRenderTargets(1, RTV, TRUE, Descriptor());
-
-	//			Buffer* pCubemapCameras = pRenderDevice->GetBuffer(m_CubemapCamerasUploadBufferHandle);
-	//			pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::CubemapConvolution::RenderPassCBuffer, pCubemapCameras->GetGpuVirtualAddressAt(face));
-	//			switch (i)
-	//			{
-	//			case Irradiance:
-	//			{
-	//				ConvolutionIrradianceSetting icSetting;
-	//				pCommandContext->SetGraphicsRoot32BitConstants(RootParameters::CubemapConvolution::Setting, sizeof(icSetting) / 4, &icSetting, 0);
-	//			}
-	//			break;
-	//			case Prefilter:
-	//			{
-	//				ConvolutionPrefilterSetting pcSetting;
-	//				pcSetting.Roughness = (float)mip / (float)(numMips - 1);
-	//				pCommandContext->SetGraphicsRoot32BitConstants(RootParameters::CubemapConvolution::Setting, sizeof(pcSetting) / 4, &pcSetting, 0);
-	//			}
-	//			break;
-	//			}
-	//			pCommandContext->DrawIndexedInstanced(Scene.Skybox.Mesh.IndexCount, 1, Scene.Skybox.Mesh.StartIndexLocation, Scene.Skybox.Mesh.BaseVertexLocation, 0);
-	//		}
-	//	}
-
-	//	// Set cubemap
-	//	switch (i)
-	//	{
-	//	case Irradiance: RendererReseveredTextures[SkyboxIrradianceCubemap] = cubemap; break;
-	//	case Prefilter: RendererReseveredTextures[SkyboxPrefilteredCubemap] = cubemap; break;
-	//	}
-	//}
 
 	for (auto& material : Scene.Materials)
 	{
@@ -316,6 +186,8 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	// Create actual texture
 	RenderResourceHandle handle;
+	DeviceResource::BindFlags BindFlags = DeviceResource::BindFlags::None;
+	BindFlags |= generateMips ? DeviceResource::BindFlags::UnorderedAccess : DeviceResource::BindFlags::None;
 
 	switch (metadata.dimension)
 	{
@@ -327,7 +199,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 			proxy.SetWidth(static_cast<UINT64>(metadata.width));
 			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.arraySize));
 			proxy.SetMipLevels(mipLevels);
-			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = BindFlags;
 			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
 	}
@@ -342,7 +214,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 			proxy.SetHeight(static_cast<UINT>(metadata.height));
 			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.arraySize));
 			proxy.SetMipLevels(mipLevels);
-			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = BindFlags;
 			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
 	}
@@ -357,7 +229,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 			proxy.SetHeight(static_cast<UINT>(metadata.height));
 			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.depth));
 			proxy.SetMipLevels(mipLevels);
-			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = BindFlags;
 			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
 	}
@@ -421,13 +293,13 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	}
 
 	StagingTexture stagingTexture;
-	stagingTexture.path = Path.generic_string();
-	stagingTexture.texture = DeviceTexture(stagingResource);
-	stagingTexture.numSubresources = NumSubresources;
-	stagingTexture.placedSubresourceLayouts = std::move(placedSubresourceLayouts);
-	stagingTexture.mipLevels = mipLevels;
-	stagingTexture.generateMips = generateMips;
-	stagingTexture.isMasked = metadata.GetAlphaMode() != DirectX::TEX_ALPHA_MODE_OPAQUE;
+	stagingTexture.Path = Path.generic_string();
+	stagingTexture.Texture = DeviceTexture(stagingResource);
+	stagingTexture.NumSubresources = NumSubresources;
+	stagingTexture.PlacedSubresourceLayouts = std::move(placedSubresourceLayouts);
+	stagingTexture.MipLevels = mipLevels;
+	stagingTexture.GenerateMips = generateMips;
+	stagingTexture.IsMasked = metadata.GetAlphaMode() != DirectX::TEX_ALPHA_MODE_OPAQUE;
 
 	m_UnstagedTextures[handle] = std::move(stagingTexture);
 	return handle;
@@ -461,15 +333,15 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 
 void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
 {
-	std::wstring Path = UTF8ToUTF16(StagingTexture.path);
+	std::wstring Path = UTF8ToUTF16(StagingTexture.Path);
 	PIXMarker(RenderContext->GetD3DCommandList(), Path.data());
 
 	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-	DeviceTexture* pStagingResourceTexture = &StagingTexture.texture;
+	DeviceTexture* pStagingResourceTexture = &StagingTexture.Texture;
 
 	// Stage texture
 	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::CopyDest);
-	for (std::size_t subresourceIndex = 0; subresourceIndex < StagingTexture.numSubresources; ++subresourceIndex)
+	for (std::size_t subresourceIndex = 0; subresourceIndex < StagingTexture.NumSubresources; ++subresourceIndex)
 	{
 		D3D12_TEXTURE_COPY_LOCATION destination;
 		destination.pResource = pTexture->GetD3DResource();
@@ -479,11 +351,11 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 		D3D12_TEXTURE_COPY_LOCATION source;
 		source.pResource = pStagingResourceTexture->GetD3DResource();
 		source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		source.PlacedFootprint = StagingTexture.placedSubresourceLayouts[subresourceIndex];
+		source.PlacedFootprint = StagingTexture.PlacedSubresourceLayouts[subresourceIndex];
 		RenderContext->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
 	}
 
-	if (StagingTexture.generateMips)
+	if (StagingTexture.GenerateMips)
 	{
 		if (IsUAVCompatable(pTexture->GetFormat()))
 		{
@@ -494,11 +366,16 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 			GenerateMipsSRGB(TextureHandle, RenderContext);
 		}
 	}
+	else
+	{
+		// Generate Mips will create a SRV for the handle, if no mips are going to be generated, explicitly create a SRV for it
+		pRenderDevice->CreateShaderResourceView(TextureHandle);
+	}
 
 	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 
-	TextureHandles[StagingTexture.path] = TextureHandle;
-	CORE_INFO("{} Loaded", StagingTexture.path);
+	TextureHandles[StagingTexture.Path] = TextureHandle;
+	CORE_INFO("{} Loaded", StagingTexture.Path);
 }
 
 void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
