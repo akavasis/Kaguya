@@ -1,3 +1,5 @@
+#include "../Constants.hlsli"
+
 cbuffer Settings : register(b0)
 {
 	float2 InverseOutputSize;
@@ -29,10 +31,10 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 	float2 offset = InverseOutputSize * 0.25f;
 
     // Use 4 bilinear samples to guarantee we don't undersample when downsizing by more than 2x
-	float3 color1 = Input.SampleLevel(BiLinearClamp, uv + float2(-offset.x, -offset.y), 0.0f).rgb;
-	float3 color2 = Input.SampleLevel(BiLinearClamp, uv + float2( offset.x, -offset.y), 0.0f).rgb;
-	float3 color3 = Input.SampleLevel(BiLinearClamp, uv + float2(-offset.x,  offset.y), 0.0f).rgb;
-	float3 color4 = Input.SampleLevel(BiLinearClamp, uv + float2( offset.x,  offset.y), 0.0f).rgb;
+	float3 color1 = clamp(Input.SampleLevel(BiLinearClamp, uv + float2(-offset.x, -offset.y), 0.0f).rgb, 0.0f, FLT_MAX);
+	float3 color2 = clamp(Input.SampleLevel(BiLinearClamp, uv + float2(+offset.x, -offset.y), 0.0f).rgb, 0.0f, FLT_MAX);
+	float3 color3 = clamp(Input.SampleLevel(BiLinearClamp, uv + float2(-offset.x, +offset.y), 0.0f).rgb, 0.0f, FLT_MAX);
+	float3 color4 = clamp(Input.SampleLevel(BiLinearClamp, uv + float2(+offset.x, +offset.y), 0.0f).rgb, 0.0f, FLT_MAX);
 
 	float luma1 = RGBToLuminance(color1);
 	float luma2 = RGBToLuminance(color2);

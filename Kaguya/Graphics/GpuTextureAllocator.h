@@ -20,8 +20,6 @@ public:
 		LTCLUT2,
 		SkyboxEquirectangularMap,
 		SkyboxCubemap,
-		//SkyboxIrradianceCubemap,
-		//SkyboxPrefilteredCubemap,
 		NumSystemReservedTextures
 	};
 	RenderResourceHandle SystemReservedTextures[NumSystemReservedTextures];

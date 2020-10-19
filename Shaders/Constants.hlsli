@@ -9,4 +9,6 @@ static const float s_1DIV4PI = 0.079577471f;
 static const float s_PIDIV2 = 1.570796327f;
 static const float s_PIDIV4 = 0.785398163f;
 
+static const float FLT_MAX = asfloat(0x7F7FFFFF);
+
 #endif

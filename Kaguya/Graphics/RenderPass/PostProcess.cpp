@@ -339,17 +339,8 @@ void PostProcess::ApplyTonemappingToSwapChain(Descriptor InputSRV, RenderContext
 
 	RenderContext->SetGraphicsRoot32BitConstants(0, 2, &settings, 0);
 
-	D3D12_VIEWPORT vp;
-	vp.TopLeftX = vp.TopLeftY = 0.0f;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.Width = pDestination->GetWidth();
-	vp.Height = pDestination->GetHeight();
-
-	D3D12_RECT sr;
-	sr.left = sr.top = 0;
-	sr.right = pDestination->GetWidth();
-	sr.bottom = pDestination->GetHeight();
+	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, pDestination->GetWidth(), pDestination->GetHeight());
+	D3D12_RECT		sr = CD3DX12_RECT(0, 0, pDestination->GetWidth(), pDestination->GetHeight());
 
 	RenderContext->SetViewports(1, &vp);
 	RenderContext->SetScissorRects(1, &sr);

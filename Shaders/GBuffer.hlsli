@@ -83,9 +83,10 @@ GBufferMesh GetGBufferMesh(GBuffer gbuffer, uint2 uv)
 	{
 		uint3 location = uint3(uv, 0);
 		float4 AlbedoRoughness = gbuffer.Albedo.Load(location);
+		float4 Normal = gbuffer.Normal.Load(location);
 		
 		OUT.Position = gbuffer.Position.Load(location).xyz;
-		OUT.Normal = DecodeNormal(gbuffer.Normal.Load(location).xyz);
+		OUT.Normal = DecodeNormal(Normal.xyz);
 		OUT.Albedo = AlbedoRoughness.rgb;
 		OUT.Roughness = AlbedoRoughness.a;
 		OUT.MaterialIndex = gbuffer.TypeAndIndex.Load(location).x & 0x0000000F;

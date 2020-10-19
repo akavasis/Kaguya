@@ -40,4 +40,5 @@ void Gui::EndFrame(DeviceTexture* pDestination, Descriptor DestinationRTV, Comma
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandContext->GetD3DCommandList());
 
 	pCommandContext->TransitionBarrier(pDestination, DeviceResource::State::Present);
+	pCommandContext->FlushResourceBarriers();
 }
