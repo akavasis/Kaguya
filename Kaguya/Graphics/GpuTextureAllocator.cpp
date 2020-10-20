@@ -88,7 +88,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 		SystemReservedTextures[LTCLUT2] = LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_2.dds", false, false);
 	}
 
-	if (!Status::SkyboxGenerated)
+	if (!Status::SkyboxGenerated && !Scene.Skybox.Path.empty())
 	{
 		Status::SkyboxGenerated = true;
 
@@ -141,64 +141,55 @@ void GpuTextureAllocator::DisposeResources()
 
 RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips)
 {
+	assert(std::filesystem::exists(Path) && "File not found");
+
 	if (auto iter = TextureHandles.find(Path.generic_string());
 		iter != TextureHandles.end())
 	{
 		return iter->second;
 	}
 
-	if (!std::filesystem::exists(Path))
-	{
-		CORE_ERROR("File: {} Not found");
-		return RenderResourceHandle();
-	}
-
-	DirectX::ScratchImage scratchImage;
-	DirectX::TexMetadata metadata;
+	DirectX::ScratchImage	ScratchImage;
+	DirectX::TexMetadata	TexMetadata;
 	if (Path.extension() == ".dds")
 	{
-		ThrowCOMIfFailed(DirectX::LoadFromDDSFile(Path.c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &metadata, scratchImage));
+		ThrowCOMIfFailed(DirectX::LoadFromDDSFile(Path.c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
 	}
 	else if (Path.extension() == ".tga")
 	{
-		ThrowCOMIfFailed(DirectX::LoadFromTGAFile(Path.c_str(), &metadata, scratchImage));
+		ThrowCOMIfFailed(DirectX::LoadFromTGAFile(Path.c_str(), &TexMetadata, ScratchImage));
 	}
 	else if (Path.extension() == ".hdr")
 	{
-		ThrowCOMIfFailed(DirectX::LoadFromHDRFile(Path.c_str(), &metadata, scratchImage));
+		ThrowCOMIfFailed(DirectX::LoadFromHDRFile(Path.c_str(), &TexMetadata, ScratchImage));
 	}
 	else
 	{
-		ThrowCOMIfFailed(DirectX::LoadFromWICFile(Path.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_FORCE_RGB, &metadata, scratchImage));
+		ThrowCOMIfFailed(DirectX::LoadFromWICFile(Path.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
 	}
-	// if metadata mip levels is > 1 then is already generated, other wise generate mip maps
-	bool generateMips = (metadata.mipLevels > 1) ? false : GenerateMips;
-	std::size_t mipLevels = generateMips ? static_cast<size_t>(std::floor(std::log2(std::max(metadata.width, metadata.height)))) + 1 : metadata.mipLevels;
+	// if metadata mip levels is > 1 then is already generated, other wise the value is based on argument
+	GenerateMips = (TexMetadata.mipLevels > 1) ? false : GenerateMips;
+	size_t MipLevels = GenerateMips ? static_cast<size_t>(std::floor(std::log2(std::max(TexMetadata.width, TexMetadata.height)))) + 1 : TexMetadata.mipLevels;
 
 	if (ForceSRGB)
 	{
-		metadata.format = DirectX::MakeSRGB(metadata.format);
-		if (!DirectX::IsSRGB(metadata.format))
-		{
-			CORE_WARN("Failed to convert to SRGB format");
-		}
+		TexMetadata.format = DirectX::MakeSRGB(TexMetadata.format);
 	}
 
 	// Create actual texture
-	RenderResourceHandle handle;
-	DeviceResource::BindFlags BindFlags = DeviceResource::BindFlags::None;
-	BindFlags |= generateMips ? DeviceResource::BindFlags::UnorderedAccess : DeviceResource::BindFlags::None;
+	RenderResourceHandle		TextureHandle;
+	DeviceResource::BindFlags	BindFlags = GenerateMips ? DeviceResource::BindFlags::UnorderedAccess : DeviceResource::BindFlags::None;
 
-	switch (metadata.dimension)
+	switch (TexMetadata.dimension)
 	{
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
 	{
-		handle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture1D, [&](DeviceTextureProxy& proxy)
+		TextureHandle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture1D, [&](DeviceTextureProxy& proxy)
 		{
-			proxy.SetFormat(metadata.format);
-			proxy.SetWidth(static_cast<UINT64>(metadata.width));
-			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.arraySize));
-			proxy.SetMipLevels(mipLevels);
+			proxy.SetFormat(TexMetadata.format);
+			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
+			proxy.SetDepthOrArraySize(static_cast<UINT16>(TexMetadata.arraySize));
+			proxy.SetMipLevels(MipLevels);
 			proxy.BindFlags = BindFlags;
 			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
@@ -207,13 +198,13 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
 	{
-		handle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		TextureHandle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
-			proxy.SetFormat(metadata.format);
-			proxy.SetWidth(static_cast<UINT64>(metadata.width));
-			proxy.SetHeight(static_cast<UINT>(metadata.height));
-			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.arraySize));
-			proxy.SetMipLevels(mipLevels);
+			proxy.SetFormat(TexMetadata.format);
+			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
+			proxy.SetHeight(static_cast<UINT>(TexMetadata.height));
+			proxy.SetDepthOrArraySize(static_cast<UINT16>(TexMetadata.arraySize));
+			proxy.SetMipLevels(MipLevels);
 			proxy.BindFlags = BindFlags;
 			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
@@ -222,87 +213,85 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
 	{
-		handle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture3D, [&](DeviceTextureProxy& proxy)
+		TextureHandle = pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Texture3D, [&](DeviceTextureProxy& proxy)
 		{
-			proxy.SetFormat(metadata.format);
-			proxy.SetWidth(static_cast<UINT64>(metadata.width));
-			proxy.SetHeight(static_cast<UINT>(metadata.height));
-			proxy.SetDepthOrArraySize(static_cast<UINT16>(metadata.depth));
-			proxy.SetMipLevels(mipLevels);
+			proxy.SetFormat(TexMetadata.format);
+			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
+			proxy.SetHeight(static_cast<UINT>(TexMetadata.height));
+			proxy.SetDepthOrArraySize(static_cast<UINT16>(TexMetadata.depth));
+			proxy.SetMipLevels(MipLevels);
 			proxy.BindFlags = BindFlags;
 			proxy.InitialState = DeviceResource::State::CopyDest;
 		});
 	}
 	break;
 
-	default:
-		assert(false && "Unknown DirectX::TEX_DIMENSION");
+	default: assert(false && "Unknown DirectX::TEX_DIMENSION");
 	}
 
-	DeviceTexture* pTexture = pRenderDevice->GetTexture(handle);
+	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 #ifdef _DEBUG
 	pTexture->GetD3DResource()->SetName(Path.generic_wstring().data());
 #endif
 
-	std::vector<D3D12_SUBRESOURCE_DATA> subresources(scratchImage.GetImageCount());
-	const DirectX::Image* pImages = scratchImage.GetImages();
-	for (size_t i = 0; i < scratchImage.GetImageCount(); ++i)
+	std::vector<D3D12_SUBRESOURCE_DATA> subresources(ScratchImage.GetImageCount());
+	const DirectX::Image* pImages = ScratchImage.GetImages();
+	for (size_t i = 0; i < ScratchImage.GetImageCount(); ++i)
 	{
 		subresources[i].RowPitch = pImages[i].rowPitch;
 		subresources[i].SlicePitch = pImages[i].slicePitch;
 		subresources[i].pData = pImages[i].pixels;
 	}
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> stagingResource;
-	const UINT NumSubresources = static_cast<UINT>(subresources.size());
-	// Footprint is synonymous to layout
-	std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> placedSubresourceLayouts(NumSubresources);
-	std::vector<UINT> numRows(NumSubresources);
-	std::vector<UINT64> rowSizeInBytes(NumSubresources);
-	UINT64 totalBytes = 0;
+	Microsoft::WRL::ComPtr<ID3D12Resource>			StagingResource;
+	const UINT										NumSubresources						= static_cast<UINT>(subresources.size());
+	std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts			(NumSubresources);
+	std::vector<UINT>								NumRows								(NumSubresources);
+	std::vector<UINT64>								RowSizeInBytes						(NumSubresources);
+	UINT64											TotalBytes							= 0;
 
 	auto pD3DDevice = pRenderDevice->Device.GetD3DDevice();
 	pD3DDevice->GetCopyableFootprints(&pTexture->GetD3DResource()->GetDesc(), 0, NumSubresources, 0,
-		placedSubresourceLayouts.data(), numRows.data(), rowSizeInBytes.data(), &totalBytes);
+		PlacedSubresourceLayouts.data(), NumRows.data(), RowSizeInBytes.data(), &TotalBytes);
 
 	pD3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(totalBytes), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(stagingResource.ReleaseAndGetAddressOf()));
+		&CD3DX12_RESOURCE_DESC::Buffer(TotalBytes), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(StagingResource.ReleaseAndGetAddressOf()));
 
 	// CPU Upload
 	BYTE* pHostMemory = nullptr;
-	if (stagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory)) == S_OK)
+	if (StagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory)) == S_OK)
 	{
 		for (UINT subresourceIndex = 0; subresourceIndex < NumSubresources; ++subresourceIndex)
 		{
-			D3D12_MEMCPY_DEST memcpyDest;
-			memcpyDest.pData = pHostMemory + placedSubresourceLayouts[subresourceIndex].Offset;
-			memcpyDest.RowPitch = static_cast<SIZE_T>(placedSubresourceLayouts[subresourceIndex].Footprint.RowPitch);
-			memcpyDest.SlicePitch = static_cast<SIZE_T>(placedSubresourceLayouts[subresourceIndex].Footprint.RowPitch) * static_cast<SIZE_T>(numRows[subresourceIndex]);
+			D3D12_MEMCPY_DEST MemCpyDest = {};
+			MemCpyDest.pData		= pHostMemory + PlacedSubresourceLayouts[subresourceIndex].Offset;
+			MemCpyDest.RowPitch		= static_cast<SIZE_T>(PlacedSubresourceLayouts[subresourceIndex].Footprint.RowPitch);
+			MemCpyDest.SlicePitch	= static_cast<SIZE_T>(PlacedSubresourceLayouts[subresourceIndex].Footprint.RowPitch) * static_cast<SIZE_T>(NumRows[subresourceIndex]);
 
-			for (UINT z = 0; z < placedSubresourceLayouts[subresourceIndex].Footprint.Depth; ++z)
+			for (UINT z = 0; z < PlacedSubresourceLayouts[subresourceIndex].Footprint.Depth; ++z)
 			{
-				BYTE* pDestSlice = reinterpret_cast<BYTE*>(memcpyDest.pData) + memcpyDest.SlicePitch * static_cast<SIZE_T>(z);
-				const BYTE* pSrcSlice = reinterpret_cast<const BYTE*>(subresources[subresourceIndex].pData) + subresources[subresourceIndex].SlicePitch * LONG_PTR(z);
-				for (UINT y = 0; y < numRows[subresourceIndex]; ++y)
+				BYTE* pDestSlice		= reinterpret_cast<BYTE*>(MemCpyDest.pData) + MemCpyDest.SlicePitch * static_cast<SIZE_T>(z);
+				const BYTE* pSrcSlice	= reinterpret_cast<const BYTE*>(subresources[subresourceIndex].pData) + subresources[subresourceIndex].SlicePitch * LONG_PTR(z);
+				for (UINT y = 0; y < NumRows[subresourceIndex]; ++y)
 				{
-					CopyMemory(pDestSlice + memcpyDest.RowPitch * y, pSrcSlice + subresources[subresourceIndex].RowPitch * LONG_PTR(y), rowSizeInBytes[subresourceIndex]);
+					CopyMemory(pDestSlice + MemCpyDest.RowPitch * y, pSrcSlice + subresources[subresourceIndex].RowPitch * LONG_PTR(y), RowSizeInBytes[subresourceIndex]);
 				}
 			}
 		}
-		stagingResource->Unmap(0, nullptr);
+		StagingResource->Unmap(0, nullptr);
 	}
 
-	StagingTexture stagingTexture;
-	stagingTexture.Path = Path.generic_string();
-	stagingTexture.Texture = DeviceTexture(stagingResource);
-	stagingTexture.NumSubresources = NumSubresources;
-	stagingTexture.PlacedSubresourceLayouts = std::move(placedSubresourceLayouts);
-	stagingTexture.MipLevels = mipLevels;
-	stagingTexture.GenerateMips = generateMips;
-	stagingTexture.IsMasked = metadata.GetAlphaMode() != DirectX::TEX_ALPHA_MODE_OPAQUE;
-
-	m_UnstagedTextures[handle] = std::move(stagingTexture);
-	return handle;
+	StagingTexture StagingTexture;
+	StagingTexture.Path						= Path.generic_string();
+	StagingTexture.Texture					= DeviceTexture(StagingResource);
+	StagingTexture.NumSubresources			= NumSubresources;
+	StagingTexture.PlacedSubresourceLayouts = std::move(PlacedSubresourceLayouts);
+	StagingTexture.MipLevels				= MipLevels;
+	StagingTexture.GenerateMips				= GenerateMips;
+	StagingTexture.IsMasked					= TexMetadata.GetAlphaMode() != DirectX::TEX_ALPHA_MODE_OPAQUE;
+	m_UnstagedTextures[TextureHandle]		= std::move(StagingTexture);
+	pRenderDevice->CreateShaderResourceView(TextureHandle); // Create SRV
+	return TextureHandle;
 }
 
 void GpuTextureAllocator::LoadMaterial(Material& Material)
@@ -313,11 +302,12 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 		{
 		case TextureFlags::Disk:
 		{
-			bool srgb = i == AlbedoIdx || i == EmissiveIdx;
+			bool SRGB = i == AlbedoIdx || i == EmissiveIdx;
 
 			if (!Material.Textures[i].Path.empty())
 			{
-				LoadFromFile(Material.Textures[i].Path, srgb, true);
+				RenderResourceHandle TextureHandle	= LoadFromFile(Material.Textures[i].Path, SRGB, true);
+				Material.TextureIndices[i]			= pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
 			}
 		}
 		break;
@@ -361,15 +351,10 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 		{
 			GenerateMipsUAV(TextureHandle, RenderContext);
 		}
-		else if (IsSRGB(pTexture->GetFormat()))
+		else if (DirectX::IsSRGB(pTexture->GetFormat()))
 		{
 			GenerateMipsSRGB(TextureHandle, RenderContext);
 		}
-	}
-	else
-	{
-		// Generate Mips will create a SRV for the handle, if no mips are going to be generated, explicitly create a SRV for it
-		pRenderDevice->CreateShaderResourceView(TextureHandle);
 	}
 
 	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
@@ -381,8 +366,6 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
 	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
-	pRenderDevice->CreateShaderResourceView(TextureHandle);
-
 	DeviceTexture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
 	RenderContext.SetPipelineState(ComputePSOs::GenerateMips);
@@ -496,7 +479,7 @@ void GpuTextureAllocator::EquirectangularToCubemap(RenderResourceHandle Equirect
 	{
 		EquirectangularToCubemapUAV(EquirectangularMap, Cubemap, RenderContext);
 	}
-	else if (IsSRGB(pCubemap->GetFormat()))
+	else if (DirectX::IsSRGB(pCubemap->GetFormat()))
 	{
 		EquirectangularToCubemapSRGB(EquirectangularMap, Cubemap, RenderContext);
 	}
@@ -611,18 +594,6 @@ bool GpuTextureAllocator::IsUAVCompatable(DXGI_FORMAT Format)
 	}
 	if (m_UAVSupportedFormat.find(Format) != m_UAVSupportedFormat.end())
 		return true;
-	return false;
-}
-
-bool GpuTextureAllocator::IsSRGB(DXGI_FORMAT Format)
-{
-	switch (Format)
-	{
-	case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-	case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-	case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
-		return true;
-	}
 	return false;
 }
 

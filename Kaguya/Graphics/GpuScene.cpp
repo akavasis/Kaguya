@@ -66,7 +66,13 @@ HLSLMaterial GetShaderMaterialDesc(const Material& Material)
 		.Fuzziness			= Material.Fuzziness,
 		.IndexOfRefraction	= Material.IndexOfRefraction,
 		.Model				= Material.Model,
-		.TextureIndices		= { -1, -1, -1, -1, -1 }
+		.TextureIndices		= { 
+			Material.TextureIndices[0],
+			Material.TextureIndices[1],
+			Material.TextureIndices[2],
+			Material.TextureIndices[3],
+			Material.TextureIndices[4]
+		}
 	};
 }
 
@@ -282,14 +288,6 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		for (auto& material : pScene->Materials)
 		{
 			HLSLMaterial hlslMaterial = GetShaderMaterialDesc(material);
-			for (size_t i = 0; i < NumTextureTypes; ++i)
-			{
-				if (auto iter = GpuTextureAllocator.TextureHandles.find(material.Textures[i].Path.generic_string());
-					iter != GpuTextureAllocator.TextureHandles.end())
-				{
-					hlslMaterial.TextureIndices[i] = pRenderDevice->GetShaderResourceView(iter->second).HeapIndex;
-				}
-			}
 
 			pUploadMaterialTable->Update<HLSLMaterial>(material.GpuMaterialIndex, hlslMaterial);
 		}

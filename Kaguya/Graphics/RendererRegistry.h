@@ -173,7 +173,6 @@ struct GraphicsPSOs
 
 	inline static RenderResourceHandle GBufferMeshes;
 	inline static RenderResourceHandle GBufferLights;
-	inline static RenderResourceHandle LTC;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 

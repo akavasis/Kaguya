@@ -93,9 +93,9 @@ void RayGeneration()
 			float halfWidth = Light.Width * 0.5f;
 			float halfHeight = Light.Height * 0.5f;
 			// Get billboard points at the origin
-			float3 p0 = float3(halfWidth, -halfHeight, 0.0);
-			float3 p1 = float3(halfWidth, halfHeight, 0.0);
-			float3 p2 = float3(-halfWidth, halfHeight, 0.0);
+			float3 p0 = float3(+halfWidth, -halfHeight, 0.0);
+			float3 p1 = float3(+halfWidth, +halfHeight, 0.0);
+			float3 p2 = float3(-halfWidth, +halfHeight, 0.0);
 			float3 p3 = float3(-halfWidth, -halfHeight, 0.0);
 		
 			p0 = mul(p0, (float3x3) Light.World);

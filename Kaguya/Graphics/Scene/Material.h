@@ -40,6 +40,8 @@ struct Material
 	float	IndexOfRefraction;
 	uint	Model;
 
+	int		TextureIndices[NumTextureTypes];
+
 	struct Texture
 	{
 		std::filesystem::path Path;
@@ -54,6 +56,7 @@ struct Material
 		for (int i = 0; i < NumTextureTypes; ++i)
 		{
 			Textures[i] = {};
+			TextureIndices[i] = -1;
 		}
 	}
 

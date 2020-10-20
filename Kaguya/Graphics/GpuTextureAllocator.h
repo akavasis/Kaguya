@@ -33,10 +33,10 @@ public:
 private:
 	struct Status
 	{
-		inline static bool BRDFGenerated = false;
+		inline static bool BRDFGenerated	= false;
 		inline static bool LTCLUT1Generated = false;
 		inline static bool LTCLUT2Generated = false;
-		inline static bool SkyboxGenerated = false;
+		inline static bool SkyboxGenerated	= false;
 	};
 
 	struct StagingTexture
@@ -60,7 +60,6 @@ private:
 	void EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
 
 	bool IsUAVCompatable(DXGI_FORMAT Format);
-	bool IsSRGB(DXGI_FORMAT Format);
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
 
 	RenderDevice* pRenderDevice;
