@@ -64,6 +64,7 @@ public:
 		NumRangeTypes
 	};
 
+	CBSRUADescriptorHeap() = default;
 	CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible);
 
 	// Returns a hash value that can be used for indexing Descriptor into hash tables
@@ -106,6 +107,7 @@ public:
 		Descriptor DestDescriptor;
 	};
 
+	SamplerDescriptorHeap() = default;
 	SamplerDescriptorHeap(Device* pDevice, UINT NumDescriptors, bool ShaderVisible);
 };
 
@@ -133,6 +135,7 @@ public:
 		UINT64 HashValue;
 	};
 
+	RenderTargetDescriptorHeap() = default;
 	RenderTargetDescriptorHeap(Device* pDevice, UINT NumDescriptors);
 
 	Entry operator[](UINT Index)
@@ -173,6 +176,7 @@ public:
 		UINT64 HashValue;
 	};
 
+	DepthStencilDescriptorHeap() = default;
 	DepthStencilDescriptorHeap(Device* pDevice, UINT NumDescriptors);
 
 	Entry operator[](UINT Index)

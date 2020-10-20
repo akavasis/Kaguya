@@ -69,7 +69,7 @@ void RenderGraph::RenderGui()
 void RenderGraph::Execute()
 {
 	bool stateRefresh = false;
-	for (auto& renderPass : m_RenderPasses)
+	for (const auto& renderPass : m_RenderPasses)
 	{
 		if (!renderPass->Enabled)
 			continue;
@@ -99,7 +99,7 @@ void RenderGraph::Execute()
 		{
 			futures[i] = m_ThreadPool.AddWork([this, i]()
 			{
-				pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
+				pRenderDevice->BindGpuDescriptorHeap(m_CommandContexts[i]);
 				auto pBuffer = pRenderDevice->GetBuffer(m_GpuData);
 				RenderContext context(i, pBuffer, pRenderDevice, m_CommandContexts[i]);
 				m_RenderPasses[i]->OnExecute(context, this);
@@ -107,7 +107,7 @@ void RenderGraph::Execute()
 		}
 		else
 		{
-			pRenderDevice->BindUniversalGpuDescriptorHeap(m_CommandContexts[i]);
+			pRenderDevice->BindGpuDescriptorHeap(m_CommandContexts[i]);
 			auto pBuffer = pRenderDevice->GetBuffer(m_GpuData);
 			RenderContext context(i, pBuffer, pRenderDevice, m_CommandContexts[i]);
 			m_RenderPasses[i]->OnExecute(context, this);
@@ -121,14 +121,8 @@ void RenderGraph::Execute()
 	}
 }
 
-void RenderGraph::ExecuteCommandContexts(RenderContext& RendererRenderContext, Gui* pGui)
+void RenderGraph::ExecuteCommandContexts(RenderContext& RendererRenderContext)
 {
-	auto frameIndex = pRenderDevice->FrameIndex;
-	auto pDestination = pRenderDevice->GetTexture(pRenderDevice->SwapChainTextures[frameIndex]);
-	auto destination = pRenderDevice->GetRenderTargetView(pRenderDevice->SwapChainTextures[frameIndex]);
-
-	pGui->EndFrame(pDestination, destination, m_CommandContexts.back());
-
 	std::vector<CommandContext*> CommandContexts(m_CommandContexts.size() + 1);
 	CommandContexts[0] = RendererRenderContext.GetCommandContext();
 	for (size_t i = 1; i < CommandContexts.size(); ++i)

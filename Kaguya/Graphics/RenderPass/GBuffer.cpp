@@ -40,7 +40,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
 
-		proxy.SetDepthStencilFormat(RendererFormats::DepthStencilFormat);
+		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
 	});
 
 	RootSignatures::GBufferLights = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
@@ -67,7 +67,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
 
-		proxy.SetDepthStencilFormat(RendererFormats::DepthStencilFormat);
+		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
 	});
 }
 
@@ -95,10 +95,10 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 
 	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
-		proxy.SetFormat(RendererFormats::DepthStencilFormat);
+		proxy.SetFormat(RenderDevice::DepthStencilFormat);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(RendererFormats::DepthStencilFormat, 1.0f, 0));
+		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(RenderDevice::DepthStencilFormat, 1.0f, 0));
 		proxy.BindFlags = DeviceResource::BindFlags::DepthStencil;
 		proxy.InitialState = DeviceResource::State::DepthWrite;
 	});

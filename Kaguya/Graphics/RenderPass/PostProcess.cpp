@@ -77,7 +77,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.pPS = &Shaders::PS::PostProcess_Tonemapping;
 
 		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-		proxy.AddRenderTargetFormat(RendererFormats::SwapChainBufferFormat);
+		proxy.AddRenderTargetFormat(RenderDevice::SwapChainBufferFormat);
 	});
 
 	ComputePSOs::PostProcess_BloomMask = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
@@ -188,7 +188,7 @@ void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 
 	if (Settings.ApplyBloom)
 		ApplyBloom(InputSRV, RenderContext, pRenderGraph);
-	ApplyTonemappingToSwapChain(InputSRV, RenderContext, pRenderGraph);
+	ApplyTonemapAndGuiToSwapChain(InputSRV, RenderContext, pRenderGraph);
 }
 
 void PostProcess::StateRefresh()
@@ -225,8 +225,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		RenderContext->TransitionBarrier(pOutput, DeviceResource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomMask);
-
-		RenderContext->SetComputeRoot32BitConstants(0, 5, &settings, 0);
+		RenderContext.SetRoot32BitConstants(0, 5, &settings, 0);
 
 		RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
 
@@ -262,8 +261,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget5a], DeviceResource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomDownsample);
-
-		RenderContext->SetComputeRoot32BitConstants(0, 7, &settings, 0);
+		RenderContext.SetRoot32BitConstants(0, 7, &settings, 0);
 
 		RenderContext->Dispatch2D(Properties.Width / 2, Properties.Height / 2, 8, 8);
 
@@ -307,8 +305,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomComposition);
-
-		RenderContext->SetComputeRoot32BitConstants(0, 6, &settings, 0);
+		RenderContext.SetRoot32BitConstants(0, 6, &settings, 0);
 
 		RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
@@ -316,38 +313,49 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 	}
 }
 
-void PostProcess::ApplyTonemappingToSwapChain(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph)
+void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Tonemap");
-
-	struct Tonemapping_Settings
-	{
-		float Exposure;
-		uint InputIndex;
-	} settings;
-	settings.Exposure = Settings.Tonemapping.Exposure;
-	settings.InputIndex = Settings.ApplyBloom ? RenderContext.GetShaderResourceView(Resources[EResources::RenderTarget]).HeapIndex :
-		InputSRV.HeapIndex;
-
 	auto pDestination = RenderContext.GetTexture(RenderContext.GetCurrentSwapChainResourceHandle());
 	auto DestinationRTV = RenderContext.GetRenderTargetView(RenderContext.GetCurrentSwapChainResourceHandle());
 
 	RenderContext->TransitionBarrier(pDestination, DeviceResource::State::RenderTarget);
+	{
+		D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, pDestination->GetWidth(), pDestination->GetHeight());
+		D3D12_RECT		sr = CD3DX12_RECT(0, 0, pDestination->GetWidth(), pDestination->GetHeight());
 
-	RenderContext.SetPipelineState(GraphicsPSOs::PostProcess_Tonemapping);
-	RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		RenderContext->SetViewports(1, &vp);
+		RenderContext->SetScissorRects(1, &sr);
+		RenderContext->SetRenderTargets(1, &DestinationRTV, TRUE, Descriptor());
 
-	RenderContext->SetGraphicsRoot32BitConstants(0, 2, &settings, 0);
+		// Tonemap
+		{
+			PIXMarker(RenderContext->GetD3DCommandList(), L"Tonemap");
 
-	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, pDestination->GetWidth(), pDestination->GetHeight());
-	D3D12_RECT		sr = CD3DX12_RECT(0, 0, pDestination->GetWidth(), pDestination->GetHeight());
+			struct Tonemapping_Settings
+			{
+				float Exposure;
+				uint InputIndex;
+			} settings;
+			settings.Exposure = Settings.Tonemapping.Exposure;
+			settings.InputIndex = Settings.ApplyBloom ? RenderContext.GetShaderResourceView(Resources[EResources::RenderTarget]).HeapIndex :
+				InputSRV.HeapIndex;
 
-	RenderContext->SetViewports(1, &vp);
-	RenderContext->SetScissorRects(1, &sr);
+			RenderContext.SetPipelineState(GraphicsPSOs::PostProcess_Tonemapping);
+			RenderContext.SetRoot32BitConstants(0, 2, &settings, 0);
 
-	RenderContext->SetRenderTargets(1, &DestinationRTV, TRUE, Descriptor());
-	RenderContext->DrawInstanced(3, 1, 0, 0);
+			RenderContext->DrawInstanced(3, 1, 0, 0);
+		}
 
+		// ImGui Render
+		{
+			PIXMarker(RenderContext->GetD3DCommandList(), L"ImGui Render");
+
+			RenderContext->SetDescriptorHeaps(RenderContext.GetImGuiDescriptorHeap(), nullptr);
+			ImGui::Render();
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), RenderContext->GetD3DCommandList());
+		}
+	}
 	RenderContext->TransitionBarrier(pDestination, DeviceResource::State::Present);
 }
 
@@ -371,8 +379,7 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 	RenderContext.TransitionBarrier(Resources[Output], DeviceResource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomBlur);
-
-	RenderContext->SetComputeRoot32BitConstants(0, 4, &settings, 0);
+	RenderContext.SetRoot32BitConstants(0, 4, &settings, 0);
 
 	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
@@ -404,8 +411,7 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 	RenderContext.TransitionBarrier(Resources[Output], DeviceResource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation);
-
-	RenderContext->SetComputeRoot32BitConstants(0, 6, &settings, 0);
+	RenderContext.SetRoot32BitConstants(0, 6, &settings, 0);
 
 	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 

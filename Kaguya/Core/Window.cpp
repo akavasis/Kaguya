@@ -1,70 +1,56 @@
 #include "pch.h"
 #include "Window.h"
-#include "Math/MathLibrary.h"
+#include "Application.h"
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 Window::Window(LPCWSTR WindowName,
-	int Width, int Height,
-	int X, int Y)
+	int Width /*= CW_USEDEFAULT*/, int Height /*= CW_USEDEFAULT*/,
+	int X /*= CW_USEDEFAULT*/, int Y /*= CW_USEDEFAULT*/)
+	: m_WindowName(WindowName),
+	m_WindowWidth(Width),
+	m_WindowHeight(Height)
 {
-	m_DefaultCursor = ::LoadCursor(nullptr, IDC_ARROW);
+	m_Icon = (HICON)::LoadImage(0, (Application::ExecutableFolderPath / "Assets/Kaguya.ico").generic_wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE);
+	m_Cursor = ::LoadCursor(nullptr, IDC_ARROW);
 
 	m_CursorEnabled = true;
-	m_WindowHandle = nullptr;
-	// Generate a unique name for our window class (This name has to be unique, Win32 API requirements)
-	auto randomString = [](size_t length) -> std::wstring
-	{
-		auto randchar = []() -> char
-		{
-			const char charset[] = "0123456789" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz";
-			const size_t max_index = (sizeof(charset) - 1);
-			return charset[rand() % max_index];
-		};
-		std::wstring str(length, 0);
-		std::generate_n(str.begin(), length, randchar);
-		return str;
-	};
-
-	m_ClassName = L"KHWindowClass:" + randomString(9);
 
 	// Register RID for handling input
-	RAWINPUTDEVICE rid = {};
-	rid.usUsagePage = 0x01; // mouse page
-	rid.usUsage = 0x02l; // mouse usage
-	rid.dwFlags = 0;
-	rid.hwndTarget = nullptr;
+	RAWINPUTDEVICE rid	= {};
+	rid.usUsagePage		= 0x01;		// mouse page
+	rid.usUsage			= 0x02l;	// mouse usage
+	rid.dwFlags			= 0;
+	rid.hwndTarget		= NULL;
 	if (!::RegisterRawInputDevices(&rid, 1, sizeof(rid)))
 	{
 		CORE_ERROR("RegisterRawInputDevices Error: {}", ::GetLastError());
 	}
 
 	// Register window class
-	HINSTANCE hInstance = GetModuleHandle(NULL);
-	WNDCLASSEXW windowClass = {};
-	windowClass.cbSize = sizeof(WNDCLASSEX);
-	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc = Window::WindowProcedure;
-	windowClass.cbClsExtra = 0;
-	windowClass.cbWndExtra = 0;
-	windowClass.hInstance = hInstance;
-	windowClass.hIcon = NULL;
-	windowClass.hCursor = m_DefaultCursor;
-	windowClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-	windowClass.lpszMenuName = NULL;
-	windowClass.lpszClassName = m_ClassName.data();
-	windowClass.hIconSm = NULL;
+	WNDCLASSEXW windowClass		= {};
+	windowClass.cbSize			= sizeof(WNDCLASSEX);
+	windowClass.style			= CS_HREDRAW | CS_VREDRAW;
+	windowClass.lpfnWndProc		= Window::WindowProcedure;
+	windowClass.cbClsExtra		= 0;
+	windowClass.cbWndExtra		= 0;
+	windowClass.hInstance		= GetModuleHandle(NULL);
+	windowClass.hIcon			= m_Icon;
+	windowClass.hCursor			= m_Cursor;
+	windowClass.hbrBackground	= reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+	windowClass.lpszMenuName	= NULL;
+	windowClass.lpszClassName	= WindowName;
+	windowClass.hIconSm			= m_Icon;
 	if (!RegisterClassExW(&windowClass))
 	{
 		CORE_ERROR("RegisterClassExW Error: {}", ::GetLastError());
 	}
 
 	// Create window
-	m_WindowName = WindowName;
-	m_WindowHandle = CreateWindowW(m_ClassName.data(), m_WindowName.data(),
+	m_WindowHandle = CreateWindowW(WindowName, WindowName,
 		WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU,
-		X, Y, Width, Height, NULL, NULL, hInstance, this);
+		X, Y, Width, Height, NULL, NULL, GetModuleHandle(NULL), this);
 	if (m_WindowHandle)
 	{
 		// Initialize ImGui for win32
@@ -82,8 +68,10 @@ Window::Window(LPCWSTR WindowName,
 Window::~Window()
 {
 	::DestroyWindow(m_WindowHandle);
-	m_WindowHandle = nullptr;
-	::UnregisterClass(m_ClassName.data(), GetModuleHandle(NULL));
+	::UnregisterClass(m_WindowName.data(), GetModuleHandle(NULL));
+
+	DestroyCursor(m_Cursor);
+	DestroyIcon(m_Icon);
 }
 
 void Window::EnableCursor()

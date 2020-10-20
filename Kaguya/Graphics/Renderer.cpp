@@ -16,17 +16,18 @@
 
 #include "Scene/SampleScene.h"
 
+#define SHOW_IMGUI_DEMO_WINDOW 0
+
 //----------------------------------------------------------------------------------------------------
 Renderer::Renderer(Window* pWindow)
 	: RenderSystem(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
-	m_Gui(&m_RenderDevice),
 	m_GpuScene(&m_RenderDevice),
 	m_RenderGraph(&m_RenderDevice),
 
 	m_RenderContext(0, nullptr, &m_RenderDevice, m_RenderDevice.AllocateContext(CommandContext::Direct))
 {
-	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), *pWindow, RendererFormats::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
+	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), *pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -95,14 +96,20 @@ void Renderer::Update(const Time& Time)
 //----------------------------------------------------------------------------------------------------
 void Renderer::Render()
 {
-	m_Gui.BeginFrame();
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+#if SHOW_IMGUI_DEMO_WINDOW
+	ImGui::ShowDemoWindow();
+#endif
+
 	RenderGui();
 
 	m_GpuScene.RenderGui();
 	m_GpuScene.Update(AspectRatio, m_RenderContext);
 	m_RenderGraph.RenderGui();
 	m_RenderGraph.Execute();
-	m_RenderGraph.ExecuteCommandContexts(m_RenderContext, &m_Gui);
+	m_RenderGraph.ExecuteCommandContexts(m_RenderContext);
 
 	UINT syncInterval = Settings::VSync ? 1u : 0u;
 	UINT presentFlags = (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
@@ -178,7 +185,7 @@ void Renderer::SetScene(Scene Scene)
 
 	m_GpuScene.pScene = &m_Scene;
 
-	m_RenderDevice.BindUniversalGpuDescriptorHeap(m_RenderContext.GetCommandContext());
+	m_RenderDevice.BindGpuDescriptorHeap(m_RenderContext.GetCommandContext());
 	m_GpuScene.UploadLights(m_RenderContext);
 	m_GpuScene.UploadMaterials(m_RenderContext);
 	m_GpuScene.UploadModels(m_RenderContext);

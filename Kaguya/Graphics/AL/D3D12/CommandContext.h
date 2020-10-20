@@ -96,11 +96,12 @@ private:
 	// Marks current allocator as active with the FenceValue and request a new one
 	void RequestNewAllocator(UINT64 FenceValue);
 
-	CommandQueue*										pOwningCommandQueue;
+	CommandQueue*										SV_pCommandQueue;
+	ID3D12CommandAllocator*								SV_pAllocator;
+	ID3D12CommandAllocator*								SV_pPendingAllocator;
+
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4>	m_pCommandList;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4>	m_pPendingCommandList;
-	ID3D12CommandAllocator*								m_pCurrentAllocator; // Given by the CommandQueue
-	ID3D12CommandAllocator*								m_pCurrentPendingAllocator; // Given by the CommandQueue
 	Type												m_Type;
 
 	// Resource state tracker for this command list

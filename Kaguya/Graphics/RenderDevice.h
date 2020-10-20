@@ -46,11 +46,15 @@ public:
 		NumDepthStencilDescriptors		= 1024
 	};
 
+	static constexpr DXGI_FORMAT SwapChainBufferFormat	= DXGI_FORMAT_R8G8B8A8_UNORM;
+	static constexpr DXGI_FORMAT DepthStencilFormat		= DXGI_FORMAT_D24_UNORM_S8_UINT;
+
 	RenderDevice(IDXGIAdapter4* pAdapter);
+	~RenderDevice();
 
 	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
-	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext);
+	void BindGpuDescriptorHeap(CommandContext* pCommandContext);
 	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetCBDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
@@ -108,6 +112,7 @@ public:
 
 	UINT																					FrameIndex;
 	RenderResourceHandle																	SwapChainTextures[NumSwapChainBuffers];
+	CBSRUADescriptorHeap																	m_ImGuiDescriptorHeap;
 private:
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 

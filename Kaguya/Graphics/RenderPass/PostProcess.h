@@ -49,7 +49,7 @@ protected:
 	virtual void StateRefresh() override;
 private:
 	void ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph);
-	void ApplyTonemappingToSwapChain(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph);
+	void ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph);
 
 	void Blur(size_t Input, size_t Output, RenderContext& RenderContext);
 	void UpsampleBlurAccumulation(size_t HighResolution, size_t LowResolution, size_t Output, RenderContext& RenderContext);

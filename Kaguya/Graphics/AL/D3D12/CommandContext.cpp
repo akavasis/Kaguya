@@ -5,14 +5,13 @@
 CommandContext::CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, Type Type)
 	: m_Type(Type)
 {
-	pOwningCommandQueue			= pCommandQueue;
-
-	m_pCurrentAllocator			= pOwningCommandQueue->RequestAllocator();
-	m_pCurrentPendingAllocator	= pOwningCommandQueue->RequestAllocator();
+	SV_pCommandQueue			= pCommandQueue;
+	SV_pAllocator				= SV_pCommandQueue->RequestAllocator();
+	SV_pPendingAllocator		= SV_pCommandQueue->RequestAllocator();
 
 	D3D12_COMMAND_LIST_TYPE CommandListType = GetD3DCommandListType(Type);
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, CommandListType, m_pCurrentAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, CommandListType, m_pCurrentPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, CommandListType, SV_pAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, CommandListType, SV_pPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
 }
 
 bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
@@ -28,8 +27,8 @@ bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
 
 void CommandContext::Reset()
 {
-	m_pCommandList->Reset(m_pCurrentAllocator, nullptr);
-	m_pPendingCommandList->Reset(m_pCurrentPendingAllocator, nullptr);
+	m_pCommandList->Reset(SV_pAllocator, nullptr);
+	m_pPendingCommandList->Reset(SV_pPendingAllocator, nullptr);
 
 	// Reset resource state tracking and resource barriers 
 	m_ResourceStateTracker.Reset();
@@ -37,10 +36,11 @@ void CommandContext::Reset()
 
 void CommandContext::RequestNewAllocator(UINT64 FenceValue)
 {
-	pOwningCommandQueue->MarkAllocatorAsActive(FenceValue, m_pCurrentAllocator);
-	m_pCurrentAllocator = pOwningCommandQueue->RequestAllocator();
-	pOwningCommandQueue->MarkAllocatorAsActive(FenceValue, m_pCurrentPendingAllocator);
-	m_pCurrentPendingAllocator = pOwningCommandQueue->RequestAllocator();
+	SV_pCommandQueue->MarkAllocatorAsActive(FenceValue, SV_pAllocator);
+	SV_pCommandQueue->MarkAllocatorAsActive(FenceValue, SV_pPendingAllocator);
+
+	SV_pAllocator			= SV_pCommandQueue->RequestAllocator();
+	SV_pPendingAllocator	= SV_pCommandQueue->RequestAllocator();
 }
 
 void CommandContext::SetPipelineState(const PipelineState* pPipelineState)

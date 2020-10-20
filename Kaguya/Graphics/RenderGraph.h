@@ -1,12 +1,10 @@
 #pragma once
 #include <memory>
 #include <vector>
-#include <functional>
 #include <unordered_set>
 #include <string>
 #include "Core/ThreadPool.h"
 #include "RenderDevice.h"
-#include "Gui.h"
 #include "Scene/Scene.h"
 #include "GpuScene.h"
 #include "RenderContext.h"
@@ -101,7 +99,7 @@ public:
 	// Call every frame
 	void RenderGui();
 	void Execute();
-	void ExecuteCommandContexts(RenderContext& RendererRenderContext, Gui* pGui);
+	void ExecuteCommandContexts(RenderContext& RendererRenderContext);
 private:
 	void CreaterResources();
 	void CreateResourceViews();

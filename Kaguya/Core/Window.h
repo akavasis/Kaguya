@@ -65,13 +65,14 @@ private:
 		~ImGuiContextManager();
 	};
 
+	HICON						m_Icon;
+	HCURSOR						m_Cursor;
+
+	std::wstring				m_WindowName;
 	unsigned int				m_WindowWidth;
 	unsigned int				m_WindowHeight;
 	HWND						m_WindowHandle;
-	HCURSOR						m_DefaultCursor;
-	std::wstring				m_ClassName;
-	std::wstring				m_WindowName;
-	std::atomic<bool>			m_CursorEnabled;
+	bool						m_CursorEnabled;
 
 	ImGuiContextManager			m_ImGuiContextManager;
 };

@@ -24,6 +24,10 @@ public:
 	{
 		return SV_pRenderDevice->SwapChainTextures[SV_pRenderDevice->FrameIndex];
 	}
+	inline auto GetImGuiDescriptorHeap() const
+	{
+		return &SV_pRenderDevice->m_ImGuiDescriptorHeap;
+	}
 
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle) const { return SV_pRenderDevice->GetBuffer(Handle); }
 	[[nodiscard]] inline auto GetTexture(RenderResourceHandle Handle) const { return SV_pRenderDevice->GetTexture(Handle); }

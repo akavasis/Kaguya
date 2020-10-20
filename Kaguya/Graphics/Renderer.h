@@ -5,7 +5,6 @@
 #include "DXGIManager.h"
 #include "GpuScene.h"
 #include "RenderDevice.h"
-#include "Gui.h"
 #include "RenderGraph.h"
 
 //----------------------------------------------------------------------------------------------------
@@ -34,7 +33,6 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 
 	RenderDevice							m_RenderDevice;
-	Gui										m_Gui;
 	Scene									m_Scene;
 	GpuScene								m_GpuScene;
 	RenderGraph								m_RenderGraph;
