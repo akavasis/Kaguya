@@ -2,7 +2,6 @@
 #include "Accumulation.h"
 
 #include "Pathtracing.h"
-#include "RaytraceGBuffer.h"
 #include "AmbientOcclusion.h"
 
 Accumulation::Accumulation(UINT Width, UINT Height)
@@ -45,7 +44,6 @@ void Accumulation::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDev
 {
 	this->pGpuScene = pGpuScene;
 
-	LastGBuffer = 0;
 	LastAperture = pGpuScene->pScene->Camera.Aperture;
 	LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
 	LastCameraTransform = pGpuScene->pScene->Camera.Transform;
@@ -63,9 +61,6 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 	auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
 	Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);
 
-	//auto pRaytraceGBufferRenderPass = pRenderGraph->GetRenderPass<RaytraceGBuffer>();
-	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[pRaytraceGBufferRenderPass->GetSettings().GBuffer])
-
 	//auto pAmbientOcclusionRenderPass = pRenderGraph->GetRenderPass<AmbientOcclusion>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAmbientOcclusionRenderPass->Resources[AmbientOcclusion::EResources::RenderTarget]);
 
@@ -80,13 +75,11 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 	RenderContext.UpdateRenderPassData<AccumulationData>(Data);
 
 	// If the camera has moved
-	if (/*pRaytraceGBufferRenderPass->GetSettings().GBuffer != LastGBuffer ||*/
-		pGpuScene->pScene->Camera.Aperture != LastAperture ||
+	if (pGpuScene->pScene->Camera.Aperture != LastAperture ||
 		pGpuScene->pScene->Camera.FocalLength != LastFocalLength ||
 		pGpuScene->pScene->Camera.Transform != LastCameraTransform)
 	{
 		Settings.AccumulationCount = 0;
-		//LastGBuffer = pRaytraceGBufferRenderPass->GetSettings().GBuffer;
 		LastAperture = pGpuScene->pScene->Camera.Aperture;
 		LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
 		LastCameraTransform = pGpuScene->pScene->Camera.Transform;

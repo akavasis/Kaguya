@@ -30,6 +30,7 @@ struct GlobalConstants
 	float LensRadius;
 	
 	int SkyboxIndex;
+	int NumPolygonalLights;
 };
 
 struct GeometryInfo

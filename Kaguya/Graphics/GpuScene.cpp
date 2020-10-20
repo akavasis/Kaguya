@@ -46,27 +46,27 @@ HLSLPolygonalLight GetShaderLightDesc(const PolygonalLight& Light)
 {
 	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Light.Transform.Matrix()));
 	return {
-		.World = World,
-		.Color = Light.Color,
-		.Intensity = Light.Intensity,
-		.Width = Light.Width,
-		.Height = Light.Height
+		.World		= World,
+		.Color		= Light.Color,
+		.Intensity	= Light.Intensity,
+		.Width		= Light.Width,
+		.Height		= Light.Height
 	};
 }
 
 HLSLMaterial GetShaderMaterialDesc(const Material& Material)
 {
 	return {
-		.Albedo = Material.Albedo,
-		.Emissive = Material.Emissive,
-		.Specular = Material.Specular,
-		.Refraction = Material.Refraction,
-		.SpecularChance = Material.SpecularChance,
-		.Roughness = Material.Roughness,
-		.Fuzziness = Material.Fuzziness,
-		.IndexOfRefraction = Material.IndexOfRefraction,
-		.Model = Material.Model,
-		.TextureIndices = { -1, -1, -1, -1, -1 }
+		.Albedo				= Material.Albedo,
+		.Emissive			= Material.Emissive,
+		.Specular			= Material.Specular,
+		.Refraction			= Material.Refraction,
+		.SpecularChance		= Material.SpecularChance,
+		.Roughness			= Material.Roughness,
+		.Fuzziness			= Material.Fuzziness,
+		.IndexOfRefraction	= Material.IndexOfRefraction,
+		.Model				= Material.Model,
+		.TextureIndices		= { -1, -1, -1, -1, -1 }
 	};
 }
 
@@ -146,25 +146,6 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 
 	auto pIndexBuffer = pRenderDevice->GetBuffer(ResourceTables[IndexBuffer]);
 	auto pUploadIndexBuffer = pRenderDevice->GetBuffer(UploadResourceTables[IndexBuffer]);
-
-	// Upload skybox
-	{
-		auto skyboxModel = CreateBox(1.0f, 1.0f, 1.0f, 0);
-		std::vector<Vertex> vertices = std::move(skyboxModel.Vertices);
-		std::vector<UINT> indices = std::move(skyboxModel.Indices);
-
-		pScene->Skybox.Mesh.BoundingBox = skyboxModel.BoundingBox;
-		pScene->Skybox.Mesh.IndexCount = indices.size();
-		pScene->Skybox.Mesh.StartIndexLocation = 0;
-		pScene->Skybox.Mesh.VertexCount = vertices.size();
-		pScene->Skybox.Mesh.BaseVertexLocation = 0;
-
-		UINT64 totalVertexBytes = vertices.size() * sizeof(Vertex);
-		UINT64 totalIndexBytes = indices.size() * sizeof(UINT);
-
-		Upload(VertexBuffer, vertices.data(), totalVertexBytes, pUploadVertexBuffer);
-		Upload(IndexBuffer, indices.data(), totalIndexBytes, pUploadIndexBuffer);
-	}
 
 	for (auto& model : pScene->Models)
 	{
@@ -425,8 +406,4 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	pResult->SetDebugName(L"RTTLAS Result");
 
 	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
-}
-
-void GpuScene::Update(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer)
-{
 }

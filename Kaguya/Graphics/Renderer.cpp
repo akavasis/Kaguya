@@ -8,9 +8,8 @@
 
 // Render passes
 #include "RenderPass/GBuffer.h"
-#include "RenderPass/LTC.h"
+#include "RenderPass/Shading.h"
 #include "RenderPass/Pathtracing.h"
-#include "RenderPass/RaytraceGBuffer.h"
 #include "RenderPass/AmbientOcclusion.h"
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
@@ -50,9 +49,8 @@ void Renderer::Initialize()
 	}
 
 	m_RenderGraph.AddRenderPass(new GBuffer(Width, Height));
-	m_RenderGraph.AddRenderPass(new LTC(Width, Height));
+	m_RenderGraph.AddRenderPass(new Shading(Width, Height));
 	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
-	//m_RenderGraph.AddRenderPass(new RaytraceGBuffer(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
 	//m_RenderGraph.AddRenderPass(new Accumulation(Width, Height));
 	m_RenderGraph.AddRenderPass(new PostProcess(Width, Height));
@@ -97,6 +95,7 @@ void Renderer::Update(const Time& Time)
 //----------------------------------------------------------------------------------------------------
 void Renderer::Render()
 {
+	m_Gui.BeginFrame();
 	RenderGui();
 
 	m_GpuScene.RenderGui();
@@ -193,8 +192,6 @@ void Renderer::SetScene(Scene Scene)
 //----------------------------------------------------------------------------------------------------
 void Renderer::RenderGui()
 {
-	m_Gui.BeginFrame(); // End frame will be called at the end of the Render method by RenderGraph
-
 	if (ImGui::Begin("Renderer"))
 	{
 		auto localVideoMemoryInfo = m_DXGIManager.QueryLocalVideoMemoryInfo();

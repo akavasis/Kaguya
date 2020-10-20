@@ -8,7 +8,8 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	CopyQueue(&Device, D3D12_COMMAND_LIST_TYPE_COPY),
 	FrameIndex(0),
 	SwapChainTextures{},
-	m_CBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true),
+	m_NonShaderVisibleCBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false),
+	m_ShaderVisibleCBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true),
 	m_SamplerDescriptorHeap(&Device, NumSamplerDescriptors, true),
 	m_RenderTargetDescriptorHeap(&Device, NumRenderTargetDescriptors),
 	m_DepthStencilDescriptorHeap(&Device, NumDepthStencilDescriptors)
@@ -32,7 +33,7 @@ CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
 
 void RenderDevice::BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext)
 {
-	pCommandContext->SetDescriptorHeaps(&m_CBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
+	pCommandContext->SetDescriptorHeaps(&m_ShaderVisibleCBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
 }
 
 void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[])
@@ -276,15 +277,15 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceH
 			// Re-use descriptor
 			if (renderBuffer.ShaderResourceView.IsValid())
 			{
-				m_CBSRUADescriptorHeap.AssignSRDescriptor(renderBuffer.ShaderResourceView.HeapIndex,
+				m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(renderBuffer.ShaderResourceView.HeapIndex,
 					renderBuffer.pBuffer);
 			}
 			// Create new one
 			else
 			{
 				size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-				m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, renderBuffer.pBuffer);
-				renderBuffer.ShaderResourceView = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+				m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, renderBuffer.pBuffer);
+				renderBuffer.ShaderResourceView = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
 			}
 		}
 		else
@@ -294,11 +295,11 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceH
 			assert(pBuffer && "Could not find buffer given the handle");
 
 			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-			m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pBuffer);
+			m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pBuffer);
 
 			RenderBuffer renderBuffer;
 			renderBuffer.pBuffer = pBuffer;
-			renderBuffer.ShaderResourceView = m_CBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
+			renderBuffer.ShaderResourceView = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
 
 			m_RenderBuffers[RenderResourceHandle] = renderBuffer;
 		}
@@ -317,15 +318,15 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceH
 				srvIter != renderTexture.ShaderResourceViews.end())
 			{
 				// Re-use descriptor
-				m_CBSRUADescriptorHeap.AssignSRDescriptor(srvIter->second.HeapIndex, renderTexture.pTexture, MostDetailedMip, MipLevels);
+				m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(srvIter->second.HeapIndex, renderTexture.pTexture, MostDetailedMip, MipLevels);
 			}
 			else
 			{
 				// Add a new descriptor
 				size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-				UINT64 HashValue = m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, renderTexture.pTexture, MostDetailedMip, MipLevels);
+				UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, renderTexture.pTexture, MostDetailedMip, MipLevels);
 
-				renderTexture.ShaderResourceViews[HashValue] = m_CBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
+				renderTexture.ShaderResourceViews[HashValue] = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
 			}
 		}
 		else
@@ -335,11 +336,11 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle RenderResourceH
 			assert(pTexture && "Could not find texture given the handle");
 
 			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-			UINT64 HashValue = m_CBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pTexture, MostDetailedMip, MipLevels);
+			UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pTexture, MostDetailedMip, MipLevels);
 
 			RenderTexture renderTexture;
 			renderTexture.pTexture = pTexture;
-			renderTexture.ShaderResourceViews[HashValue] = m_CBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
+			renderTexture.ShaderResourceViews[HashValue] = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
 
 			m_RenderTextures[RenderResourceHandle] = renderTexture;
 		}
@@ -362,15 +363,15 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResource
 			// Re-use descriptor
 			if (renderBuffer.UnorderedAccessView.IsValid())
 			{
-				m_CBSRUADescriptorHeap.AssignUADescriptor(renderBuffer.UnorderedAccessView.HeapIndex,
+				m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(renderBuffer.UnorderedAccessView.HeapIndex,
 					renderBuffer.pBuffer);
 			}
 			// Create new one
 			else
 			{
 				size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
-				m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, renderBuffer.pBuffer);
-				renderBuffer.UnorderedAccessView = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+				m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, renderBuffer.pBuffer);
+				renderBuffer.UnorderedAccessView = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
 			}
 		}
 		else
@@ -380,11 +381,11 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResource
 			assert(pBuffer && "Could not find buffer given the handle");
 
 			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
-			m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pBuffer);
+			m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pBuffer);
 
 			RenderBuffer renderBuffer;
 			renderBuffer.pBuffer = pBuffer;
-			renderBuffer.UnorderedAccessView = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+			renderBuffer.UnorderedAccessView = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
 
 			m_RenderBuffers[RenderResourceHandle] = renderBuffer;
 		}
@@ -403,15 +404,15 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResource
 				uavIter != renderTexture.UnorderedAccessViews.end())
 			{
 				// Re-use descriptor
-				m_CBSRUADescriptorHeap.AssignUADescriptor(uavIter->second.HeapIndex, renderTexture.pTexture, ArraySlice, MipSlice);
+				m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(uavIter->second.HeapIndex, renderTexture.pTexture, ArraySlice, MipSlice);
 			}
 			else
 			{
 				// Add a new descriptor
 				size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
-				UINT64 HashValue = m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, renderTexture.pTexture, ArraySlice, MipSlice);
+				UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, renderTexture.pTexture, ArraySlice, MipSlice);
 
-				renderTexture.UnorderedAccessViews[HashValue] = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+				renderTexture.UnorderedAccessViews[HashValue] = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
 			}
 		}
 		else
@@ -421,11 +422,11 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle RenderResource
 			assert(pTexture && "Could not find texture given the handle");
 
 			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
-			UINT64 HashValue = m_CBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pTexture, ArraySlice, MipSlice);
+			UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pTexture, ArraySlice, MipSlice);
 
 			RenderTexture renderTexture;
 			renderTexture.pTexture = pTexture;
-			renderTexture.UnorderedAccessViews[HashValue] = m_CBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
+			renderTexture.UnorderedAccessViews[HashValue] = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
 
 			m_RenderTextures[RenderResourceHandle] = renderTexture;
 		}

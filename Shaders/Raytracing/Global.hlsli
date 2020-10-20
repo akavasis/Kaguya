@@ -12,13 +12,14 @@
 #define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
 #define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
-RaytracingAccelerationStructure SceneBVH			: register(t0, space0);
-StructuredBuffer<Vertex>		VertexBuffer		: register(t1, space0);
-StructuredBuffer<uint>			IndexBuffer			: register(t2, space0);
-StructuredBuffer<GeometryInfo>	GeometryInfoBuffer	: register(t3, space0);
-StructuredBuffer<Material>		Materials			: register(t4, space0);
+RaytracingAccelerationStructure		SceneBVH			: register(t0, space0);
+StructuredBuffer<Vertex>			VertexBuffer		: register(t1, space0);
+StructuredBuffer<uint>				IndexBuffer			: register(t2, space0);
+StructuredBuffer<GeometryInfo>		GeometryInfoBuffer	: register(t3, space0);
+StructuredBuffer<PolygonalLight>	Lights				: register(t4, space0);
+StructuredBuffer<Material>			Materials			: register(t5, space0);
 
-SamplerState					SamplerLinearWrap	: register(s0, space0);
+SamplerState						SamplerLinearWrap	: register(s0, space0);
 
 Triangle GetTriangle()
 {

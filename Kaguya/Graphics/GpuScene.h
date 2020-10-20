@@ -42,7 +42,6 @@ private:
 	size_t Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer);
 	void CreateBottomLevelAS(RenderContext& RenderContext);
 	void CreateTopLevelAS(RenderContext& RenderContext);
-	void Update(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer);
 
 	struct RTBLAS
 	{

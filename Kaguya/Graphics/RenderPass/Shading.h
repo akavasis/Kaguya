@@ -4,7 +4,7 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
-class LTC : public RenderPass
+class Shading : public RenderPass
 {
 public:
 	enum EResources
@@ -13,7 +13,7 @@ public:
 		NumResources
 	};
 
-	LTC(UINT Width, UINT Height);
+	Shading(UINT Width, UINT Height);
 protected:
 	virtual void InitializePipeline(RenderDevice* pRenderDevice) override;
 	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
@@ -23,4 +23,6 @@ protected:
 	virtual void StateRefresh() override;
 private:
 	GpuScene* pGpuScene;
+
+	RenderResourceHandle m_RayGenerationShaderTable;
 };

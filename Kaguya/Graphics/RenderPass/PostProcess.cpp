@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "PostProcess.h"
 
-#include "LTC.h"
+#include "Shading.h"
 #include "Accumulation.h"
 
 PostProcess::PostProcess(UINT Width, UINT Height)
@@ -180,8 +180,8 @@ void PostProcess::RenderGui()
 
 void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	auto pLTCRenderPass = pRenderGraph->GetRenderPass<LTC>();
-	Descriptor InputSRV = RenderContext.GetShaderResourceView(pLTCRenderPass->Resources[LTC::EResources::RenderTarget]);
+	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
+	Descriptor InputSRV = RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::RenderTarget]);
 
 	//auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);

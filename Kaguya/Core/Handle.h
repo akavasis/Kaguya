@@ -4,21 +4,23 @@
 // 64 bits
 static constexpr size_t HANDLE_MAX_BITFIELD_SIZE = (sizeof(size_t) * 8);
 
-template<typename Type, size_t TypeBitField, typename Flags, size_t FlagsBitField>
+template<typename Type_t, size_t TypeBitField, typename Flags_t, size_t FlagsBitField>
 struct Handle
 {
 	Handle()
-		: Data(0)
+		: Type(Type_t()),
+		Flags(Flags_t()),
+		Data(0)
 	{
 	}
-	auto operator<=>(const Handle<Type, TypeBitField, Flags, FlagsBitField>&) const = default;
+	auto operator<=>(const Handle<Type_t, TypeBitField, Flags_t, FlagsBitField>&) const = default;
 	operator bool() const
 	{
-		return Data != 0;
+		return Type != Type_t() && Flags != Flags_t() && Data != 0;
 	}
 
-	Type	Type	: TypeBitField;
-	Flags	Flags	: FlagsBitField;
+	Type_t	Type	: TypeBitField;
+	Flags_t	Flags	: FlagsBitField;
 	size_t	Data	: HANDLE_MAX_BITFIELD_SIZE - TypeBitField - FlagsBitField;
 };
 

@@ -100,28 +100,35 @@ void RenderContext::DispatchRays
 	UINT Width, UINT Height, UINT Depth
 )
 {
-	auto pRayGenerationShaderTable	= SV_pRenderDevice->GetBuffer(RayGenerationShaderTable);
-	auto pMissShaderTable			= SV_pRenderDevice->GetBuffer(MissShaderTable);
-	auto pHitGroupShaderTable		= SV_pRenderDevice->GetBuffer(HitGroupShaderTable);
+	assert(RayGenerationShaderTable);
 
-	D3D12_DISPATCH_RAYS_DESC desc				= {};
+	D3D12_DISPATCH_RAYS_DESC Desc = {};
+	{
+		auto pRayGenerationShaderTable					= SV_pRenderDevice->GetBuffer(RayGenerationShaderTable);
+		Desc.RayGenerationShaderRecord.StartAddress		= pRayGenerationShaderTable->GetGpuVirtualAddress();
+		Desc.RayGenerationShaderRecord.SizeInBytes		= pRayGenerationShaderTable->GetMemoryRequested();
 
-	desc.RayGenerationShaderRecord.StartAddress = pRayGenerationShaderTable->GetGpuVirtualAddress();
-	desc.RayGenerationShaderRecord.SizeInBytes	= pRayGenerationShaderTable->GetMemoryRequested();
+		if (MissShaderTable)
+		{
+			auto pMissShaderTable						= SV_pRenderDevice->GetBuffer(MissShaderTable);
+			Desc.MissShaderTable.StartAddress			= pMissShaderTable->GetGpuVirtualAddress();
+			Desc.MissShaderTable.SizeInBytes			= pMissShaderTable->GetMemoryRequested();
+			Desc.MissShaderTable.StrideInBytes			= pMissShaderTable->GetStride();
+		}
 
-	desc.MissShaderTable.StartAddress			= pMissShaderTable->GetGpuVirtualAddress();
-	desc.MissShaderTable.SizeInBytes			= pMissShaderTable->GetMemoryRequested();
-	desc.MissShaderTable.StrideInBytes			= pMissShaderTable->GetStride();
+		if (HitGroupShaderTable)
+		{
+			auto pHitGroupShaderTable					= SV_pRenderDevice->GetBuffer(HitGroupShaderTable);
+			Desc.HitGroupTable.StartAddress				= pHitGroupShaderTable->GetGpuVirtualAddress();
+			Desc.HitGroupTable.SizeInBytes				= pHitGroupShaderTable->GetMemoryRequested();
+			Desc.HitGroupTable.StrideInBytes			= pHitGroupShaderTable->GetStride();
+		}
 
-	desc.HitGroupTable.StartAddress				= pHitGroupShaderTable->GetGpuVirtualAddress();
-	desc.HitGroupTable.SizeInBytes				= pHitGroupShaderTable->GetMemoryRequested();
-	desc.HitGroupTable.StrideInBytes			= pHitGroupShaderTable->GetStride();
-
-	desc.Width	= Width;
-	desc.Height = Height;
-	desc.Depth	= Depth;
-
-	SV_pCommandContext->DispatchRays(&desc);
+		Desc.Width = Width;
+		Desc.Height = Height;
+		Desc.Depth = Depth;
+	}
+	SV_pCommandContext->DispatchRays(&Desc);
 }
 
 void RenderContext::SetGraphicsPSO(GraphicsPipelineState* pGraphicsPipelineState)

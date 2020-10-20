@@ -19,7 +19,6 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 		PS::ConvolutionPrefilter						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",	L"PSMain", {});
 		PS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			L"PSMain", {});
 		PS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",			L"PSMain", {});
-		PS::LTC											= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/LTC.hlsl",						L"PSMain", {});
 
 		PS::PostProcess_Tonemapping						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl",	L"PSMain", {});
 	}
@@ -43,8 +42,8 @@ void Libraries::Register(RenderDevice* pRenderDevice)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 	Pathtracing			= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
-	RaytraceGBuffer		= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/RaytraceGBuffer.hlsl");
 	AmbientOcclusion	= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
+	Shading				= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Shading.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
@@ -124,7 +123,8 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.AddRootSRVParameter(RootSRV(1, 0));	// Vertex Buffer,			t1 | space0
 		proxy.AddRootSRVParameter(RootSRV(2, 0));	// Index Buffer,			t2 | space0
 		proxy.AddRootSRVParameter(RootSRV(3, 0));	// Geometry info Buffer,	t3 | space0
-		proxy.AddRootSRVParameter(RootSRV(4, 0));	// Material Buffer,			t4 | space0
+		proxy.AddRootSRVParameter(RootSRV(4, 0));	// Light Buffer,			t4 | space0
+		proxy.AddRootSRVParameter(RootSRV(5, 0));	// Material Buffer,			t5 | space0
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);	// SamplerLinearWrap	s0 | space0;
 	});

@@ -83,9 +83,9 @@ private:
 	void BindGraphicsShaderLayoutResource(const RootSignature* pRootSignature);
 	void BindComputeShaderLayoutResource(const RootSignature* pRootSignature);
 
-	// SV have the same meaning as Shader's SV, it is provided by the RenderGraph
+	// SV have the same notion as Shader's SV, it is provided by the RenderGraph
 	size_t			SV_RenderPassIndex;
-	DeviceBuffer*			SV_pGpuData;
+	DeviceBuffer*	SV_pGpuData;
 	RenderDevice*	SV_pRenderDevice;
 	CommandContext* SV_pCommandContext;
 

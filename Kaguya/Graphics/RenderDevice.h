@@ -51,9 +51,9 @@ public:
 	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
 	void BindUniversalGpuDescriptorHeap(CommandContext* pCommandContext);
-	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_CBSRUADescriptorHeap.GetCBDescriptorAt(0); }
-	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_CBSRUADescriptorHeap.GetSRDescriptorAt(0); }
-	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_CBSRUADescriptorHeap.GetUADescriptorAt(0); }
+	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetCBDescriptorAt(0); }
+	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(0); }
+	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
 	inline auto GetSamplerDescriptorHeapDescriptorFromStart() const { return m_SamplerDescriptorHeap.GetDescriptorFromStart(); }
 	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
@@ -123,7 +123,8 @@ private:
 	RenderResourceContainer<RenderResourceType::ComputePSO, ComputePipelineState>			m_ComputePipelineStates;
 	RenderResourceContainer<RenderResourceType::RaytracingPSO, RaytracingPipelineState>		m_RaytracingPipelineStates;
 
-	CBSRUADescriptorHeap																	m_CBSRUADescriptorHeap;
+	CBSRUADescriptorHeap																	m_NonShaderVisibleCBSRUADescriptorHeap;
+	CBSRUADescriptorHeap																	m_ShaderVisibleCBSRUADescriptorHeap;
 	SamplerDescriptorHeap																	m_SamplerDescriptorHeap;
 	RenderTargetDescriptorHeap																m_RenderTargetDescriptorHeap;
 	DepthStencilDescriptorHeap																m_DepthStencilDescriptorHeap;

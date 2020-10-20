@@ -27,7 +27,7 @@ public:
 
 	struct SSettings
 	{
-		bool			ApplyBloom	= false;
+		bool			ApplyBloom	= true;
 		struct Bloom
 		{
 			float		Threshold	= 4.0f;

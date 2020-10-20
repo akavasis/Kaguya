@@ -106,7 +106,6 @@ struct Shaders
 		inline static Shader ConvolutionPrefilter;
 		inline static Shader GBufferMeshes;
 		inline static Shader GBufferLights;
-		inline static Shader LTC;
 
 		inline static Shader PostProcess_Tonemapping;
 	};
@@ -131,8 +130,8 @@ struct Shaders
 struct Libraries
 {
 	inline static Library Pathtracing;
-	inline static Library RaytraceGBuffer;
 	inline static Library AmbientOcclusion;
+	inline static Library Shading;
 
 	static void Register(RenderDevice* pRenderDevice);
 };
@@ -200,6 +199,6 @@ struct ComputePSOs
 struct RaytracingPSOs
 {
 	inline static RenderResourceHandle Pathtracing;
-	inline static RenderResourceHandle RaytraceGBuffer;
 	inline static RenderResourceHandle AmbientOcclusion;
+	inline static RenderResourceHandle Shading;
 };

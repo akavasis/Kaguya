@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Pathtracing.h"
-#include "../Renderer.h"
+#include <Core/RenderSystem.h>
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
 	: RenderPass("Path tracing",
@@ -199,7 +199,7 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	XMStoreFloat4x4(&globalConstants.InvProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseProjectionMatrix()));
 	XMStoreFloat4x4(&globalConstants.ViewProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewProjectionMatrix()));
 	globalConstants.EyePosition = pGpuScene->pScene->Camera.Transform.Position;
-	globalConstants.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
+	globalConstants.TotalFrameCount = static_cast<unsigned int>(RenderSystem::Statistics::TotalFrameCount);
 
 	globalConstants.NumSamplesPerPixel = Settings.NumSamplesPerPixel;
 	globalConstants.MaxDepth = Settings.MaxDepth;

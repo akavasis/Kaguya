@@ -1,5 +1,4 @@
-#ifndef __SHARED_TYPES_H__
-#define __SHARED_TYPES_H__
+#pragma once
 #include "SharedDefines.h"
 #include "Light.h"
 #include "Material.h"
@@ -29,6 +28,7 @@ struct GlobalConstants
 	float LensRadius;
 
 	int SkyboxIndex;
+	int NumPolygonalLights;
 };
 
 struct GeometryInfo
@@ -38,4 +38,3 @@ struct GeometryInfo
 	uint MaterialIndex;
 	matrix World;
 };
-#endif

@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "AmbientOcclusion.h"
-#include "../Renderer.h"
-
-#include "RaytraceGBuffer.h"
+#include <Core/RenderSystem.h>
 
 AmbientOcclusion::AmbientOcclusion(UINT Width, UINT Height)
 	: RenderPass("Ambient Occlusion",
@@ -184,8 +182,6 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Ambient Occlusion");
 
-	auto pRaytraceGBufferRenderPass = pRenderGraph->GetRenderPass<RaytraceGBuffer>();
-
 	struct AmbientOcclusionData
 	{
 		GlobalConstants GlobalConstants;
@@ -207,7 +203,7 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 	XMStoreFloat4x4(&globalConstants.InvProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseProjectionMatrix()));
 	XMStoreFloat4x4(&globalConstants.ViewProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewProjectionMatrix()));
 	globalConstants.EyePosition = pGpuScene->pScene->Camera.Transform.Position;
-	globalConstants.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
+	globalConstants.TotalFrameCount = static_cast<unsigned int>(RenderSystem::Statistics::TotalFrameCount);
 
 	globalConstants.NumSamplesPerPixel = 1;
 	globalConstants.MaxDepth = 1;
@@ -218,8 +214,9 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 	Data.AORadius = Settings.AORadius;
 	Data.NumAORaysPerPixel = Settings.NumAORaysPerPixel;
 
-	Data.InputWorldPositionIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldPosition]).HeapIndex;
-	Data.InputWorldNormalIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldNormal]).HeapIndex;
+	// TODO: UPDATE THIS VALUE
+	//Data.InputWorldPositionIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldPosition]).HeapIndex;
+	//Data.InputWorldNormalIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldNormal]).HeapIndex;
 	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 	RenderContext.UpdateRenderPassData<AmbientOcclusionData>(Data);
 

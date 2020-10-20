@@ -36,7 +36,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Position
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Normal
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
 
@@ -63,7 +63,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Position
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Normal
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
 
@@ -76,7 +76,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 	DXGI_FORMAT Formats[EResources::NumResources - 1] =
 	{
 		DXGI_FORMAT_R32G32B32A32_FLOAT,
-		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		DXGI_FORMAT_R8G8B8A8_UNORM,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		DXGI_FORMAT_R8_UINT
 	};
@@ -243,7 +243,7 @@ void GBuffer::RenderLights(RenderContext& RenderContext)
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetLightTableHandle());
 
 	const Scene& Scene = *pGpuScene->pScene;
-	for (auto& light : Scene.Lights)
+	for (const auto& light : Scene.Lights)
 	{
 		RenderContext.SetRoot32BitConstants(0, 1, &light.GpuLightIndex, 0);
 		RenderContext->DrawInstanced(6, 1, 0, 0);
