@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "DXGIManager.h"
-#include "../Core/Window.h"
+#include "Core/Window.h"
 #if defined(_DEBUG)
 #include <dxgidebug.h>
 #endif
@@ -51,27 +51,26 @@ DXGIManager::~DXGIManager()
 #endif
 }
 
-Microsoft::WRL::ComPtr<IDXGISwapChain4> DXGIManager::CreateSwapChain(IUnknown* pUnknown, const Window& Window, DXGI_FORMAT Format, UINT BufferCount)
+Microsoft::WRL::ComPtr<IDXGISwapChain4> DXGIManager::CreateSwapChain(IUnknown* pUnknown, const Window* pWindow, DXGI_FORMAT Format, UINT BufferCount)
 {
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> pSwapChain4;
 	// For DX11 pUnknown should be ID3D11Device
 	// For DX12 pUnknown should be ID3D12CommandQueue
-	DXGI_SWAP_CHAIN_DESC1 swapChainDesc1;
-	swapChainDesc1.Width = Window.GetWindowWidth();
-	swapChainDesc1.Height = Window.GetWindowHeight();
-	swapChainDesc1.Format = Format;
-	swapChainDesc1.Stereo = FALSE;
-	swapChainDesc1.SampleDesc.Count = 1u;
-	swapChainDesc1.SampleDesc.Quality = 0u;
-	swapChainDesc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc1.BufferCount = BufferCount;
-	swapChainDesc1.Scaling = DXGI_SCALING_NONE;
-	swapChainDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	swapChainDesc1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	swapChainDesc1.Flags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	DXGI_SWAP_CHAIN_DESC1 Desc = {};
+	Desc.Width			= pWindow->GetWindowWidth();
+	Desc.Height			= pWindow->GetWindowHeight();
+	Desc.Format			= Format;
+	Desc.Stereo			= FALSE;
+	Desc.SampleDesc		= { 1, 0 };
+	Desc.BufferUsage	= DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	Desc.BufferCount	= BufferCount;
+	Desc.Scaling		= DXGI_SCALING_NONE;
+	Desc.SwapEffect		= DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	Desc.AlphaMode		= DXGI_ALPHA_MODE_UNSPECIFIED;
+	Desc.Flags			= m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> pSwapChain1;
-	ThrowCOMIfFailed(m_pDXGIFactory->CreateSwapChainForHwnd(pUnknown, Window.GetWindowHandle(), &swapChainDesc1, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
-	ThrowCOMIfFailed(m_pDXGIFactory->MakeWindowAssociation(Window.GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
+	ThrowCOMIfFailed(m_pDXGIFactory->CreateSwapChainForHwnd(pUnknown, pWindow->GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
+	ThrowCOMIfFailed(m_pDXGIFactory->MakeWindowAssociation(pWindow->GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
 	ThrowCOMIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(pSwapChain4.ReleaseAndGetAddressOf())));
 	return pSwapChain4;
 }
@@ -84,7 +83,7 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> DXGIManager::QueryAdapter(API API)
 	// If this fails fall back to WARP
 	HRESULT hr = E_FAIL;
 	// The adapter with the largest dedicated video memory is favored.
-	DXGI_ADAPTER_DESC3 adapterDesc3;
+	DXGI_ADAPTER_DESC3 Desc = {};
 	switch (API)
 	{
 	default:
@@ -92,15 +91,15 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> DXGIManager::QueryAdapter(API API)
 
 	case API::API_D3D12:
 	{
-		for (UINT i = 0, size = static_cast<UINT>(m_pAdapters.size()); i < size; ++i)
+		for (const auto& adapter : m_pAdapters)
 		{
-			ThrowCOMIfFailed(m_pAdapters[i]->GetDesc3(&adapterDesc3));
-			if ((adapterDesc3.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0)
+			ThrowCOMIfFailed(adapter->GetDesc3(&Desc));
+			if ((Desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0)
 			{
-				hr = ::D3D12CreateDevice(m_pAdapters[i].Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr);
+				hr = ::D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr);
 				if (SUCCEEDED(hr))
 				{
-					m_pQueriedAdapter = m_pAdapters[i];
+					m_pQueriedAdapter = adapter;
 					break;
 				}
 				else // Fall back to WARP
@@ -117,12 +116,12 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> DXGIManager::QueryAdapter(API API)
 	break;
 	}
 
-	if (SUCCEEDED(m_pQueriedAdapter->GetDesc3(&adapterDesc3)))
+	if (SUCCEEDED(m_pQueriedAdapter->GetDesc3(&Desc)))
 	{
-		m_QueriedAdapterDesc = adapterDesc3;
+		m_QueriedAdapterDesc = Desc;
 
-		std::string desc = UTF16ToUTF8(adapterDesc3.Description);
-		CORE_INFO("Queried Adapter/GPU: {} \n\t\t\tVendor: {}", desc.data(), ((adapterDesc3.VendorId == 0x10DE) ? "Nvidia" : "Unknown"));
+		std::string desc = UTF16ToUTF8(Desc.Description);
+		CORE_INFO("Queried Adapter/GPU: {} \n\t\t\tVendor: {}", desc.data(), ((Desc.VendorId == 0x10DE) ? "Nvidia" : "Unknown"));
 	}
 	else
 	{

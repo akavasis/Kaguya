@@ -7,7 +7,7 @@ enum class SampleScene
 	CornellBox,
 	CornellBoxLambertianSpheres,
 	CornellBoxGlossySpheres,
-	CornellBoxTransparentSpheres,
+	PlaneWithTransparentSpheres,
 
 	PlaneWithLights
 };

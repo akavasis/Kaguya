@@ -6,6 +6,7 @@
 struct PolygonalLight
 {
 	std::string Name;
+
 	Transform	Transform;
 	float3		Color;
 	float		Intensity;

@@ -11,16 +11,16 @@ class RenderSystem
 public:
 	struct Statistics
 	{
-		inline static uint64_t	TotalFrameCount = 0;
-		inline static uint64_t	FrameCount = 0;
-		inline static double	TimeElapsed = 0.0;
-		inline static double	FPS = 0.0;
-		inline static double	FPMS = 0.0;
+		inline static uint64_t	TotalFrameCount		= 0;
+		inline static uint64_t	FrameCount			= 0;
+		inline static double	TimeElapsed			= 0.0;
+		inline static double	FPS					= 0.0;
+		inline static double	FPMS				= 0.0;
 	};
 
 	struct Settings
 	{
-		inline static bool		VSync = false;
+		inline static bool		VSync				= false;
 	};
 
 	RenderSystem(uint32_t Width, uint32_t Height);

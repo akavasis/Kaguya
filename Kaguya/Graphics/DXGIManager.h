@@ -15,7 +15,7 @@ public:
 	DXGIManager();
 	~DXGIManager();
 
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain(IUnknown* pUnknown, const Window& Window, DXGI_FORMAT Format, UINT BufferCount);
+	Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain(IUnknown* pUnknown, const Window* pWindow, DXGI_FORMAT Format, UINT BufferCount);
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> QueryAdapter(API API);
 
 	DXGI_QUERY_VIDEO_MEMORY_INFO QueryLocalVideoMemoryInfo() const;

@@ -322,7 +322,7 @@ Scene CornellBoxGlossySpheres(const MaterialLoader& MaterialLoader, const ModelL
 	return scene;
 }
 
-Scene CornellBoxTransparentSpheres(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
+Scene PlaneWithTransparentSpheres(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader)
 {
 	Scene scene;
 	constexpr int NumSpheres = 7;
@@ -382,7 +382,6 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 	Scene Scene;
 	{
 		auto& light1 = Scene.AddLight();
-		light1.Name = "Light 1";
 		light1.Transform.Position = { -5, 5, 3 };
 		light1.Transform.Rotate(XM_PI - 0.5f, 0, 0);
 		light1.Color = { 1, 1, 1 };
@@ -391,7 +390,6 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		light1.Height = 4;
 
 		auto& light2 = Scene.AddLight();
-		light2.Name = "Light 2";
 		light2.Transform.Position = { 5, 5, 3 };
 		light2.Transform.Rotate(XM_PI - 0.5f, 0, 0);
 		light2.Color = { 1, 1, 1 };
@@ -400,28 +398,31 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		light2.Height = 4;
 
 		// Materials
-		auto& defaultMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+		auto& concrete = Scene.AddMaterial(MaterialLoader.LoadMaterial(
 			"Assets/Textures/Concrete19/Concrete19_col.dds",
 			"Assets/Textures/Concrete19/Concrete19_nrm.dds",
 			"Assets/Textures/Concrete19/Concrete19_rgh.dds",
 			0,
 			0));
-		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
-		defaultMat.Model = LambertianModel;
+
+		auto& default = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
 
 		// Models
 		auto& rect = Scene.AddModel(CreateGrid(100.0f, 100.0f, 2, 2));
+		auto& box = Scene.AddModel(CreateBox(5.0f, 5.0f, 5.0f, 1));
 
 		// Model instances
-		auto& floorInstance = Scene.AddModelInstance({ &rect, &defaultMat });
+		auto& floorInstance = Scene.AddModelInstance({ &rect, &concrete });
+		auto& boxInstance = Scene.AddModelInstance({ &box, &default });
+		boxInstance.Translate(0.0f, 2.5f, 0.0f);
 	}
 	return Scene;
 }
 
 Scene GenerateScene(SampleScene SampleScene)
 {
-	MaterialLoader	materialLoader = MaterialLoader(Application::ExecutableFolderPath);
-	ModelLoader		modelLoader = ModelLoader(Application::ExecutableFolderPath);
+	MaterialLoader	materialLoader	= MaterialLoader(Application::ExecutableFolderPath);
+	ModelLoader		modelLoader		= ModelLoader(Application::ExecutableFolderPath);
 
 	switch (SampleScene)
 	{
@@ -429,7 +430,7 @@ Scene GenerateScene(SampleScene SampleScene)
 	case SampleScene::CornellBox:					return CornellBox(materialLoader, modelLoader);
 	case SampleScene::CornellBoxLambertianSpheres:	return CornellBoxLambertianSpheres(materialLoader, modelLoader);
 	case SampleScene::CornellBoxGlossySpheres:		return CornellBoxGlossySpheres(materialLoader, modelLoader);
-	case SampleScene::CornellBoxTransparentSpheres:	return CornellBoxTransparentSpheres(materialLoader, modelLoader);
+	case SampleScene::PlaneWithTransparentSpheres:	return PlaneWithTransparentSpheres(materialLoader, modelLoader);
 
 	case SampleScene::PlaneWithLights:				return PlaneWithLights(materialLoader, modelLoader);
 	default:										assert(false && "Unknown Sample Scene");

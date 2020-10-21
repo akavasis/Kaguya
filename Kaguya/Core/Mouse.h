@@ -6,6 +6,11 @@ class Mouse
 public:
 	friend class Window;
 
+	enum
+	{
+		BufferSize = 16
+	};
+
 	struct Event
 	{
 		enum class Type
@@ -68,18 +73,6 @@ public:
 	Mouse::RawDelta ReadRawDelta();
 	bool RawDeltaBufferIsEmpty() const;
 private:
-	static constexpr unsigned int	s_BufferSize = 16u;
-	std::atomic<int>				m_X;
-	std::atomic<int>				m_Y;
-	std::atomic<bool>				m_LeftMouseButtonIsPressed;
-	std::atomic<bool>				m_MiddleMouseButtonIsPressed;
-	std::atomic<bool>				m_RightMouseButtonIsPressed;
-	std::atomic<bool>				m_IsInWindow;
-	std::atomic<int>				m_WheelDeltaCarry;
-	std::atomic<bool>				m_RawInputEnabled;
-	ThreadSafeQueue<Mouse::Event>	m_MouseBuffer;
-	ThreadSafeQueue<RawDelta>		m_RawDeltaBuffer;
-
 	void OnMouseMove(int x, int y);
 	void OnMouseEnter();
 	void OnMouseLeave();
@@ -94,12 +87,23 @@ private:
 	void OnWheelDelta(int x, int y, int delta);
 	void OnRawDelta(int dx, int dy);
 	template<class T>
-	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer, unsigned int Limit)
+	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer)
 	{
-		while (QueueBuffer.size() > Limit)
+		while (QueueBuffer.size() > BufferSize)
 		{
 			T item;
 			QueueBuffer.pop(item, 0);
 		}
 	}
+
+	int								m_X;
+	int								m_Y;
+	bool							m_LeftMouseButtonIsPressed;
+	bool							m_MiddleMouseButtonIsPressed;
+	bool							m_RightMouseButtonIsPressed;
+	bool							m_IsInWindow;
+	int								m_WheelDeltaCarry;
+	bool							m_RawInputEnabled;
+	ThreadSafeQueue<Mouse::Event>	m_MouseBuffer;
+	ThreadSafeQueue<RawDelta>		m_RawDeltaBuffer;
 };

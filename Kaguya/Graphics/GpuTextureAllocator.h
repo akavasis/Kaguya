@@ -4,8 +4,6 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include <Core/Allocator/VariableSizedAllocator.h>
-
 #include "RenderDevice.h"
 #include "RenderContext.h"
 #include "Scene/Scene.h"
@@ -15,6 +13,11 @@ class GpuTextureAllocator
 public:
 	enum SystemReservedTextures
 	{
+		DefaultWhite,
+		DefaultBlack,
+		DefaultAlbedo,
+		DefaultNormal,
+		DefaultRoughness,
 		BRDFLUT,
 		LTCLUT1,
 		LTCLUT2,
@@ -22,21 +25,18 @@ public:
 		SkyboxCubemap,
 		NumSystemReservedTextures
 	};
-	RenderResourceHandle SystemReservedTextures[NumSystemReservedTextures];
-
-	std::unordered_map<std::string, RenderResourceHandle> TextureHandles;
+	RenderResourceHandle									SystemReservedTextures[NumSystemReservedTextures];
+	std::unordered_map<std::string, RenderResourceHandle>	TextureHandles;
 
 	GpuTextureAllocator(RenderDevice* pRenderDevice);
 
+	void StageSystemReservedTextures(RenderContext& RenderContext);
 	void Stage(Scene& Scene, RenderContext& RenderContext);
 	void DisposeResources();
 private:
 	struct Status
 	{
-		inline static bool BRDFGenerated	= false;
-		inline static bool LTCLUT1Generated = false;
-		inline static bool LTCLUT2Generated = false;
-		inline static bool SkyboxGenerated	= false;
+		inline static bool SkyboxGenerated = false;
 	};
 
 	struct StagingTexture
@@ -62,10 +62,9 @@ private:
 	bool IsUAVCompatable(DXGI_FORMAT Format);
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
 
-	RenderDevice* pRenderDevice;
+	RenderDevice*												SV_pRenderDevice;
 
-	std::unordered_set<DXGI_FORMAT> m_UAVSupportedFormat;
-
-	std::unordered_map<RenderResourceHandle, StagingTexture> m_UnstagedTextures;
-	std::vector<RenderResourceHandle> m_TemporaryResources;
+	std::unordered_set<DXGI_FORMAT>								m_UAVSupportedFormat;
+	std::unordered_map<RenderResourceHandle, StagingTexture>	m_UnstagedTextures;
+	std::vector<RenderResourceHandle>							m_TemporaryResources;
 };

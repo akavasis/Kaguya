@@ -27,12 +27,18 @@ Renderer::Renderer(Window* pWindow)
 
 	m_RenderContext(0, nullptr, &m_RenderDevice, m_RenderDevice.AllocateContext(CommandContext::Direct))
 {
-	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), *pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
+	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 }
 
 //----------------------------------------------------------------------------------------------------
 void Renderer::Initialize()
 {
+	m_GpuScene.GpuTextureAllocator.StageSystemReservedTextures(m_RenderContext);
+
+	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
+	m_RenderDevice.ExecuteRenderCommandContexts(1, pCommandContexts);
+	m_GpuScene.GpuTextureAllocator.DisposeResources();
+
 	Shaders::Register(&m_RenderDevice);
 	Libraries::Register(&m_RenderDevice);
 	RootSignatures::Register(&m_RenderDevice);
@@ -41,7 +47,7 @@ void Renderer::Initialize()
 
 	SetScene(GenerateScene(SampleScene::PlaneWithLights));
 
-	for (size_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 		ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
@@ -111,10 +117,10 @@ void Renderer::Render()
 	m_RenderGraph.Execute();
 	m_RenderGraph.ExecuteCommandContexts(m_RenderContext);
 
-	UINT syncInterval = Settings::VSync ? 1u : 0u;
-	UINT presentFlags = (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
-	DXGI_PRESENT_PARAMETERS presentParameters = { 0u, NULL, NULL, NULL };
-	HRESULT hr = m_pSwapChain->Present1(syncInterval, presentFlags, &presentParameters);
+	uint32_t				SyncInterval		= Settings::VSync ? 1u : 0u;
+	uint32_t				PresentFlags		= (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
+	DXGI_PRESENT_PARAMETERS PresentParameters	= { 0u, NULL, NULL, NULL };
+	HRESULT hr = m_pSwapChain->Present1(SyncInterval, PresentFlags, &PresentParameters);
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
 		CORE_ERROR("DXGI_ERROR_DEVICE_REMOVED");
@@ -133,25 +139,26 @@ void Renderer::Resize(uint32_t Width, uint32_t Height)
 	m_RenderDevice.GraphicsQueue.WaitForIdle();
 	{
 		// Release resources before resize swap chain
-		for (size_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
 			m_RenderDevice.Destroy(&m_RenderDevice.SwapChainTextures[i]);
 		}
 
 		// Resize backbuffer
-		constexpr UINT	NodeMask = 0;
-		UINT			Nodes[RenderDevice::NumSwapChainBuffers];
-		IUnknown*		CommandQueues[RenderDevice::NumSwapChainBuffers];
-		for (UINT i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+		constexpr uint32_t	NodeMask = 0;
+		uint32_t			Nodes[RenderDevice::NumSwapChainBuffers];
+		IUnknown*			CommandQueues[RenderDevice::NumSwapChainBuffers];
+
+		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
 			Nodes[i]			= NodeMask;
 			CommandQueues[i]	= m_RenderDevice.GraphicsQueue.GetD3DCommandQueue();
 		}
-		UINT swapChainFlags		= m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(0, Width, Height, DXGI_FORMAT_UNKNOWN, swapChainFlags, Nodes, CommandQueues));
+		uint32_t SwapChainFlags	= m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags, Nodes, CommandQueues));
 
 		// Recreate descriptors
-		for (size_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
@@ -178,7 +185,7 @@ void Renderer::SetScene(Scene Scene)
 {
 	PIXCapture();
 	m_Scene				= std::move(Scene);
-	m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
+	//m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
 
 	m_Scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 	m_Scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);

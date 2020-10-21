@@ -44,13 +44,13 @@ ShaderCompiler::ShaderCompiler()
 
 Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
-	auto profileString = ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_4);
-	auto pDxcBlob = Compile(pPath, pEntryPoint, profileString.data(), ShaderDefines);
+	auto profileString	= ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_4);
+	auto pDxcBlob		= Compile(pPath, pEntryPoint, profileString.data(), ShaderDefines);
 
 	DxcBuffer dxcBuffer = {};
-	dxcBuffer.Ptr = pDxcBlob->GetBufferPointer();
-	dxcBuffer.Size = pDxcBlob->GetBufferSize();
-	dxcBuffer.Encoding = CP_ACP;
+	dxcBuffer.Ptr		= pDxcBlob->GetBufferPointer();
+	dxcBuffer.Size		= pDxcBlob->GetBufferSize();
+	dxcBuffer.Encoding	= CP_ACP;
 	Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pShaderReflection;
 	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&dxcBuffer, IID_PPV_ARGS(pShaderReflection.ReleaseAndGetAddressOf())));
 
@@ -59,13 +59,13 @@ Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR p
 
 Library ShaderCompiler::CompileLibrary(LPCWSTR pPath)
 {
-	auto profileString = LibraryProfileString(ShaderCompiler::Profile::Profile_6_4);
-	auto pDxcBlob = Compile(pPath, L"", profileString.data(), {});
+	auto profileString	= LibraryProfileString(ShaderCompiler::Profile::Profile_6_4);
+	auto pDxcBlob		= Compile(pPath, L"", profileString.data(), {});
 
 	DxcBuffer dxcBuffer = {};
-	dxcBuffer.Ptr = pDxcBlob->GetBufferPointer();
-	dxcBuffer.Size = pDxcBlob->GetBufferSize();
-	dxcBuffer.Encoding = CP_ACP;
+	dxcBuffer.Ptr		= pDxcBlob->GetBufferPointer();
+	dxcBuffer.Size		= pDxcBlob->GetBufferSize();
+	dxcBuffer.Encoding	= CP_ACP;
 	Microsoft::WRL::ComPtr<ID3D12LibraryReflection> pLibraryReflection;
 	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&dxcBuffer, IID_PPV_ARGS(pLibraryReflection.ReleaseAndGetAddressOf())));
 
@@ -83,7 +83,7 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 	// https://developer.nvidia.com/dx12-dos-and-donts
 	// Use the /all_resources_bound / D3DCOMPILE_ALL_RESOURCES_BOUND compile flag if possible This allows for the compiler to do a better job at optimizing texture accesses.
 	// We have seen frame rate improvements of > 1 % when toggling this flag on.
-	LPCWSTR cmdlineArgs[] =
+	LPCWSTR Arguments[] =
 	{
 		L"-all_resources_bound",
 #ifdef _DEBUG
@@ -99,8 +99,8 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 	Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSource;
 	Microsoft::WRL::ComPtr<IDxcIncludeHandler> pDxcIncludeHandler;
 
-	UINT32 codePage = CP_ACP;
-	ThrowCOMIfFailed(m_DxcLibrary->CreateBlobFromFile(filePath.c_str(), &codePage, pSource.ReleaseAndGetAddressOf()));
+	UINT32 CodePage = CP_ACP;
+	ThrowCOMIfFailed(m_DxcLibrary->CreateBlobFromFile(filePath.c_str(), &CodePage, pSource.ReleaseAndGetAddressOf()));
 	ThrowCOMIfFailed(m_DxcLibrary->CreateIncludeHandler(pDxcIncludeHandler.ReleaseAndGetAddressOf()));
 
 	Microsoft::WRL::ComPtr<IDxcOperationResult> pDxcOperationResult;
@@ -109,7 +109,7 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 		filePath.c_str(),
 		pEntryPoint,
 		pProfile,
-		cmdlineArgs, ARRAYSIZE(cmdlineArgs),
+		Arguments, ARRAYSIZE(Arguments),
 		ShaderDefines.data(), ShaderDefines.size(),
 		pDxcIncludeHandler.Get(),
 		pDxcOperationResult.ReleaseAndGetAddressOf()));
@@ -130,7 +130,6 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 		pDxcOperationResult->GetErrorBuffer(pError.ReleaseAndGetAddressOf());
 		m_DxcLibrary->GetBlobAsUtf16(pError.Get(), pError16.ReleaseAndGetAddressOf());
 		OutputDebugString((LPCWSTR)pError16->GetBufferPointer());
-		assert(false);
 		return nullptr;
 	}
 }

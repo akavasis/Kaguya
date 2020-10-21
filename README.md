@@ -1,6 +1,6 @@
 # Kaguya
 ## Description
-This is a path tracer using DXR (DirectX Raytracing).  
+This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR)
 
 ### Showcase
 ![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
@@ -13,6 +13,13 @@ This is a path tracer using DXR (DirectX Raytracing).
 + __Multi-threaded commandlist recording__
 + __Lambertian, Glossy, Metal, and Dielectric material models__
 + __Various post processing effects__
+
+### Goals
++ Mesh Shaders
++ Variable Rate Shading
++ Anti-aliasing
++ Denoising via SVGF
++ Incorporate Vulkan
 
 ## Build
 + Visual Studio 2019

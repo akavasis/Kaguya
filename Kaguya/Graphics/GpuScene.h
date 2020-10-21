@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <Core/Allocator/VariableSizedAllocator.h>
+
 #include "Scene/Scene.h"
 #include "GpuTextureAllocator.h"
 #include "RenderDevice.h"
@@ -29,11 +31,11 @@ public:
 	void RenderGui();
 	void Update(float AspectRatio, RenderContext& RenderContext);
 
-	inline auto GetLightTableHandle()			const		{ return ResourceTables[LightTable]; }
-	inline auto GetMaterialTableHandle()		const		{ return ResourceTables[MaterialTable]; }
-	inline auto GetVertexBufferHandle()			const		{ return ResourceTables[VertexBuffer]; }
-	inline auto GetIndexBufferHandle()			const		{ return ResourceTables[IndexBuffer]; }
-	inline auto GetGeometryInfoTableHandle()	const		{ return ResourceTables[GeometryInfoTable]; }
+	inline auto GetLightTableHandle()			const		{ return m_ResourceTables[LightTable]; }
+	inline auto GetMaterialTableHandle()		const		{ return m_ResourceTables[MaterialTable]; }
+	inline auto GetVertexBufferHandle()			const		{ return m_ResourceTables[VertexBuffer]; }
+	inline auto GetIndexBufferHandle()			const		{ return m_ResourceTables[IndexBuffer]; }
+	inline auto GetGeometryInfoTableHandle()	const		{ return m_ResourceTables[GeometryInfoTable]; }
 	inline auto GetRTTLASResourceHandle()		const		{ return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
 
 	Scene* pScene;
@@ -55,12 +57,12 @@ private:
 		TopLevelAccelerationStructure TLAS;
 	};
 
-	RenderDevice* pRenderDevice;
+	RenderDevice*			SV_pRenderDevice;
 
-	RenderResourceHandle UploadResourceTables[NumResources];
-	RenderResourceHandle ResourceTables[NumResources];
-	VariableSizedAllocator Allocators[NumResources];
+	RenderResourceHandle	m_UploadResourceTables[NumResources];
+	RenderResourceHandle	m_ResourceTables[NumResources];
+	VariableSizedAllocator	m_Allocators[NumResources];
 
-	std::vector<RTBLAS> m_RaytracingBottomLevelAccelerationStructures;
-	RTTLAS m_RaytracingTopLevelAccelerationStructure;
+	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
+	RTTLAS					m_RaytracingTopLevelAccelerationStructure;
 };

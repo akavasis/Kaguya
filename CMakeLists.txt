@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 set(CMAKE_SYSTEM_VERSION 10.0.19041.0)
 project(Kaguya LANGUAGES CXX)
 

@@ -95,6 +95,11 @@ bool Window::CursorEnabled() const
 	return m_CursorEnabled;
 }
 
+bool Window::IsFocused() const
+{
+	return GetForegroundWindow() == m_WindowHandle;
+}
+
 void Window::SetTitle(std::wstring Title)
 {
 	::SetWindowText(m_WindowHandle, Title.data());
@@ -171,8 +176,8 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
-		const POINTS pt = MAKEPOINTS(lParam);
-		Mouse.OnLMBPress(pt.x, pt.y);
+		const POINTS Points = MAKEPOINTS(lParam);
+		Mouse.OnLMBPress(Points.x, Points.y);
 	}
 	break;
 	case WM_RBUTTONDOWN:
@@ -180,8 +185,8 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
-		const POINTS pt = MAKEPOINTS(lParam);
-		Mouse.OnRMBPress(pt.x, pt.y);
+		const POINTS Points = MAKEPOINTS(lParam);
+		Mouse.OnRMBPress(Points.x, Points.y);
 	}
 	break;
 	case WM_LBUTTONUP:
@@ -189,10 +194,10 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
-		const POINTS pt = MAKEPOINTS(lParam);
-		Mouse.OnLMBRelease(pt.x, pt.y);
+		const POINTS Points = MAKEPOINTS(lParam);
+		Mouse.OnLMBRelease(Points.x, Points.y);
 		// Release mouse if outside of window
-		if (pt.x < 0 || pt.x >= m_WindowWidth || pt.y < 0 || pt.y >= m_WindowHeight)
+		if (Points.x < 0 || Points.x >= m_WindowWidth || Points.y < 0 || Points.y >= m_WindowHeight)
 		{
 			::ReleaseCapture();
 			Mouse.OnMouseLeave();
@@ -204,10 +209,10 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
-		const POINTS pt = MAKEPOINTS(lParam);
-		Mouse.OnRMBRelease(pt.x, pt.y);
+		const POINTS Points = MAKEPOINTS(lParam);
+		Mouse.OnRMBRelease(Points.x, Points.y);
 		// Release mouse if outside of window
-		if (pt.x < 0 || pt.x >= m_WindowWidth || pt.y < 0 || pt.y >= m_WindowHeight)
+		if (Points.x < 0 || Points.x >= m_WindowWidth || Points.y < 0 || Points.y >= m_WindowHeight)
 		{
 			::ReleaseCapture();
 			Mouse.OnMouseLeave();
@@ -219,9 +224,9 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
 			break;
-		const POINTS pt = MAKEPOINTS(lParam);
-		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-		Mouse.OnWheelDelta(pt.x, pt.y, delta);
+		const POINTS Points = MAKEPOINTS(lParam);
+		const int WheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		Mouse.OnWheelDelta(Points.x, Points.y, WheelDelta);
 	}
 	break;
 #pragma endregion
@@ -231,28 +236,22 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (!Mouse.RawInputEnabled())
 			break;
-		UINT size = 0;
+		UINT DataSize = 0;
 		// First get the size of the input data
-		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1)
-		{
-			CORE_ERROR("GetRawInputData Error: ", ::GetLastError());
+		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, nullptr, &DataSize, sizeof(RAWINPUTHEADER)) == -1)
 			break;
-		}
-		BYTE* rawBuffer = (BYTE*)_malloca(size);
+		BYTE* pData = (BYTE*)_malloca(DataSize);
 		// Read in the input data
-		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, rawBuffer, &size, sizeof(RAWINPUTHEADER)) != size)
-		{
-			CORE_ERROR("The number of bytes copied into pData does not match the size queried");
+		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, pData, &DataSize, sizeof(RAWINPUTHEADER)) != DataSize)
 			break;
-		}
 		// Process the raw input data
-		const RAWINPUT& rawInput = reinterpret_cast<const RAWINPUT&>(*rawBuffer);
-		if (rawInput.header.dwType == RIM_TYPEMOUSE &&
-			(rawInput.data.mouse.lLastX != 0 || rawInput.data.mouse.lLastY != 0))
+		const RAWINPUT& RawInput = reinterpret_cast<const RAWINPUT&>(*pData);
+		if (RawInput.header.dwType == RIM_TYPEMOUSE &&
+			(RawInput.data.mouse.lLastX != 0 || RawInput.data.mouse.lLastY != 0))
 		{
-			Mouse.OnRawDelta(rawInput.data.mouse.lLastX, rawInput.data.mouse.lLastY);
+			Mouse.OnRawDelta(RawInput.data.mouse.lLastX, RawInput.data.mouse.lLastY);
 		}
-		_freea(rawBuffer);
+		_freea(pData);
 	}
 	break;
 #pragma endregion
@@ -306,13 +305,13 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_EXITSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
 	{
 		RECT WindowRect = {}; ::GetWindowRect(m_WindowHandle, &WindowRect);
-		m_WindowWidth = Math::Max<unsigned int>(1u, WindowRect.right - WindowRect.left);
-		m_WindowHeight = Math::Max<unsigned int>(1u, WindowRect.bottom - WindowRect.top);
+		m_WindowWidth	= Math::Max<unsigned int>(1u, WindowRect.right - WindowRect.left);
+		m_WindowHeight	= Math::Max<unsigned int>(1u, WindowRect.bottom - WindowRect.top);
 
 		Window::Message WindowMessage;
-		WindowMessage.type = Message::Type::Resize;
-		WindowMessage.data.Width = m_WindowWidth;
-		WindowMessage.data.Height = m_WindowHeight;
+		WindowMessage.type			= Message::Type::Resize;
+		WindowMessage.data.Width	= m_WindowWidth;
+		WindowMessage.data.Height	= m_WindowHeight;
 		MessageQueue.push(WindowMessage);
 	}
 	break;

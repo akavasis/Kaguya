@@ -7,6 +7,12 @@ class Keyboard
 public:
 	friend class Window;
 
+	enum
+	{
+		BufferSize		= 16,
+		NumKeyStates	= 256
+	};
+
 	struct Event
 	{
 		enum class Type
@@ -43,24 +49,22 @@ public:
 	unsigned char ReadChar();
 	bool CharBufferIsEmpty() const;
 private:
-	static constexpr unsigned int s_BufferSize = 16u;
-	static constexpr unsigned int s_NumKeyStates = 256u;
-	std::atomic<bool> m_AutoRepeat;
-	std::atomic<bool> m_KeyStates[s_NumKeyStates];
-	ThreadSafeQueue<Keyboard::Event> m_KeyBuffer;
-	ThreadSafeQueue<unsigned char> m_CharBuffer;
-
 	void ResetKeyState();
 	void OnKeyPress(unsigned char KeyCode);
 	void OnKeyRelease(unsigned char KeyCode);
 	void OnChar(unsigned char Char);
 	template<class T>
-	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer, unsigned int Limit)
+	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer)
 	{
-		while (QueueBuffer.size() > Limit)
+		while (QueueBuffer.size() > BufferSize)
 		{
 			T item;
 			QueueBuffer.pop(item, 0);
 		}
 	}
+
+	bool								m_AutoRepeat;
+	std::bitset<NumKeyStates>			m_KeyStates;
+	ThreadSafeQueue<Keyboard::Event>	m_KeyBuffer;
+	ThreadSafeQueue<unsigned char>		m_CharBuffer;
 };

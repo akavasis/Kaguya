@@ -129,6 +129,9 @@ void Application::RenderThreadMain()
 	pRenderSystem->OnInitialize();
 	while (!ExitRenderThread)
 	{
+		if (!pWindow->IsFocused())
+			continue;
+		
 		// Process window messages
 		{
 			Window::Message messsage;

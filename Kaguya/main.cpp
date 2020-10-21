@@ -22,7 +22,7 @@ int main(int argc, char** argv)
 	ENABLE_LEAK_DETECTION();
 	SET_LEAK_BREAKPOINT(-1);
 #endif
-	Application::Initialize(L"Path Tracer", 1280, 720);
+	Application::Initialize(L"Kaguya", 1280, 720);
 
 	Renderer* pRenderer = nullptr;
 	try

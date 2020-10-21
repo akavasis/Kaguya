@@ -85,75 +85,75 @@ void Mouse::OnMouseMove(int x, int y)
 	this->m_X = x;
 	this->m_Y = y;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::Move, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnMouseEnter()
 {
 	m_IsInWindow = true;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::Enter, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnMouseLeave()
 {
 	m_IsInWindow = false;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::Leave, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnLMBPress(int x, int y)
 {
 	m_LeftMouseButtonIsPressed = true;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::LMBPress, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnLMBRelease(int x, int y)
 {
 	m_LeftMouseButtonIsPressed = false;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::LMBRelease, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnMMBPress(int x, int y)
 {
 	m_MiddleMouseButtonIsPressed = true;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::MMBPress, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnMMBRelease(int x, int y)
 {
 	m_MiddleMouseButtonIsPressed = false;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::MMBRelease, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnRMBPress(int x, int y)
 {
 	m_RightMouseButtonIsPressed = true;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::RMBPress, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnRMBRelease(int x, int y)
 {
 	m_RightMouseButtonIsPressed = false;
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::RMBRelease, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnWheelUp(int x, int y)
 {
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::WheelUp, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnWheelDown(int x, int y)
 {
 	m_MouseBuffer.push(Mouse::Event(Mouse::Event::Type::WheelDown, *this));
-	TrimBuffer(m_MouseBuffer, s_BufferSize);
+	TrimBuffer(m_MouseBuffer);
 }
 
 void Mouse::OnWheelDelta(int x, int y, int delta)
@@ -175,5 +175,5 @@ void Mouse::OnWheelDelta(int x, int y, int delta)
 void Mouse::OnRawDelta(int dx, int dy)
 {
 	m_RawDeltaBuffer.push({ dx, dy });
-	TrimBuffer(m_RawDeltaBuffer, s_BufferSize);
+	TrimBuffer(m_RawDeltaBuffer);
 }

@@ -3,7 +3,7 @@
 
 void Material::RenderGui()
 {
-	if (ImGui::TreeNode("Material"))
+	if (ImGui::TreeNode(Name.data()))
 	{
 		ImGui::Text("Albedo Map: %s", Textures[AlbedoIdx].Path.empty() ? "[NULL]" : Textures[AlbedoIdx].Path.filename().string().data());
 		ImGui::Text("Normal Map: %s", Textures[NormalIdx].Path.empty() ? "[NULL]" : Textures[NormalIdx].Path.filename().string().data());

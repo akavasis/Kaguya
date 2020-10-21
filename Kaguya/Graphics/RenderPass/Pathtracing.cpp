@@ -219,7 +219,8 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetGeometryInfoTableHandle());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
+	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTableHandle());
+	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTableHandle());
 
 	RenderContext.DispatchRays(
 		m_RayGenerationShaderTable,

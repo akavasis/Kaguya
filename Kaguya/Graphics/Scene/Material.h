@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <filesystem>
 #include "SharedDefines.h"
 
@@ -30,6 +31,8 @@ enum TextureTypes
 
 struct Material
 {
+	std::string Name;
+
 	float3	Albedo;
 	float3	Emissive;
 	float3	Specular;

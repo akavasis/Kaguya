@@ -6,5 +6,6 @@ inline RenderPass* RenderGraph::GetRenderPass() const
 		if (m_RenderPassIDs[i].get() == typeid(RenderPass))
 			return static_cast<RenderPass*>(m_RenderPasses[i].get());
 	}
+	assert(false && "Render pass not found");
 	return nullptr;
 }

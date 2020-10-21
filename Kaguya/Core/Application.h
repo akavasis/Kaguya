@@ -21,6 +21,5 @@ public:
 	static int Run(RenderSystem* pRenderSystem);
 private:
 	static void RenderThreadMain();
-
 	static bool HandleRenderMessage(const Window::Message& Message);
 };

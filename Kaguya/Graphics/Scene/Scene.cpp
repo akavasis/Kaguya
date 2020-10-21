@@ -4,14 +4,20 @@ using namespace DirectX;
 
 PolygonalLight& Scene::AddLight()
 {
-	Lights.emplace_back();
-	return Lights.back();
+	std::string Name = "Light [" + std::to_string(Lights.size()) + "]";
+
+	auto& light = Lights.emplace_back();
+	light.Name = std::move(Name);
+	return light;
 }
 
 Material& Scene::AddMaterial(Material&& Material)
 {
-	Materials.push_back(std::move(Material));
-	return Materials.back();
+	std::string Name = "Material [" + std::to_string(Materials.size()) + "]";
+
+	auto& material = Materials.emplace_back(std::move(Material));
+	material.Name = std::move(Name);
+	return material;
 }
 
 Model& Scene::AddModel(Model&& Model)

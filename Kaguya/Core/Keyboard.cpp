@@ -23,7 +23,7 @@ bool Keyboard::AutoRepeatEnabled() const
 
 bool Keyboard::IsKeyPressed(unsigned char KeyCode) const
 {
-	return m_KeyStates[KeyCode].load();
+	return m_KeyStates[KeyCode];
 }
 
 Keyboard::Event Keyboard::ReadKey()
@@ -54,28 +54,25 @@ bool Keyboard::CharBufferIsEmpty() const
 
 void Keyboard::ResetKeyState()
 {
-	for (auto& keyState : m_KeyStates)
-	{
-		keyState = false;
-	}
+	m_KeyStates.reset();
 }
 
 void Keyboard::OnKeyPress(unsigned char KeyCode)
 {
 	m_KeyStates[KeyCode] = true;
 	m_KeyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Press, KeyCode));
-	TrimBuffer(m_KeyBuffer, s_BufferSize);
+	TrimBuffer(m_KeyBuffer);
 }
 
 void Keyboard::OnKeyRelease(unsigned char KeyCode)
 {
 	m_KeyStates[KeyCode] = false;
 	m_KeyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Release, KeyCode));
-	TrimBuffer(m_KeyBuffer, s_BufferSize);
+	TrimBuffer(m_KeyBuffer);
 }
 
 void Keyboard::OnChar(unsigned char Char)
 {
 	m_CharBuffer.push(Char);
-	TrimBuffer(m_CharBuffer, s_BufferSize);
+	TrimBuffer(m_CharBuffer);
 }

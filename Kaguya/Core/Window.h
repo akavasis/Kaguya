@@ -37,6 +37,7 @@ public:
 	void EnableCursor();
 	void DisableCursor();
 	bool CursorEnabled() const;
+	bool IsFocused() const;
 
 	inline auto GetWindowHandle() const { return m_WindowHandle; }
 	inline auto GetWindowName() const { return m_WindowName; }

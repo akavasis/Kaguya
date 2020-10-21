@@ -13,25 +13,24 @@ Material MaterialLoader::LoadMaterial(
 	const char* pMetallicMapPath,
 	const char* pEmissiveMapPath) const
 {
-	Material material = {};
-
-	material.Albedo = { 0.0f, 0.0f, 0.0f };
-	material.Emissive = { 0.0f, 0.0f, 0.0f };
-	material.Specular = { 0.0f, 0.0f, 0.0f };
-	material.Refraction = { 0.0f, 0.0f, 0.0f };
-	material.SpecularChance = 0.0f;
-	material.Roughness = 0.0f;
-	material.Fuzziness = 0.0f;
-	material.IndexOfRefraction = 1.0f;
-	material.Model = 0;
+	Material Material			= {};
+	Material.Albedo				= { 0.0f, 0.0f, 0.0f };
+	Material.Emissive			= { 0.0f, 0.0f, 0.0f };
+	Material.Specular			= { 0.0f, 0.0f, 0.0f };
+	Material.Refraction			= { 0.0f, 0.0f, 0.0f };
+	Material.SpecularChance		= 0.0f;
+	Material.Roughness			= 0.0f;
+	Material.Fuzziness			= 0.0f;
+	Material.IndexOfRefraction	= 1.0f;
+	Material.Model				= 0;
 
 	auto InitTexture = [&](TextureTypes Type, const char* pPath)
 	{
 		if (pPath)
 		{
-			material.Textures[Type].Path = m_ExecutableFolderPath / pPath;
-			material.Textures[Type].Flag = TextureFlags::Disk;
-			assert(std::filesystem::exists(material.Textures[Type].Path));
+			Material.Textures[Type].Path = m_ExecutableFolderPath / pPath;
+			Material.Textures[Type].Flag = TextureFlags::Disk;
+			assert(std::filesystem::exists(Material.Textures[Type].Path));
 		}
 	};
 
@@ -41,5 +40,5 @@ Material MaterialLoader::LoadMaterial(
 	InitTexture(TextureTypes::MetallicIdx, pMetallicMapPath);
 	InitTexture(TextureTypes::EmissiveIdx, pEmissiveMapPath);
 
-	return material;
+	return Material;
 }
