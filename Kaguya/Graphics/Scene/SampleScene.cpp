@@ -2,6 +2,10 @@
 #include "SampleScene.h"
 #include "Core/Application.h"
 
+#include "MaterialLoader.h"
+#include "ModelLoader.h"
+#include "SceneLoader.h"
+
 using namespace DirectX;
 
 void AddCornellBox(const MaterialLoader& MaterialLoader, const ModelLoader& ModelLoader, Scene* pScene)
@@ -419,10 +423,31 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 	return Scene;
 }
 
+Scene Sponza()
+{
+	SceneLoader sceneLoader = SceneLoader(Application::ExecutableFolderPath);
+	Scene Scene = sceneLoader.LoadFromFile("Assets/Models/sponza/sponza.obj", 0.05f);
+
+	for (auto& modelInstance : Scene.ModelInstances)
+	{
+		modelInstance.Rotate(0.0f, 90.0_Deg, 0.0f);
+	}
+
+	auto& light1 = Scene.AddLight();
+	light1.Transform.Position = { 0, 10, 55 };
+	light1.Transform.Rotate(XM_PI, 0, 0);
+	light1.Color = { 1, 1, 1 };
+	light1.Intensity = 10;
+	light1.Width = 10;
+	light1.Height = 10;
+
+	return Scene;
+}
+
 Scene GenerateScene(SampleScene SampleScene)
 {
-	MaterialLoader	materialLoader	= MaterialLoader(Application::ExecutableFolderPath);
-	ModelLoader		modelLoader		= ModelLoader(Application::ExecutableFolderPath);
+	MaterialLoader	materialLoader = MaterialLoader(Application::ExecutableFolderPath);
+	ModelLoader		modelLoader = ModelLoader(Application::ExecutableFolderPath);
 
 	switch (SampleScene)
 	{
@@ -433,6 +458,9 @@ Scene GenerateScene(SampleScene SampleScene)
 	case SampleScene::PlaneWithTransparentSpheres:	return PlaneWithTransparentSpheres(materialLoader, modelLoader);
 
 	case SampleScene::PlaneWithLights:				return PlaneWithLights(materialLoader, modelLoader);
+	
+	case SampleScene::Sponza:						return Sponza();
+	
 	default:										assert(false && "Unknown Sample Scene");
 	}
 	return Scene();

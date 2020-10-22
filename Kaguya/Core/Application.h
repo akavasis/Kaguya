@@ -12,7 +12,7 @@ public:
 	inline static Window*						pWindow					= nullptr;
 	inline static RenderSystem*					pRenderSystem			= nullptr;
 	inline static std::thread*					RenderThread			= nullptr;
-	inline static std::atomic<bool>				ExitRenderThread		= false;
+	inline static bool							ExitRenderThread		= false;
 
 	static void Initialize(LPCWSTR WindowName,
 		int32_t Width = CW_USEDEFAULT, int32_t Height = CW_USEDEFAULT,

@@ -4,12 +4,12 @@
 
 struct Model
 {
-	std::string Path;
-	DirectX::BoundingBox BoundingBox;
-	std::vector<Vertex> Vertices;
-	std::vector<std::uint32_t> Indices;
+	std::string					Path;
+	DirectX::BoundingBox		BoundingBox;
+	std::vector<Vertex>			Vertices;
+	std::vector<uint32_t>		Indices;
 
-	std::vector<Mesh> Meshes;
+	std::vector<Mesh>			Meshes;
 };
 
 Model CreateTriangle();

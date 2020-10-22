@@ -28,7 +28,7 @@ public:
 	RenderResourceHandle									SystemReservedTextures[NumSystemReservedTextures];
 	std::unordered_map<std::string, RenderResourceHandle>	TextureHandles;
 
-	GpuTextureAllocator(RenderDevice* pRenderDevice);
+	GpuTextureAllocator(RenderDevice* SV_pRenderDevice);
 
 	void StageSystemReservedTextures(RenderContext& RenderContext);
 	void Stage(Scene& Scene, RenderContext& RenderContext);

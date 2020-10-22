@@ -45,7 +45,7 @@ void Renderer::Initialize()
 	GraphicsPSOs::Register(&m_RenderDevice);
 	ComputePSOs::Register(&m_RenderDevice);
 
-	SetScene(GenerateScene(SampleScene::PlaneWithLights));
+	SetScene(GenerateScene(SampleScene::Sponza));
 
 	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 	{

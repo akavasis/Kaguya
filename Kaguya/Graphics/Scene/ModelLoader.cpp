@@ -6,9 +6,14 @@
 #include <assimp/postprocess.h>
 #include <assimp/pbrmaterial.h>
 
+using namespace DirectX;
+
+static Assimp::Importer Importer;
+
 ModelLoader::ModelLoader(std::filesystem::path ExecutableFolderPath)
 	: m_ExecutableFolderPath(ExecutableFolderPath)
 {
+	
 }
 
 Model ModelLoader::LoadFromFile(const char* pPath, float Scale) const
@@ -20,8 +25,7 @@ Model ModelLoader::LoadFromFile(const char* pPath, float Scale) const
 		return Model();
 	}
 
-	static Assimp::Importer importer;
-	const aiScene* paiScene = importer.ReadFile(filePath.generic_string().data(),
+	const aiScene* paiScene = Importer.ReadFile(filePath.generic_string().data(),
 		aiProcess_ConvertToLeftHanded |
 		aiProcessPreset_TargetRealtime_MaxQuality |
 		aiProcess_GenBoundingBoxes |
@@ -30,7 +34,7 @@ Model ModelLoader::LoadFromFile(const char* pPath, float Scale) const
 
 	if (paiScene == nullptr)
 	{
-		CORE_ERROR("Assimp::Importer error: {}", importer.GetErrorString());
+		CORE_ERROR("Assimp::Importer error: {}", Importer.GetErrorString());
 		return Model();
 	}
 
@@ -53,14 +57,14 @@ Model ModelLoader::LoadFromFile(const char* pPath, float Scale) const
 		{
 			Vertex v{};
 			// Position
-			v.Position = DirectX::XMFLOAT3(paiMesh->mVertices[vertexIndex].x * Scale, paiMesh->mVertices[vertexIndex].y * Scale, paiMesh->mVertices[vertexIndex].z * Scale);
+			v.Position = XMFLOAT3(paiMesh->mVertices[vertexIndex].x * Scale, paiMesh->mVertices[vertexIndex].y * Scale, paiMesh->mVertices[vertexIndex].z * Scale);
 
 			// Texture coords
 			if (paiMesh->HasTextureCoords(0))
-				v.Texture = DirectX::XMFLOAT2(paiMesh->mTextureCoords[0][vertexIndex].x, paiMesh->mTextureCoords[0][vertexIndex].y);
+				v.Texture = XMFLOAT2(paiMesh->mTextureCoords[0][vertexIndex].x, paiMesh->mTextureCoords[0][vertexIndex].y);
 
 			// Normal
-			v.Normal = DirectX::XMFLOAT3(paiMesh->mNormals[vertexIndex].x, paiMesh->mNormals[vertexIndex].y, paiMesh->mNormals[vertexIndex].z);
+			v.Normal = XMFLOAT3(paiMesh->mNormals[vertexIndex].x, paiMesh->mNormals[vertexIndex].y, paiMesh->mNormals[vertexIndex].z);
 
 			vertices.push_back(v);
 		}
@@ -79,12 +83,12 @@ Model ModelLoader::LoadFromFile(const char* pPath, float Scale) const
 		}
 
 		// Parse aabb data for mesh
-		// center = 0.5 * (min + max)
-		DirectX::XMVECTOR min = DirectX::XMVectorSet(paiMesh->mAABB.mMin.x, paiMesh->mAABB.mMin.y, paiMesh->mAABB.mMin.z, 0.0f);
-		DirectX::XMVECTOR max = DirectX::XMVectorSet(paiMesh->mAABB.mMax.x, paiMesh->mAABB.mMax.y, paiMesh->mAABB.mMax.z, 0.0f);
-		DirectX::XMStoreFloat3(&mesh.BoundingBox.Center, DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorAdd(min, max)));
-		// extents = 0.5f (max - min)
-		DirectX::XMStoreFloat3(&mesh.BoundingBox.Extents, DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorSubtract(max, min)));
+		// center = 0.5 * (min + max) * Scale
+		XMVECTOR min = XMVectorSet(paiMesh->mAABB.mMin.x, paiMesh->mAABB.mMin.y, paiMesh->mAABB.mMin.z, 0.0f) * Scale;
+		XMVECTOR max = XMVectorSet(paiMesh->mAABB.mMax.x, paiMesh->mAABB.mMax.y, paiMesh->mAABB.mMax.z, 0.0f) * Scale;
+		XMStoreFloat3(&mesh.BoundingBox.Center, XMVectorMultiply(XMVectorReplicate(0.5f), XMVectorAdd(min, max)));
+		// extents = 0.5f (max - min) * Scale
+		XMStoreFloat3(&mesh.BoundingBox.Extents, XMVectorMultiply(XMVectorReplicate(0.5f), XMVectorSubtract(max, min)));
 
 		// Parse mesh indices
 		mesh.VertexCount = vertices.size();

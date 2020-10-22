@@ -9,7 +9,9 @@ enum class SampleScene
 	CornellBoxGlossySpheres,
 	PlaneWithTransparentSpheres,
 
-	PlaneWithLights
+	PlaneWithLights,
+
+	Sponza
 };
 
 Scene GenerateScene(SampleScene SampleScene);

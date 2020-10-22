@@ -3,8 +3,8 @@
 #include "RendererRegistry.h"
 #include <Core/Application.h>
 
-GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
-	: SV_pRenderDevice(pRenderDevice)
+GpuTextureAllocator::GpuTextureAllocator(RenderDevice* SV_pRenderDevice)
+	: SV_pRenderDevice(SV_pRenderDevice)
 {
 	DXGI_FORMAT OptionalFormats[] =
 	{
@@ -40,7 +40,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* pRenderDevice)
 		D3D12_FEATURE_DATA_FORMAT_SUPPORT FeatureDataFormatSupport	= {};
 		FeatureDataFormatSupport.Format								= OptionalFormats[i];
 
-		ThrowCOMIfFailed(pRenderDevice->Device.GetD3DDevice()->CheckFeatureSupport(
+		ThrowCOMIfFailed(SV_pRenderDevice->Device.GetD3DDevice()->CheckFeatureSupport(
 			D3D12_FEATURE_FORMAT_SUPPORT,
 			&FeatureDataFormatSupport,
 			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
@@ -277,7 +277,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 		StagingResource->Unmap(0, nullptr);
 	}
 
-	StagingTexture StagingTexture;
+	StagingTexture StagingTexture			= {};
 	StagingTexture.Path						= Path.generic_string();
 	StagingTexture.Texture					= DeviceTexture(StagingResource);
 	StagingTexture.NumSubresources			= NumSubresources;
@@ -298,7 +298,7 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 		{
 		case AlbedoIdx:		return SystemReservedTextures[DefaultAlbedo];
 		case NormalIdx:		return SystemReservedTextures[DefaultNormal];
-		case RoughnessIdx:	return SystemReservedTextures[DefaultBlack];
+		case RoughnessIdx:	return SystemReservedTextures[DefaultWhite];
 		case MetallicIdx:	return SystemReservedTextures[DefaultWhite];
 		case EmissiveIdx:	return SystemReservedTextures[DefaultBlack];
 		default:			assert(false && "Unknown Type"); return RenderResourceHandle();

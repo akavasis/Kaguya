@@ -7,7 +7,6 @@ class MaterialLoader
 {
 public:
 	MaterialLoader(std::filesystem::path ExecutableFolderPath);
-	~MaterialLoader() = default;
 
 	[[nodiscard]] Material LoadMaterial(
 		const char* pAlbedoMapPath,

@@ -37,9 +37,9 @@ namespace
 
 	static constexpr size_t LightBufferByteSize			= NumLights * sizeof(HLSLPolygonalLight);
 	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSLMaterial);
-	static constexpr size_t VertexBufferByteSize		= 10_MiB;
-	static constexpr size_t IndexBufferByteSize			= 10_MiB;
-	static constexpr size_t GeometryInfoBufferByteSize	= 10_MiB;
+	static constexpr size_t VertexBufferByteSize		= 30_MiB;
+	static constexpr size_t IndexBufferByteSize			= 30_MiB;
+	static constexpr size_t GeometryInfoBufferByteSize	= 30_MiB;
 }
 
 HLSLPolygonalLight GetShaderLightDesc(const PolygonalLight& Light)

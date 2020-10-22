@@ -4,6 +4,7 @@
 MaterialLoader::MaterialLoader(std::filesystem::path ExecutableFolderPath)
 	: m_ExecutableFolderPath(ExecutableFolderPath)
 {
+	
 }
 
 Material MaterialLoader::LoadMaterial(
@@ -13,16 +14,7 @@ Material MaterialLoader::LoadMaterial(
 	const char* pMetallicMapPath,
 	const char* pEmissiveMapPath) const
 {
-	Material Material			= {};
-	Material.Albedo				= { 0.0f, 0.0f, 0.0f };
-	Material.Emissive			= { 0.0f, 0.0f, 0.0f };
-	Material.Specular			= { 0.0f, 0.0f, 0.0f };
-	Material.Refraction			= { 0.0f, 0.0f, 0.0f };
-	Material.SpecularChance		= 0.0f;
-	Material.Roughness			= 0.0f;
-	Material.Fuzziness			= 0.0f;
-	Material.IndexOfRefraction	= 1.0f;
-	Material.Model				= 0;
+	Material Material = {};
 
 	auto InitTexture = [&](TextureTypes Type, const char* pPath)
 	{

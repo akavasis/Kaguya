@@ -7,7 +7,6 @@ class ModelLoader
 {
 public:
 	ModelLoader(std::filesystem::path ExecutableFolderPath);
-	~ModelLoader() = default;
 
 	[[nodiscard]] Model LoadFromFile(const char* pPath, float Scale = 1.0f) const;
 private:
