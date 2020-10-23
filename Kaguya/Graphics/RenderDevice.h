@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <Template/Pool.h>
+#include "DXGIManager.h"
 #include "RenderBuffer.h"
 #include "RenderTexture.h"
 #include "RenderResourceContainer.h"
@@ -71,6 +72,7 @@ public:
 	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
 	void BindGpuDescriptorHeap(CommandContext* pCommandContext);
+	inline auto GetImGuiDescriptorHeap() { return &m_ImGuiDescriptorHeap; }
 	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetCBDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
@@ -128,7 +130,6 @@ public:
 
 	UINT																					FrameIndex;
 	RenderResourceHandle																	SwapChainTextures[NumSwapChainBuffers];
-	CBSRUADescriptorHeap																	m_ImGuiDescriptorHeap;
 private:
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 
@@ -144,6 +145,7 @@ private:
 	RenderResourceContainer<RenderResourceType::ComputePSO, ComputePipelineState>			m_ComputePipelineStates;
 	RenderResourceContainer<RenderResourceType::RaytracingPSO, RaytracingPipelineState>		m_RaytracingPipelineStates;
 
+	CBSRUADescriptorHeap																	m_ImGuiDescriptorHeap;
 	CBSRUADescriptorHeap																	m_NonShaderVisibleCBSRUADescriptorHeap;
 	CBSRUADescriptorHeap																	m_ShaderVisibleCBSRUADescriptorHeap;
 	SamplerDescriptorHeap																	m_SamplerDescriptorHeap;

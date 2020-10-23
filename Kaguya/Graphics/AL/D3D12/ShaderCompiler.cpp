@@ -130,6 +130,6 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 		pDxcOperationResult->GetErrorBuffer(pError.ReleaseAndGetAddressOf());
 		m_DxcLibrary->GetBlobAsUtf16(pError.Get(), pError16.ReleaseAndGetAddressOf());
 		OutputDebugString((LPCWSTR)pError16->GetBufferPointer());
-		return nullptr;
+		throw std::exception("Failed to compile shader");
 	}
 }

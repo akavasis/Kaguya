@@ -13,7 +13,7 @@ RenderSystem::~RenderSystem()
 {
 }
 
-void RenderSystem::OnInitialize()
+bool RenderSystem::OnInitialize()
 {
 	return Initialize();
 }
@@ -47,7 +47,7 @@ void RenderSystem::OnRender()
 	return Render();
 }
 
-void RenderSystem::OnResize(uint32_t Width, uint32_t Height)
+bool RenderSystem::OnResize(uint32_t Width, uint32_t Height)
 {
 	this->Width = Width;
 	this->Height = Height;

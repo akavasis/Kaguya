@@ -98,7 +98,7 @@ public:
 
 	// Call every frame
 	void RenderGui();
-	void UpdateSystemConstants(const GlobalConstants& GlobalConstants);
+	void UpdateSystemConstants(const HostSystemConstants& HostSystemConstants);
 	void Execute();
 	void ExecuteCommandContexts(RenderContext& RendererRenderContext);
 private:

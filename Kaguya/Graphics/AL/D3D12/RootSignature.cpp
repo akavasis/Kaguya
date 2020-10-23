@@ -25,24 +25,24 @@ RootDescriptorTable::RootDescriptorTable()
 
 void RootDescriptorTable::AddDescriptorRange(DescriptorRange::Type Type, const DescriptorRange& DescriptorRange)
 {
-	D3D12_DESCRIPTOR_RANGE1 range = {};
+	D3D12_DESCRIPTOR_RANGE1 Range1 = {};
 	switch (Type)
 	{
-	case DescriptorRange::Type::SRV:		range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
-	case DescriptorRange::Type::UAV:		range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
-	case DescriptorRange::Type::CBV:		range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
-	case DescriptorRange::Type::Sampler:	range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
+	case DescriptorRange::Type::SRV:		Range1.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
+	case DescriptorRange::Type::UAV:		Range1.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
+	case DescriptorRange::Type::CBV:		Range1.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
+	case DescriptorRange::Type::Sampler:	Range1.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
 	}
-	range.NumDescriptors = DescriptorRange.NumDescriptors;
-	range.BaseShaderRegister = DescriptorRange.BaseShaderRegister;
-	range.RegisterSpace = DescriptorRange.RegisterSpace;
-	range.Flags = DescriptorRange.Flags;
-	range.OffsetInDescriptorsFromTableStart = DescriptorRange.OffsetInDescriptorsFromTableStart;
+	Range1.NumDescriptors						= DescriptorRange.NumDescriptors;
+	Range1.BaseShaderRegister					= DescriptorRange.BaseShaderRegister;
+	Range1.RegisterSpace						= DescriptorRange.RegisterSpace;
+	Range1.Flags								= DescriptorRange.Flags;
+	Range1.OffsetInDescriptorsFromTableStart	= DescriptorRange.OffsetInDescriptorsFromTableStart;
 
-	m_DescriptorRanges.push_back(range);
+	m_DescriptorRanges.push_back(Range1);
 
 	m_RootParameter.DescriptorTable.NumDescriptorRanges = m_DescriptorRanges.size();
-	m_RootParameter.DescriptorTable.pDescriptorRanges = m_DescriptorRanges.data();
+	m_RootParameter.DescriptorTable.pDescriptorRanges	= m_DescriptorRanges.data();
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ RootSignature::RootSignature(const Device* pDevice, RootSignatureProxy& Proxy)
 	if (FAILED(hr))
 	{
 		const char* pError = pErrorBlob ? reinterpret_cast<const char*>(pErrorBlob->GetBufferPointer()) : "";
-		CORE_ERROR("{} Failed: {}", "D3D12SerializeVersionedRootSignature", pError);
+		LOG_ERROR("{} Failed: {}", "D3D12SerializeVersionedRootSignature", pError);
 	}
 
 	// Create the root signature.

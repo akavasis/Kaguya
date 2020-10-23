@@ -184,7 +184,7 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 
 		if (!model.Path.empty())
 		{
-			CORE_INFO("{} Loaded", model.Path);
+			LOG_INFO("{} Loaded", model.Path);
 		}
 
 		// Add model's meshes into RTBLAS

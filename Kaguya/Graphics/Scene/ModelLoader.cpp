@@ -30,7 +30,7 @@ Model ModelLoader::LoadFromFile(const char* pPath) const
 
 	if (paiScene == nullptr)
 	{
-		CORE_ERROR("Assimp::Importer error: {}", Importer.GetErrorString());
+		LOG_ERROR("Assimp::Importer error: {}", Importer.GetErrorString());
 		assert(false && "Assimp::Importer::ReadFile failed, check Assimp::Importer::GetErrorString for more info");
 	}
 

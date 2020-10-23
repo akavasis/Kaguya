@@ -370,7 +370,7 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 
 	TextureHandles[StagingTexture.Path] = TextureHandle;
-	CORE_INFO("{} Loaded", StagingTexture.Path);
+	LOG_INFO("{} Loaded", StagingTexture.Path);
 }
 
 void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)

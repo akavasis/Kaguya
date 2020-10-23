@@ -25,7 +25,7 @@ Window::Window(LPCWSTR WindowName,
 	rid.hwndTarget		= NULL;
 	if (!::RegisterRawInputDevices(&rid, 1, sizeof(rid)))
 	{
-		CORE_ERROR("RegisterRawInputDevices Error: {}", ::GetLastError());
+		LOG_ERROR("RegisterRawInputDevices Error: {}", ::GetLastError());
 	}
 
 	// Register window class
@@ -44,7 +44,7 @@ Window::Window(LPCWSTR WindowName,
 	windowClass.hIconSm			= m_Icon;
 	if (!RegisterClassExW(&windowClass))
 	{
-		CORE_ERROR("RegisterClassExW Error: {}", ::GetLastError());
+		LOG_ERROR("RegisterClassExW Error: {}", ::GetLastError());
 	}
 
 	// Create window
@@ -61,7 +61,7 @@ Window::Window(LPCWSTR WindowName,
 	}
 	else
 	{
-		CORE_ERROR("CreateWindowW Error: {}", ::GetLastError());
+		LOG_ERROR("CreateWindowW Error: {}", ::GetLastError());
 	}
 }
 

@@ -12,11 +12,6 @@ StructuredBuffer<Vertex>		VertexBuffer		: register(t0, space0);
 StructuredBuffer<uint>			IndexBuffer			: register(t1, space0);
 StructuredBuffer<GeometryInfo>	GeometryInfoBuffer	: register(t2, space0);
 
-struct SkyboxData
-{
-	GlobalConstants GlobalConstants;
-};
-#define RenderPassDataType SkyboxData
 #include "ShaderLayout.hlsli"
 
 struct VSOutput
@@ -36,7 +31,7 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 		
 		// Transform to Clip/Homogenized space
 		// Set z = w so that z/w = 1 (i.e., skydome always on far plane).
-		OUT.PositionH = mul(float4(Vertex.Position, 0.0f), RenderPassData.GlobalConstants.ViewProjection).xyww;
+		OUT.PositionH = mul(float4(Vertex.Position, 0.0f), SystemConstants.ViewProjection).xyww;
 		OUT.TextureCoord = Vertex.Position;
 	}
 	return OUT;

@@ -7,6 +7,7 @@
 class RenderContext
 {
 public:
+	RenderContext() = default;
 	RenderContext(size_t RenderPassIndex,
 		DeviceBuffer* pSystemConstants,
 		DeviceBuffer* pGpuData,
@@ -28,7 +29,7 @@ public:
 	}
 	inline auto GetImGuiDescriptorHeap() const
 	{
-		return &SV_pRenderDevice->m_ImGuiDescriptorHeap;
+		return SV_pRenderDevice->GetImGuiDescriptorHeap();
 	}
 
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle) const { return SV_pRenderDevice->GetBuffer(Handle); }
@@ -90,11 +91,11 @@ private:
 	void BindComputeShaderLayoutResource(const RootSignature* pRootSignature);
 
 	// SV have the same notion as Shader's SV, it is provided by the RenderGraph
-	size_t			SV_RenderPassIndex;
-	DeviceBuffer*	SV_pSystemConstants;
-	DeviceBuffer*	SV_pGpuData;
-	RenderDevice*	SV_pRenderDevice;
-	CommandContext* SV_pCommandContext;
+	size_t			SV_RenderPassIndex		= 0;
+	DeviceBuffer*	SV_pSystemConstants		= nullptr;
+	DeviceBuffer*	SV_pGpuData				= nullptr;
+	RenderDevice*	SV_pRenderDevice		= nullptr;
+	CommandContext* SV_pCommandContext		= nullptr;
 
 	RenderResourceHandle m_PipelineStateHandle;
 };

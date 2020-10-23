@@ -32,7 +32,7 @@ Scene SceneLoader::LoadFromFile(const char* pPath, float Scale /*= 1.0f*/) const
 
 		if (paiScene == nullptr)
 		{
-			CORE_ERROR("Assimp::Importer error: {}", Importer.GetErrorString());
+			LOG_ERROR("Assimp::Importer error: {}", Importer.GetErrorString());
 			assert(false && "Assimp::Importer::ReadFile failed, check Assimp::Importer::GetErrorString for more info");
 		}
 

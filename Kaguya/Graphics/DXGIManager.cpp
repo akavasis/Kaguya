@@ -56,18 +56,18 @@ Microsoft::WRL::ComPtr<IDXGISwapChain4> DXGIManager::CreateSwapChain(IUnknown* p
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> pSwapChain4;
 	// For DX11 pUnknown should be ID3D11Device
 	// For DX12 pUnknown should be ID3D12CommandQueue
-	DXGI_SWAP_CHAIN_DESC1 Desc = {};
-	Desc.Width			= pWindow->GetWindowWidth();
-	Desc.Height			= pWindow->GetWindowHeight();
-	Desc.Format			= Format;
-	Desc.Stereo			= FALSE;
-	Desc.SampleDesc		= { 1, 0 };
-	Desc.BufferUsage	= DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	Desc.BufferCount	= BufferCount;
-	Desc.Scaling		= DXGI_SCALING_NONE;
-	Desc.SwapEffect		= DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	Desc.AlphaMode		= DXGI_ALPHA_MODE_UNSPECIFIED;
-	Desc.Flags			= m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	DXGI_SWAP_CHAIN_DESC1 Desc	= {};
+	Desc.Width					= pWindow->GetWindowWidth();
+	Desc.Height					= pWindow->GetWindowHeight();
+	Desc.Format					= Format;
+	Desc.Stereo					= FALSE;
+	Desc.SampleDesc				= { 1, 0 };
+	Desc.BufferUsage			= DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	Desc.BufferCount			= BufferCount;
+	Desc.Scaling				= DXGI_SCALING_NONE;
+	Desc.SwapEffect				= DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+	Desc.AlphaMode				= DXGI_ALPHA_MODE_UNSPECIFIED;
+	Desc.Flags					= m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> pSwapChain1;
 	ThrowCOMIfFailed(m_pDXGIFactory->CreateSwapChainForHwnd(pUnknown, pWindow->GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
 	ThrowCOMIfFailed(m_pDXGIFactory->MakeWindowAssociation(pWindow->GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
@@ -121,11 +121,11 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> DXGIManager::QueryAdapter(API API)
 		m_QueriedAdapterDesc = Desc;
 
 		std::string desc = UTF16ToUTF8(Desc.Description);
-		CORE_INFO("Queried Adapter/GPU: {} \n\t\t\tVendor: {}", desc.data(), ((Desc.VendorId == 0x10DE) ? "Nvidia" : "Unknown"));
+		LOG_INFO("Queried Adapter/GPU: {} \n\t\t\tVendor: {}", desc.data(), ((Desc.VendorId == 0x10DE) ? "Nvidia" : "Unknown"));
 	}
 	else
 	{
-		CORE_WARN("Failed To Obtain Queried Adapter / GPU's Description");
+		LOG_WARN("Failed To Obtain Queried Adapter / GPU's Description");
 	}
 
 	return m_pQueriedAdapter;

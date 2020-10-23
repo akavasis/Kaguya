@@ -3,7 +3,7 @@
 #include "Light.h"
 #include "Material.h"
 
-struct GlobalConstants
+struct HostSystemConstants
 {
 	float3 CameraU;
 	float _padding;

@@ -13,7 +13,7 @@ namespace Kaguya
 			HRESULT hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphicsAnalysis));
 			if (graphicsAnalysis)
 			{
-				CORE_INFO("PIX Capture begin");
+				LOG_INFO("PIX Capture begin");
 				graphicsAnalysis->BeginCapture();
 			}
 		}
@@ -22,7 +22,7 @@ namespace Kaguya
 		{
 			if (graphicsAnalysis)
 			{
-				CORE_INFO("PIX Capture end");
+				LOG_INFO("PIX Capture end");
 				graphicsAnalysis->EndCapture();
 			}
 		}

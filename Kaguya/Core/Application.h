@@ -11,8 +11,6 @@ public:
 	inline static std::filesystem::path			ExecutableFolderPath;
 	inline static Window*						pWindow					= nullptr;
 	inline static RenderSystem*					pRenderSystem			= nullptr;
-	inline static std::thread*					RenderThread			= nullptr;
-	inline static bool							ExitRenderThread		= false;
 
 	static void Initialize(LPCWSTR WindowName,
 		int32_t Width = CW_USEDEFAULT, int32_t Height = CW_USEDEFAULT,
@@ -22,4 +20,7 @@ public:
 private:
 	static void RenderThreadMain();
 	static bool HandleRenderMessage(const Window::Message& Message);
+
+	inline static std::thread*					RenderThread			= nullptr;
+	inline static bool							ExitRenderThread		= false;
 };

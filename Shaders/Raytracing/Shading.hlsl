@@ -111,10 +111,11 @@ void RayGeneration()
 			points[3] = p0 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
 
 			float3 diff = LTC_Evaluate(normal, viewDir, position, identity, points, false);
+			diff *= albedo;
 			float3 spec = LTC_Evaluate(normal, viewDir, position, Minv, points, false);
 			spec *= ltcLookupB.x + (1.0f - Material.Specular) * ltcLookupB.y;
 
-			color += (Light.Color * Light.Intensity) * (albedo * diff + spec);
+			color += (Light.Color * Light.Intensity) * (diff + spec);
 		}
 	}
 	else if (GBufferType == GBufferTypeLight)

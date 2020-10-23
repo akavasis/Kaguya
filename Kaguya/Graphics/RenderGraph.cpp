@@ -37,7 +37,7 @@ void RenderGraph::Initialize()
 
 	m_SystemConstants = SV_pRenderDevice->CreateDeviceBuffer([](DeviceBufferProxy& Proxy)
 	{
-		constexpr UINT64 AlignedStride = Math::AlignUp<UINT64>(sizeof(GlobalConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+		constexpr UINT64 AlignedStride = Math::AlignUp<UINT64>(sizeof(HostSystemConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
 		Proxy.SetSizeInBytes(AlignedStride);
 		Proxy.SetStride(AlignedStride);
@@ -77,12 +77,12 @@ void RenderGraph::RenderGui()
 	ImGui::End();
 }
 
-void RenderGraph::UpdateSystemConstants(const GlobalConstants& GlobalConstants)
+void RenderGraph::UpdateSystemConstants(const HostSystemConstants& HostSystemConstants)
 {
 	auto pSystemConstants = SV_pRenderDevice->GetBuffer(m_SystemConstants);
 
 	pSystemConstants->Map();
-	pSystemConstants->Update<::GlobalConstants>(0, GlobalConstants);
+	pSystemConstants->Update<::HostSystemConstants>(0, HostSystemConstants);
 }
 
 void RenderGraph::Execute()

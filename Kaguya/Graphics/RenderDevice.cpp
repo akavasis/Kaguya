@@ -10,7 +10,6 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	SwapChainTextures{},
 
 	m_ImGuiDescriptorHeap(&Device, 0, 1, 0, true),
-
 	m_NonShaderVisibleCBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false),
 	m_ShaderVisibleCBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true),
 	m_SamplerDescriptorHeap(&Device, NumSamplerDescriptors, true),

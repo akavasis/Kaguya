@@ -7,6 +7,7 @@
 #include <shellscalingapi.h>
 #pragma comment(lib, "shcore.lib")
 
+//----------------------------------------------------------------------------------------------------
 void Application::Initialize(LPCWSTR WindowName,
 	int32_t Width /*= CW_USEDEFAULT*/, int32_t Height /*= CW_USEDEFAULT*/,
 	int32_t X /*= CW_USEDEFAULT*/, int32_t Y /*= CW_USEDEFAULT*/)
@@ -28,6 +29,7 @@ void Application::Initialize(LPCWSTR WindowName,
 	pWindow = new Window(WindowName, Width, Height, X, Y);
 }
 
+//----------------------------------------------------------------------------------------------------
 int Application::Run(RenderSystem* pRenderSystem)
 {
 	int ExitCode = EXIT_SUCCESS;
@@ -117,6 +119,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 	return ExitCode;
 }
 
+//----------------------------------------------------------------------------------------------------
 void Application::RenderThreadMain()
 {
 	// Set to high priority thread
@@ -126,12 +129,14 @@ void Application::RenderThreadMain()
 	Time Time;
 	Time.Restart();
 
-	pRenderSystem->OnInitialize();
+	if (!pRenderSystem->OnInitialize())
+		goto Error;
+
 	while (!ExitRenderThread)
 	{
 		if (!pWindow->IsFocused())
 			continue;
-		
+
 		// Process window messages
 		{
 			Window::Message messsage;
@@ -182,18 +187,19 @@ void Application::RenderThreadMain()
 		pRenderSystem->OnUpdate(Time);
 		pRenderSystem->OnRender();
 	}
+
+Error:
 	pRenderSystem->OnDestroy();
 }
 
+//----------------------------------------------------------------------------------------------------
 bool Application::HandleRenderMessage(const Window::Message& Message)
 {
 	switch (Message.type)
 	{
 	case Window::Message::Type::Resize:
 	{
-		pRenderSystem->OnResize(Message.data.Width, Message.data.Height);
-
-		return true;
+		return pRenderSystem->OnResize(Message.data.Width, Message.data.Height);
 	}
 	break;
 	}
