@@ -11,6 +11,6 @@ public:
 
 	operator D3D12_INPUT_LAYOUT_DESC() const noexcept;
 private:
-	std::vector<std::string> m_InputElementSemanticNames;
-	mutable std::vector<D3D12_INPUT_ELEMENT_DESC> m_InputElements; // must be mutable, as operator() resolves SemanticName
+	std::vector<std::string>						m_InputElementSemanticNames;
+	mutable std::vector<D3D12_INPUT_ELEMENT_DESC>	m_InputElements; // must be mutable, as operator() resolves SemanticName
 };

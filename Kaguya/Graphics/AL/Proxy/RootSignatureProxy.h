@@ -55,12 +55,15 @@ public:
 	void AddRootUAVParameter(const RootUAV& RootUAV);
 
 	// Register Space: space0
-	void AddStaticSampler(UINT ShaderRegister,
+	void AddStaticSampler
+	(
+		UINT ShaderRegister,
 		D3D12_FILTER Filter,
 		D3D12_TEXTURE_ADDRESS_MODE AddressUVW,
 		UINT MaxAnisotropy,
 		D3D12_COMPARISON_FUNC ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL,
-		D3D12_STATIC_BORDER_COLOR BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE);
+		D3D12_STATIC_BORDER_COLOR BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE
+	);
 
 	void AllowInputLayout();
 	void DenyVSAccess();
@@ -75,10 +78,10 @@ protected:
 	void Link() override;
 	D3D12_ROOT_SIGNATURE_DESC1 BuildD3DDesc();
 private:
-	std::vector<D3D12_ROOT_PARAMETER1> m_Parameters;
-	std::vector<D3D12_STATIC_SAMPLER_DESC> m_StaticSamplers;
-	D3D12_ROOT_SIGNATURE_FLAGS m_Flags;
+	std::vector<D3D12_ROOT_PARAMETER1>					m_Parameters;
+	std::vector<D3D12_STATIC_SAMPLER_DESC>				m_StaticSamplers;
+	D3D12_ROOT_SIGNATURE_FLAGS							m_Flags;
 
-	std::vector<UINT> m_DescriptorRangeIndices;
-	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE1>> m_DescriptorRanges;
+	std::vector<UINT>									m_DescriptorRangeIndices;
+	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE1>>	m_DescriptorRanges;
 };

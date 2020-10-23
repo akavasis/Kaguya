@@ -66,20 +66,20 @@ public:
 
 	struct RenderTarget
 	{
-		Operation Operation = Operation::None;
-		Factor SrcBlendRGB = Factor::One;
-		Factor DstBlendRGB = Factor::Zero;
-		BlendOp BlendOpRGB = BlendOp::Add;
-		Factor SrcBlendAlpha = Factor::One;
-		Factor DstBlendAlpha = Factor::Zero;
-		BlendOp BlendOpAlpha = BlendOp::Add;
-		LogicOp LogicOpRGB = LogicOp::NoOperation;
+		Operation	Operation		= Operation::None;
+		Factor		SrcBlendRGB		= Factor::One;
+		Factor		DstBlendRGB		= Factor::Zero;
+		BlendOp		BlendOpRGB		= BlendOp::Add;
+		Factor		SrcBlendAlpha	= Factor::One;
+		Factor		DstBlendAlpha	= Factor::Zero;
+		BlendOp		BlendOpAlpha	= BlendOp::Add;
+		LogicOp		LogicOpRGB		= LogicOp::NoOperation;
 
 		struct WriteMask
 		{
-			bool WriteRed = true;
+			bool WriteRed	= true;
 			bool WriteGreen = true;
-			bool WriteBlue = true;
+			bool WriteBlue	= true;
 			bool WriteAlpha = true;
 		} WriteMask;
 
@@ -97,10 +97,10 @@ public:
 
 	operator D3D12_BLEND_DESC() const noexcept;
 private:
-	bool m_AlphaToCoverageEnable;
-	bool m_IndependentBlendEnable;
-	UINT m_NumRenderTargets;
-	RenderTarget m_RenderTargets[8];
+	bool			m_AlphaToCoverageEnable;
+	bool			m_IndependentBlendEnable;
+	UINT			m_NumRenderTargets;
+	RenderTarget	m_RenderTargets[8];
 };
 
 D3D12_BLEND_OP GetD3DBlendOp(BlendState::BlendOp Op);

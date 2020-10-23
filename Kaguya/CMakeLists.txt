@@ -72,8 +72,6 @@ include_directories("../External/imgui")
 
 include_directories("../External/spdlog/include")
 
-include_directories("../External/tinygltf")
-
 include_directories("../External/WinPixEventRuntime/include")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/WinPixEventRuntime/bin/x64/WinPixEventRuntime.lib)
 

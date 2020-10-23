@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "RootSignatureProxy.h"
+#include "../D3D12/d3dx12.h"
 
 RootSignatureProxy::RootSignatureProxy()
 {
@@ -44,17 +45,21 @@ void RootSignatureProxy::AddRootUAVParameter(const RootUAV& RootUAV)
 	m_DescriptorRangeIndices.push_back(~0);
 }
 
-void RootSignatureProxy::AddStaticSampler(UINT ShaderRegister,
+void RootSignatureProxy::AddStaticSampler
+(
+	UINT ShaderRegister,
 	D3D12_FILTER Filter,
 	D3D12_TEXTURE_ADDRESS_MODE AddressUVW,
 	UINT MaxAnisotropy,
 	D3D12_COMPARISON_FUNC ComparisonFunc,
-	D3D12_STATIC_BORDER_COLOR BorderColor)
+	D3D12_STATIC_BORDER_COLOR BorderColor
+)
 {
-	CD3DX12_STATIC_SAMPLER_DESC staticSampler = {};
-	staticSampler.Init(ShaderRegister, Filter, AddressUVW, AddressUVW, AddressUVW, 0.0f, MaxAnisotropy, ComparisonFunc, BorderColor);
-
-	m_StaticSamplers.push_back(staticSampler);
+	CD3DX12_STATIC_SAMPLER_DESC StaticSampler = {};
+	{
+		StaticSampler.Init(ShaderRegister, Filter, AddressUVW, AddressUVW, AddressUVW, 0.0f, MaxAnisotropy, ComparisonFunc, BorderColor);
+	}
+	m_StaticSamplers.push_back(StaticSampler);
 }
 
 void RootSignatureProxy::AllowInputLayout()
@@ -118,12 +123,13 @@ void RootSignatureProxy::Link()
 
 D3D12_ROOT_SIGNATURE_DESC1 RootSignatureProxy::BuildD3DDesc()
 {
-	D3D12_ROOT_SIGNATURE_DESC1 desc = {};
-	desc.NumParameters = static_cast<UINT>(m_Parameters.size());
-	desc.pParameters = m_Parameters.data();
-	desc.NumStaticSamplers = static_cast<UINT>(m_StaticSamplers.size());
-	desc.pStaticSamplers = m_StaticSamplers.data();
-	desc.Flags = m_Flags;
-
-	return desc;
+	D3D12_ROOT_SIGNATURE_DESC1 Desc = {};
+	{
+		Desc.NumParameters		= static_cast<UINT>(m_Parameters.size());
+		Desc.pParameters		= m_Parameters.data();
+		Desc.NumStaticSamplers	= static_cast<UINT>(m_StaticSamplers.size());
+		Desc.pStaticSamplers	= m_StaticSamplers.data();
+		Desc.Flags				= m_Flags;
+	}
+	return Desc;
 }

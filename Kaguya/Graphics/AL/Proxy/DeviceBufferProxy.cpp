@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "DeviceBufferProxy.h"
+#include "../D3D12/d3dx12.h"
 
 DeviceBufferProxy::DeviceBufferProxy()
 	: DeviceResourceProxy(DeviceResource::Type::Buffer)
 {
-	m_SizeInBytes = 0;
-	m_Stride = 0;
-	m_CpuAccess = DeviceBuffer::CpuAccess::None;
-	m_pOptionalDataForUpload = nullptr;
+	m_SizeInBytes				= 0;
+	m_Stride					= 0;
+	m_CpuAccess					= DeviceBuffer::CpuAccess::None;
+	m_pOptionalDataForUpload	= nullptr;
 }
 
 void DeviceBufferProxy::SetSizeInBytes(UINT64 SizeInBytes)

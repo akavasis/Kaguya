@@ -2,6 +2,7 @@
 #include <dxgi1_6.h>
 #include <d3d12.h>
 #include <wrl/client.h>
+#include "D3D12AbstractionLayer.h"
 
 class Device
 {

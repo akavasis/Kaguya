@@ -45,17 +45,17 @@ public:
 
 	operator D3D12_RASTERIZER_DESC() const noexcept;
 private:
-	FillMode m_FillMode;
-	CullMode m_CullMode;
-	bool m_FrontCounterClockwise;
-	int m_DepthBias;
-	float m_DepthBiasClamp;
-	float m_SlopeScaledDepthBias;
-	bool m_DepthClipEnable;
-	bool m_MultisampleEnable;
-	bool m_AntialiasedLineEnable;
-	unsigned int m_ForcedSampleCount;
-	bool m_ConservativeRaster;
+	FillMode		m_FillMode;
+	CullMode		m_CullMode;
+	bool			m_FrontCounterClockwise;
+	int				m_DepthBias;
+	float			m_DepthBiasClamp;
+	float			m_SlopeScaledDepthBias;
+	bool			m_DepthClipEnable;
+	bool			m_MultisampleEnable;
+	bool			m_AntialiasedLineEnable;
+	unsigned int	m_ForcedSampleCount;
+	bool			m_ConservativeRaster;
 };
 
 D3D12_FILL_MODE GetD3DFillMode(RasterizerState::FillMode FillMode);

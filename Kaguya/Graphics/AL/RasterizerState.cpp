@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "RasterizerState.h"
+#include "D3D12/d3dx12.h"
 
 RasterizerState::RasterizerState()
 {
@@ -73,28 +74,29 @@ void RasterizerState::SetConservativeRaster(bool ConservativeRaster)
 
 RasterizerState::operator D3D12_RASTERIZER_DESC() const noexcept
 {
-	D3D12_RASTERIZER_DESC desc = {};
-	desc.FillMode = GetD3DFillMode(m_FillMode);
-	desc.CullMode = GetD3DCullMode(m_CullMode);
-	desc.FrontCounterClockwise = m_FrontCounterClockwise ? TRUE : FALSE;
-	desc.DepthBias = m_DepthBias;
-	desc.DepthBiasClamp = m_DepthBiasClamp;
-	desc.SlopeScaledDepthBias = m_SlopeScaledDepthBias;
-	desc.DepthClipEnable = m_DepthClipEnable ? TRUE : FALSE;
-	desc.MultisampleEnable = m_MultisampleEnable ? TRUE : FALSE;
-	desc.AntialiasedLineEnable = m_AntialiasedLineEnable ? TRUE : FALSE;
-	desc.ForcedSampleCount = m_ForcedSampleCount;
-	desc.ConservativeRaster = m_ConservativeRaster ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF : D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
-
-	return desc;
+	D3D12_RASTERIZER_DESC Desc	= CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	{
+		Desc.FillMode				= GetD3DFillMode(m_FillMode);
+		Desc.CullMode				= GetD3DCullMode(m_CullMode);
+		Desc.FrontCounterClockwise	= m_FrontCounterClockwise ? TRUE : FALSE;
+		Desc.DepthBias				= m_DepthBias;
+		Desc.DepthBiasClamp			= m_DepthBiasClamp;
+		Desc.SlopeScaledDepthBias	= m_SlopeScaledDepthBias;
+		Desc.DepthClipEnable		= m_DepthClipEnable ? TRUE : FALSE;
+		Desc.MultisampleEnable		= m_MultisampleEnable ? TRUE : FALSE;
+		Desc.AntialiasedLineEnable	= m_AntialiasedLineEnable ? TRUE : FALSE;
+		Desc.ForcedSampleCount		= m_ForcedSampleCount;
+		Desc.ConservativeRaster		= m_ConservativeRaster ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF : D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
+	}
+	return Desc;
 }
 
 D3D12_FILL_MODE GetD3DFillMode(RasterizerState::FillMode FillMode)
 {
 	switch (FillMode)
 	{
-	case RasterizerState::FillMode::Wireframe: return D3D12_FILL_MODE_WIREFRAME;
-	case RasterizerState::FillMode::Solid: return D3D12_FILL_MODE_SOLID;
+	case RasterizerState::FillMode::Wireframe:	return D3D12_FILL_MODE_WIREFRAME;
+	case RasterizerState::FillMode::Solid:		return D3D12_FILL_MODE_SOLID;
 	}
 	return D3D12_FILL_MODE();
 }
@@ -103,9 +105,9 @@ D3D12_CULL_MODE GetD3DCullMode(RasterizerState::CullMode CullMode)
 {
 	switch (CullMode)
 	{
-	case RasterizerState::CullMode::None: return D3D12_CULL_MODE_NONE;
-	case RasterizerState::CullMode::Front: return D3D12_CULL_MODE_FRONT;
-	case RasterizerState::CullMode::Back: return D3D12_CULL_MODE_BACK;
+	case RasterizerState::CullMode::None:	return D3D12_CULL_MODE_NONE;
+	case RasterizerState::CullMode::Front:	return D3D12_CULL_MODE_FRONT;
+	case RasterizerState::CullMode::Back:	return D3D12_CULL_MODE_BACK;
 	}
 	return D3D12_CULL_MODE();
 }

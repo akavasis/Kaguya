@@ -1,14 +1,15 @@
 #include "pch.h"
 #include "DeviceTextureProxy.h"
+#include "../D3D12/d3dx12.h"
 
 DeviceTextureProxy::DeviceTextureProxy(DeviceResource::Type Type)
 	: DeviceResourceProxy(Type)
 {
-	m_Format = DXGI_FORMAT_UNKNOWN;
-	m_Width = 0;
-	m_Height = 0;
-	m_DepthOrArraySize = 1;
-	m_MipLevels = 1;
+	m_Format			= DXGI_FORMAT_UNKNOWN;
+	m_Width				= 0;
+	m_Height			= 0;
+	m_DepthOrArraySize	= 1;
+	m_MipLevels			= 1;
 }
 
 void DeviceTextureProxy::SetFormat(DXGI_FORMAT Format)
