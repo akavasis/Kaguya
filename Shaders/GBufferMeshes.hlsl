@@ -12,11 +12,6 @@ StructuredBuffer<uint>			IndexBuffer			: register(t1, space0);
 StructuredBuffer<GeometryInfo>	GeometryInfoBuffer	: register(t2, space0);
 StructuredBuffer<Material>		Materials			: register(t3, space0);
 
-struct GBufferData
-{
-	GlobalConstants GlobalConstants;
-};
-#define RenderPassDataType GBufferData
 #include "ShaderLayout.hlsli"
 
 SamplerState AnisotropicClamp : register(s0, space0);
@@ -40,7 +35,7 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 		// Transform to world space
 		OUT.PositionW			= mul(float4(Vertex.Position, 1.0f), INFO.World).xyz;
 		// Transform to homogeneous/clip space
-		OUT.PositionH			= mul(float4(OUT.PositionW, 1.0f), RenderPassData.GlobalConstants.ViewProjection);
+		OUT.PositionH			= mul(float4(OUT.PositionW, 1.0f), SystemConstants.ViewProjection);
 	
 		OUT.TextureCoord		= Vertex.Texture;
 		// Transform normal to world space

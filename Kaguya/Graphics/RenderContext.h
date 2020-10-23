@@ -8,10 +8,12 @@ class RenderContext
 {
 public:
 	RenderContext(size_t RenderPassIndex,
+		DeviceBuffer* pSystemConstants,
 		DeviceBuffer* pGpuData,
 		RenderDevice* pRenderDevice,
 		CommandContext* pCommandContext)
 		: SV_RenderPassIndex(RenderPassIndex),
+		SV_pSystemConstants(pSystemConstants),
 		SV_pGpuData(pGpuData),
 		SV_pRenderDevice(pRenderDevice),
 		SV_pCommandContext(pCommandContext)
@@ -89,6 +91,7 @@ private:
 
 	// SV have the same notion as Shader's SV, it is provided by the RenderGraph
 	size_t			SV_RenderPassIndex;
+	DeviceBuffer*	SV_pSystemConstants;
 	DeviceBuffer*	SV_pGpuData;
 	RenderDevice*	SV_pRenderDevice;
 	CommandContext* SV_pCommandContext;

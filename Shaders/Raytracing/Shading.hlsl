@@ -1,10 +1,8 @@
-#include "Global.hlsli"
 #include "../LTC.hlsli"
 #include "../GBuffer.hlsli"
 
 struct ShadingData
 {
-	GlobalConstants GlobalConstants;
 	int Position;
 	int Normal;
 	int Albedo;
@@ -17,7 +15,8 @@ struct ShadingData
 	int RenderTarget;
 };
 #define RenderPassDataType ShadingData
-#include "../ShaderLayout.hlsli"
+#include "Global.hlsli"
+
 
 struct RayPayload
 {
@@ -35,7 +34,7 @@ void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassData.GlobalConstants.TotalFrameCount) * uint(26699)) | uint(1);
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
 	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions);
 	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
@@ -63,7 +62,7 @@ void RayGeneration()
 		float3 albedo = GBufferMesh.Albedo;
 		float roughness = GBufferMesh.Roughness;
 		
-		float3 viewDir = normalize(RenderPassData.GlobalConstants.EyePosition - position);
+		float3 viewDir = normalize(SystemConstants.EyePosition - position);
 		
 		float NoV = saturate(dot(normal, viewDir));
 		float2 uv = float2(roughness, sqrt(1.0f - NoV));
@@ -86,7 +85,7 @@ void RayGeneration()
 		float3 r3 = float3(ltcLookupA.z, 0, ltcLookupA.w);
 		float3x3 Minv = float3x3(r1, r2, r3);
 		
-		for (int i = 0; i < RenderPassData.GlobalConstants.NumPolygonalLights; ++i)
+		for (int i = 0; i < SystemConstants.NumPolygonalLights; ++i)
 		{
 			PolygonalLight Light = Lights[i];
 			

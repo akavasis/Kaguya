@@ -1,5 +1,3 @@
-#include "Global.hlsli"
-
 /*
 	TODO: Finish reading "Ray Tracing: The Rest of Your Life" and finish implementing PDF
 	for different materials along with importance sampling and russian roulette
@@ -8,12 +6,10 @@
 
 struct PathtracingData
 {
-	GlobalConstants GlobalConstants;
 	uint OutputIndex;
 };
-
 #define RenderPassDataType PathtracingData
-#include "../ShaderLayout.hlsli"
+#include "Global.hlsli"
 
 // Hit information, aka ray payload
 // Note that the payload should be kept as small as possible,
@@ -211,10 +207,10 @@ void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassData.GlobalConstants.TotalFrameCount) * uint(26699)) | uint(1);
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
 	float3 color = float3(0.0f, 0.0f, 0.0f);
-	for (int sample = 0; sample < RenderPassData.GlobalConstants.NumSamplesPerPixel; ++sample)
+	for (int sample = 0; sample < SystemConstants.NumSamplesPerPixel; ++sample)
 	{
 		// Calculate subpixel camera jitter for anti aliasing
 		const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
@@ -223,7 +219,7 @@ void RayGeneration()
 		const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 
 		// Initialize ray
-		RayDesc ray = GenerateCameraRay(ndc, seed, RenderPassData.GlobalConstants);
+		RayDesc ray = GenerateCameraRay(ndc, seed, SystemConstants);
 		// Initialize payload
 		RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
 		// Trace the ray
@@ -236,7 +232,7 @@ void RayGeneration()
 	
 		color += rayPayload.Radiance;
 	}
-	color /= (float)RenderPassData.GlobalConstants.NumSamplesPerPixel;
+	color /= (float) SystemConstants.NumSamplesPerPixel;
 
 	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.OutputIndex];
 	RenderTarget[launchIndex] = float4(color, 1.0f);
@@ -321,7 +317,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	
 	// Path trace
 	if (shouldScatter &&
-		rayPayload.Depth + 1 < RenderPassData.GlobalConstants.MaxDepth)
+		rayPayload.Depth + 1 < SystemConstants.MaxDepth)
 	{
 		rayPayload.Depth = rayPayload.Depth + 1;
 		

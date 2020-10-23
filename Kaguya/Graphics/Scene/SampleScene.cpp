@@ -389,7 +389,7 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		light1.Transform.Position = { -5, 5, 3 };
 		light1.Transform.Rotate(XM_PI - 0.5f, 0, 0);
 		light1.Color = { 1, 1, 1 };
-		light1.Intensity = 10;
+		light1.Intensity = 5;
 		light1.Width = 4;
 		light1.Height = 4;
 
@@ -397,28 +397,50 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		light2.Transform.Position = { 5, 5, 3 };
 		light2.Transform.Rotate(XM_PI - 0.5f, 0, 0);
 		light2.Color = { 1, 1, 1 };
-		light2.Intensity = 10;
+		light2.Intensity = 5;
 		light2.Width = 4;
 		light2.Height = 4;
 
-		// Materials
-		auto& concrete = Scene.AddMaterial(MaterialLoader.LoadMaterial(
-			"Assets/Textures/Concrete19/Concrete19_col.dds",
-			"Assets/Textures/Concrete19/Concrete19_nrm.dds",
-			"Assets/Textures/Concrete19/Concrete19_rgh.dds",
-			0,
-			0));
+		// Plane
+		{
+			auto& concrete = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+				"Assets/Textures/Concrete19/Concrete19_col.dds",
+				"Assets/Textures/Concrete19/Concrete19_nrm.dds",
+				"Assets/Textures/Concrete19/Concrete19_rgh.dds",
+				0,
+				0));
+			auto& plane = Scene.AddModel(CreateGrid(100.0f, 100.0f, 2, 2));
 
-		auto& default = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+			auto& floorInstance = Scene.AddModelInstance({ &plane, &concrete });
+		}
 
-		// Models
-		auto& rect = Scene.AddModel(CreateGrid(100.0f, 100.0f, 2, 2));
-		auto& box = Scene.AddModel(CreateBox(5.0f, 5.0f, 5.0f, 1));
+		// Box
+		//{
+		//	auto& defaultMaterial = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		//	auto& box = Scene.AddModel(CreateBox(5.0f, 5.0f, 5.0f, 1));
+		//
+		//	auto& boxInstance = Scene.AddModelInstance({ &box, &defaultMaterial });
+		//	boxInstance.Translate(0.0f, 2.5f, 0.0f);
+		//}
 
-		// Model instances
-		auto& floorInstance = Scene.AddModelInstance({ &rect, &concrete });
-		auto& boxInstance = Scene.AddModelInstance({ &box, &default });
-		boxInstance.Translate(0.0f, 2.5f, 0.0f);
+#if 0
+		// Cerberus
+		{
+			auto& cerberusMaterial = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+				"Assets/Models/Cerberus/Textures/Cerberus_A.dds",
+				"Assets/Models/Cerberus/Textures/Cerberus_N.dds",
+				"Assets/Models/Cerberus/Textures/Cerberus_R.dds",
+				0,
+				0));
+
+			auto& cerberusModel = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx"));
+
+			auto& cerberusInstance = Scene.AddModelInstance({ &cerberusModel, &cerberusMaterial });
+			cerberusInstance.SetScale(0.05f);
+			cerberusInstance.Translate(0.0f, 5.0f, 0.0f);
+			cerberusInstance.Rotate(90.0_Deg, 0.0f, 0.0f);
+		}
+#endif
 	}
 	return Scene;
 }
@@ -458,9 +480,9 @@ Scene GenerateScene(SampleScene SampleScene)
 	case SampleScene::PlaneWithTransparentSpheres:	return PlaneWithTransparentSpheres(materialLoader, modelLoader);
 
 	case SampleScene::PlaneWithLights:				return PlaneWithLights(materialLoader, modelLoader);
-	
+
 	case SampleScene::Sponza:						return Sponza();
-	
+
 	default:										assert(false && "Unknown Sample Scene");
 	}
 	return Scene();

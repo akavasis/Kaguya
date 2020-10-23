@@ -99,7 +99,7 @@ Scene SceneLoader::LoadFromFile(const char* pPath, float Scale /*= 1.0f*/) const
 			{
 				Vertex v = {};
 				// Position
-				v.Position = XMFLOAT3(paiMesh->mVertices[vertexIndex].x * Scale, paiMesh->mVertices[vertexIndex].y * Scale, paiMesh->mVertices[vertexIndex].z * Scale);
+				v.Position = XMFLOAT3(paiMesh->mVertices[vertexIndex].x, paiMesh->mVertices[vertexIndex].y, paiMesh->mVertices[vertexIndex].z);
 
 				// Texture coords
 				if (paiMesh->HasTextureCoords(0))
@@ -126,8 +126,8 @@ Scene SceneLoader::LoadFromFile(const char* pPath, float Scale /*= 1.0f*/) const
 
 			// Parse aabb data for mesh
 			// center = 0.5 * (min + max)
-			XMVECTOR min = XMVectorSet(paiMesh->mAABB.mMin.x, paiMesh->mAABB.mMin.y, paiMesh->mAABB.mMin.z, 0.0f) * Scale;
-			XMVECTOR max = XMVectorSet(paiMesh->mAABB.mMax.x, paiMesh->mAABB.mMax.y, paiMesh->mAABB.mMax.z, 0.0f) * Scale;
+			XMVECTOR min = XMVectorSet(paiMesh->mAABB.mMin.x, paiMesh->mAABB.mMin.y, paiMesh->mAABB.mMin.z, 0.0f);
+			XMVECTOR max = XMVectorSet(paiMesh->mAABB.mMax.x, paiMesh->mAABB.mMax.y, paiMesh->mAABB.mMax.z, 0.0f);
 			XMStoreFloat3(&mesh.BoundingBox.Center, XMVectorMultiply(XMVectorReplicate(0.5f), XMVectorAdd(min, max)));
 			// extents = 0.5f (max - min)
 			XMStoreFloat3(&mesh.BoundingBox.Extents, XMVectorMultiply(XMVectorReplicate(0.5f), XMVectorSubtract(max, min)));
@@ -146,7 +146,8 @@ Scene SceneLoader::LoadFromFile(const char* pPath, float Scale /*= 1.0f*/) const
 
 			BoundingBox::CreateFromPoints(model.BoundingBox, model.Vertices.size(), &model.Vertices[0].Position, sizeof(Vertex));
 
-			Scene.AddModelInstance({ &model, materials[paiMesh->mMaterialIndex] });
+			auto& ModelInstance = Scene.AddModelInstance({ &model, materials[paiMesh->mMaterialIndex] });
+			ModelInstance.SetScale(Scale);
 		}
 	}
 	return Scene;

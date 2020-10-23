@@ -73,21 +73,6 @@ struct RendererFormats
 	static constexpr DXGI_FORMAT PrefilterFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
 };
 
-struct RootParameters
-{
-	struct ShaderLayout
-	{
-		enum
-		{
-			RenderPassDataCB,
-			ShaderResourceDescriptorTable,
-			UnorderedAccessDescriptorTable,
-			SamplerDescriptorTable,
-			NumRootParameters
-		};
-	};
-};
-
 struct Shaders
 {
 	struct VS

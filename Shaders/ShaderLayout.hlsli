@@ -1,6 +1,34 @@
 #ifndef __SHADER_LAYOUT_HLSLI__
 #define __SHADER_LAYOUT_HLSLI__
 
+struct SSystemConstants
+{
+	float3 CameraU;
+	float _padding;
+
+	float3 CameraV;
+	float _padding1;
+
+	float3 CameraW;
+	float _padding2;
+
+	matrix View;
+	matrix Projection;
+	matrix InvView;
+	matrix InvProjection;
+	matrix ViewProjection;
+	float3 EyePosition;
+	uint TotalFrameCount;
+
+	int NumSamplesPerPixel;
+	int MaxDepth;
+	float FocalLength;
+	float LensRadius;
+
+	int SkyboxIndex;
+	int NumPolygonalLights;
+};
+
 struct DummyStructure
 {
 	int Dummy;
@@ -10,7 +38,8 @@ struct DummyStructure
 #define RenderPassDataType DummyStructure
 #endif
 
-ConstantBuffer<RenderPassDataType>	RenderPassData				: register(b0, space100);
+ConstantBuffer<SSystemConstants>	SystemConstants				: register(b0, space100);
+ConstantBuffer<RenderPassDataType>	RenderPassData				: register(b1, space100);
 
 // ShaderResource
 Texture2D					Texture2DTable[]					: register(t0, space100);

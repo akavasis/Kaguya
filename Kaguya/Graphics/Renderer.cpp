@@ -19,33 +19,33 @@
 #define SHOW_IMGUI_DEMO_WINDOW 0
 
 //----------------------------------------------------------------------------------------------------
-Renderer::Renderer(Window* pWindow)
-	: RenderSystem(pWindow->GetWindowWidth(), pWindow->GetWindowHeight()),
+Renderer::Renderer()
+	: RenderSystem(Application::pWindow->GetWindowWidth(), Application::pWindow->GetWindowHeight()),
 	m_RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get()),
-	m_GpuScene(&m_RenderDevice),
 	m_RenderGraph(&m_RenderDevice),
-
-	m_RenderContext(0, nullptr, &m_RenderDevice, m_RenderDevice.AllocateContext(CommandContext::Direct))
+	m_RenderContext(0, nullptr, nullptr, &m_RenderDevice, m_RenderDevice.AllocateContext(CommandContext::Direct)),
+	
+	m_GpuScene(&m_RenderDevice)
 {
-	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
+	m_pSwapChain = m_DXGIManager.CreateSwapChain(m_RenderDevice.GraphicsQueue.GetD3DCommandQueue(), Application::pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 }
 
 //----------------------------------------------------------------------------------------------------
 void Renderer::Initialize()
 {
-	m_GpuScene.GpuTextureAllocator.StageSystemReservedTextures(m_RenderContext);
-
-	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
-	m_RenderDevice.ExecuteRenderCommandContexts(1, pCommandContexts);
-	m_GpuScene.GpuTextureAllocator.DisposeResources();
-
 	Shaders::Register(&m_RenderDevice);
 	Libraries::Register(&m_RenderDevice);
 	RootSignatures::Register(&m_RenderDevice);
 	GraphicsPSOs::Register(&m_RenderDevice);
 	ComputePSOs::Register(&m_RenderDevice);
 
-	SetScene(GenerateScene(SampleScene::Sponza));
+	m_GpuScene.GpuTextureAllocator.StageSystemReservedTextures(m_RenderContext);
+
+	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
+	m_RenderDevice.ExecuteRenderCommandContexts(1, pCommandContexts);
+	m_GpuScene.GpuTextureAllocator.DisposeResources();
+
+	SetScene(GenerateScene(SampleScene::PlaneWithLights));
 
 	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 	{
@@ -111,9 +111,30 @@ void Renderer::Render()
 
 	RenderGui();
 
+	Scene& scene = *m_GpuScene.pScene;
+	GlobalConstants GlobalConstants = {};
+	XMStoreFloat3(&GlobalConstants.CameraU, scene.Camera.GetUVector());
+	XMStoreFloat3(&GlobalConstants.CameraV, scene.Camera.GetVVector());
+	XMStoreFloat3(&GlobalConstants.CameraW, scene.Camera.GetWVector());
+	XMStoreFloat4x4(&GlobalConstants.View, XMMatrixTranspose(scene.Camera.ViewMatrix()));
+	XMStoreFloat4x4(&GlobalConstants.Projection, XMMatrixTranspose(scene.Camera.ProjectionMatrix()));
+	XMStoreFloat4x4(&GlobalConstants.InvView, XMMatrixTranspose(scene.Camera.InverseViewMatrix()));
+	XMStoreFloat4x4(&GlobalConstants.InvProjection, XMMatrixTranspose(scene.Camera.InverseProjectionMatrix()));
+	XMStoreFloat4x4(&GlobalConstants.ViewProjection, XMMatrixTranspose(scene.Camera.ViewProjectionMatrix()));
+	GlobalConstants.EyePosition = scene.Camera.Transform.Position;
+	GlobalConstants.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
+
+	GlobalConstants.NumSamplesPerPixel = 1;
+	GlobalConstants.MaxDepth = 1;
+	GlobalConstants.FocalLength = scene.Camera.FocalLength;
+	GlobalConstants.LensRadius = scene.Camera.Aperture;
+
+	GlobalConstants.NumPolygonalLights = scene.Lights.size();
+
 	m_GpuScene.RenderGui();
 	m_GpuScene.Update(AspectRatio, m_RenderContext);
 	m_RenderGraph.RenderGui();
+	m_RenderGraph.UpdateSystemConstants(GlobalConstants);
 	m_RenderGraph.Execute();
 	m_RenderGraph.ExecuteCommandContexts(m_RenderContext);
 

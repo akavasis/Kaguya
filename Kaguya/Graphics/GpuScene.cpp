@@ -121,14 +121,12 @@ void GpuScene::UploadLights(RenderContext& RenderContext)
 	auto pLightTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[LightTable]);
 	auto pUploadLightTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[LightTable]);
 
-	size_t index = 0;
-
-	std::vector<HLSLPolygonalLight> hlslLights(pScene->Lights.size());
+	std::vector<HLSLPolygonalLight> hlslLights; hlslLights.reserve(pScene->Lights.size());
 	for (auto& light : pScene->Lights)
 	{
-		light.GpuLightIndex = index;
+		light.GpuLightIndex = hlslLights.size();
 
-		hlslLights[index++] = GetShaderLightDesc(light);
+		hlslLights.push_back(GetShaderLightDesc(light));
 	}
 
 	Upload(LightTable, hlslLights.data(), hlslLights.size() * sizeof(HLSLPolygonalLight), pUploadLightTable);
@@ -145,14 +143,12 @@ void GpuScene::UploadMaterials(RenderContext& RenderContext)
 	auto pMaterialTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[MaterialTable]);
 	auto pUploadMaterialTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[MaterialTable]);
 
-	size_t index = 0;
-
-	std::vector<HLSLMaterial> hlslMaterials(pScene->Materials.size());
+	std::vector<HLSLMaterial> hlslMaterials; hlslMaterials.reserve(pScene->Materials.size());
 	for (auto& material : pScene->Materials)
 	{
-		material.GpuMaterialIndex = index;
+		material.GpuMaterialIndex = hlslMaterials.size();
 
-		hlslMaterials[index++] = GetShaderMaterialDesc(material);
+		hlslMaterials.push_back(GetShaderMaterialDesc(material));
 	}
 
 	Upload(MaterialTable, hlslMaterials.data(), hlslMaterials.size() * sizeof(HLSLMaterial), pUploadMaterialTable);
@@ -196,20 +192,20 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 		for (auto& mesh : model.Meshes)
 		{
 			// Update mesh's BLAS Index
-			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
+			mesh.BottomLevelAccelerationStructureIndex	= m_RaytracingBottomLevelAccelerationStructures.size();
 
-			RaytracingGeometryDesc geometryDesc = {};
-			geometryDesc.pVertexBuffer			= pVertexBuffer;
-			geometryDesc.VertexStride			= sizeof(Vertex);
-			geometryDesc.pIndexBuffer			= pIndexBuffer;
-			geometryDesc.IndexStride			= sizeof(unsigned int);
-			geometryDesc.IsOpaque				= true;
-			geometryDesc.NumVertices			= mesh.VertexCount;
-			geometryDesc.VertexOffset			= mesh.BaseVertexLocation;
-			geometryDesc.NumIndices				= mesh.IndexCount;
-			geometryDesc.IndexOffset			= mesh.StartIndexLocation;
+			RaytracingGeometryDesc Desc					= {};
+			Desc.pVertexBuffer							= pVertexBuffer;
+			Desc.VertexStride							= sizeof(Vertex);
+			Desc.pIndexBuffer							= pIndexBuffer;
+			Desc.IndexStride							= sizeof(unsigned int);
+			Desc.IsOpaque								= true;
+			Desc.NumVertices							= mesh.VertexCount;
+			Desc.VertexOffset							= mesh.BaseVertexLocation;
+			Desc.NumIndices								= mesh.IndexCount;
+			Desc.IndexOffset							= mesh.StartIndexLocation;
 
-			rtblas.BLAS.AddGeometry(geometryDesc);
+			rtblas.BLAS.AddGeometry(Desc);
 		}
 		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
 	}
@@ -236,10 +232,10 @@ void GpuScene::UploadModelInstances(RenderContext& RenderContext)
 		{
 			meshInstance.InstanceID = instanceID++;
 
-			GeometryInfo info	= {};
-			info.VertexOffset	= meshInstance.pMesh->BaseVertexLocation;
-			info.IndexOffset	= meshInstance.pMesh->StartIndexLocation;
-			info.MaterialIndex	= modelInstance.pMaterial->GpuMaterialIndex;
+			GeometryInfo info		= {};
+			info.VertexOffset		= meshInstance.pMesh->BaseVertexLocation;
+			info.IndexOffset		= meshInstance.pMesh->StartIndexLocation;
+			info.MaterialIndex		= modelInstance.pMaterial->GpuMaterialIndex;
 			XMStoreFloat4x4(&info.World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
 
 			geometryInfos.push_back(info);
@@ -256,13 +252,13 @@ void GpuScene::UploadModelInstances(RenderContext& RenderContext)
 
 void GpuScene::DisposeResources()
 {
+	SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
+	SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
+
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
 		SV_pRenderDevice->Destroy(&rtblas.Handles.Scratch);
 	}
-
-	SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
-	SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
 
 	GpuTextureAllocator.DisposeResources();
 }
@@ -293,11 +289,15 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 	{
 		auto pLightTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[LightTable]);
 		auto pUploadLightTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[LightTable]);
-		for (const auto& light : pScene->Lights)
+		for (auto& light : pScene->Lights)
 		{
-			HLSLPolygonalLight hlslPolygonalLight = GetShaderLightDesc(light);
+			if (light.Dirty)
+			{
+				light.Dirty = false;
 
-			pUploadLightTable->Update<HLSLPolygonalLight>(light.GpuLightIndex, hlslPolygonalLight);
+				HLSLPolygonalLight hlslPolygonalLight = GetShaderLightDesc(light);
+				pUploadLightTable->Update<HLSLPolygonalLight>(light.GpuLightIndex, hlslPolygonalLight);
+			}
 		}
 		RenderContext->CopyResource(pLightTable, pUploadLightTable);
 		RenderContext->TransitionBarrier(pLightTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
@@ -306,17 +306,21 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 	{
 		auto pMaterialTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[MaterialTable]);
 		auto pUploadMaterialTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[MaterialTable]);
-		for (const auto& material : pScene->Materials)
+		for (auto& material : pScene->Materials)
 		{
-			HLSLMaterial hlslMaterial = GetShaderMaterialDesc(material);
+			if (material.Dirty)
+			{
+				material.Dirty = false;
 
-			pUploadMaterialTable->Update<HLSLMaterial>(material.GpuMaterialIndex, hlslMaterial);
+				HLSLMaterial hlslMaterial = GetShaderMaterialDesc(material);
+				pUploadMaterialTable->Update<HLSLMaterial>(material.GpuMaterialIndex, hlslMaterial);
+			}
 		}
 		RenderContext->CopyResource(pMaterialTable, pUploadMaterialTable);
 		RenderContext->TransitionBarrier(pMaterialTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 	}
 
-	{
+	/*{
 		auto pGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[GeometryInfoTable]);
 		auto pUploadGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[GeometryInfoTable]);
 		for (const auto& modelInstance : pScene->ModelInstances)
@@ -330,7 +334,7 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		}
 		RenderContext->CopyResource(pGeometryInfoTable, pUploadGeometryInfoTable);
 		RenderContext->TransitionBarrier(pGeometryInfoTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
-	}
+	}*/
 	RenderContext->FlushResourceBarriers();
 }
 
@@ -392,18 +396,18 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	{
 		for (const auto& meshInstance : modelInstance.MeshInstances)
 		{
-			RTBLAS& rtblas = m_RaytracingBottomLevelAccelerationStructures[meshInstance.pMesh->BottomLevelAccelerationStructureIndex];
-			DeviceBuffer* blas = SV_pRenderDevice->GetBuffer(rtblas.Handles.Result);
+			RTBLAS&					RTBLAS		= m_RaytracingBottomLevelAccelerationStructures[meshInstance.pMesh->BottomLevelAccelerationStructureIndex];
+			DeviceBuffer*			pBLAS		= SV_pRenderDevice->GetBuffer(RTBLAS.Handles.Result);
+			RaytracingInstanceDesc	Desc		= {};
 
-			RaytracingInstanceDesc desc = {};
-			desc.AccelerationStructure	= blas->GetGpuVirtualAddress();
-			desc.Transform				= meshInstance.Transform.Matrix();
-			desc.InstanceID				= meshInstance.InstanceID;
-			desc.InstanceMask			= RAYTRACING_INSTANCEMASK_ALL;
+			Desc.AccelerationStructure			= pBLAS->GetGpuVirtualAddress();
+			Desc.Transform						= meshInstance.Transform.Matrix();
+			Desc.InstanceID						= meshInstance.InstanceID;
+			Desc.InstanceMask					= RAYTRACING_INSTANCEMASK_ALL;
 
-			desc.HitGroupIndex			= hitGroupIndex;
+			Desc.HitGroupIndex					= hitGroupIndex;
 
-			m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(desc);
+			m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(Desc);
 
 			hitGroupIndex++;
 		}
@@ -434,9 +438,9 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
 	});
 
-	DeviceBuffer* pScratch = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
-	DeviceBuffer* pResult = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Result);
-	DeviceBuffer* pInstanceDescs = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
+	DeviceBuffer* pScratch			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
+	DeviceBuffer* pResult			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Result);
+	DeviceBuffer* pInstanceDescs	= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
 
 	pResult->SetDebugName(L"RTTLAS Result");
 

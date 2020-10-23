@@ -6,6 +6,7 @@
 struct PolygonalLight
 {
 	std::string Name;
+	bool		Dirty;
 
 	Transform	Transform;
 	float3		Color;
@@ -15,5 +16,6 @@ struct PolygonalLight
 
 	size_t		GpuLightIndex;
 
+	PolygonalLight();
 	void RenderGui();
 };

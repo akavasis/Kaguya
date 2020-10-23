@@ -27,6 +27,22 @@ struct RaytracingAccelerationStructureHandles
 	RenderResourceHandle InstanceDescs;
 };
 
+struct RootParameters
+{
+	struct ShaderLayout
+	{
+		enum
+		{
+			SystemConstants,
+			RenderPassDataCB,
+			ShaderResourceDescriptorTable,
+			UnorderedAccessDescriptorTable,
+			SamplerDescriptorTable,
+			NumRootParameters
+		};
+	};
+};
+
 /*
 	Abstraction of underlying GPU Device, its able to create gpu resources
 	and contains underlying gpu resources as well, resources are referred by using

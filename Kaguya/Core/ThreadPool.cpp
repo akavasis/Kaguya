@@ -68,7 +68,6 @@ ThreadPool::ThreadPool(unsigned int NumThreads)
 				[this, i]()
 			{
 				QueueIndex = i;
-				CORE_INFO("Thread Pool Worker: {} started working", QueueIndex);
 				pLocalQueue = m_WorkQueuePool[QueueIndex].get();
 				while (!m_Done)
 				{

@@ -3,9 +3,9 @@
 #include "Core/RenderSystem.h"
 
 #include "DXGIManager.h"
-#include "GpuScene.h"
 #include "RenderDevice.h"
 #include "RenderGraph.h"
+#include "GpuScene.h"
 
 //----------------------------------------------------------------------------------------------------
 class Window;
@@ -14,7 +14,7 @@ class Window;
 class Renderer : public RenderSystem
 {
 public:
-	Renderer(Window* pWindow);
+	Renderer();
 
 protected:
 	virtual void Initialize() override;
@@ -32,9 +32,9 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 
 	RenderDevice							m_RenderDevice;
+	RenderGraph								m_RenderGraph;
+	RenderContext							m_RenderContext; // Used exclusively by the renderer
+
 	Scene									m_Scene;
 	GpuScene								m_GpuScene;
-	RenderGraph								m_RenderGraph;
-
-	RenderContext							m_RenderContext; // Used exclusively by the renderer
 };

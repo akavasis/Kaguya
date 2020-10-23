@@ -29,11 +29,6 @@ cbuffer RootConstants
 
 StructuredBuffer<PolygonalLight> Lights : register(t0, space0);
 
-struct GBufferData
-{
-	GlobalConstants GlobalConstants;
-};
-#define RenderPassDataType GBufferData
 #include "ShaderLayout.hlsli"
 
 struct VSOutput
@@ -59,7 +54,7 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 		GetLightVertexWS(Light, LightVertexIndex, OUT.PositionW, localSpacePosition);
 		
 		// Transform to homogeneous/clip space
-		OUT.PositionH = mul(float4(OUT.PositionW, 1.0f), RenderPassData.GlobalConstants.ViewProjection);
+		OUT.PositionH = mul(float4(OUT.PositionW, 1.0f), SystemConstants.ViewProjection);
 		
 		OUT.Depth = OUT.PositionH.z;
 		OUT.Dimension = float2(Light.Width, Light.Height);

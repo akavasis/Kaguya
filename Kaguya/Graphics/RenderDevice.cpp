@@ -8,6 +8,7 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	CopyQueue(&Device, D3D12_COMMAND_LIST_TYPE_COPY),
 	FrameIndex(0),
 	SwapChainTextures{},
+
 	m_ImGuiDescriptorHeap(&Device, 0, 1, 0, true),
 
 	m_NonShaderVisibleCBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false),
@@ -664,8 +665,11 @@ Descriptor RenderDevice::GetDepthStencilView(RenderResourceHandle RenderResource
 
 void RenderDevice::AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy)
 {
-	// RenderPassDataCB
+	// SystemConstants
 	RootSignatureProxy.AddRootCBVParameter(RootCBV(0, 100));
+
+	// RenderPassDataCB
+	RootSignatureProxy.AddRootCBVParameter(RootCBV(1, 100));
 
 	/* Descriptor Tables */
 

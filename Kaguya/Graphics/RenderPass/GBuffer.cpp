@@ -124,31 +124,6 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	}
 	RenderContext.TransitionBarrier(Resources[EResources::DepthStencil], DeviceResource::State::DepthWrite);
 
-	struct GBufferData
-	{
-		GlobalConstants GlobalConstants;
-	} Data;
-
-	GlobalConstants globalConstants;
-	XMStoreFloat3(&globalConstants.CameraU, pGpuScene->pScene->Camera.GetUVector());
-	XMStoreFloat3(&globalConstants.CameraV, pGpuScene->pScene->Camera.GetVVector());
-	XMStoreFloat3(&globalConstants.CameraW, pGpuScene->pScene->Camera.GetWVector());
-	XMStoreFloat4x4(&globalConstants.View, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewMatrix()));
-	XMStoreFloat4x4(&globalConstants.Projection, XMMatrixTranspose(pGpuScene->pScene->Camera.ProjectionMatrix()));
-	XMStoreFloat4x4(&globalConstants.InvView, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseViewMatrix()));
-	XMStoreFloat4x4(&globalConstants.InvProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseProjectionMatrix()));
-	XMStoreFloat4x4(&globalConstants.ViewProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewProjectionMatrix()));
-	globalConstants.EyePosition = pGpuScene->pScene->Camera.Transform.Position;
-	globalConstants.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
-
-	globalConstants.MaxDepth = 1;
-	globalConstants.FocalLength = pGpuScene->pScene->Camera.FocalLength;
-	globalConstants.LensRadius = pGpuScene->pScene->Camera.Aperture;
-
-	Data.GlobalConstants = globalConstants;
-
-	RenderContext.UpdateRenderPassData<GBufferData>(Data);
-
 	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
 	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
 

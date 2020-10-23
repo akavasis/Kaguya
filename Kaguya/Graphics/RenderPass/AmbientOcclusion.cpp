@@ -184,7 +184,6 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 
 	struct AmbientOcclusionData
 	{
-		GlobalConstants GlobalConstants;
 		float AORadius;
 		int NumAORaysPerPixel;
 
@@ -193,24 +192,6 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 		int OutputIndex;
 	} Data;
 
-	GlobalConstants globalConstants;
-	XMStoreFloat3(&globalConstants.CameraU, pGpuScene->pScene->Camera.GetUVector());
-	XMStoreFloat3(&globalConstants.CameraV, pGpuScene->pScene->Camera.GetVVector());
-	XMStoreFloat3(&globalConstants.CameraW, pGpuScene->pScene->Camera.GetWVector());
-	XMStoreFloat4x4(&globalConstants.View, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewMatrix()));
-	XMStoreFloat4x4(&globalConstants.Projection, XMMatrixTranspose(pGpuScene->pScene->Camera.ProjectionMatrix()));
-	XMStoreFloat4x4(&globalConstants.InvView, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseViewMatrix()));
-	XMStoreFloat4x4(&globalConstants.InvProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseProjectionMatrix()));
-	XMStoreFloat4x4(&globalConstants.ViewProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewProjectionMatrix()));
-	globalConstants.EyePosition = pGpuScene->pScene->Camera.Transform.Position;
-	globalConstants.TotalFrameCount = static_cast<unsigned int>(RenderSystem::Statistics::TotalFrameCount);
-
-	globalConstants.NumSamplesPerPixel = 1;
-	globalConstants.MaxDepth = 1;
-	globalConstants.FocalLength = pGpuScene->pScene->Camera.FocalLength;
-	globalConstants.LensRadius = pGpuScene->pScene->Camera.Aperture;
-
-	Data.GlobalConstants = globalConstants;
 	Data.AORadius = Settings.AORadius;
 	Data.NumAORaysPerPixel = Settings.NumAORaysPerPixel;
 

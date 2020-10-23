@@ -1,8 +1,5 @@
-#include "Global.hlsli"
-
 struct AmbientOcclusionData
 {
-	GlobalConstants GlobalConstants;
 	float AORadius;
 	int NumAORaysPerPixel;
 
@@ -10,9 +7,8 @@ struct AmbientOcclusionData
 	int InputWorldNormalIndex;
 	int OutputIndex;
 };
-
 #define RenderPassDataType AmbientOcclusionData
-#include "../ShaderLayout.hlsli"
+#include "Global.hlsli"
 
 struct RayPayload
 {
@@ -45,7 +41,7 @@ void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(RenderPassData.GlobalConstants.TotalFrameCount) * uint(26699)) | uint(1);
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
 	Texture2D WorldPosition = Texture2DTable[RenderPassData.InputWorldPositionIndex];
 	Texture2D WorldNormal = Texture2DTable[RenderPassData.InputWorldNormalIndex];

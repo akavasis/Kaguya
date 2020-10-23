@@ -105,7 +105,6 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	struct ShadingData
 	{
-		GlobalConstants GlobalConstants;
 		int Position;
 		int Normal;
 		int Albedo;
@@ -118,25 +117,6 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		int RenderTarget;
 	} Data;
 
-	GlobalConstants globalConstants;
-	XMStoreFloat3(&globalConstants.CameraU, pGpuScene->pScene->Camera.GetUVector());
-	XMStoreFloat3(&globalConstants.CameraV, pGpuScene->pScene->Camera.GetVVector());
-	XMStoreFloat3(&globalConstants.CameraW, pGpuScene->pScene->Camera.GetWVector());
-	XMStoreFloat4x4(&globalConstants.View, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewMatrix()));
-	XMStoreFloat4x4(&globalConstants.Projection, XMMatrixTranspose(pGpuScene->pScene->Camera.ProjectionMatrix()));
-	XMStoreFloat4x4(&globalConstants.InvView, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseViewMatrix()));
-	XMStoreFloat4x4(&globalConstants.InvProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.InverseProjectionMatrix()));
-	XMStoreFloat4x4(&globalConstants.ViewProjection, XMMatrixTranspose(pGpuScene->pScene->Camera.ViewProjectionMatrix()));
-	globalConstants.EyePosition = pGpuScene->pScene->Camera.Transform.Position;
-	globalConstants.TotalFrameCount = static_cast<unsigned int>(RenderSystem::Statistics::TotalFrameCount);
-
-	globalConstants.MaxDepth = 1;
-	globalConstants.FocalLength = pGpuScene->pScene->Camera.FocalLength;
-	globalConstants.LensRadius = pGpuScene->pScene->Camera.Aperture;
-
-	globalConstants.NumPolygonalLights = pGpuScene->pScene->Lights.size();
-
-	Data.GlobalConstants = globalConstants;
 	Data.Position = RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Position]).HeapIndex;
 	Data.Normal = RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
 	Data.Albedo = RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;

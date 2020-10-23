@@ -11,7 +11,7 @@ RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties)
 }
 
 RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
-	: pRenderDevice(pRenderDevice),
+	: SV_pRenderDevice(pRenderDevice),
 	m_ThreadPool(3)
 {
 
@@ -23,19 +23,30 @@ void RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 
 	m_ResourceScheduler.m_pCurrentRenderPass = renderPass.get();
 
-	renderPass->OnInitializePipeline(pRenderDevice);
+	renderPass->OnInitializePipeline(SV_pRenderDevice);
 	renderPass->OnScheduleResource(&m_ResourceScheduler);
 
 	m_RenderPasses.emplace_back(std::move(renderPass));
-	m_CommandContexts.emplace_back(pRenderDevice->AllocateContext(CommandContext::Direct));
+	m_CommandContexts.emplace_back(SV_pRenderDevice->AllocateContext(CommandContext::Direct));
 	m_RenderPassIDs.emplace_back(typeid(*pRenderPass));
 }
 
 void RenderGraph::Initialize()
 {
-	m_GpuData = pRenderDevice->CreateDeviceBuffer([numRenderPasses = m_RenderPasses.size()](DeviceBufferProxy& Proxy)
+	m_Futures.resize(m_RenderPasses.size());
+
+	m_SystemConstants = SV_pRenderDevice->CreateDeviceBuffer([](DeviceBufferProxy& Proxy)
 	{
-		UINT64 AlignedStride = Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+		constexpr UINT64 AlignedStride = Math::AlignUp<UINT64>(sizeof(GlobalConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+
+		Proxy.SetSizeInBytes(AlignedStride);
+		Proxy.SetStride(AlignedStride);
+		Proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+	});
+
+	m_GpuData = SV_pRenderDevice->CreateDeviceBuffer([numRenderPasses = m_RenderPasses.size()](DeviceBufferProxy& Proxy)
+	{
+		constexpr UINT64 AlignedStride = Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
 		Proxy.SetSizeInBytes(numRenderPasses * AlignedStride);
 		Proxy.SetStride(AlignedStride);
@@ -50,7 +61,7 @@ void RenderGraph::InitializeScene(GpuScene* pGpuScene)
 {
 	for (auto& renderPass : m_RenderPasses)
 	{
-		renderPass->OnInitializeScene(pGpuScene, pRenderDevice);
+		renderPass->OnInitializeScene(pGpuScene, SV_pRenderDevice);
 	}
 }
 
@@ -64,6 +75,14 @@ void RenderGraph::RenderGui()
 		}
 	}
 	ImGui::End();
+}
+
+void RenderGraph::UpdateSystemConstants(const GlobalConstants& GlobalConstants)
+{
+	auto pSystemConstants = SV_pRenderDevice->GetBuffer(m_SystemConstants);
+
+	pSystemConstants->Map();
+	pSystemConstants->Update<::GlobalConstants>(0, GlobalConstants);
 }
 
 void RenderGraph::Execute()
@@ -89,7 +108,8 @@ void RenderGraph::Execute()
 		}
 	}
 
-	std::vector<std::future<void>> futures(m_RenderPasses.size());
+	auto pSystemConstants = SV_pRenderDevice->GetBuffer(m_SystemConstants);
+	auto pBuffer = SV_pRenderDevice->GetBuffer(m_GpuData);
 	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
 	{
 		if (!m_RenderPasses[i]->Enabled)
@@ -97,24 +117,20 @@ void RenderGraph::Execute()
 
 		if constexpr (RenderGraph::Settings::MultiThreaded)
 		{
-			futures[i] = m_ThreadPool.AddWork([this, i]()
+			m_Futures[i] = m_ThreadPool.AddWork([this, i, pSystemConstants, pBuffer]()
 			{
-				pRenderDevice->BindGpuDescriptorHeap(m_CommandContexts[i]);
-				auto pBuffer = pRenderDevice->GetBuffer(m_GpuData);
-				RenderContext context(i, pBuffer, pRenderDevice, m_CommandContexts[i]);
-				m_RenderPasses[i]->OnExecute(context, this);
+				SV_pRenderDevice->BindGpuDescriptorHeap(m_CommandContexts[i]);
+				m_RenderPasses[i]->OnExecute(RenderContext(i, pSystemConstants, pBuffer, SV_pRenderDevice, m_CommandContexts[i]), this);
 			});
 		}
 		else
 		{
-			pRenderDevice->BindGpuDescriptorHeap(m_CommandContexts[i]);
-			auto pBuffer = pRenderDevice->GetBuffer(m_GpuData);
-			RenderContext context(i, pBuffer, pRenderDevice, m_CommandContexts[i]);
-			m_RenderPasses[i]->OnExecute(context, this);
+			SV_pRenderDevice->BindGpuDescriptorHeap(m_CommandContexts[i]);
+			m_RenderPasses[i]->OnExecute(RenderContext(i, pSystemConstants, pBuffer, SV_pRenderDevice, m_CommandContexts[i]), this);
 		}
 	}
 
-	for (auto& future : futures)
+	for (auto& future : m_Futures)
 	{
 		if (future.valid())
 			future.wait();
@@ -130,7 +146,7 @@ void RenderGraph::ExecuteCommandContexts(RenderContext& RendererRenderContext)
 		CommandContexts[i] = m_CommandContexts[i - 1];
 	}
 
-	pRenderDevice->ExecuteRenderCommandContexts(CommandContexts.size(), CommandContexts.data());
+	SV_pRenderDevice->ExecuteRenderCommandContexts(CommandContexts.size(), CommandContexts.data());
 }
 
 void RenderGraph::CreaterResources()
@@ -139,7 +155,7 @@ void RenderGraph::CreaterResources()
 	{
 		for (const auto& bufferProxy : bufferRequest.second)
 		{
-			bufferRequest.first->Resources.push_back(pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
+			bufferRequest.first->Resources.push_back(SV_pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
 			{
 				proxy = bufferProxy;
 			}));
@@ -150,7 +166,7 @@ void RenderGraph::CreaterResources()
 	{
 		for (const auto& textureProxy : textureRequest.second)
 		{
-			textureRequest.first->Resources.push_back(pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Unknown, [&](DeviceTextureProxy& proxy)
+			textureRequest.first->Resources.push_back(SV_pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Unknown, [&](DeviceTextureProxy& proxy)
 			{
 				proxy = textureProxy;
 			}));
@@ -167,22 +183,22 @@ void RenderGraph::CreateResourceViews()
 			if (handle.Type == RenderResourceType::DeviceBuffer)
 				continue;
 
-			pRenderDevice->CreateShaderResourceView(handle);
+			SV_pRenderDevice->CreateShaderResourceView(handle);
 
-			auto texture = pRenderDevice->GetTexture(handle);
+			auto texture = SV_pRenderDevice->GetTexture(handle);
 			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::UnorderedAccess))
 			{
-				pRenderDevice->CreateUnorderedAccessView(handle);
+				SV_pRenderDevice->CreateUnorderedAccessView(handle);
 			}
 
 			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::RenderTarget))
 			{
-				pRenderDevice->CreateRenderTargetView(handle);
+				SV_pRenderDevice->CreateRenderTargetView(handle);
 			}
 
 			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::DepthStencil))
 			{
-				pRenderDevice->CreateDepthStencilView(handle);
+				SV_pRenderDevice->CreateDepthStencilView(handle);
 			}
 		}
 	}

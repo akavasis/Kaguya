@@ -98,21 +98,23 @@ public:
 
 	// Call every frame
 	void RenderGui();
+	void UpdateSystemConstants(const GlobalConstants& GlobalConstants);
 	void Execute();
 	void ExecuteCommandContexts(RenderContext& RendererRenderContext);
 private:
 	void CreaterResources();
 	void CreateResourceViews();
 
-	RenderDevice* pRenderDevice;
+	RenderDevice*												SV_pRenderDevice;
 
-	ThreadPool m_ThreadPool;
-
-	ResourceScheduler m_ResourceScheduler;
-	std::vector<std::unique_ptr<RenderPass>> m_RenderPasses;
-	std::vector<std::reference_wrapper<const std::type_info>> m_RenderPassIDs;
-	std::vector<CommandContext*> m_CommandContexts;
-	RenderResourceHandle m_GpuData;
+	ThreadPool													m_ThreadPool;
+	ResourceScheduler											m_ResourceScheduler;
+	std::vector<std::unique_ptr<RenderPass>>					m_RenderPasses;
+	std::vector<std::reference_wrapper<const std::type_info>>	m_RenderPassIDs;
+	std::vector<CommandContext*>								m_CommandContexts;
+	std::vector<std::future<void>>								m_Futures;
+	RenderResourceHandle										m_SystemConstants;
+	RenderResourceHandle										m_GpuData;
 };
 
 #include "RenderGraph.inl"

@@ -12,19 +12,19 @@ BottomLevelAccelerationStructure::BottomLevelAccelerationStructure()
 
 void BottomLevelAccelerationStructure::AddGeometry(const RaytracingGeometryDesc& Desc)
 {
-	D3D12_RAYTRACING_GEOMETRY_DESC desc = {};
-	desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-	desc.Flags = Desc.IsOpaque ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
-	desc.Triangles.Transform3x4 = NULL;
-	desc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
-	desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
-	desc.Triangles.IndexCount = Desc.NumIndices;
-	desc.Triangles.VertexCount = Desc.NumVertices;
-	desc.Triangles.IndexBuffer = Desc.pIndexBuffer->GetGpuVirtualAddress() + Desc.IndexOffset * Desc.IndexStride;
-	desc.Triangles.VertexBuffer.StartAddress = Desc.pVertexBuffer->GetGpuVirtualAddress() + Desc.VertexOffset * Desc.VertexStride;
-	desc.Triangles.VertexBuffer.StrideInBytes = Desc.VertexStride;
+	D3D12_RAYTRACING_GEOMETRY_DESC D3DDesc			= {};
+	D3DDesc.Type									= D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+	D3DDesc.Flags									= Desc.IsOpaque ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
+	D3DDesc.Triangles.Transform3x4					= NULL;
+	D3DDesc.Triangles.IndexFormat					= DXGI_FORMAT_R32_UINT;
+	D3DDesc.Triangles.VertexFormat					= DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
+	D3DDesc.Triangles.IndexCount					= Desc.NumIndices;
+	D3DDesc.Triangles.VertexCount					= Desc.NumVertices;
+	D3DDesc.Triangles.IndexBuffer					= Desc.pIndexBuffer->GetGpuVirtualAddress() + Desc.IndexOffset * Desc.IndexStride;
+	D3DDesc.Triangles.VertexBuffer.StartAddress		= Desc.pVertexBuffer->GetGpuVirtualAddress() + Desc.VertexOffset * Desc.VertexStride;
+	D3DDesc.Triangles.VertexBuffer.StrideInBytes	= Desc.VertexStride;
 
-	RaytracingGeometryDescs.push_back(desc);
+	RaytracingGeometryDescs.push_back(D3DDesc);
 }
 
 void BottomLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDevice, bool AllowUpdate, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes)
@@ -94,18 +94,18 @@ void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext,
 
 	// Create a descriptor of the requested builder work, to generate a
 	// bottom-level AS from the input parameters
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc = {};
-	desc.DestAccelerationStructureData = pResult->GetGpuVirtualAddress();
-	desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-	desc.Inputs.Flags = buildFlags;
-	desc.Inputs.NumDescs = static_cast<UINT>(RaytracingGeometryDescs.size());
-	desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	desc.Inputs.pGeometryDescs = RaytracingGeometryDescs.data();
-	desc.SourceAccelerationStructureData = pSource ? pSource->GetGpuVirtualAddress() : NULL;
-	desc.ScratchAccelerationStructureData = pScratch->GetGpuVirtualAddress();
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC Desc = {};
+	Desc.DestAccelerationStructureData						= pResult->GetGpuVirtualAddress();
+	Desc.Inputs.Type										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+	Desc.Inputs.Flags										= buildFlags;
+	Desc.Inputs.NumDescs									= static_cast<UINT>(RaytracingGeometryDescs.size());
+	Desc.Inputs.DescsLayout									= D3D12_ELEMENTS_LAYOUT_ARRAY;
+	Desc.Inputs.pGeometryDescs								= RaytracingGeometryDescs.data();
+	Desc.SourceAccelerationStructureData					= pSource ? pSource->GetGpuVirtualAddress() : NULL;
+	Desc.ScratchAccelerationStructureData					= pScratch->GetGpuVirtualAddress();
 
 	// Build the AS
-	pCommandContext->BuildRaytracingAccelerationStructure(&desc, 0, nullptr);
+	pCommandContext->BuildRaytracingAccelerationStructure(&Desc, 0, nullptr);
 
 	// Wait for the builder to complete by setting a barrier on the resulting
 	// buffer. This is particularly important as the construction of the top-level
@@ -123,15 +123,15 @@ TopLevelAccelerationStructure::TopLevelAccelerationStructure()
 
 void TopLevelAccelerationStructure::AddInstance(const RaytracingInstanceDesc& Desc)
 {
-	D3D12_RAYTRACING_INSTANCE_DESC desc = {};
-	memcpy(desc.Transform, &DirectX::XMMatrixTranspose(Desc.Transform), sizeof(desc.Transform));
-	desc.InstanceID = Desc.InstanceID;
-	desc.InstanceMask = Desc.InstanceMask;
-	desc.InstanceContributionToHitGroupIndex = Desc.HitGroupIndex;
-	desc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE; // TODO: should be accessible from outside
-	desc.AccelerationStructure = Desc.AccelerationStructure;
+	D3D12_RAYTRACING_INSTANCE_DESC D3DDesc		= {};
+	memcpy(D3DDesc.Transform, &DirectX::XMMatrixTranspose(Desc.Transform), sizeof(D3DDesc.Transform));
+	D3DDesc.InstanceID							= Desc.InstanceID;
+	D3DDesc.InstanceMask						= Desc.InstanceMask;
+	D3DDesc.InstanceContributionToHitGroupIndex = Desc.HitGroupIndex;
+	D3DDesc.Flags								= D3D12_RAYTRACING_INSTANCE_FLAG_NONE; // TODO: should be accessible from outside
+	D3DDesc.AccelerationStructure				= Desc.AccelerationStructure;
 
-	RaytracingInstanceDescs.push_back(desc);
+	RaytracingInstanceDescs.push_back(D3DDesc);
 }
 
 void TopLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDevice, bool AllowUpdate, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes)
@@ -178,7 +178,7 @@ void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, De
 		throw std::logic_error("Cannot map the instance descriptor buffer - is it in the upload heap?");
 	}
 
-	UINT numInstances = static_cast<UINT>(RaytracingInstanceDescs.size());
+	UINT NumInstances = static_cast<UINT>(RaytracingInstanceDescs.size());
 
 	// Initialize the memory to zero on the first time only
 	if (!UpdateOnly)
@@ -187,7 +187,7 @@ void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, De
 	}
 
 	// Create the description for each instance
-	for (UINT i = 0; i < numInstances; i++)
+	for (UINT i = 0; i < NumInstances; i++)
 	{
 		pInstanceDesc[i] = RaytracingInstanceDescs[i];
 	}
@@ -227,18 +227,18 @@ void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, De
 
 	// Create a descriptor of the requested builder work, to generate a top - level
 	// AS from the input parameters
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc = {};
-	desc.DestAccelerationStructureData = pResult->GetGpuVirtualAddress();
-	desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-	desc.Inputs.Flags = buildFlags;
-	desc.Inputs.NumDescs = numInstances;
-	desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	desc.Inputs.InstanceDescs = pInstanceDescs->GetGpuVirtualAddress();
-	desc.SourceAccelerationStructureData = pSource ? pSource->GetGpuVirtualAddress() : NULL;
-	desc.ScratchAccelerationStructureData = pScratch->GetGpuVirtualAddress();
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC Desc = {};
+	Desc.DestAccelerationStructureData						= pResult->GetGpuVirtualAddress();
+	Desc.Inputs.Type										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+	Desc.Inputs.Flags										= buildFlags;
+	Desc.Inputs.NumDescs									= NumInstances;
+	Desc.Inputs.DescsLayout									= D3D12_ELEMENTS_LAYOUT_ARRAY;
+	Desc.Inputs.InstanceDescs								= pInstanceDescs->GetGpuVirtualAddress();
+	Desc.SourceAccelerationStructureData					= pSource ? pSource->GetGpuVirtualAddress() : NULL;
+	Desc.ScratchAccelerationStructureData					= pScratch->GetGpuVirtualAddress();
 
 	// Build the top-level AS
-	pCommandContext->BuildRaytracingAccelerationStructure(&desc, 0, nullptr);
+	pCommandContext->BuildRaytracingAccelerationStructure(&Desc, 0, nullptr);
 
 	// Wait for the builder to complete by setting a barrier on the resulting
 	// buffer. This can be important in case the rendering is triggered

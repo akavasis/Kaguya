@@ -23,20 +23,5 @@ int main(int argc, char** argv)
 	SET_LEAK_BREAKPOINT(-1);
 #endif
 	Application::Initialize(L"Kaguya", 1280, 720);
-
-	Renderer* pRenderer = nullptr;
-	try
-	{
-		pRenderer = new Renderer(Application::pWindow);
-	}
-	catch (std::exception& e)
-	{
-		MessageBoxA(nullptr, e.what(), "Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
-	}
-	catch (...)
-	{
-		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
-	}
-
-	return Application::Run(pRenderer);
+	return Application::Run(new Renderer());
 }
