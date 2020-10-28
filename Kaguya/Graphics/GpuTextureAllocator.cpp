@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "GpuTextureAllocator.h"
 #include "RendererRegistry.h"
-#include <Core/Application.h>
 
 GpuTextureAllocator::GpuTextureAllocator(RenderDevice* SV_pRenderDevice)
 	: SV_pRenderDevice(SV_pRenderDevice)
@@ -64,14 +63,14 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* SV_pRenderDevice)
 		}
 	}
 
-	SystemReservedTextures[DefaultWhite]		= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultWhite.dds", false, false);
-	SystemReservedTextures[DefaultBlack]		= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultBlack.dds", false, false);
-	SystemReservedTextures[DefaultAlbedo]		= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultAlbedoMap.dds", true, false);
-	SystemReservedTextures[DefaultNormal]		= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultNormalMap.dds", false, false);
-	SystemReservedTextures[DefaultRoughness]	= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultRoughnessMap.dds", false, false);
-	SystemReservedTextures[BRDFLUT]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/BRDF.dds", false, false);
-	SystemReservedTextures[LTCLUT1]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_1.dds", false, false);
-	SystemReservedTextures[LTCLUT2]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/ltc_2.dds", false, false);
+	m_SystemReservedTextures[DefaultWhite]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultWhite.dds", false, false);
+	m_SystemReservedTextures[DefaultBlack]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultBlack.dds", false, false);
+	m_SystemReservedTextures[DefaultAlbedo]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultAlbedoMap.dds", true, false);
+	m_SystemReservedTextures[DefaultNormal]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultNormalMap.dds", false, false);
+	m_SystemReservedTextures[DefaultRoughness]			= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultRoughnessMap.dds", false, false);
+	m_SystemReservedTextures[BRDFLUT]					= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/BRDF.dds", false, false);
+	m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]	= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_GGX_InverseMatrix.dds", false, false);
+	m_SystemReservedTextures[LTC_LUT_GGX_Terms]			= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_GGX_Terms.dds", false, false);
 }
 
 void GpuTextureAllocator::StageSystemReservedTextures(RenderContext& RenderContext)
@@ -88,13 +87,13 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 	{
 		Status::SkyboxGenerated = true;
 
-		SystemReservedTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
-		auto& stagingTexture = m_UnstagedTextures[SystemReservedTextures[SkyboxEquirectangularMap]];
-		StageTexture(SystemReservedTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
+		m_SystemReservedTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
+		auto& stagingTexture = m_UnstagedTextures[m_SystemReservedTextures[SkyboxEquirectangularMap]];
+		StageTexture(m_SystemReservedTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
 
 		// Generate cubemap for equirectangular map
-		DeviceTexture* pEquirectangularMap = SV_pRenderDevice->GetTexture(SystemReservedTextures[SkyboxEquirectangularMap]);
-		SystemReservedTextures[SkyboxCubemap] = SV_pRenderDevice->CreateDeviceTexture(DeviceResource::Type::TextureCube, [&](DeviceTextureProxy& proxy)
+		DeviceTexture* pEquirectangularMap = SV_pRenderDevice->GetTexture(m_SystemReservedTextures[SkyboxEquirectangularMap]);
+		m_SystemReservedTextures[SkyboxCubemap] = SV_pRenderDevice->CreateDeviceTexture(DeviceResource::Type::TextureCube, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(pEquirectangularMap->GetFormat());
 			proxy.SetWidth(1024);
@@ -104,8 +103,8 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 			proxy.InitialState = DeviceResource::State::Common;
 		});
 
-		EquirectangularToCubemap(SystemReservedTextures[SkyboxEquirectangularMap], SystemReservedTextures[SkyboxCubemap], RenderContext);
-		SV_pRenderDevice->CreateShaderResourceView(SystemReservedTextures[SkyboxCubemap]);
+		EquirectangularToCubemap(m_SystemReservedTextures[SkyboxEquirectangularMap], m_SystemReservedTextures[SkyboxCubemap], RenderContext);
+		SV_pRenderDevice->CreateShaderResourceView(m_SystemReservedTextures[SkyboxCubemap]);
 	}
 
 	for (auto& material : Scene.Materials)
@@ -117,7 +116,7 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
 	{
 		// Skybox is already staged, dont need to stage again
-		if (handle == SystemReservedTextures[SkyboxEquirectangularMap])
+		if (handle == m_SystemReservedTextures[SkyboxEquirectangularMap])
 			continue;
 
 		StageTexture(handle, stagingTexture, RenderContext);
@@ -139,8 +138,8 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 {
 	assert(std::filesystem::exists(Path) && "File not found");
 
-	if (auto iter = TextureHandles.find(Path.generic_string());
-		iter != TextureHandles.end())
+	if (auto iter = m_Textures.find(Path.generic_string());
+		iter != m_Textures.end())
 	{
 		return iter->second;
 	}
@@ -284,7 +283,6 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	StagingTexture.PlacedSubresourceLayouts = std::move(PlacedSubresourceLayouts);
 	StagingTexture.MipLevels				= MipLevels;
 	StagingTexture.GenerateMips				= GenerateMips;
-	StagingTexture.IsMasked					= TexMetadata.GetAlphaMode() != DirectX::TEX_ALPHA_MODE_OPAQUE;
 	m_UnstagedTextures[TextureHandle]		= std::move(StagingTexture);
 	SV_pRenderDevice->CreateShaderResourceView(TextureHandle); // Create SRV
 	return TextureHandle;
@@ -296,11 +294,11 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 	{
 		switch (Type)
 		{
-		case AlbedoIdx:		return SystemReservedTextures[DefaultAlbedo];
-		case NormalIdx:		return SystemReservedTextures[DefaultNormal];
-		case RoughnessIdx:	return SystemReservedTextures[DefaultWhite];
-		case MetallicIdx:	return SystemReservedTextures[DefaultWhite];
-		case EmissiveIdx:	return SystemReservedTextures[DefaultBlack];
+		case AlbedoIdx:		return m_SystemReservedTextures[DefaultAlbedo];
+		case NormalIdx:		return m_SystemReservedTextures[DefaultNormal];
+		case RoughnessIdx:	return m_SystemReservedTextures[DefaultWhite];
+		case MetallicIdx:	return m_SystemReservedTextures[DefaultBlack];
+		case EmissiveIdx:	return m_SystemReservedTextures[DefaultBlack];
 		default:			assert(false && "Unknown Type"); return RenderResourceHandle();
 		}
 	};
@@ -369,7 +367,7 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 
 	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 
-	TextureHandles[StagingTexture.Path] = TextureHandle;
+	m_Textures[StagingTexture.Path] = TextureHandle;
 	LOG_INFO("{} Loaded", StagingTexture.Path);
 }
 

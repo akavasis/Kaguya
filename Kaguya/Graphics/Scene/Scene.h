@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include <list>
 #include "Skybox.h"
 #include "Camera.h"

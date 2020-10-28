@@ -17,11 +17,11 @@ groupshared float4 g_Tile[64]; // 8x8 input pixels
 [numthreads(8, 8, 1)]
 void CSMain(uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID)
 {
-	Texture2D Bloom = Texture2DTable[BloomIndex];
-	RWTexture2D<float4> Output1 = RWTexture2DTable[Output1Index];
-	RWTexture2D<float4> Output2 = RWTexture2DTable[Output2Index];
-	RWTexture2D<float4> Output3 = RWTexture2DTable[Output3Index];
-	RWTexture2D<float4> Output4 = RWTexture2DTable[Output4Index];
+	Texture2D Bloom = g_Texture2DTable[BloomIndex];
+	RWTexture2D<float4> Output1 = g_RWTexture2DTable[Output1Index];
+	RWTexture2D<float4> Output2 = g_RWTexture2DTable[Output2Index];
+	RWTexture2D<float4> Output3 = g_RWTexture2DTable[Output3Index];
+	RWTexture2D<float4> Output4 = g_RWTexture2DTable[Output4Index];
 
     // You can tell if both x and y are divisible by a power of two with this value
 	uint parity = DTid.x | DTid.y;

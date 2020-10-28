@@ -44,8 +44,8 @@ void Accumulation::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDev
 {
 	this->pGpuScene = pGpuScene;
 
-	LastAperture = pGpuScene->pScene->Camera.Aperture;
 	LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
+	LastRelativeAperture = pGpuScene->pScene->Camera.RelativeAperture;
 	LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 }
 
@@ -75,13 +75,13 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 	RenderContext.UpdateRenderPassData<AccumulationData>(Data);
 
 	// If the camera has moved
-	if (pGpuScene->pScene->Camera.Aperture != LastAperture ||
-		pGpuScene->pScene->Camera.FocalLength != LastFocalLength ||
+	if (pGpuScene->pScene->Camera.FocalLength != LastFocalLength ||
+		pGpuScene->pScene->Camera.RelativeAperture != LastRelativeAperture ||
 		pGpuScene->pScene->Camera.Transform != LastCameraTransform)
 	{
 		Settings.AccumulationCount = 0;
-		LastAperture = pGpuScene->pScene->Camera.Aperture;
 		LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
+		LastRelativeAperture = pGpuScene->pScene->Camera.RelativeAperture;
 		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 	}
 

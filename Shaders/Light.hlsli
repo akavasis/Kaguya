@@ -1,14 +1,13 @@
-#ifndef __LIGHT_HLSLI__
-#define __LIGHT_HLSLI__
-#include "SharedDefines.hlsli"
+#ifndef LIGHT_HLSLI
+#define LIGHT_HLSLI
 
 struct PolygonalLight
 {
-	matrix World;
-	float3 Color;
-	float Intensity;
-	float Width;
-	float Height;
+	matrix	World;
+	float3	Color;
+	float	Luminance;
+	float	Width;
+	float	Height;
 };
 
 #endif

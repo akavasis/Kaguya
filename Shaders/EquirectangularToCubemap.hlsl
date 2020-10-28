@@ -3,6 +3,8 @@
  * This compute shader is used to convert a panoramic (equirectangular) image into a cubemap.
  */
 
+#include "ShaderLayout.hlsli"
+
 #define BLOCK_SIZE 16
 
 struct ComputeShaderInput
@@ -32,9 +34,6 @@ cbuffer EquirectangularToCubemapCB : register(b0)
 }
 
 SamplerState LinearRepeatSampler : register(s0);
-
-// Shader layout define and include
-#include "ShaderLayout.hlsli"
 
 // 1 / PI
 static const float InvPI = 0.31830988618379067153776752674503f;
@@ -75,7 +74,7 @@ void CSMain(ComputeShaderInput IN)
 {
     // Cubemap texture coords.
 	uint3 texCoord = IN.DispatchThreadID;
-    Texture2D SrcTexture = Texture2DTable[InputIndex];
+    Texture2D SrcTexture = g_Texture2DTable[InputIndex];
 
     // First check if the thread is in the cubemap dimensions.
 	if (texCoord.x >= CubemapSize || texCoord.y >= CubemapSize)
@@ -94,7 +93,7 @@ void CSMain(ComputeShaderInput IN)
 
     if (Output1Index != -1)
 	{
-        RWTexture2DArray<float4> DstMip1 = RWTexture2DArrayTable[Output1Index];
+		RWTexture2DArray<float4> DstMip1 = g_RWTexture2DArrayTable[Output1Index];
 	    DstMip1[texCoord] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip);
     }
 
@@ -102,7 +101,7 @@ void CSMain(ComputeShaderInput IN)
 	if (NumMips > 1 && (IN.GroupIndex & 0x11) == 0 &&
         Output2Index != -1)
 	{
-        RWTexture2DArray<float4> DstMip2 = RWTexture2DArrayTable[Output2Index];
+		RWTexture2DArray<float4> DstMip2 = g_RWTexture2DArrayTable[Output2Index];
 		DstMip2[uint3(texCoord.xy / 2, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip + 1);
 	}
 
@@ -110,7 +109,7 @@ void CSMain(ComputeShaderInput IN)
 	if (NumMips > 2 && (IN.GroupIndex & 0x33) == 0 &&
         Output3Index != -1)
 	{
-        RWTexture2DArray<float4> DstMip3 = RWTexture2DArrayTable[Output3Index];
+		RWTexture2DArray<float4> DstMip3 = g_RWTexture2DArrayTable[Output3Index];
 		DstMip3[uint3(texCoord.xy / 4, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip + 2);
 	}
 
@@ -118,7 +117,7 @@ void CSMain(ComputeShaderInput IN)
 	if (NumMips > 3 && (IN.GroupIndex & 0x77) == 0 &&
         Output4Index != -1)
 	{
-        RWTexture2DArray<float4> DstMip4 = RWTexture2DArrayTable[Output4Index];
+		RWTexture2DArray<float4> DstMip4 = g_RWTexture2DArrayTable[Output4Index];
 		DstMip4[uint3(texCoord.xy / 8, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip + 3);
 	}
 
@@ -127,7 +126,7 @@ void CSMain(ComputeShaderInput IN)
 	if (NumMips > 4 && (IN.GroupIndex & 0xFF) == 0 &&
         Output5Index != -1)
 	{
-        RWTexture2DArray<float4> DstMip5 = RWTexture2DArrayTable[Output5Index];
+		RWTexture2DArray<float4> DstMip5 = g_RWTexture2DArrayTable[Output5Index];
 		DstMip5[uint3(texCoord.xy / 16, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, FirstMip + 4);
 	}
 }

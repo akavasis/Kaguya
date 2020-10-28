@@ -1,3 +1,6 @@
+#include "../ShaderLayout.hlsli"
+#include "../Quad.hlsl"
+
 // ACES tone mapping curve fit to go from HDR to LDR
 //https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 float3 ACESFilm(float3 x)
@@ -46,13 +49,9 @@ cbuffer Settings : register(b0)
 	uint InputIndex;
 };
 
-#include "../ShaderLayout.hlsli"
-
-#include "../Quad.hlsl"
-
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
-	Texture2D Input = Texture2DTable[InputIndex];
+	Texture2D Input = g_Texture2DTable[InputIndex];
 	
 	uint2 pixel = uint2(IN.Position.xy + 0.5f);
 	

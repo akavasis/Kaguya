@@ -9,14 +9,13 @@ struct ShadingData
 	int TypeAndIndex;
 	int DepthStencil;
 	
-	int LTCLUT1;
-	int LTCLUT2;
+	int LTC_LUT_GGX_InverseMatrix;
+	int LTC_LUT_GGX_Terms;
 	
 	int RenderTarget;
 };
 #define RenderPassDataType ShadingData
 #include "Global.hlsli"
-
 
 struct RayPayload
 {
@@ -34,17 +33,17 @@ void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(g_SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
 	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions);
 	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 	
 	GBuffer GBuffer;
-	GBuffer.Position		= Texture2DTable[RenderPassData.Position];
-	GBuffer.Normal			= Texture2DTable[RenderPassData.Normal];
-	GBuffer.Albedo			= Texture2DTable[RenderPassData.Albedo];
-	GBuffer.TypeAndIndex	= Texture2DUINT4Table[RenderPassData.TypeAndIndex];
-	GBuffer.DepthStencil	= Texture2DTable[RenderPassData.DepthStencil];
+	GBuffer.Position		= g_Texture2DTable[g_RenderPassData.Position];
+	GBuffer.Normal			= g_Texture2DTable[g_RenderPassData.Normal];
+	GBuffer.Albedo			= g_Texture2DTable[g_RenderPassData.Albedo];
+	GBuffer.TypeAndIndex	= g_Texture2DUINT4Table[g_RenderPassData.TypeAndIndex];
+	GBuffer.DepthStencil	= g_Texture2DTable[g_RenderPassData.DepthStencil];
 	
 	uint GBufferType = GetGBufferType(GBuffer, launchIndex);
 	
@@ -52,26 +51,28 @@ void RayGeneration()
 	if (GBufferType == GBufferTypeMesh)
 	{
 		GBufferMesh GBufferMesh = GetGBufferMesh(GBuffer, launchIndex);
-		Material Material = Materials[GBufferMesh.MaterialIndex];
 		
-		Texture2D LTCLUT1 = Texture2DTable[RenderPassData.LTCLUT1];
-		Texture2D LTCLUT2 = Texture2DTable[RenderPassData.LTCLUT2];
+		Texture2D LTC_LUT_GGX_InverseMatrix = g_Texture2DTable[g_RenderPassData.LTC_LUT_GGX_InverseMatrix];
+		Texture2D LTC_LUT_GGX_Terms = g_Texture2DTable[g_RenderPassData.LTC_LUT_GGX_Terms];
 		
 		float3 position = GBufferMesh.Position;
 		float3 normal = GBufferMesh.Normal;
 		float3 albedo = GBufferMesh.Albedo;
 		float roughness = GBufferMesh.Roughness;
+		float metallic = GBufferMesh.Metallic;
 		
-		float3 viewDir = normalize(SystemConstants.EyePosition - position);
+		float3 viewDir = normalize(g_SystemConstants.Camera.Position.xyz - position);
 		
 		float NoV = saturate(dot(normal, viewDir));
-		float2 uv = float2(roughness, sqrt(1.0f - NoV));
-		uv = uv * LUT_SCALE + LUT_BIAS;
+		float2 LTCUV = GetLTCUV(NoV, roughness);
+		float3x3 LTCInverseMatrix = GetLTCInverseMatrix(LTC_LUT_GGX_InverseMatrix, SamplerLinearClamp, LTCUV);
+		float4 LTCTerms = GetLTCTerms(LTC_LUT_GGX_Terms, SamplerLinearClamp, LTCUV);
 		
-		float4 ltcLookupA = LTCLUT1.SampleLevel(SamplerLinearWrap, uv, 0.0f);
-		float4 ltcLookupB = LTCLUT2.SampleLevel(SamplerLinearWrap, uv, 0.0f);
-		float ltcMagnitude = ltcLookupB.y;
-		float ltcFresnel = ltcLookupB.z;
+		float magnitude = LTCTerms.x;
+		float fresnel = LTCTerms.y;
+		
+		float3 f90 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
+		float3 specular = f90 * magnitude + (1.0f - f90) * fresnel;
 	
 		float3x3 identity = float3x3
 		(
@@ -80,12 +81,7 @@ void RayGeneration()
 			0, 0, 1
 		);
 
-		float3 r1 = float3(ltcLookupA.x, 0, ltcLookupA.y);
-		float3 r2 = float3(0, 1.0f, 0);
-		float3 r3 = float3(ltcLookupA.z, 0, ltcLookupA.w);
-		float3x3 Minv = float3x3(r1, r2, r3);
-		
-		for (int i = 0; i < SystemConstants.NumPolygonalLights; ++i)
+		for (int i = 0; i < g_SystemConstants.NumPolygonalLights; ++i)
 		{
 			PolygonalLight Light = Lights[i];
 			
@@ -110,21 +106,25 @@ void RayGeneration()
 			points[2] = p1 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
 			points[3] = p0 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
 
-			float3 diff = LTC_Evaluate(normal, viewDir, position, identity, points, false);
-			diff *= albedo;
-			float3 spec = LTC_Evaluate(normal, viewDir, position, Minv, points, false);
-			spec *= ltcLookupB.x + (1.0f - Material.Specular) * ltcLookupB.y;
+			float3 diff = albedo / s_PI;
+			diff *= LTC_Evaluate(normal, viewDir, position, identity, points, false);
+			
+			// BRDF shadowing and fresnel
+			float3 spec = specular;
+			spec *= LTC_Evaluate(normal, viewDir, position, LTCInverseMatrix, points, false);
 
-			color += (Light.Color * Light.Intensity) * (diff + spec);
+			color += (Light.Color * Light.Luminance) * (diff + spec);
 		}
 	}
 	else if (GBufferType == GBufferTypeLight)
 	{
 		GBufferLight GBufferLight = GetGBufferLight(GBuffer, launchIndex);
 		PolygonalLight Light = Lights[GBufferLight.LightIndex];
-		color = (Light.Color * Light.Intensity);
+		color = (Light.Color * Light.Luminance);
 	}
 	
-	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.RenderTarget];
+	color = ExposeLuminance(color, g_SystemConstants.Camera);
+	
+	RWTexture2D<float4> RenderTarget = g_RWTexture2DTable[g_RenderPassData.RenderTarget];
 	RenderTarget[launchIndex] = float4(color, 1.0f);
 }

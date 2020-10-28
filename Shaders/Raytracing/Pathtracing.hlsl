@@ -6,7 +6,10 @@
 
 struct PathtracingData
 {
-	uint OutputIndex;
+	uint NumSamplesPerPixel;
+	uint MaxDepth;
+	
+	uint RenderTarget;
 };
 #define RenderPassDataType PathtracingData
 #include "Global.hlsli"
@@ -39,7 +42,7 @@ struct Lambertian
 		u[0] = RandomFloat01(rayPayload.Seed);
 		u[1] = RandomFloat01(rayPayload.Seed);
 
-		ONB onb = InitONB(si.bsdf.normal);
+		ONB onb = InitONB(si.normal);
 		float3 direction = onb.InverseTransform(CosineSampleHemisphere(u));
 		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
 		
@@ -51,7 +54,7 @@ struct Lambertian
 
 	float ScatteringPDF(in SurfaceInteraction si, in RayDesc scatteredRay)
 	{
-		float cosTheta = dot(si.bsdf.normal, normalize(scatteredRay.Direction));
+		float cosTheta = dot(si.normal, normalize(scatteredRay.Direction));
 		return cosTheta < 0.0f ? 0.0f : cosTheta / s_PI;
 	}
 };
@@ -67,8 +70,8 @@ struct Glossy
 	{
 		float doSpecular = RandomFloat01(rayPayload.Seed) < SpecularChance ? 1.0f : 0.0f;
 		
-		float3 diffuse = si.bsdf.normal + RandomUnitVector(rayPayload.Seed);
-		float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal);
+		float3 diffuse = si.normal + RandomUnitVector(rayPayload.Seed);
+		float3 reflected = reflect(WorldRayDirection(), si.normal);
 		reflected = normalize(lerp(reflected, diffuse, Roughness * Roughness));
 		
 		float3 direction = lerp(diffuse, reflected, doSpecular);
@@ -95,13 +98,13 @@ struct Metal
 	{
 		Fuzziness = Fuzziness < 1.0f ? Fuzziness : 1.0f;
 		
-		float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal) + Fuzziness * RandomInUnitSphere(rayPayload.Seed);
+		float3 reflected = reflect(WorldRayDirection(), si.normal) + Fuzziness * RandomInUnitSphere(rayPayload.Seed);
 		RayDesc ray = { si.position, 0.0001f, reflected, 100000.0f };
 		
 		attenuation = Albedo;
 		scatteredRay = ray;
 		pdf = 1.0f;
-		return dot(ray.Direction, si.bsdf.normal) > 0.0f;
+		return dot(ray.Direction, si.normal) > 0.0f;
 	}
 
 	float ScatteringPDF(in SurfaceInteraction si, in RayDesc scatteredRay)
@@ -121,23 +124,23 @@ struct Dielectric
 		attenuation = float3(1.0f, 1.0f, 1.0f);
 		RayDesc ray = { si.position, 0.0001f, float3(0.0f, 0.0f, 0.0f), 100000.0f };
 		
-		si.bsdf.normal = si.frontFace ? si.bsdf.normal : -si.bsdf.normal;
+		si.normal = si.frontFace ? si.normal : -si.normal;
 		float etaI_Over_etaT = si.frontFace ? (1.0f / IndexOfRefraction) : IndexOfRefraction;
 	
-		float cosTheta = min(dot(-WorldRayDirection(), si.bsdf.normal), 1.0f);
+		float cosTheta = min(dot(-WorldRayDirection(), si.normal), 1.0f);
 		float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
 	
 		// Total internal reflection
 		if ((etaI_Over_etaT * sinTheta) > 1.0f ||
-			RandomFloat01(rayPayload.Seed) < Fresnel_Schlick(etaI_Over_etaT, cosTheta))
+			RandomFloat01(rayPayload.Seed) < F_Schlick(etaI_Over_etaT, cosTheta))
 		{
-			float3 reflected = reflect(WorldRayDirection(), si.bsdf.normal);
+			float3 reflected = reflect(WorldRayDirection(), si.normal);
 			ray.Direction = reflected;
 			attenuation = Specular;
 		}
 		else
 		{
-			float3 refracted = refract(WorldRayDirection(), si.bsdf.normal, etaI_Over_etaT);
+			float3 refracted = refract(WorldRayDirection(), si.normal, etaI_Over_etaT);
 			ray.Direction = refracted;
 			// do absorption if we are hitting from inside the object
 			if (!si.frontFace)
@@ -207,10 +210,10 @@ void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(g_SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
 	float3 color = float3(0.0f, 0.0f, 0.0f);
-	for (int sample = 0; sample < SystemConstants.NumSamplesPerPixel; ++sample)
+	for (int sample = 0; sample < g_RenderPassData.NumSamplesPerPixel; ++sample)
 	{
 		// Calculate subpixel camera jitter for anti aliasing
 		const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
@@ -219,7 +222,7 @@ void RayGeneration()
 		const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 
 		// Initialize ray
-		RayDesc ray = GenerateCameraRay(ndc, seed, SystemConstants);
+		RayDesc ray = GenerateCameraRay(ndc, seed);
 		// Initialize payload
 		RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
 		// Trace the ray
@@ -232,9 +235,9 @@ void RayGeneration()
 	
 		color += rayPayload.Radiance;
 	}
-	color /= (float) SystemConstants.NumSamplesPerPixel;
+	color /= (float) g_RenderPassData.NumSamplesPerPixel;
 
-	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.OutputIndex];
+	RWTexture2D<float4> RenderTarget = g_RWTexture2DTable[g_RenderPassData.RenderTarget];
 	RenderTarget[launchIndex] = float4(color, 1.0f);
 }
 
@@ -307,7 +310,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 
 	if (shouldScatter)
 	{
-		CosinePdf cosinePdf = InitCosinePdf(si.bsdf.normal);
+		CosinePdf cosinePdf = InitCosinePdf(si.normal);
 		ray.Direction = cosinePdf.Generate(rayPayload.Seed);
 		pdf = cosinePdf.Value(ray.Direction);
 	}
@@ -317,7 +320,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	
 	// Path trace
 	if (shouldScatter &&
-		rayPayload.Depth + 1 < SystemConstants.MaxDepth)
+		rayPayload.Depth + 1 < g_RenderPassData.MaxDepth)
 	{
 		rayPayload.Depth = rayPayload.Depth + 1;
 		

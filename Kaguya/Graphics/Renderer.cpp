@@ -41,8 +41,14 @@ bool Renderer::Initialize()
 		GraphicsPSOs::Register(m_pRenderDevice);
 		ComputePSOs::Register(m_pRenderDevice);
 	}
+	catch (std::exception& e)
+	{
+		MessageBoxA(nullptr, e.what(), "Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
+		return false;
+	}
 	catch (...)
 	{
+		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 		return false;
 	}
 
@@ -115,35 +121,25 @@ void Renderer::Render()
 	RenderGui();
 
 	Scene& scene = *m_pGpuScene->pScene;
-	HostSystemConstants HostSystemConstants = {};
-	XMStoreFloat3(&HostSystemConstants.CameraU, scene.Camera.GetUVector());
-	XMStoreFloat3(&HostSystemConstants.CameraV, scene.Camera.GetVVector());
-	XMStoreFloat3(&HostSystemConstants.CameraW, scene.Camera.GetWVector());
-	XMStoreFloat4x4(&HostSystemConstants.View, XMMatrixTranspose(scene.Camera.ViewMatrix()));
-	XMStoreFloat4x4(&HostSystemConstants.Projection, XMMatrixTranspose(scene.Camera.ProjectionMatrix()));
-	XMStoreFloat4x4(&HostSystemConstants.InvView, XMMatrixTranspose(scene.Camera.InverseViewMatrix()));
-	XMStoreFloat4x4(&HostSystemConstants.InvProjection, XMMatrixTranspose(scene.Camera.InverseProjectionMatrix()));
-	XMStoreFloat4x4(&HostSystemConstants.ViewProjection, XMMatrixTranspose(scene.Camera.ViewProjectionMatrix()));
-	HostSystemConstants.EyePosition = scene.Camera.Transform.Position;
-	HostSystemConstants.TotalFrameCount = static_cast<unsigned int>(Renderer::Statistics::TotalFrameCount);
+	scene.Camera.RelativeAperture = 0.8f;
+	scene.Camera.ShutterTime = 1.0f / 125.0f;
+	scene.Camera.SensorSensitivity = 200.0f;
 
-	HostSystemConstants.NumSamplesPerPixel = 1;
-	HostSystemConstants.MaxDepth = 1;
-	HostSystemConstants.FocalLength = scene.Camera.FocalLength;
-	HostSystemConstants.LensRadius = scene.Camera.Aperture;
-
-	HostSystemConstants.NumPolygonalLights = scene.Lights.size();
+	HLSL::SystemConstants HLSLSystemConstants	= {};
+	HLSLSystemConstants.Camera					= m_pGpuScene->GetHLSLCamera();
+	HLSLSystemConstants.TotalFrameCount			= static_cast<unsigned int>(Statistics::TotalFrameCount);
+	HLSLSystemConstants.NumPolygonalLights		= scene.Lights.size();
 
 	m_pGpuScene->RenderGui();
 	m_pGpuScene->Update(AspectRatio, m_RenderContext);
 	m_pRenderGraph->RenderGui();
-	m_pRenderGraph->UpdateSystemConstants(HostSystemConstants);
+	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
 	m_pRenderGraph->Execute();
 	m_pRenderGraph->ExecuteCommandContexts(m_RenderContext);
 
 	uint32_t				SyncInterval		= Settings::VSync ? 1u : 0u;
 	uint32_t				PresentFlags		= (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
-	DXGI_PRESENT_PARAMETERS PresentParameters	= { 0u, NULL, NULL, NULL };
+	DXGI_PRESENT_PARAMETERS PresentParameters	= { 0u, nullptr, nullptr, nullptr };
 	HRESULT hr = m_pSwapChain->Present1(SyncInterval, PresentFlags, &PresentParameters);
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
@@ -167,11 +163,9 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		uint32_t			Nodes[RenderDevice::NumSwapChainBuffers];
 		IUnknown*			CommandQueues[RenderDevice::NumSwapChainBuffers];
 
-		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
-		{
-			Nodes[i]			= NodeMask;
-			CommandQueues[i]	= m_pRenderDevice->GraphicsQueue.GetD3DCommandQueue();
-		}
+		for (auto& node : Nodes) { node = NodeMask; }
+		for (auto& commandQueue : CommandQueues) { commandQueue = m_pRenderDevice->GraphicsQueue.GetD3DCommandQueue(); }
+
 		uint32_t SwapChainFlags	= m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags, Nodes, CommandQueues));
 

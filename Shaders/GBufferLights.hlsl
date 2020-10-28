@@ -1,26 +1,6 @@
 #include "HLSLCommon.hlsli"
 #include "GBuffer.hlsli"
 
-// This creates a quad facing the positive z
-void GetLightVertexWS(PolygonalLight light, uint vertexId, out float3 worldSpaceCoord, out float2 localSpaceCoord)
-{
-	float halfWidth = light.Width * 0.5f;
-	float halfHeight = light.Height * 0.5f;
-
-    // Get billboard points at the origin
-	float dx = (vertexId == 0 || vertexId == 1) ? halfWidth : -halfWidth;
-	float dy = (vertexId == 0 || vertexId == 3) ? -halfHeight : halfHeight;
-
-	localSpaceCoord = float2(dx, dy);
-	float3 lightPoint = float3(localSpaceCoord, 0.0f);
-
-    // Rotate around origin
-	lightPoint = mul(lightPoint, (float3x3) light.World);
-
-    // Move points to light's location
-	worldSpaceCoord = lightPoint + float3(light.World[3][0], light.World[3][1], light.World[3][2]);
-}
-
 //----------------------------------------------------------------------------------------------------
 cbuffer RootConstants
 {
@@ -33,10 +13,10 @@ StructuredBuffer<PolygonalLight> Lights : register(t0, space0);
 
 struct VSOutput
 {
-	float4		PositionH		: SV_POSITION;
-	float3		PositionW		: POSITION;
-	float		Depth			: DEPTH;
-	float2		Dimension		: DIMENSION;
+	float4 PositionH : SV_POSITION;
+	float3 PositionW : POSITION;
+	float Depth : DEPTH;
+	float2 Dimension : DIMENSION;
 };
 
 VSOutput VSMain(uint VertexID : SV_VertexID)
@@ -50,11 +30,24 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 		
 		PolygonalLight Light = Lights[LightIndex];
 		
-		float2 localSpacePosition;
-		GetLightVertexWS(Light, LightVertexIndex, OUT.PositionW, localSpacePosition);
+		float halfWidth = Light.Width * 0.5f;
+		float halfHeight = Light.Height * 0.5f;
+
+		// Get billboard points at the origin
+		float dx = (LightVertexIndex == 0 || LightVertexIndex == 1) ? halfWidth : -halfWidth;
+		float dy = (LightVertexIndex == 0 || LightVertexIndex == 3) ? -halfHeight : halfHeight;
+
+		float2 localSpacePosition = float2(dx, dy);
+		float3 lightPoint = float3(localSpacePosition, 0.0f);
+
+		// Rotate around origin
+		lightPoint = mul(lightPoint, (float3x3) Light.World);
+
+		// Move points to light's location
+		OUT.PositionW = lightPoint + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
 		
 		// Transform to homogeneous/clip space
-		OUT.PositionH = mul(float4(OUT.PositionW, 1.0f), SystemConstants.ViewProjection);
+		OUT.PositionH = mul(float4(OUT.PositionW, 1.0f), g_SystemConstants.Camera.ViewProjection);
 		
 		OUT.Depth = OUT.PositionH.z;
 		OUT.Dimension = float2(Light.Width, Light.Height);
@@ -64,12 +57,8 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 
 PSOutput PSMain(VSOutput IN)
 {
-	PSOutput OUT;
-	{
-		GBufferLight GBufferLight;
-		GBufferLight.LightIndex = LightIndex;
-		
-		OUT = GetGBufferLightPSOutput(GBufferLight);
-	}
-	return OUT;
+	GBufferLight LIGHT = (GBufferLight) 0;
+	LIGHT.LightIndex = LightIndex;
+	
+	return PackLightForPSOutput(LIGHT);
 }

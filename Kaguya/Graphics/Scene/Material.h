@@ -1,6 +1,5 @@
 #pragma once
 #include <string>
-#include <filesystem>
 #include "SharedDefines.h"
 
 enum class TextureFlags
@@ -40,6 +39,7 @@ struct Material
 	float3		Refraction;
 	float		SpecularChance;
 	float		Roughness;
+	float		Metallic;
 	float		Fuzziness;
 	float		IndexOfRefraction;
 	uint		Model;
@@ -48,7 +48,7 @@ struct Material
 
 	struct Texture
 	{
-		std::filesystem::path	Path;
+		std::string				Path;
 		std::size_t				EmbeddedIndex;
 		TextureFlags			Flag;
 	};

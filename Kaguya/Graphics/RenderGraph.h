@@ -98,7 +98,7 @@ public:
 
 	// Call every frame
 	void RenderGui();
-	void UpdateSystemConstants(const HostSystemConstants& HostSystemConstants);
+	void UpdateSystemConstants(const HLSL::SystemConstants& HostSystemConstants);
 	void Execute();
 	void ExecuteCommandContexts(RenderContext& RendererRenderContext);
 private:

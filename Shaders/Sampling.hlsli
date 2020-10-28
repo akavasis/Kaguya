@@ -1,5 +1,6 @@
 #ifndef __SAMPLING_HLSLI__
 #define __SAMPLING_HLSLI__
+
 #include "Constants.hlsli"
 
 // Section 13.6.1

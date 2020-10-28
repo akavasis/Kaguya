@@ -1,9 +1,7 @@
-#ifndef __HLSL_COMMON_HLSLI__
-#define __HLSL_COMMON_HLSLI__
+#ifndef HLSL_COMMON_HLSLI
+#define HLSL_COMMON_HLSLI
 
 #include "Vertex.hlsli"
-#include "Material.hlsli"
-#include "Light.hlsli"
 #include "SharedTypes.hlsli"
 #include "Constants.hlsli"
 #include "Sampling.hlsli"

@@ -66,7 +66,7 @@ Scene SceneLoader::LoadFromFile(const char* pPath, float Scale /*= 1.0f*/) const
 				aiReturn aiReturn = paiMaterial->GetTexture(aiMapTextureType(), 0, &aiString);
 				if (aiReturn == aiReturn_SUCCESS)
 				{
-					material.Textures[Type].Path = filePath.parent_path() / aiString.C_Str();
+					material.Textures[Type].Path = (filePath.parent_path() / aiString.C_Str()).string();
 					material.Textures[Type].Flag = TextureFlags::Disk;
 				}
 			};

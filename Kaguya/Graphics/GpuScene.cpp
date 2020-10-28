@@ -6,55 +6,31 @@
 #define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
 #define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
-struct HLSLPolygonalLight
-{
-	matrix	World;
-	float3	Color;
-	float	Intensity;
-	float	Width;
-	float	Height;
-};
-
-struct HLSLMaterial
-{
-	float3	Albedo;
-	float3	Emissive;
-	float3	Specular;
-	float3	Refraction;
-	float	SpecularChance;
-	float	Roughness;
-	float	Fuzziness;
-	float	IndexOfRefraction;
-	uint	Model;
-
-	int		TextureIndices[NumTextureTypes];
-};
-
 namespace
 {
 	static constexpr size_t NumLights					= 1000;
 	static constexpr size_t NumMaterials				= 1000;
 
-	static constexpr size_t LightBufferByteSize			= NumLights * sizeof(HLSLPolygonalLight);
-	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSLMaterial);
+	static constexpr size_t LightBufferByteSize			= NumLights * sizeof(HLSL::PolygonalLight);
+	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSL::Material);
 	static constexpr size_t VertexBufferByteSize		= 30_MiB;
 	static constexpr size_t IndexBufferByteSize			= 30_MiB;
 	static constexpr size_t GeometryInfoBufferByteSize	= 30_MiB;
 }
 
-HLSLPolygonalLight GetShaderLightDesc(const PolygonalLight& Light)
+HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
 {
 	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Light.Transform.Matrix()));
 	return {
 		.World		= World,
 		.Color		= Light.Color,
-		.Intensity	= Light.Intensity,
-		.Width		= Light.Width,
-		.Height		= Light.Height
+		.Luminance	= Light.GetLuminance(),
+		.Width		= Light.GetWidth(),
+		.Height		= Light.GetHeight()
 	};
 }
 
-HLSLMaterial GetShaderMaterialDesc(const Material& Material)
+HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 {
 	return {
 		.Albedo				= Material.Albedo,
@@ -63,6 +39,7 @@ HLSLMaterial GetShaderMaterialDesc(const Material& Material)
 		.Refraction			= Material.Refraction,
 		.SpecularChance		= Material.SpecularChance,
 		.Roughness			= Material.Roughness,
+		.Metallic			= Material.Metallic,
 		.Fuzziness			= Material.Fuzziness,
 		.IndexOfRefraction	= Material.IndexOfRefraction,
 		.Model				= Material.Model,
@@ -76,7 +53,45 @@ HLSLMaterial GetShaderMaterialDesc(const Material& Material)
 	};
 }
 
-GeometryInfo GetShaderMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
+HLSL::Camera GetHLSLCameraDesc(const PerspectiveCamera& Camera)
+{
+	DirectX::XMFLOAT4 Position = { Camera.Transform.Position.x, Camera.Transform.Position.y, Camera.Transform.Position.z, 1.0f };
+	DirectX::XMFLOAT4 U, V, W;
+	DirectX::XMFLOAT4X4 View, Projection, ViewProjection, InvView, InvProjection;
+	XMStoreFloat4(&U, Camera.GetUVector());
+	XMStoreFloat4(&V, Camera.GetVVector());
+	XMStoreFloat4(&W, Camera.GetWVector());
+	XMStoreFloat4x4(&View, XMMatrixTranspose(Camera.ViewMatrix()));
+	XMStoreFloat4x4(&Projection, XMMatrixTranspose(Camera.ProjectionMatrix()));
+	XMStoreFloat4x4(&ViewProjection, XMMatrixTranspose(Camera.ViewProjectionMatrix()));
+	XMStoreFloat4x4(&InvView, XMMatrixTranspose(Camera.InverseViewMatrix()));
+	XMStoreFloat4x4(&InvProjection, XMMatrixTranspose(Camera.InverseProjectionMatrix()));
+
+	return {
+		.NearZ				= Camera.NearZ(),
+		.FarZ				= Camera.FarZ(),
+		.ExposureValue100	= Camera.ExposureValue100(),
+		._padding1			= 0.0f,
+
+		.FocalLength		= Camera.FocalLength,
+		.RelativeAperture	= Camera.RelativeAperture,
+		.ShutterTime		= Camera.ShutterTime,
+		.SensorSensitivity	= Camera.SensorSensitivity,
+
+		.Position			= Position,
+		.U					= U,
+		.V					= V,
+		.W					= W,
+
+		.View				= View,
+		.Projection			= Projection,
+		.ViewProjection		= ViewProjection,
+		.InvView			= InvView,
+		.InvProjection		= InvProjection
+	};
+}
+
+HLSL::Mesh GetShaderMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
 {
 	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
 	return {
@@ -94,7 +109,7 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 {
 	// Resource
 	size_t resourceTablesMemorySizeInBytes[NumResources] = { LightBufferByteSize, MaterialBufferByteSize, VertexBufferByteSize, IndexBufferByteSize, GeometryInfoBufferByteSize };
-	size_t resourceTablesMemoryStrides[NumResources] = { sizeof(HLSLPolygonalLight), sizeof(HLSLMaterial), sizeof(Vertex), sizeof(unsigned int), sizeof(GeometryInfo) };
+	size_t resourceTablesMemoryStrides[NumResources] = { sizeof(HLSL::PolygonalLight), sizeof(HLSL::Material), sizeof(Vertex), sizeof(unsigned int), sizeof(HLSL::Mesh) };
 
 	for (size_t i = 0; i < NumResources; ++i)
 	{
@@ -121,15 +136,15 @@ void GpuScene::UploadLights(RenderContext& RenderContext)
 	auto pLightTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[LightTable]);
 	auto pUploadLightTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[LightTable]);
 
-	std::vector<HLSLPolygonalLight> hlslLights; hlslLights.reserve(pScene->Lights.size());
+	std::vector<HLSL::PolygonalLight> hlslLights; hlslLights.reserve(pScene->Lights.size());
 	for (auto& light : pScene->Lights)
 	{
-		light.GpuLightIndex = hlslLights.size();
+		light.SetGpuLightIndex(hlslLights.size());
 
-		hlslLights.push_back(GetShaderLightDesc(light));
+		hlslLights.push_back(GetHLSLLightDesc(light));
 	}
 
-	Upload(LightTable, hlslLights.data(), hlslLights.size() * sizeof(HLSLPolygonalLight), pUploadLightTable);
+	Upload(LightTable, hlslLights.data(), hlslLights.size() * sizeof(HLSL::PolygonalLight), pUploadLightTable);
 	RenderContext->CopyResource(pLightTable, pUploadLightTable);
 	RenderContext->TransitionBarrier(pLightTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 }
@@ -143,15 +158,15 @@ void GpuScene::UploadMaterials(RenderContext& RenderContext)
 	auto pMaterialTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[MaterialTable]);
 	auto pUploadMaterialTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[MaterialTable]);
 
-	std::vector<HLSLMaterial> hlslMaterials; hlslMaterials.reserve(pScene->Materials.size());
+	std::vector<HLSL::Material> hlslMaterials; hlslMaterials.reserve(pScene->Materials.size());
 	for (auto& material : pScene->Materials)
 	{
 		material.GpuMaterialIndex = hlslMaterials.size();
 
-		hlslMaterials.push_back(GetShaderMaterialDesc(material));
+		hlslMaterials.push_back(GetHLSLMaterialDesc(material));
 	}
 
-	Upload(MaterialTable, hlslMaterials.data(), hlslMaterials.size() * sizeof(HLSLMaterial), pUploadMaterialTable);
+	Upload(MaterialTable, hlslMaterials.data(), hlslMaterials.size() * sizeof(HLSL::Material), pUploadMaterialTable);
 	RenderContext->CopyResource(pMaterialTable, pUploadMaterialTable);
 	RenderContext->TransitionBarrier(pMaterialTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 }
@@ -221,28 +236,28 @@ void GpuScene::UploadModelInstances(RenderContext& RenderContext)
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Upload Model Instances");
 
-	auto pGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[GeometryInfoTable]);
-	auto pUploadGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[GeometryInfoTable]);
+	auto pGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[MeshTable]);
+	auto pUploadGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[MeshTable]);
 
 	size_t instanceID = 0;
-	std::vector<GeometryInfo> geometryInfos;
+	std::vector<HLSL::Mesh> hlslMeshes;
 	for (auto& modelInstance : pScene->ModelInstances)
 	{
 		for (auto& meshInstance : modelInstance.MeshInstances)
 		{
 			meshInstance.InstanceID = instanceID++;
 
-			GeometryInfo info		= {};
+			HLSL::Mesh info			= {};
 			info.VertexOffset		= meshInstance.pMesh->BaseVertexLocation;
 			info.IndexOffset		= meshInstance.pMesh->StartIndexLocation;
 			info.MaterialIndex		= modelInstance.pMaterial->GpuMaterialIndex;
 			XMStoreFloat4x4(&info.World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
 
-			geometryInfos.push_back(info);
+			hlslMeshes.push_back(info);
 		}
 	}
 
-	Upload(GeometryInfoTable, geometryInfos.data(), geometryInfos.size() * sizeof(GeometryInfo), pUploadGeometryInfoTable);
+	Upload(MeshTable, hlslMeshes.data(), hlslMeshes.size() * sizeof(HLSL::Mesh), pUploadGeometryInfoTable);
 	RenderContext->CopyResource(pGeometryInfoTable, pUploadGeometryInfoTable);
 	RenderContext->TransitionBarrier(pGeometryInfoTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 
@@ -291,12 +306,12 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		auto pUploadLightTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[LightTable]);
 		for (auto& light : pScene->Lights)
 		{
-			if (light.Dirty)
+			if (light.IsDirty())
 			{
-				light.Dirty = false;
+				light.ResetDirtyFlag();
 
-				HLSLPolygonalLight hlslPolygonalLight = GetShaderLightDesc(light);
-				pUploadLightTable->Update<HLSLPolygonalLight>(light.GpuLightIndex, hlslPolygonalLight);
+				HLSL::PolygonalLight hlslPolygonalLight = GetHLSLLightDesc(light);
+				pUploadLightTable->Update<HLSL::PolygonalLight>(light.GetGpuLightIndex(), hlslPolygonalLight);
 			}
 		}
 		RenderContext->CopyResource(pLightTable, pUploadLightTable);
@@ -312,8 +327,8 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 			{
 				material.Dirty = false;
 
-				HLSLMaterial hlslMaterial = GetShaderMaterialDesc(material);
-				pUploadMaterialTable->Update<HLSLMaterial>(material.GpuMaterialIndex, hlslMaterial);
+				HLSL::Material hlslMaterial = GetHLSLMaterialDesc(material);
+				pUploadMaterialTable->Update<HLSL::Material>(material.GpuMaterialIndex, hlslMaterial);
 			}
 		}
 		RenderContext->CopyResource(pMaterialTable, pUploadMaterialTable);
@@ -336,6 +351,11 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		RenderContext->TransitionBarrier(pGeometryInfoTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 	}*/
 	RenderContext->FlushResourceBarriers();
+}
+
+HLSL::Camera GpuScene::GetHLSLCamera() const
+{
+	return GetHLSLCameraDesc(pScene->Camera);
 }
 
 size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer)

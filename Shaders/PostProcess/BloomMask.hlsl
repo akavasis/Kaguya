@@ -22,8 +22,8 @@ float RGBToLuminance(float3 x)
 [numthreads(8, 8, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
-	Texture2D Input = Texture2DTable[InputIndex];
-	RWTexture2D<float4> Output = RWTexture2DTable[OutputIndex];
+	Texture2D Input = g_Texture2DTable[InputIndex];
+	RWTexture2D<float4> Output = g_RWTexture2DTable[OutputIndex];
 
 	// We need the scale factor and the size of one pixel so that our four samples are right in the middle
     // of the quadrant they are covering.
@@ -31,10 +31,10 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 	float2 offset = InverseOutputSize * 0.25f;
 
     // Use 4 bilinear samples to guarantee we don't undersample when downsizing by more than 2x
-	float3 color1 = clamp(Input.SampleLevel(BiLinearClamp, uv + float2(-offset.x, -offset.y), 0.0f).rgb, 0.0f, FLT_MAX);
-	float3 color2 = clamp(Input.SampleLevel(BiLinearClamp, uv + float2(+offset.x, -offset.y), 0.0f).rgb, 0.0f, FLT_MAX);
-	float3 color3 = clamp(Input.SampleLevel(BiLinearClamp, uv + float2(-offset.x, +offset.y), 0.0f).rgb, 0.0f, FLT_MAX);
-	float3 color4 = clamp(Input.SampleLevel(BiLinearClamp, uv + float2(+offset.x, +offset.y), 0.0f).rgb, 0.0f, FLT_MAX);
+	float3 color1 = Input.SampleLevel(BiLinearClamp, uv + float2(-offset.x, -offset.y), 0.0f).rgb;
+	float3 color2 = Input.SampleLevel(BiLinearClamp, uv + float2(+offset.x, -offset.y), 0.0f).rgb;
+	float3 color3 = Input.SampleLevel(BiLinearClamp, uv + float2(-offset.x, +offset.y), 0.0f).rgb;
+	float3 color4 = Input.SampleLevel(BiLinearClamp, uv + float2(+offset.x, +offset.y), 0.0f).rgb;
 
 	float luma1 = RGBToLuminance(color1);
 	float luma2 = RGBToLuminance(color2);

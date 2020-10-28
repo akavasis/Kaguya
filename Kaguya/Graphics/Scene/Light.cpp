@@ -1,18 +1,17 @@
 #include "pch.h"
 #include "Light.h"
 
-PolygonalLight::PolygonalLight()
+PolygonalLight::PolygonalLight(const char* pName)
 {
-	Name			= "";
-	Dirty			= false;
+	Name = pName;
+	Dirty = false;
 
-	Transform		= {};
-	Color			= { 1.0f, 1.0f, 1.0f };
-	Intensity		= 1.0f;
-	Width			= 1.0f;
-	Height			= 1.0f;
+	Transform = {};
+	Color = { 1.0f, 1.0f, 1.0f };
+	SetDimension(1.0f, 1.0f);
+	SetLuminousPower(1000.0f);
 
-	GpuLightIndex	= -1;
+	GpuLightIndex = -1;
 }
 
 void PolygonalLight::RenderGui()
@@ -21,9 +20,35 @@ void PolygonalLight::RenderGui()
 	{
 		Dirty |= ImGui::DragFloat3("Position", &Transform.Position.x, 0.01f, -Math::Infinity, Math::Infinity);
 		Dirty |= ImGui::ColorEdit3("Color", &Color.x);
-		Dirty |= ImGui::DragFloat("Intensity", &Intensity, 0.01f, 0.0f, Math::Infinity);
-		Dirty |= ImGui::DragFloat2("Dimension", &Width, 0.01f, 0.1f, 50.0f);
+		Dirty |= ImGui::DragFloat("Luminous Power", &LuminousPower, 1, 0, Math::Infinity, "%.3f lm");
+		Dirty |= ImGui::DragFloat2("Dimension", &Width, 0.5f, 1, 50);
+		if (Dirty)
+		{
+			SetDimension(Width, Height);
+			SetLuminousPower(LuminousPower);
+		}
 
 		ImGui::TreePop();
 	}
+}
+
+void PolygonalLight::SetDimension(float Width, float Height)
+{
+	this->Width = Width;
+	this->Height = Height;
+	Area = (Width * 0.5f) * (Height * 0.5f) * DirectX::XM_PI;
+}
+
+void PolygonalLight::SetLuminousPower(Lumen LuminousPower)
+{
+	this->LuminousPower = LuminousPower;
+
+	// The luminance due to a point on a Lambertian emitter, emitted in any direction, is equal to its total
+	//	luminous power divided by the emitter area A and the projected solid angle (Pi)
+	Luminance = LuminousPower / (Area * DirectX::XM_PI);
+}
+
+void PolygonalLight::SetGpuLightIndex(size_t GpuLightIndex)
+{
+	this->GpuLightIndex = GpuLightIndex;
 }

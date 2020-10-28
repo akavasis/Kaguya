@@ -6,8 +6,7 @@ PolygonalLight& Scene::AddLight()
 {
 	std::string Name = "Light [" + std::to_string(Lights.size()) + "]";
 
-	auto& light = Lights.emplace_back();
-	light.Name = std::move(Name);
+	auto& light = Lights.emplace_back(Name.data());
 	return light;
 }
 

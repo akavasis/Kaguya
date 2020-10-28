@@ -1,10 +1,10 @@
-#ifndef __GBUFFER_HLSLI__
-#define __GBUFFER_HLSLI__
+#ifndef GBUFFER_HLSLI
+#define GBUFFER_HLSLI
 
 #include "HLSLCommon.hlsli"
 
-static const uint GBufferTypeMesh = 1 << 0;
-static const uint GBufferTypeLight = 1 << 1;
+static const uint GBufferTypeMesh	= 1 << 0;
+static const uint GBufferTypeLight	= 1 << 1;
 
 struct GBuffer
 {
@@ -21,6 +21,7 @@ struct GBufferMesh
 	float3	Normal;
 	float3	Albedo;
 	float	Roughness;
+	float	Metallic;
 	uint	MaterialIndex;
 };
 
@@ -47,19 +48,19 @@ float3 DecodeNormal(float3 n)
 	return n * 2.0f - 1.0f;
 }
 
-PSOutput GetGBufferMeshPSOutput(GBufferMesh mesh)
+PSOutput PackMeshForPSOutput(GBufferMesh mesh)
 {
 	PSOutput OUT;
 	{
 		OUT.Position		= float4(mesh.Position, 1.0f);
-		OUT.Normal			= float4(EncodeNormal(mesh.Normal), 0.0f);
-		OUT.Albedo			= float4(mesh.Albedo, mesh.Roughness);
+		OUT.Normal			= float4(EncodeNormal(mesh.Normal), mesh.Roughness);
+		OUT.Albedo			= float4(mesh.Albedo, mesh.Metallic);
 		OUT.TypeAndIndex	= (GBufferTypeMesh << 4) | (mesh.MaterialIndex & 0x0000000F);
 	}
 	return OUT;
 }
 
-PSOutput GetGBufferLightPSOutput(GBufferLight light)
+PSOutput PackLightForPSOutput(GBufferLight light)
 {
 	PSOutput OUT;
 	{
@@ -81,15 +82,16 @@ GBufferMesh GetGBufferMesh(GBuffer gbuffer, uint2 uv)
 {
 	GBufferMesh OUT;
 	{
-		uint3 location = uint3(uv, 0);
-		float4 AlbedoRoughness = gbuffer.Albedo.Load(location);
-		float4 Normal = gbuffer.Normal.Load(location);
+		uint3 location			= uint3(uv, 0);
+		float4 NormalRoughness	= gbuffer.Normal.Load(location);
+		float4 AlbedoMetallic	= gbuffer.Albedo.Load(location);
 		
-		OUT.Position = gbuffer.Position.Load(location).xyz;
-		OUT.Normal = DecodeNormal(Normal.xyz);
-		OUT.Albedo = AlbedoRoughness.rgb;
-		OUT.Roughness = AlbedoRoughness.a;
-		OUT.MaterialIndex = gbuffer.TypeAndIndex.Load(location).x & 0x0000000F;
+		OUT.Position			= gbuffer.Position.Load(location).xyz;
+		OUT.Normal				= DecodeNormal(NormalRoughness.xyz);
+		OUT.Albedo				= AlbedoMetallic.rgb;
+		OUT.Roughness			= NormalRoughness.a;
+		OUT.Metallic			= AlbedoMetallic.a;
+		OUT.MaterialIndex		= gbuffer.TypeAndIndex.Load(location).x & 0x0000000F;
 	}
 	return OUT;
 }
@@ -98,9 +100,9 @@ GBufferLight GetGBufferLight(GBuffer gbuffer, uint2 uv)
 {
 	GBufferLight OUT;
 	{
-		uint3 location = uint3(uv, 0);
+		uint3 location			= uint3(uv, 0);
 		
-		OUT.LightIndex = gbuffer.TypeAndIndex.Load(location).x & 0x0000000F;
+		OUT.LightIndex			= gbuffer.TypeAndIndex.Load(location).x & 0x0000000F;
 	}
 	return OUT;
 }

@@ -5,7 +5,7 @@ struct AmbientOcclusionData
 
 	int InputWorldPositionIndex;
 	int InputWorldNormalIndex;
-	int OutputIndex;
+	int RenderTarget;
 };
 #define RenderPassDataType AmbientOcclusionData
 #include "Global.hlsli"
@@ -41,10 +41,10 @@ void RayGeneration()
 {
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
+	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(g_SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
-	Texture2D WorldPosition = Texture2DTable[RenderPassData.InputWorldPositionIndex];
-	Texture2D WorldNormal = Texture2DTable[RenderPassData.InputWorldNormalIndex];
+	Texture2D WorldPosition = g_Texture2DTable[g_RenderPassData.InputWorldPositionIndex];
+	Texture2D WorldNormal = g_Texture2DTable[g_RenderPassData.InputWorldNormalIndex];
 
 	float4 worldPosition = WorldPosition[launchIndex];
 	float4 worldNormal = WorldNormal[launchIndex];
@@ -53,16 +53,16 @@ void RayGeneration()
 	
 	if (worldPosition.z != 0.0f)
 	{
-		for (uint i = 0; i < RenderPassData.NumAORaysPerPixel; ++i)
+		for (uint i = 0; i < g_RenderPassData.NumAORaysPerPixel; ++i)
 		{
 			float3 worldDirection = CosHemisphereSample(seed, worldNormal.xyz);
-			occlusionSum += TraceAmbientOcclusionRay(worldPosition.xyz, 0.001f, worldDirection.xyz, RenderPassData.AORadius);
+			occlusionSum += TraceAmbientOcclusionRay(worldPosition.xyz, 0.001f, worldDirection.xyz, g_RenderPassData.AORadius);
 		}
 	}
 	
-	occlusionSum /= RenderPassData.NumAORaysPerPixel;
+	occlusionSum /= (float) g_RenderPassData.NumAORaysPerPixel;
 	
-	RWTexture2D<float4> RenderTarget = RWTexture2DTable[RenderPassData.OutputIndex];
+	RWTexture2D<float4> RenderTarget = g_RWTexture2DTable[g_RenderPassData.RenderTarget];
 	RenderTarget[launchIndex] = float4(occlusionSum, occlusionSum, occlusionSum, 1.0f);
 }
 

@@ -13,13 +13,13 @@ public:
 	Renderer();
 
 protected:
-	virtual bool Initialize() override;
-	virtual void HandleMouse(int32_t X, int32_t Y, float DeltaTime) override;
-	virtual void HandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
-	virtual void Update(const Time& Time) override;
-	virtual void Render() override;
-	virtual bool Resize(uint32_t Width, uint32_t Height) override;
-	virtual void Destroy() override;
+	bool Initialize() override;
+	void HandleMouse(int32_t X, int32_t Y, float DeltaTime) override;
+	void HandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
+	void Update(const Time& Time) override;
+	void Render() override;
+	bool Resize(uint32_t Width, uint32_t Height) override;
+	void Destroy() override;
 private:
 	void SetScene(Scene Scene);
 	void RenderGui();

@@ -127,6 +127,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.AddRootSRVParameter(RootSRV(5, 0));	// Material Buffer,			t5 | space0
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);	// SamplerLinearWrap	s0 | space0;
+		proxy.AddStaticSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);	// SamplerLinearClamp	s1 | space0;
 	});
 }
 

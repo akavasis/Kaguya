@@ -1,31 +1,14 @@
-#ifndef __SHADER_LAYOUT_HLSLI__
-#define __SHADER_LAYOUT_HLSLI__
+#ifndef SHADER_LAYOUT_HLSLI
+#define SHADER_LAYOUT_HLSLI
 
-struct SSystemConstants
+#include "SharedTypes.hlsli"
+
+struct SystemConstants
 {
-	float3 CameraU;
-	float _padding;
+	Camera Camera;
 
-	float3 CameraV;
-	float _padding1;
-
-	float3 CameraW;
-	float _padding2;
-
-	matrix View;
-	matrix Projection;
-	matrix InvView;
-	matrix InvProjection;
-	matrix ViewProjection;
-	float3 EyePosition;
 	uint TotalFrameCount;
 
-	int NumSamplesPerPixel;
-	int MaxDepth;
-	float FocalLength;
-	float LensRadius;
-
-	int SkyboxIndex;
 	int NumPolygonalLights;
 };
 
@@ -38,21 +21,21 @@ struct DummyStructure
 #define RenderPassDataType DummyStructure
 #endif
 
-ConstantBuffer<SSystemConstants>	SystemConstants				: register(b0, space100);
-ConstantBuffer<RenderPassDataType>	RenderPassData				: register(b1, space100);
+ConstantBuffer<SystemConstants>			g_SystemConstants			: register(b0, space100);
+ConstantBuffer<RenderPassDataType>		g_RenderPassData			: register(b1, space100);
 
 // ShaderResource
-Texture2D					Texture2DTable[]					: register(t0, space100);
-Texture2D<uint4>			Texture2DUINT4Table[]				: register(t0, space101);
-Texture2DArray				Texture2DArrayTable[]				: register(t0, space102);
-TextureCube					TextureCubeTable[]					: register(t0, space103);
-ByteAddressBuffer			RawBufferTable[]					: register(t0, space104);
+Texture2D								g_Texture2DTable[]			: register(t0, space100);
+Texture2D<uint4>						g_Texture2DUINT4Table[]		: register(t0, space101);
+Texture2DArray							g_Texture2DArrayTable[]		: register(t0, space102);
+TextureCube								g_TextureCubeTable[]		: register(t0, space103);
+ByteAddressBuffer						g_ByteAddressBufferTable[]	: register(t0, space104);
 
 // UnorderedAccess
-RWTexture2D<float4>			RWTexture2DTable[]					: register(u0, space100);
-RWTexture2DArray<float4>	RWTexture2DArrayTable[]				: register(u0, space101);
+RWTexture2D<float4>						g_RWTexture2DTable[]		: register(u0, space100);
+RWTexture2DArray<float4>				g_RWTexture2DArrayTable[]	: register(u0, space101);
 
 // Sampler
-SamplerState				SamplerTable[]						: register(s0, space100);
+SamplerState							g_SamplerTable[]			: register(s0, space100);
 
 #endif

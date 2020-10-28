@@ -4,7 +4,6 @@ cbuffer Settings : register(b0)
 	uint InputIndex;
 	uint OutputIndex;
 }
-
 #include "../ShaderLayout.hlsli"
 
 // The guassian blur weights (derived from Pascal's triangle)
@@ -81,8 +80,8 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex, RWTexture2D<float4> out
 [numthreads(8, 8, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)
 {
-	Texture2D Input = Texture2DTable[InputIndex];
-	RWTexture2D<float4> Output = RWTexture2DTable[OutputIndex];
+	Texture2D Input = g_Texture2DTable[InputIndex];
+	RWTexture2D<float4> Output = g_RWTexture2DTable[OutputIndex];
 
     //
     // Load 4 pixels per thread into LDS

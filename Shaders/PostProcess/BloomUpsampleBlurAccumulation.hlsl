@@ -6,7 +6,6 @@ cbuffer Settings : register(b0)
 	uint LowResolutionIndex;
 	uint OutputIndex;
 };
-
 #include "../ShaderLayout.hlsli"
 
 SamplerState LinearBorder : register(s0);
@@ -97,9 +96,9 @@ void BlurVertically(uint2 pixelCoord, uint topMostIndex, RWTexture2D<float4> out
 [numthreads(8, 8, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID)
 {
-	Texture2D HighResolution = Texture2DTable[HighResolutionIndex];
-	Texture2D LowResolution = Texture2DTable[LowResolutionIndex];
-	RWTexture2D<float4> Output = RWTexture2DTable[OutputIndex];
+	Texture2D HighResolution = g_Texture2DTable[HighResolutionIndex];
+	Texture2D LowResolution = g_Texture2DTable[LowResolutionIndex];
+	RWTexture2D<float4> Output = g_RWTexture2DTable[OutputIndex];
 
 	//
     // Load 4 pixels per thread into LDS

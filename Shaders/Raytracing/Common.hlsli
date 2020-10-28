@@ -1,5 +1,5 @@
-#ifndef __COMMON_HLSLI__
-#define __COMMON_HLSLI__
+#ifndef COMMON_HLSLI
+#define COMMON_HLSLI
 
 #include "../Vertex.hlsli"
 

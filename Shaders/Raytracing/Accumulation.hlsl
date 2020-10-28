@@ -6,18 +6,16 @@ cbuffer Settings : register(b0)
 struct AccumulationData
 {
 	uint InputIndex;
-	uint OutputIndex;
+	uint RenderTarget;
 };
-
-// Shader layout define and include
 #define RenderPassDataType AccumulationData
 #include "../ShaderLayout.hlsli"
 
 [numthreads(16, 16, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
-	Texture2D Input = Texture2DTable[RenderPassData.InputIndex];
-	RWTexture2D<float4> Output = RWTexture2DTable[RenderPassData.OutputIndex];
+	Texture2D Input = g_Texture2DTable[g_RenderPassData.InputIndex];
+	RWTexture2D<float4> Output = g_RWTexture2DTable[g_RenderPassData.RenderTarget];
 
 	float4 current = Input[DTid.xy]; // Current path tracer result
 	float4 prev = Output[DTid.xy]; // Previous path tracer output

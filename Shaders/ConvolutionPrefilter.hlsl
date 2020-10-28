@@ -1,4 +1,5 @@
 #include "HLSLCommon.hlsli"
+#include "Skybox.hlsli"
 
 // Radical inverse based on http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 float RadicalInverse_VDC(uint Bits)
@@ -47,7 +48,7 @@ float NDF_TrowbridgeReitzGGX(in float cosLh, in float Roughness)
 
 static uint NumSamples = 32;
 
-cbuffer Settings : register(b0)
+cbuffer Settings : register(PS_CB_Register)
 {
 	float Roughness;
 	int CubemapIndex;
@@ -55,11 +56,9 @@ cbuffer Settings : register(b0)
 
 SamplerState SamplerLinearClamp : register(s0);
 
-#include "Skybox.hlsli"
-
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
-	TextureCube Cubemap = TextureCubeTable[CubemapIndex];
+	TextureCube Cubemap = g_TextureCubeTable[CubemapIndex];
 
 	float3 N = normalize(IN.TextureCoord);
 	float3 R = N;

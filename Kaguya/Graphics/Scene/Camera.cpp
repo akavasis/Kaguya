@@ -86,34 +86,14 @@ OrthographicCamera::OrthographicCamera(float NearZ, float FarZ)
 	m_ViewLeft = m_ViewRight = m_ViewBottom = m_ViewTop = 0.0f;
 }
 
-float OrthographicCamera::ViewLeft() const
-{
-	return m_ViewLeft;
-}
-
-float OrthographicCamera::ViewRight() const
-{
-	return m_ViewRight;
-}
-
-float OrthographicCamera::ViewBottom() const
-{
-	return m_ViewBottom;
-}
-
-float OrthographicCamera::ViewTop() const
-{
-	return m_ViewTop;
-}
-
 void OrthographicCamera::SetLens(float ViewLeft, float ViewRight, float ViewBottom, float ViewTop, float NearZ, float FarZ)
 {
-	m_ViewLeft = ViewLeft;
-	m_ViewRight = ViewRight;
-	m_ViewBottom = ViewBottom;
-	m_ViewTop = ViewTop;
-	m_NearZ = NearZ;
-	m_FarZ = FarZ;
+	this->m_ViewLeft	= ViewLeft;
+	this->m_ViewRight	= ViewRight;
+	this->m_ViewBottom	= ViewBottom;
+	this->m_ViewTop		= ViewTop;
+	this->m_NearZ		= NearZ;
+	this->m_FarZ		= FarZ;
 
 	UpdateProjectionMatrix();
 }
@@ -127,7 +107,7 @@ void OrthographicCamera::UpdateProjectionMatrix()
 PerspectiveCamera::PerspectiveCamera()
 {
 	m_FoVY = m_AspectRatio = 0.0f;
-	Aperture = 0.0f;
+	RelativeAperture = 0.0f;
 	FocalLength = 10.0f;
 }
 
@@ -160,6 +140,18 @@ DirectX::XMVECTOR PerspectiveCamera::GetVVector() const
 DirectX::XMVECTOR PerspectiveCamera::GetWVector() const
 {
 	return Transform.Forward() * FocalLength;
+}
+
+EV PerspectiveCamera::ExposureValue100() const
+{
+	// EV number is defined as:
+	// 2^ EV_s = N^2 / t and EV_s = EV_100 + log2 (S /100)
+	// This gives
+	// EV_s = log2 (N^2 / t)
+	// EV_100 + log2 (S /100) = log2 (N^2 / t)
+	// EV_100 = log2 (N^2 / t) - log2 (S /100)
+	// EV_100 = log2 (N^2 / t . 100 / S)
+	return std::log2((RelativeAperture * RelativeAperture) / ShutterTime * 100.0f / SensorSensitivity);
 }
 
 void PerspectiveCamera::SetFoVY(float FoVY)

@@ -220,7 +220,8 @@ void GBuffer::RenderLights(RenderContext& RenderContext)
 	const Scene& Scene = *pGpuScene->pScene;
 	for (const auto& light : Scene.Lights)
 	{
-		RenderContext.SetRoot32BitConstants(0, 1, &light.GpuLightIndex, 0);
+		size_t GpuLightIndex = light.GetGpuLightIndex();
+		RenderContext.SetRoot32BitConstants(0, 1, &GpuLightIndex, 0);
 		RenderContext->DrawInstanced(6, 1, 0, 0);
 	}
 }

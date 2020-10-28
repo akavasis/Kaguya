@@ -75,10 +75,7 @@ Library ShaderCompiler::CompileLibrary(LPCWSTR pPath)
 Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines)
 {
 	std::filesystem::path filePath = std::filesystem::absolute(pPath);
-	if (!std::filesystem::exists(filePath))
-	{
-		throw std::exception("File Not Found");
-	}
+	assert(std::filesystem::exists(filePath) && "File Not Found");
 
 	// https://developer.nvidia.com/dx12-dos-and-donts
 	// Use the /all_resources_bound / D3DCOMPILE_ALL_RESOURCES_BOUND compile flag if possible This allows for the compiler to do a better job at optimizing texture accesses.

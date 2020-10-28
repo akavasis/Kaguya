@@ -10,8 +10,6 @@ enum class SampleScene
 	PlaneWithTransparentSpheres,
 
 	PlaneWithLights,
-
-	Sponza
 };
 
 Scene GenerateScene(SampleScene SampleScene);

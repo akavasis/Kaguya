@@ -1,20 +1,19 @@
 #include "HLSLCommon.hlsli"
+#include "Skybox.hlsli"
 
 static float DeltaPhi	= s_2PI / 180.0f;
 static float DeltaTheta = s_PIDIV2 / 64.0f;
 
-cbuffer Settings : register(b0)
+cbuffer Settings : register(PS_CB_Register)
 {
 	int CubemapIndex;
 }
 
 SamplerState SamplerLinearClamp : register(s0);
 
-#include "Skybox.hlsli"
-
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
-	TextureCube Cubemap = TextureCubeTable[CubemapIndex];
+	TextureCube Cubemap = g_TextureCubeTable[CubemapIndex];
 
 	float3 normal = normalize(IN.TextureCoord);
 	float3 up = float3(0.0f, 1.0f, 0.0f);

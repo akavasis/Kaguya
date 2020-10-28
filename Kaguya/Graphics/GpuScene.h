@@ -16,7 +16,7 @@ public:
 		MaterialTable,
 		VertexBuffer,
 		IndexBuffer,
-		GeometryInfoTable,
+		MeshTable,
 		NumResources
 	};
 
@@ -31,12 +31,14 @@ public:
 	void RenderGui();
 	void Update(float AspectRatio, RenderContext& RenderContext);
 
-	inline auto GetLightTableHandle()			const		{ return m_ResourceTables[LightTable]; }
-	inline auto GetMaterialTableHandle()		const		{ return m_ResourceTables[MaterialTable]; }
-	inline auto GetVertexBufferHandle()			const		{ return m_ResourceTables[VertexBuffer]; }
-	inline auto GetIndexBufferHandle()			const		{ return m_ResourceTables[IndexBuffer]; }
-	inline auto GetGeometryInfoTableHandle()	const		{ return m_ResourceTables[GeometryInfoTable]; }
-	inline auto GetRTTLASResourceHandle()		const		{ return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
+	inline auto GetLightTableHandle()			const { return m_ResourceTables[LightTable]; }
+	inline auto GetMaterialTableHandle()		const { return m_ResourceTables[MaterialTable]; }
+	inline auto GetVertexBufferHandle()			const { return m_ResourceTables[VertexBuffer]; }
+	inline auto GetIndexBufferHandle()			const { return m_ResourceTables[IndexBuffer]; }
+	inline auto GetGeometryInfoTableHandle()	const { return m_ResourceTables[MeshTable]; }
+	inline auto GetRTTLASResourceHandle()		const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
+
+	HLSL::Camera GetHLSLCamera() const;
 
 	Scene* pScene;
 	GpuTextureAllocator GpuTextureAllocator;

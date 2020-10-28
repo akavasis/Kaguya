@@ -111,22 +111,22 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		int TypeAndIndex;
 		int DepthStencil;
 
-		int LTCLUT1;
-		int LTCLUT2;
+		int LTC_LUT_GGX_InverseMatrix;
+		int LTC_LUT_GGX_Terms;
 
 		int RenderTarget;
 	} Data;
 
-	Data.Position = RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Position]).HeapIndex;
-	Data.Normal = RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
-	Data.Albedo = RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;
-	Data.TypeAndIndex = RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
-	Data.DepthStencil = RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::DepthStencil]).HeapIndex;
+	Data.Position					= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Position]).HeapIndex;
+	Data.Normal						= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
+	Data.Albedo						= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;
+	Data.TypeAndIndex				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
+	Data.DepthStencil				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::DepthStencil]).HeapIndex;
 
-	Data.LTCLUT1 = RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.SystemReservedTextures[GpuTextureAllocator::SystemReservedTextures::LTCLUT1]).HeapIndex;
-	Data.LTCLUT2 = RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.SystemReservedTextures[GpuTextureAllocator::SystemReservedTextures::LTCLUT2]).HeapIndex;
+	Data.LTC_LUT_GGX_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
+	Data.LTC_LUT_GGX_Terms			= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
 	
-	Data.RenderTarget = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	Data.RenderTarget				= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 	
 	RenderContext.UpdateRenderPassData<ShadingData>(Data);
 

@@ -37,10 +37,10 @@ public:
 	inline auto GetType() const { return m_Type; }
 	inline auto GetFlags() const { return m_Flags; }
 private:
-	Microsoft::WRL::ComPtr<ID3D12Heap> m_pHeap;
-	UINT64 m_SizeInBytes;
-	Type m_Type;
-	Flags m_Flags;
+	Microsoft::WRL::ComPtr<ID3D12Heap>	m_pHeap;
+	UINT64								m_SizeInBytes;
+	Type								m_Type;
+	Flags								m_Flags;
 };
 
 ENABLE_BITMASK_OPERATORS(Heap::Flags);

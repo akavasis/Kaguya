@@ -20,7 +20,7 @@ Material MaterialLoader::LoadMaterial(
 	{
 		if (pPath)
 		{
-			Material.Textures[Type].Path = m_ExecutableFolderPath / pPath;
+			Material.Textures[Type].Path = (m_ExecutableFolderPath / pPath).string();
 			Material.Textures[Type].Flag = TextureFlags::Disk;
 			assert(std::filesystem::exists(Material.Textures[Type].Path));
 		}

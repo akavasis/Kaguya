@@ -7,6 +7,32 @@ static const float LUT_SIZE = 64.0f;
 static const float LUT_SCALE = (LUT_SIZE - 1.0f) / LUT_SIZE;
 static const float LUT_BIAS = 0.5f / LUT_SIZE;
 
+/* Get uv coordinates into LTC lookup texture */
+float2 GetLTCUV(float NoV, float roughness)
+{
+	float2 uv = float2(roughness, sqrt(1.0f - NoV));
+	uv = uv * LUT_SCALE + LUT_BIAS;
+	return uv;
+}
+
+/* Get inverse matrix from LTC lookup texture */
+float3x3 GetLTCInverseMatrix(Texture2D Texture, SamplerState Sampler, float2 UV)
+{
+	float4 v = Texture.SampleLevel(Sampler, UV, 0.0f);
+	float3x3 invM = float3x3(
+	   float3(v.x,   0, v.y),
+	   float3(  0,   1,   0),
+	   float3(v.z,   0, v.w)
+	);
+	return invM;
+}
+
+/* Get terms from LTC lookup texture */
+float4 GetLTCTerms(Texture2D Texture, SamplerState Sampler, float2 UV)
+{
+	return Texture.SampleLevel(Sampler, UV, 0.0f);
+}
+
 float IntegrateEdge(float3 v1, float3 v2)
 {
 	float x = dot(v1, v2);

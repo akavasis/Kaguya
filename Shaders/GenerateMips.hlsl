@@ -3,6 +3,8 @@
  * Compute shader to generate mipmaps for a given texture.
  */
 
+#include "ShaderLayout.hlsli"
+
 #define BLOCK_SIZE 8
 
  // When reducing the size of a texture, it could be that downscaling the texture 
@@ -45,9 +47,6 @@ cbuffer GenerateMipsCB : register(b0)
 }
 
 SamplerState LinearClampSampler : register(s0);
-
-// Shader layout define and include
-#include "ShaderLayout.hlsli"
 
 // The reason for separating channels is to reduce bank conflicts in the
 // local data memory controller.  A large stride will cause more threads
@@ -99,7 +98,7 @@ float4 PackColor(float4 x)
 [numthreads(BLOCK_SIZE, BLOCK_SIZE, 1)]
 void CSMain(ComputeShaderInput IN)
 {
-	Texture2D SrcMip = Texture2DTable[InputIndex];
+	Texture2D SrcMip = g_Texture2DTable[InputIndex];
 
 	float4 Src1 = (float4) 0;
 
@@ -168,7 +167,7 @@ void CSMain(ComputeShaderInput IN)
 
 	if (Output1Index != -1)
 	{
-		RWTexture2D<float4> OutMip1 = RWTexture2DTable[Output1Index];
+		RWTexture2D<float4> OutMip1 = g_RWTexture2DTable[Output1Index];
 		OutMip1[IN.DispatchThreadID.xy] = PackColor(Src1);
 	}
 
@@ -195,7 +194,7 @@ void CSMain(ComputeShaderInput IN)
 		float4 Src4 = LoadColor(IN.GroupIndex + 0x09);
 		Src1 = 0.25 * (Src1 + Src2 + Src3 + Src4);
 
-		RWTexture2D<float4> OutMip2 = RWTexture2DTable[Output2Index];
+		RWTexture2D<float4> OutMip2 = g_RWTexture2DTable[Output2Index];
 		OutMip2[IN.DispatchThreadID.xy / 2] = PackColor(Src1);
 		StoreColor(IN.GroupIndex, Src1);
 	}
@@ -214,7 +213,7 @@ void CSMain(ComputeShaderInput IN)
 		float4 Src4 = LoadColor(IN.GroupIndex + 0x12);
 		Src1 = 0.25 * (Src1 + Src2 + Src3 + Src4);
 
-		RWTexture2D<float4> OutMip3 = RWTexture2DTable[Output3Index];
+		RWTexture2D<float4> OutMip3 = g_RWTexture2DTable[Output3Index];
 		OutMip3[IN.DispatchThreadID.xy / 4] = PackColor(Src1);
 		StoreColor(IN.GroupIndex, Src1);
 	}
@@ -234,7 +233,7 @@ void CSMain(ComputeShaderInput IN)
 		float4 Src4 = LoadColor(IN.GroupIndex + 0x24);
 		Src1 = 0.25 * (Src1 + Src2 + Src3 + Src4);
 
-		RWTexture2D<float4> OutMip4 = RWTexture2DTable[Output4Index];
+		RWTexture2D<float4> OutMip4 = g_RWTexture2DTable[Output4Index];
 		OutMip4[IN.DispatchThreadID.xy / 8] = PackColor(Src1);
 	}
 }

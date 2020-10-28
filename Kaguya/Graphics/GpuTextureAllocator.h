@@ -11,6 +11,22 @@
 class GpuTextureAllocator
 {
 public:
+	GpuTextureAllocator(RenderDevice* SV_pRenderDevice);
+
+	inline auto GetDefaultWhiteTexture()				{ return m_SystemReservedTextures[DefaultWhite]; }
+	inline auto GetDefaultBlackTexture()				{ return m_SystemReservedTextures[DefaultBlack]; }
+	inline auto GetDefaultAlbedoTexture()				{ return m_SystemReservedTextures[DefaultAlbedo]; }
+	inline auto GetDefaultNormalTexture()				{ return m_SystemReservedTextures[DefaultNormal]; }
+	inline auto GetDefaultRoughnessTexture()			{ return m_SystemReservedTextures[DefaultRoughness]; }
+	inline auto GetBRDFLUTTexture()						{ return m_SystemReservedTextures[BRDFLUT]; }
+	inline auto GetLTC_LUT_GGX_InverseMatrixTexture()	{ return m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]; }
+	inline auto GetLTC_LUT_GGX_TermsTexture()			{ return m_SystemReservedTextures[LTC_LUT_GGX_Terms]; }
+	inline auto GetSkyboxTexture()						{ return m_SystemReservedTextures[SkyboxCubemap]; }
+
+	void StageSystemReservedTextures(RenderContext& RenderContext);
+	void Stage(Scene& Scene, RenderContext& RenderContext);
+	void DisposeResources();
+private:
 	enum SystemReservedTextures
 	{
 		DefaultWhite,
@@ -19,21 +35,13 @@ public:
 		DefaultNormal,
 		DefaultRoughness,
 		BRDFLUT,
-		LTCLUT1,
-		LTCLUT2,
+		LTC_LUT_GGX_InverseMatrix,
+		LTC_LUT_GGX_Terms,
 		SkyboxEquirectangularMap,
 		SkyboxCubemap,
 		NumSystemReservedTextures
 	};
-	RenderResourceHandle									SystemReservedTextures[NumSystemReservedTextures];
-	std::unordered_map<std::string, RenderResourceHandle>	TextureHandles;
 
-	GpuTextureAllocator(RenderDevice* SV_pRenderDevice);
-
-	void StageSystemReservedTextures(RenderContext& RenderContext);
-	void Stage(Scene& Scene, RenderContext& RenderContext);
-	void DisposeResources();
-private:
 	struct Status
 	{
 		inline static bool SkyboxGenerated = false;
@@ -47,7 +55,6 @@ private:
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts;	// footprint is synonymous to layout
 		std::size_t										MipLevels;					// indicates what mip levels this texture should have
 		bool											GenerateMips;				// indicates whether or not we should generate mips for the staged texture
-		bool											IsMasked;					// indicates whether or not alpha is masked
 	};
 
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
@@ -63,6 +70,9 @@ private:
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
 
 	RenderDevice*												SV_pRenderDevice;
+
+	RenderResourceHandle										m_SystemReservedTextures[NumSystemReservedTextures];
+	std::unordered_map<std::string, RenderResourceHandle>		m_Textures;
 
 	std::unordered_set<DXGI_FORMAT>								m_UAVSupportedFormat;
 	std::unordered_map<RenderResourceHandle, StagingTexture>	m_UnstagedTextures;

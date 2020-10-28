@@ -30,7 +30,7 @@ private:
 	SSettings Settings;
 	GpuScene* pGpuScene;
 
-	float LastAperture;
+	float LastRelativeAperture;
 	float LastFocalLength;
 	Transform LastCameraTransform;
 };

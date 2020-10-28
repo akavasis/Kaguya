@@ -40,5 +40,4 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 + dxc (DirectX Shader Compiler)
 + imgui
 + spdlog
-+ tinygltf
 + WinPixEventRunTime

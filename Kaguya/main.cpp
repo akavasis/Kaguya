@@ -16,7 +16,7 @@
 #include <Core/Application.h>
 #include <Graphics/Renderer.h>
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
 #if defined(_DEBUG)
 	ENABLE_LEAK_DETECTION();

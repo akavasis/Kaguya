@@ -42,10 +42,10 @@ public:
 	OrthographicCamera();
 	OrthographicCamera(float NearZ, float FarZ);
 
-	float ViewLeft() const;
-	float ViewRight() const;
-	float ViewBottom() const;
-	float ViewTop() const;
+	float ViewLeft() const { return m_ViewLeft; }
+	float ViewRight() const { return m_ViewRight; }
+	float ViewBottom() const { return m_ViewBottom; }
+	float ViewTop() const { return m_ViewTop; }
 
 	void SetLens(float ViewLeft, float ViewRight, float ViewBottom, float ViewTop, float NearZ, float FarZ);
 protected:
@@ -56,6 +56,10 @@ private:
 	float m_ViewBottom;
 	float m_ViewTop;
 };
+
+using FStop = float;
+using ISO = float;
+using EV = float;
 
 class PerspectiveCamera : public Camera
 {
@@ -68,6 +72,7 @@ public:
 	DirectX::XMVECTOR GetUVector() const;
 	DirectX::XMVECTOR GetVVector() const;
 	DirectX::XMVECTOR GetWVector() const;
+	EV ExposureValue100() const;
 
 	// Radians
 	void SetFoVY(float FoVY);
@@ -76,8 +81,10 @@ public:
 	void SetFarZ(float FarZ);
 	void SetLens(float FoVY, float AspectRatio, float NearZ, float FarZ);
 
-	float Aperture;
-	float FocalLength;
+	float FocalLength;		// controls the focus distance of the camera. Impacts the depth of field.
+	FStop RelativeAperture; // controls how wide the aperture is opened. Impacts the depth of field.
+	float ShutterTime;		// controls how long the aperture is opened. Impacts the motion blur.
+	ISO SensorSensitivity;	// controls how photons are counted/quantized on the digital sensor.
 protected:
 	void UpdateProjectionMatrix() override;
 private:

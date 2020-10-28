@@ -48,6 +48,7 @@
 #include <d3d12.h>
 #pragma comment(lib, "d3d12.lib")
 
+#include <Core/Application.h>
 #include <Core/Utility.h>
 #include <Core/Log.h>
 #include <Core/Exception.h>

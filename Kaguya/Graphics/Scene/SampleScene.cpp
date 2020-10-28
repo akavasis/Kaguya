@@ -386,20 +386,25 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 	Scene Scene;
 	{
 		auto& light1 = Scene.AddLight();
-		light1.Transform.Position = { -5, 5, 3 };
-		light1.Transform.Rotate(XM_PI - 0.5f, 0, 0);
-		light1.Color = { 1, 1, 1 };
-		light1.Intensity = 5;
-		light1.Width = 4;
-		light1.Height = 4;
+		light1.Transform.Position = { -7, 5, 3 };
+		light1.Transform.Rotate(XM_PI - 0.5f, -XM_PIDIV4, 0);
+		light1.Color = { 201.0 / 255, 226.0 / 255.0, 255.0 / 255 };
+		light1.SetDimension(2, 5);
+		light1.SetLuminousPower(20000);
 
 		auto& light2 = Scene.AddLight();
-		light2.Transform.Position = { 5, 5, 3 };
-		light2.Transform.Rotate(XM_PI - 0.5f, 0, 0);
-		light2.Color = { 1, 1, 1 };
-		light2.Intensity = 5;
-		light2.Width = 4;
-		light2.Height = 4;
+		light2.Transform.Position = { 7, 5, 3 };
+		light2.Transform.Rotate(XM_PI - 0.5f, XM_PIDIV4, 0);
+		light2.Color = { 201.0 / 255, 226.0 / 255.0, 255.0 / 255 };
+		light2.SetDimension(2, 5);
+		light2.SetLuminousPower(20000);
+
+		auto& light3 = Scene.AddLight();
+		light3.Transform.Position = { 0, 5, -10 };
+		light3.Transform.Rotate(XM_PI - 0.5f, 180.0_Deg, 0);
+		light3.Color = { 1, 1, 1 };
+		light3.SetDimension(4, 4);
+		light3.SetLuminousPower(5000);
 
 		// Plane
 		{
@@ -415,61 +420,28 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		}
 
 		// Box
-		//{
-		//	auto& defaultMaterial = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
-		//	auto& box = Scene.AddModel(CreateBox(5.0f, 5.0f, 5.0f, 1));
-		//
-		//	auto& boxInstance = Scene.AddModelInstance({ &box, &defaultMaterial });
-		//	boxInstance.Translate(0.0f, 2.5f, 0.0f);
-		//}
-
-#if 0
-		// Cerberus
 		{
-			auto& cerberusMaterial = Scene.AddMaterial(MaterialLoader.LoadMaterial(
-				"Assets/Models/Cerberus/Textures/Cerberus_A.dds",
-				"Assets/Models/Cerberus/Textures/Cerberus_N.dds",
-				"Assets/Models/Cerberus/Textures/Cerberus_R.dds",
-				0,
+			auto& metal = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+				"Assets/Textures/Metal07/Metal07_col.dds",
+				"Assets/Textures/Metal07/Metal07_nrm.dds",
+				"Assets/Textures/Metal07/Metal07_rgh.dds",
+				"Assets/Textures/Metal07/Metal07_met.dds",
 				0));
 
-			auto& cerberusModel = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Cerberus/Cerberus_LP.fbx"));
+			auto& box = Scene.AddModel(CreateBox(2.5, 2.5, 2.5, 1));
 
-			auto& cerberusInstance = Scene.AddModelInstance({ &cerberusModel, &cerberusMaterial });
-			cerberusInstance.SetScale(0.05f);
-			cerberusInstance.Translate(0.0f, 5.0f, 0.0f);
-			cerberusInstance.Rotate(90.0_Deg, 0.0f, 0.0f);
+			auto& boxInstance = Scene.AddModelInstance({ &box, &metal });
+			boxInstance.Translate(0, 1.25, -4);
+			boxInstance.Rotate(0, 45.0_Deg, 0);
 		}
-#endif
 	}
-	return Scene;
-}
-
-Scene Sponza()
-{
-	SceneLoader sceneLoader = SceneLoader(Application::ExecutableFolderPath);
-	Scene Scene = sceneLoader.LoadFromFile("Assets/Models/sponza/sponza.obj", 0.05f);
-
-	for (auto& modelInstance : Scene.ModelInstances)
-	{
-		modelInstance.Rotate(0.0f, 90.0_Deg, 0.0f);
-	}
-
-	auto& light1 = Scene.AddLight();
-	light1.Transform.Position = { 0, 10, 55 };
-	light1.Transform.Rotate(XM_PI, 0, 0);
-	light1.Color = { 1, 1, 1 };
-	light1.Intensity = 10;
-	light1.Width = 10;
-	light1.Height = 10;
-
 	return Scene;
 }
 
 Scene GenerateScene(SampleScene SampleScene)
 {
-	MaterialLoader	materialLoader = MaterialLoader(Application::ExecutableFolderPath);
-	ModelLoader		modelLoader = ModelLoader(Application::ExecutableFolderPath);
+	auto materialLoader = MaterialLoader(Application::ExecutableFolderPath);
+	auto modelLoader = ModelLoader(Application::ExecutableFolderPath);
 
 	switch (SampleScene)
 	{
@@ -480,8 +452,6 @@ Scene GenerateScene(SampleScene SampleScene)
 	case SampleScene::PlaneWithTransparentSpheres:	return PlaneWithTransparentSpheres(materialLoader, modelLoader);
 
 	case SampleScene::PlaneWithLights:				return PlaneWithLights(materialLoader, modelLoader);
-
-	case SampleScene::Sponza:						return Sponza();
 
 	default:										assert(false && "Unknown Sample Scene");
 	}

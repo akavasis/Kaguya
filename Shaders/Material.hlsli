@@ -1,6 +1,5 @@
-#ifndef __MATERIAL_HLSLI__
-#define __MATERIAL_HLSLI__
-#include "SharedDefines.hlsli"
+#ifndef MATERIAL_HLSLI
+#define MATERIAL_HLSLI
 
 enum MaterialModel
 {
@@ -29,11 +28,12 @@ struct Material
 	float3	Refraction;
 	float	SpecularChance;
 	float	Roughness;
+	float	Metallic;
 	float	Fuzziness;
 	float	IndexOfRefraction;
-	uint	Model;			
-	
-	int TextureIndices[NumTextureTypes];
+	uint	Model;
+
+	int		TextureIndices[NumTextureTypes];
 };
 
 #endif
