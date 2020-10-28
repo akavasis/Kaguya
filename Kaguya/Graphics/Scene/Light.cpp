@@ -20,7 +20,7 @@ void PolygonalLight::RenderGui()
 	{
 		Dirty |= ImGui::DragFloat3("Position", &Transform.Position.x, 0.01f, -Math::Infinity, Math::Infinity);
 		Dirty |= ImGui::ColorEdit3("Color", &Color.x);
-		Dirty |= ImGui::DragFloat("Luminous Power", &LuminousPower, 1, 0, Math::Infinity, "%.3f lm");
+		Dirty |= ImGui::DragFloat("Luminous Power", &LuminousPower, 5, 0, Math::Infinity, "%.3f lm");
 		Dirty |= ImGui::DragFloat2("Dimension", &Width, 0.5f, 1, 50);
 		if (Dirty)
 		{
@@ -44,7 +44,7 @@ void PolygonalLight::SetLuminousPower(Lumen LuminousPower)
 	this->LuminousPower = LuminousPower;
 
 	// The luminance due to a point on a Lambertian emitter, emitted in any direction, is equal to its total
-	//	luminous power divided by the emitter area A and the projected solid angle (Pi)
+	// luminous power divided by the emitter area A and the projected solid angle (Pi)
 	Luminance = LuminousPower / (Area * DirectX::XM_PI);
 }
 
