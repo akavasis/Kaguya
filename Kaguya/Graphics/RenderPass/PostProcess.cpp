@@ -4,6 +4,8 @@
 #include "Shading.h"
 #include "Accumulation.h"
 
+constexpr size_t NumTonemapRootConstants = 1 + sizeof(PostProcess::GranTurismoOperator) / 4;
+
 PostProcess::PostProcess(UINT Width, UINT Height)
 	: RenderPass("Post Process",
 		{ Width, Height, RendererFormats::HDRBufferFormat })
@@ -13,9 +15,9 @@ PostProcess::PostProcess(UINT Width, UINT Height)
 
 void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	RootSignatures::PostProcess_Tonemapping = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	RootSignatures::PostProcess_Tonemapping = pRenderDevice->CreateRootSignature([&](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 2)); // Settings b0 | space0
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, NumTonemapRootConstants)); // Settings b0 | space0
 
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
@@ -157,20 +159,14 @@ void PostProcess::RenderGui()
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{
-			Settings = SSettings();
+			settings = Settings();
 		}
 
-		ImGui::Checkbox("Apply Bloom", &Settings.ApplyBloom);
+		ImGui::Checkbox("Apply Bloom", &settings.ApplyBloom);
 		if (ImGui::TreeNode("Bloom"))
 		{
-			ImGui::SliderFloat("Threshold", &Settings.Bloom.Threshold, 0.0f, 8.0f);
-			ImGui::SliderFloat("Intensity", &Settings.Bloom.Intensity, 0.0f, 2.0f);
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Tonemapping"))
-		{
-			ImGui::SliderFloat("Exposure", &Settings.Tonemapping.Exposure, 0.1f, 10.0f);
+			ImGui::SliderFloat("Threshold", &settings.Bloom.Threshold, 0.0f, 8.0f);
+			ImGui::SliderFloat("Intensity", &settings.Bloom.Intensity, 0.0f, 2.0f);
 			ImGui::TreePop();
 		}
 
@@ -186,7 +182,7 @@ void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	//auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
 
-	if (Settings.ApplyBloom)
+	if (settings.ApplyBloom)
 		ApplyBloom(InputSRV, RenderContext, pRenderGraph);
 	ApplyTonemapAndGuiToSwapChain(InputSRV, RenderContext, pRenderGraph);
 }
@@ -210,22 +206,22 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 		auto pOutput = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1a]);
 
-		struct BloomMask_Settings
+		struct BloomMask_SubPass_Data
 		{
 			float2 InverseOutputSize;
 			float Threshold;
 			uint InputIndex;
 			uint OutputIndex;
-		} settings;
-		settings.InverseOutputSize = { 1.0f / Properties.Width, 1.0f / Properties.Height };
-		settings.Threshold = Settings.Bloom.Threshold;
-		settings.InputIndex = InputSRV.HeapIndex;
-		settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
+		} data;
+		data.InverseOutputSize = { 1.0f / Properties.Width, 1.0f / Properties.Height };
+		data.Threshold = settings.Bloom.Threshold;
+		data.InputIndex = InputSRV.HeapIndex;
+		data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
 
 		RenderContext->TransitionBarrier(pOutput, DeviceResource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomMask);
-		RenderContext.SetRoot32BitConstants(0, 5, &settings, 0);
+		RenderContext.SetRoot32BitConstants(0, 5, &data, 0);
 
 		RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
 
@@ -238,7 +234,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 		auto pOutput1 = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget2a]);
 
-		struct BloomDownsample_Settings
+		struct BloomDownsample_SubPass_Data
 		{
 			float2 InverseOutputSize;
 			uint BloomIndex;
@@ -246,14 +242,14 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 			uint Output2Index;
 			uint Output3Index;
 			uint Output4Index;
-		} settings;
+		} data;
 
-		settings.InverseOutputSize = { 1.0f / Properties.Width, 1.0f / Properties.Height };
-		settings.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
-		settings.Output1Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget2a]).HeapIndex;
-		settings.Output2Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget3a]).HeapIndex;
-		settings.Output3Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget4a]).HeapIndex;
-		settings.Output4Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget5a]).HeapIndex;
+		data.InverseOutputSize = { 1.0f / Properties.Width, 1.0f / Properties.Height };
+		data.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
+		data.Output1Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget2a]).HeapIndex;
+		data.Output2Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget3a]).HeapIndex;
+		data.Output3Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget4a]).HeapIndex;
+		data.Output4Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget5a]).HeapIndex;
 
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget2a], DeviceResource::State::UnorderedAccess);
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget3a], DeviceResource::State::UnorderedAccess);
@@ -261,7 +257,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget5a], DeviceResource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomDownsample);
-		RenderContext.SetRoot32BitConstants(0, 7, &settings, 0);
+		RenderContext.SetRoot32BitConstants(0, 7, &data, 0);
 
 		RenderContext->Dispatch2D(Properties.Width / 2, Properties.Height / 2, 8, 8);
 
@@ -288,24 +284,24 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		auto pBloom = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1b]);
 		auto pOutput = RenderContext.GetTexture(Resources[EResources::RenderTarget]);
 
-		struct BloomComposition_Settings
+		struct BloomComposition_SubPass_Data
 		{
 			float2 InverseOutputSize;
 			float Intensity;
 			uint InputIndex;
 			uint BloomIndex;
 			uint OutputIndex;
-		} settings;
-		settings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
-		settings.Intensity = Settings.Bloom.Intensity;
-		settings.InputIndex = InputSRV.HeapIndex;
-		settings.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1b]).HeapIndex;
-		settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+		} data;
+		data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
+		data.Intensity = settings.Bloom.Intensity;
+		data.InputIndex = InputSRV.HeapIndex;
+		data.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1b]).HeapIndex;
+		data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 
 		RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomComposition);
-		RenderContext.SetRoot32BitConstants(0, 6, &settings, 0);
+		RenderContext.SetRoot32BitConstants(0, 6, &data, 0);
 
 		RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
@@ -332,17 +328,28 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 		{
 			PIXMarker(RenderContext->GetD3DCommandList(), L"Tonemap");
 
-			struct Tonemapping_Settings
+			struct Tonemapping_SubPass_Data
 			{
-				float Exposure;
 				uint InputIndex;
-			} settings;
-			settings.Exposure = Settings.Tonemapping.Exposure;
-			settings.InputIndex = Settings.ApplyBloom ? RenderContext.GetShaderResourceView(Resources[EResources::RenderTarget]).HeapIndex :
+
+				float MaximumBrightness;
+				float Contrast;
+				float LinearSectionStart;
+				float LinearSectionLength;
+				float BlackTightness_C;
+				float BlackTightness_B;
+			} data;
+			data.InputIndex				= settings.ApplyBloom ? RenderContext.GetShaderResourceView(Resources[EResources::RenderTarget]).HeapIndex :
 				InputSRV.HeapIndex;
+			data.MaximumBrightness		= granTurismoOperator.MaximumBrightness;
+			data.Contrast				= granTurismoOperator.Contrast;
+			data.LinearSectionStart		= granTurismoOperator.LinearSectionStart;
+			data.LinearSectionLength	= granTurismoOperator.LinearSectionLength;
+			data.BlackTightness_C		= granTurismoOperator.BlackTightness_C;
+			data.BlackTightness_B		= granTurismoOperator.BlackTightness_B;
 
 			RenderContext.SetPipelineState(GraphicsPSOs::PostProcess_Tonemapping);
-			RenderContext.SetRoot32BitConstants(0, 2, &settings, 0);
+			RenderContext.SetRoot32BitConstants(0, NumTonemapRootConstants, &data, 0);
 
 			RenderContext->DrawInstanced(3, 1, 0, 0);
 		}
@@ -365,21 +372,21 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 
 	auto pOutput = RenderContext.GetTexture(Resources[Output]);
 
-	struct BloomBlur_Settings
+	struct BloomBlur_SubPass_Data
 	{
 		float2 InverseOutputSize;
 		uint InputIndex;
 		uint OutputIndex;
-	} settings;
-	settings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
-	settings.InputIndex = RenderContext.GetShaderResourceView(Resources[Input]).HeapIndex;
-	settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
+	} data;
+	data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
+	data.InputIndex = RenderContext.GetShaderResourceView(Resources[Input]).HeapIndex;
+	data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
 
 	RenderContext.TransitionBarrier(Resources[Input], DeviceResource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[Output], DeviceResource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomBlur);
-	RenderContext.SetRoot32BitConstants(0, 4, &settings, 0);
+	RenderContext.SetRoot32BitConstants(0, 4, &data, 0);
 
 	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
@@ -392,26 +399,26 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 
 	auto pOutput = RenderContext.GetTexture(Resources[Output]);
 
-	struct BloomUpsampleBlurAccumulation_Settings
+	struct BloomUpsampleBlurAccumulation_SubPass_Data
 	{
 		float2 InverseOutputSize;
 		float UpsampleInterpolationFactor;
 		uint HighResolutionIndex;
 		uint LowResolutionIndex;
 		uint OutputIndex;
-	} settings;
-	settings.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
-	settings.UpsampleInterpolationFactor = 1.0f;
-	settings.HighResolutionIndex = RenderContext.GetShaderResourceView(Resources[HighResolution]).HeapIndex;
-	settings.LowResolutionIndex = RenderContext.GetShaderResourceView(Resources[LowResolution]).HeapIndex;
-	settings.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
+	} data;
+	data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
+	data.UpsampleInterpolationFactor = 0.65f;
+	data.HighResolutionIndex = RenderContext.GetShaderResourceView(Resources[HighResolution]).HeapIndex;
+	data.LowResolutionIndex = RenderContext.GetShaderResourceView(Resources[LowResolution]).HeapIndex;
+	data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
 
 	RenderContext.TransitionBarrier(Resources[HighResolution], DeviceResource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[LowResolution], DeviceResource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[Output], DeviceResource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation);
-	RenderContext.SetRoot32BitConstants(0, 6, &settings, 0);
+	RenderContext.SetRoot32BitConstants(0, 6, &data, 0);
 
 	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 

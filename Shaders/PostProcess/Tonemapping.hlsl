@@ -1,6 +1,8 @@
 #include "../ShaderLayout.hlsli"
 #include "../Quad.hlsl"
 
+#include "GranTurismoOperator.hlsli"
+
 // ACES tone mapping curve fit to go from HDR to LDR
 //https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 float3 ACESFilm(float3 x)
@@ -45,8 +47,14 @@ float3 SRGBToLinear(float3 rgb)
 
 cbuffer Settings : register(b0)
 {
-	float Exposure;
 	uint InputIndex;
+	
+	float MaximumBrightness;
+	float Contrast;
+	float LinearSectionStart;
+	float LinearSectionLength;
+	float BlackTightness_C;
+	float BlackTightness_B;
 };
 
 float4 PSMain(VSOutput IN) : SV_TARGET
@@ -57,13 +65,15 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	
 	float3 color = Input[pixel].rgb;
 	
-	// apply exposure (how long the shutter is open)
-	color *= Exposure;
-	
-	// convert unbounded HDR color range to SDR color range
-	color = ACESFilm(color);
-	
-	// convert from linear to sRGB for display
+	GranTurismoOperator GTOperator;
+	GTOperator.MaximumBrightness	= MaximumBrightness;
+	GTOperator.Contrast				= Contrast;
+	GTOperator.LinearSectionStart	= LinearSectionStart;
+	GTOperator.LinearSectionLength	= LinearSectionLength;
+	GTOperator.BlackTightness_C		= BlackTightness_C;
+	GTOperator.BlackTightness_B		= BlackTightness_B;
+		
+	color = ApplyGranTurismoOperator(color, GTOperator);
 	color = LinearToSRGB(color);
 	return float4(color, 1.0f);
 }

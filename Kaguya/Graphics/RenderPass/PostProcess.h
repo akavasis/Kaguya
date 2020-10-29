@@ -25,28 +25,34 @@ public:
 		NumResources
 	};
 
-	struct SSettings
+	struct Settings
 	{
-		bool			ApplyBloom	= true;
+		bool			ApplyBloom			= true;
 		struct Bloom
 		{
-			float		Threshold	= 8.0f;
-			float		Intensity	= 0.025f;
+			float		Threshold			= 4.0f;
+			float		Intensity			= 0.1f;
 		} Bloom;
-		struct Tonemapping
-		{
-			float		Exposure	= 0.5f;
-		} Tonemapping;
+	};
+
+	struct GranTurismoOperator
+	{
+		float			MaximumBrightness	= 1.0f;
+		float			Contrast			= 1.0f;
+		float			LinearSectionStart	= 0.22f;
+		float			LinearSectionLength = 0.4f;
+		float			BlackTightness_C	= 1.33f;
+		float			BlackTightness_B	= 0.0f;
 	};
 
 	PostProcess(UINT Width, UINT Height);
 protected:
-	virtual void InitializePipeline(RenderDevice* pRenderDevice) override;
-	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
-	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
-	virtual void RenderGui() override;
-	virtual void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
-	virtual void StateRefresh() override;
+	void InitializePipeline(RenderDevice* pRenderDevice) override;
+	void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
+	void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
+	void RenderGui() override;
+	void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
+	void StateRefresh() override;
 private:
 	void ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph);
 	void ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph);
@@ -54,5 +60,6 @@ private:
 	void Blur(size_t Input, size_t Output, RenderContext& RenderContext);
 	void UpsampleBlurAccumulation(size_t HighResolution, size_t LowResolution, size_t Output, RenderContext& RenderContext);
 
-	SSettings Settings;
+	Settings settings;
+	GranTurismoOperator granTurismoOperator;
 };
