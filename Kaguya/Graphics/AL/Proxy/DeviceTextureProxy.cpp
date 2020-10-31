@@ -12,6 +12,24 @@ DeviceTextureProxy::DeviceTextureProxy(DeviceResource::Type Type)
 	m_MipLevels			= 1;
 }
 
+D3D12_HEAP_PROPERTIES DeviceTextureProxy::BuildD3DHeapProperties() const
+{
+	return kDefaultHeapProps;
+}
+
+D3D12_RESOURCE_DESC DeviceTextureProxy::BuildD3DDesc() const
+{
+	const D3D12_RESOURCE_FLAGS ResourceFlags = GetD3DResourceFlags(BindFlags);
+	switch (m_Type)
+	{
+	case DeviceResource::Type::Texture1D:	return CD3DX12_RESOURCE_DESC::Tex1D(m_Format, m_Width, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
+	case DeviceResource::Type::Texture2D:	return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
+	case DeviceResource::Type::Texture3D:	return CD3DX12_RESOURCE_DESC::Tex3D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
+	case DeviceResource::Type::TextureCube: return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
+	default:								assert(false && __FUNCTION__); return D3D12_RESOURCE_DESC();
+	}
+}
+
 void DeviceTextureProxy::SetFormat(DXGI_FORMAT Format)
 {
 	m_Format = Format;
@@ -59,22 +77,4 @@ void DeviceTextureProxy::Link()
 	m_NumSubresources = IsArray ? m_DepthOrArraySize * m_MipLevels : m_MipLevels;
 
 	DeviceResourceProxy::Link();
-}
-
-D3D12_HEAP_PROPERTIES DeviceTextureProxy::BuildD3DHeapProperties() const
-{
-	return kDefaultHeapProps;
-}
-
-D3D12_RESOURCE_DESC DeviceTextureProxy::BuildD3DDesc() const
-{
-	const D3D12_RESOURCE_FLAGS ResourceFlags = GetD3DResourceFlags(BindFlags);
-	switch (m_Type)
-	{
-	case DeviceResource::Type::Texture1D:	return CD3DX12_RESOURCE_DESC::Tex1D(m_Format, m_Width, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
-	case DeviceResource::Type::Texture2D:	return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
-	case DeviceResource::Type::Texture3D:	return CD3DX12_RESOURCE_DESC::Tex3D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
-	case DeviceResource::Type::TextureCube: return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
-	default:								assert(false && __FUNCTION__); return D3D12_RESOURCE_DESC();
-	}
 }

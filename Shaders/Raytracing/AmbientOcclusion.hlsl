@@ -26,6 +26,7 @@ float TraceAmbientOcclusionRay(float3 origin, float tMin, float3 direction, floa
 	RayPayload rayPayload = { 0.0f };
 	RayDesc ray = { origin, tMin, direction, tMax };
 	
+	// Trace the ray
 	const uint flags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER;
 	const uint mask = 0xffffffff;
 	const uint hitGroupIndex = RayTypePrimary;

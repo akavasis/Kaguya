@@ -85,6 +85,8 @@ public:
 	[[nodiscard]] Shader CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
 	[[nodiscard]] Library CompileLibrary(const std::filesystem::path& Path);
 
+	DeviceResourceAllocationInfo GetDeviceResourceAllocationInfo(UINT NumDescs, DeviceBufferProxy* pDescs);
+
 	// Resource creation
 	[[nodiscard]] RenderResourceHandle CreateDeviceBuffer(std::function<void(DeviceBufferProxy&)> Configurator);
 	[[nodiscard]] RenderResourceHandle CreateDeviceBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceBufferProxy&)> Configurator);

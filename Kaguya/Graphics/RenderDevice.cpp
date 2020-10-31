@@ -92,6 +92,17 @@ Library RenderDevice::CompileLibrary(const std::filesystem::path& Path)
 	return m_ShaderCompiler.CompileLibrary(Path.c_str());
 }
 
+DeviceResourceAllocationInfo RenderDevice::GetDeviceResourceAllocationInfo(UINT NumDescs, DeviceBufferProxy* pDescs)
+{
+	std::vector<D3D12_RESOURCE_DESC> Descs(NumDescs);
+	for (UINT i = 0; i < NumDescs; ++i)
+	{
+		Descs[i] = pDescs[i].BuildD3DDesc();
+	}
+	auto AllocationInfo = Device.GetD3DDevice()->GetResourceAllocationInfo(0, NumDescs, Descs.data());
+	return { .SizeInBytes = AllocationInfo.SizeInBytes, .Alignment = AllocationInfo.Alignment };
+}
+
 RenderResourceHandle RenderDevice::CreateDeviceBuffer(std::function<void(DeviceBufferProxy&)> Configurator)
 {
 	DeviceBufferProxy proxy;

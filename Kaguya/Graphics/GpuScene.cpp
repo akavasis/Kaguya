@@ -377,7 +377,7 @@ size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, Devi
 
 void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Bottom Level AS Generation");
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Bottom Level Acceleration Structure Generation");
 
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
@@ -409,7 +409,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 
 void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Top Level AS Generation");
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Top Level Acceleration Structure Generation");
 
 	size_t hitGroupIndex = 0;
 	for (const auto& modelInstance : pScene->ModelInstances)
@@ -462,7 +462,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	DeviceBuffer* pResult			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Result);
 	DeviceBuffer* pInstanceDescs	= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
 
-	pResult->SetDebugName(L"RTTLAS Result");
+	pResult->SetDebugName(L"Ray Tracing Top Level Acceleration Structure");
 
 	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
 }

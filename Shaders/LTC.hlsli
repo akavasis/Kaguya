@@ -7,8 +7,22 @@ static const float LUT_SIZE = 64.0f;
 static const float LUT_SCALE = (LUT_SIZE - 1.0f) / LUT_SIZE;
 static const float LUT_BIAS = 0.5f / LUT_SIZE;
 
+struct LTCTerms
+{
+	float3x3	MinvS;
+	float3x3	MS;
+	float		MdetS;
+
+	float3x3	MinvD;
+	float3x3	MD;
+	float		MdetD;
+	
+	float		Magnitude;
+	float		Fresnel;
+};
+
 /* Get uv coordinates into LTC lookup texture */
-float2 GetLTCUV(float NoV, float roughness)
+float2 GetLTC_LUT_UV(float NoV, float roughness)
 {
 	float2 uv = float2(roughness, sqrt(1.0f - NoV));
 	uv = uv * LUT_SCALE + LUT_BIAS;
@@ -16,7 +30,7 @@ float2 GetLTCUV(float NoV, float roughness)
 }
 
 /* Get inverse matrix from LTC lookup texture */
-float3x3 GetLTCInverseMatrix(Texture2D Texture, SamplerState Sampler, float2 UV)
+float3x3 GetLTC_LUT_InverseMatrix(Texture2D Texture, SamplerState Sampler, float2 UV)
 {
 	float4 v = Texture.SampleLevel(Sampler, UV, 0.0f);
 	float3x3 invM = float3x3(
@@ -28,7 +42,7 @@ float3x3 GetLTCInverseMatrix(Texture2D Texture, SamplerState Sampler, float2 UV)
 }
 
 /* Get terms from LTC lookup texture */
-float4 GetLTCTerms(Texture2D Texture, SamplerState Sampler, float2 UV)
+float4 GetLTC_LUT_Terms(Texture2D Texture, SamplerState Sampler, float2 UV)
 {
 	return Texture.SampleLevel(Sampler, UV, 0.0f);
 }
@@ -158,18 +172,16 @@ void ClipQuadToHorizon(inout float3 L[5], out int n)
 		L[4] = L[0];
 }
 
-float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4], bool twoSided)
+float LTC_Evaluate(float3 P, float3x3 Minv, float3 points[4], bool twoSided)
 {
-    // Rotate area light in (T1, T2, N) basis
-	float3 T1, T2;
-	T1 = normalize(V - N * dot(V, N));
-	T2 = cross(N, T1);
-	float3x3 Rinv = float3x3(T1, T2, N);
-	float3x3 R = transpose(Rinv);
-
 	// MInv matrix is expected to be multiplied by a World to Tangent space matrix 
-    // rotate area light in (T1, T2, N) basis
-	Minv = mul(R, Minv);
+	// Rotate area light in (T1, T2, N) basis
+	//float3 T1, T2;
+	//T1 = normalize(V - N * dot(V, N));
+	//T2 = cross(N, T1);
+	//float3x3 Rinv = float3x3(T1, T2, N);
+	//float3x3 R = transpose(Rinv);
+	//Minv = mul(R, Minv);
 
     // polygon (allocate 5 vertices for clipping)
 	float3 L[5];
@@ -182,30 +194,52 @@ float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4
 	ClipQuadToHorizon(L, n);
 
 	if (n == 0)
-		return float3(0, 0, 0);
+		return 0.0f;
 
+	// Project onto sphere
 	L[0] = normalize(L[0]);
 	L[1] = normalize(L[1]);
 	L[2] = normalize(L[2]);
 	L[3] = normalize(L[3]);
 	L[4] = normalize(L[4]);
 
-	float sum = 0.0;
-	sum += IntegrateEdge(L[0], L[1]);
-	sum += IntegrateEdge(L[1], L[2]);
-	sum += IntegrateEdge(L[2], L[3]);
+	// Integrate
+	float Lo_i = 0.0f;
+	Lo_i += IntegrateEdge(L[0], L[1]);
+	Lo_i += IntegrateEdge(L[1], L[2]);
+	Lo_i += IntegrateEdge(L[2], L[3]);
 
 	if (n >= 4)
-		sum += IntegrateEdge(L[3], L[4]);
+		Lo_i += IntegrateEdge(L[3], L[4]);
 
 	if (n == 5)
-		sum += IntegrateEdge(L[4], L[0]);
+		Lo_i += IntegrateEdge(L[4], L[0]);
 
-	sum = twoSided ? abs(sum) : max(0.0, sum);
+	return twoSided ? abs(Lo_i) : max(0.0f, Lo_i);
+}
 
-	float3 Lo_i = float3(sum, sum, sum);
+/* L = vector to the light from the surface */
+float LTC_Sample_PDF(float3x3 MInv, float MDet, float3 L)
+{
+	float3 LCosine = mul(MInv, L);
+	float l2 = dot(LCosine, LCosine);
+	float Jacobian = MDet * l2 * l2;
 
-	return Lo_i;
+	return max(LCosine.z, 0.0f) / (s_PI * Jacobian);
+}
+
+float3 LTC_Sample_Vector(float3x3 M, float u1, float u2)
+{
+	float ct = sqrt(u1);
+	float st = sqrt(1.0f - u1);
+	float phi = 2.0f * s_PI * u2;
+
+	float3 dir = float3(st * cos(phi), st * sin(phi), ct);
+
+	float3 L = mul(M, dir);
+	float3 w_i = normalize(L);
+
+	return w_i;
 }
 
 #endif

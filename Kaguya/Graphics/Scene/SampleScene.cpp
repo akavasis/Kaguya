@@ -408,29 +408,30 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 
 		// Plane
 		{
-			auto& concrete = Scene.AddMaterial(MaterialLoader.LoadMaterial(
-				"Assets/Textures/Concrete19/Concrete19_col.dds",
-				"Assets/Textures/Concrete19/Concrete19_nrm.dds",
-				"Assets/Textures/Concrete19/Concrete19_rgh.dds",
-				0,
+			auto& metal = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+				"Assets/Textures/modern-tile1/modern-tile1-albedo.dds",
+				"Assets/Textures/modern-tile1/modern-tile1-normal-ogl.dds",
+				"Assets/Textures/modern-tile1/modern-tile1-roughness.dds",
+				"Assets/Textures/modern-tile1/modern-tile1-metallic.dds",
 				0));
-			auto& plane = Scene.AddModel(CreateGrid(100.0f, 100.0f, 2, 2));
+			
+			auto& plane = Scene.AddModel(CreateGrid(50.0f, 50.0f, 2, 2));
 
-			auto& floorInstance = Scene.AddModelInstance({ &plane, &concrete });
+			auto& floorInstance = Scene.AddModelInstance({ &plane, &metal });
 		}
 
 		// Box
 		{
-			auto& metal = Scene.AddMaterial(MaterialLoader.LoadMaterial(
-				"Assets/Textures/Metal07/Metal07_col.dds",
-				"Assets/Textures/Metal07/Metal07_nrm.dds",
-				"Assets/Textures/Metal07/Metal07_rgh.dds",
-				"Assets/Textures/Metal07/Metal07_met.dds",
+			auto& alienMetal = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+				"Assets/Textures/alien-metal1/alien-metal_albedo.dds",
+				"Assets/Textures/alien-metal1/alien-metal_normal-ogl.dds",
+				"Assets/Textures/alien-metal1/alien-metal_roughness.dds",
+				"Assets/Textures/alien-metal1/alien-metal_metallic.dds",
 				0));
 
 			auto& box = Scene.AddModel(CreateBox(2.5, 2.5, 2.5, 1));
 
-			auto& boxInstance = Scene.AddModelInstance({ &box, &metal });
+			auto& boxInstance = Scene.AddModelInstance({ &box, &alienMetal });
 			boxInstance.Translate(0, 1.25, -4);
 			boxInstance.Rotate(0, 45.0_Deg, 0);
 		}

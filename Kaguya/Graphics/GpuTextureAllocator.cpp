@@ -63,14 +63,16 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* SV_pRenderDevice)
 		}
 	}
 
-	m_SystemReservedTextures[DefaultWhite]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultWhite.dds", false, false);
-	m_SystemReservedTextures[DefaultBlack]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultBlack.dds", false, false);
-	m_SystemReservedTextures[DefaultAlbedo]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultAlbedoMap.dds", true, false);
-	m_SystemReservedTextures[DefaultNormal]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultNormalMap.dds", false, false);
-	m_SystemReservedTextures[DefaultRoughness]			= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultRoughnessMap.dds", false, false);
-	m_SystemReservedTextures[BRDFLUT]					= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/BRDF.dds", false, false);
-	m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]	= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_GGX_InverseMatrix.dds", false, false);
-	m_SystemReservedTextures[LTC_LUT_GGX_Terms]			= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_GGX_Terms.dds", false, false);
+	m_SystemReservedTextures[DefaultWhite]							= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultWhite.dds", false, false);
+	m_SystemReservedTextures[DefaultBlack]							= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultBlack.dds", false, false);
+	m_SystemReservedTextures[DefaultAlbedo]							= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultAlbedoMap.dds", true, false);
+	m_SystemReservedTextures[DefaultNormal]							= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultNormalMap.dds", false, false);
+	m_SystemReservedTextures[DefaultRoughness]						= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultRoughnessMap.dds", false, false);
+	m_SystemReservedTextures[BRDFLUT]								= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/BRDF.dds", false, false);
+	m_SystemReservedTextures[LTC_LUT_DisneyDiffuse_InverseMatrix]	= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_DisneyDiffuse_InverseMatrix.dds", false, false);
+	m_SystemReservedTextures[LTC_LUT_DisneyDiffuse_Terms]			= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_DisneyDiffuse_Terms.dds", false, false);
+	m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_GGX_InverseMatrix.dds", false, false);
+	m_SystemReservedTextures[LTC_LUT_GGX_Terms]						= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_GGX_Terms.dds", false, false);
 }
 
 void GpuTextureAllocator::StageSystemReservedTextures(RenderContext& RenderContext)

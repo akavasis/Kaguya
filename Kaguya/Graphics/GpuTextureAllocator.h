@@ -13,15 +13,17 @@ class GpuTextureAllocator
 public:
 	GpuTextureAllocator(RenderDevice* SV_pRenderDevice);
 
-	inline auto GetDefaultWhiteTexture()				{ return m_SystemReservedTextures[DefaultWhite]; }
-	inline auto GetDefaultBlackTexture()				{ return m_SystemReservedTextures[DefaultBlack]; }
-	inline auto GetDefaultAlbedoTexture()				{ return m_SystemReservedTextures[DefaultAlbedo]; }
-	inline auto GetDefaultNormalTexture()				{ return m_SystemReservedTextures[DefaultNormal]; }
-	inline auto GetDefaultRoughnessTexture()			{ return m_SystemReservedTextures[DefaultRoughness]; }
-	inline auto GetBRDFLUTTexture()						{ return m_SystemReservedTextures[BRDFLUT]; }
-	inline auto GetLTC_LUT_GGX_InverseMatrixTexture()	{ return m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]; }
-	inline auto GetLTC_LUT_GGX_TermsTexture()			{ return m_SystemReservedTextures[LTC_LUT_GGX_Terms]; }
-	inline auto GetSkyboxTexture()						{ return m_SystemReservedTextures[SkyboxCubemap]; }
+	inline auto GetDefaultWhiteTexture()						{ return m_SystemReservedTextures[DefaultWhite]; }
+	inline auto GetDefaultBlackTexture()						{ return m_SystemReservedTextures[DefaultBlack]; }
+	inline auto GetDefaultAlbedoTexture()						{ return m_SystemReservedTextures[DefaultAlbedo]; }
+	inline auto GetDefaultNormalTexture()						{ return m_SystemReservedTextures[DefaultNormal]; }
+	inline auto GetDefaultRoughnessTexture()					{ return m_SystemReservedTextures[DefaultRoughness]; }
+	inline auto GetBRDFLUTTexture()								{ return m_SystemReservedTextures[BRDFLUT]; }
+	inline auto GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture() { return m_SystemReservedTextures[LTC_LUT_DisneyDiffuse_InverseMatrix]; }
+	inline auto GetLTC_LUT_DisneyDiffuse_TermsTexture()			{ return m_SystemReservedTextures[LTC_LUT_DisneyDiffuse_Terms]; }
+	inline auto GetLTC_LUT_GGX_InverseMatrixTexture()			{ return m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]; }
+	inline auto GetLTC_LUT_GGX_TermsTexture()					{ return m_SystemReservedTextures[LTC_LUT_GGX_Terms]; }
+	inline auto GetSkyboxTexture()								{ return m_SystemReservedTextures[SkyboxCubemap]; }
 
 	void StageSystemReservedTextures(RenderContext& RenderContext);
 	void Stage(Scene& Scene, RenderContext& RenderContext);
@@ -35,6 +37,8 @@ private:
 		DefaultNormal,
 		DefaultRoughness,
 		BRDFLUT,
+		LTC_LUT_DisneyDiffuse_InverseMatrix,
+		LTC_LUT_DisneyDiffuse_Terms,
 		LTC_LUT_GGX_InverseMatrix,
 		LTC_LUT_GGX_Terms,
 		SkyboxEquirectangularMap,

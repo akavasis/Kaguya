@@ -18,19 +18,25 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 		enum Symbols
 		{
 			RayGeneration,
+			ShadowMiss,
+			ShadowClosestHit,
 			NumSymbols
 		};
 
 		const LPCWSTR symbols[NumSymbols] =
 		{
-			ENUM_TO_LSTR(RayGeneration)
+			ENUM_TO_LSTR(RayGeneration),
+			ENUM_TO_LSTR(ShadowMiss),
+			ENUM_TO_LSTR(ShadowClosestHit),
 		};
 
 		const Library* pRaytraceLibrary = &Libraries::Shading;
 
 		proxy.AddLibrary(pRaytraceLibrary,
 			{
-				symbols[RayGeneration]
+				symbols[RayGeneration],
+				symbols[ShadowMiss],
+				symbols[ShadowClosestHit]
 			});
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
@@ -43,13 +49,15 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 		// closest-hit shaders share the same root signature.
 		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
 			{
-				symbols[RayGeneration]
+				symbols[RayGeneration],
+				symbols[ShadowMiss],
+				symbols[ShadowClosestHit],
 			});
 
 		proxy.SetGlobalRootSignature(pGlobalRootSignature);
 
 		proxy.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
-		proxy.SetRaytracingPipelineConfig(8);
+		proxy.SetRaytracingPipelineConfig(2);
 	});
 }
 
@@ -111,22 +119,26 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		int TypeAndIndex;
 		int DepthStencil;
 
+		int LTC_LUT_DisneyDiffuse_InverseMatrix;
+		int LTC_LUT_DisneyDiffuse_Terms;
 		int LTC_LUT_GGX_InverseMatrix;
 		int LTC_LUT_GGX_Terms;
 
 		int RenderTarget;
 	} Data;
 
-	Data.Position					= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Position]).HeapIndex;
-	Data.Normal						= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
-	Data.Albedo						= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;
-	Data.TypeAndIndex				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
-	Data.DepthStencil				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::DepthStencil]).HeapIndex;
+	Data.Position								= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Position]).HeapIndex;
+	Data.Normal									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
+	Data.Albedo									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;
+	Data.TypeAndIndex							= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
+	Data.DepthStencil							= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::DepthStencil]).HeapIndex;
 
-	Data.LTC_LUT_GGX_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
-	Data.LTC_LUT_GGX_Terms			= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
+	Data.LTC_LUT_DisneyDiffuse_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture()).HeapIndex;
+	Data.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;
+	Data.LTC_LUT_GGX_InverseMatrix				= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
+	Data.LTC_LUT_GGX_Terms						= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
 	
-	Data.RenderTarget				= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	Data.RenderTarget							= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 	
 	RenderContext.UpdateRenderPassData<ShadingData>(Data);
 

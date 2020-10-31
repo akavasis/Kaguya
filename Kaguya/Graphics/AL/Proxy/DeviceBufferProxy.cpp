@@ -11,6 +11,21 @@ DeviceBufferProxy::DeviceBufferProxy()
 	m_pOptionalDataForUpload	= nullptr;
 }
 
+D3D12_HEAP_PROPERTIES DeviceBufferProxy::BuildD3DHeapProperties() const
+{
+	switch (m_CpuAccess)
+	{
+	case DeviceBuffer::CpuAccess::Write:	return kUploadHeapProps;
+	case DeviceBuffer::CpuAccess::Read:		return kReadbackHeapProps;
+	default:								return kDefaultHeapProps;
+	}
+}
+
+D3D12_RESOURCE_DESC DeviceBufferProxy::BuildD3DDesc() const
+{
+	return CD3DX12_RESOURCE_DESC::Buffer(m_SizeInBytes, GetD3DResourceFlags(BindFlags));
+}
+
 void DeviceBufferProxy::SetSizeInBytes(UINT64 SizeInBytes)
 {
 	m_SizeInBytes = SizeInBytes;
@@ -44,19 +59,4 @@ void DeviceBufferProxy::Link()
 	}
 
 	DeviceResourceProxy::Link();
-}
-
-D3D12_HEAP_PROPERTIES DeviceBufferProxy::BuildD3DHeapProperties() const
-{
-	switch (m_CpuAccess)
-	{
-	case DeviceBuffer::CpuAccess::Write:	return kUploadHeapProps;
-	case DeviceBuffer::CpuAccess::Read:		return kReadbackHeapProps;
-	default:								return kDefaultHeapProps;
-	}
-}
-
-D3D12_RESOURCE_DESC DeviceBufferProxy::BuildD3DDesc() const
-{
-	return CD3DX12_RESOURCE_DESC::Buffer(m_SizeInBytes, GetD3DResourceFlags(BindFlags));
 }

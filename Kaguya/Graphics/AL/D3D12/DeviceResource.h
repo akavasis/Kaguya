@@ -7,6 +7,12 @@
 class Device;
 class DeviceResourceProxy;
 
+struct DeviceResourceAllocationInfo
+{
+	UINT64 SizeInBytes;
+	UINT64 Alignment;
+};
+
 class DeviceResource
 {
 public:

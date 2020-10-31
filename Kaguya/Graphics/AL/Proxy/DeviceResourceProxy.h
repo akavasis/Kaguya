@@ -10,12 +10,13 @@ public:
 	friend class DeviceResource;
 	DeviceResourceProxy(DeviceResource::Type Type);
 
+	virtual D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const = 0;
+	virtual D3D12_RESOURCE_DESC BuildD3DDesc() const = 0;
+
 	DeviceResource::BindFlags			BindFlags;			//< Default value: None
 	DeviceResource::State				InitialState;		//< Default value: Unknown
 protected:
 	void Link() override;
-	virtual D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const = 0;
-	virtual D3D12_RESOURCE_DESC BuildD3DDesc() const = 0;
 
 	DeviceResource::Type				m_Type;				//< Default value: constructor value
 	UINT								m_NumSubresources;	//< Default value: 0, this is set automatically

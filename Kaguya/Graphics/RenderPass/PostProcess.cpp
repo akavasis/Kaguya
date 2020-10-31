@@ -408,7 +408,7 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 		uint OutputIndex;
 	} data;
 	data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
-	data.UpsampleInterpolationFactor = 0.65f;
+	data.UpsampleInterpolationFactor = 0.5f;
 	data.HighResolutionIndex = RenderContext.GetShaderResourceView(Resources[HighResolution]).HeapIndex;
 	data.LowResolutionIndex = RenderContext.GetShaderResourceView(Resources[LowResolution]).HeapIndex;
 	data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
