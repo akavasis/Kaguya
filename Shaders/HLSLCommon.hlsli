@@ -5,6 +5,7 @@
 #include "SharedTypes.hlsli"
 #include "Constants.hlsli"
 #include "Sampling.hlsli"
+#include "Collision.hlsli"
 
 float3 CartesianToSpherical(float x, float y, float z)
 {
@@ -36,6 +37,11 @@ float3x3 GetTBNMatrix(float3 normal)
 	float3 tangent, bitangent;
 	CoordinateSystem(normal, tangent, bitangent);
 	return float3x3(tangent, bitangent, normal);
+}
+
+float RGBToCIELuminance(float3 RGB)
+{
+	return dot(RGB, float3(0.212671f, 0.715160f, 0.072169f));
 }
 
 #endif

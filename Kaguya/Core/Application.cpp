@@ -42,7 +42,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 		// Begin our render thread
 		Application::pRenderSystem	= pRenderSystem;
 		ExitRenderThread			= false;
-		RenderThread				= new std::thread(RenderThreadMain);
+		RenderThread				= std::thread(RenderThreadMain);
 
 		MSG msg = {};
 		while (msg.message != WM_QUIT)
@@ -93,14 +93,12 @@ int Application::Run(RenderSystem* pRenderSystem)
 		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
 
-	if (RenderThread)
+	if (RenderThread.joinable())
 	{
 		ExitRenderThread = true;
 
 		// Join the thread
-		RenderThread->join();
-		delete RenderThread;
-		RenderThread = nullptr;
+		RenderThread.join();
 	}
 
 	if (Application::pRenderSystem)

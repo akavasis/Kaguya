@@ -5,6 +5,8 @@ namespace HLSL
 {
 	struct PolygonalLight
 	{
+		float3	Position;
+		float4	Orientation;
 		matrix	World;
 		float3	Color;
 		float	Luminance;

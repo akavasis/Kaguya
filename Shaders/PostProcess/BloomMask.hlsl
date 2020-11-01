@@ -59,6 +59,8 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 	float weight3 = 1.0f / (luma3 + kShimmerFilterInverseStrength);
 	float weight4 = 1.0f / (luma4 + kShimmerFilterInverseStrength);
 	float weightSum = weight1 + weight2 + weight3 + weight4;
-
-	Output[DTid.xy] = float4((color1 * weight1 + color2 * weight2 + color3 * weight3 + color4 * weight4) / weightSum, 0.0f);
+	
+	float4 result = float4((color1 * weight1 + color2 * weight2 + color3 * weight3 + color4 * weight4) / weightSum, 0.0f);
+	if (!any(isnan(result)))
+		Output[DTid.xy] = result;
 }

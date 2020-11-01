@@ -50,7 +50,7 @@ struct RaytracingInstanceDesc
 	UINT InstanceID;
 	UINT InstanceMask;
 
-	UINT HitGroupIndex;
+	UINT InstanceContributionToHitGroupIndex;
 };
 
 class TopLevelAccelerationStructure

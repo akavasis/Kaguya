@@ -8,13 +8,15 @@ struct ShadingData
 	int Albedo;
 	int TypeAndIndex;
 	int DepthStencil;
-	
+
 	int LTC_LUT_DisneyDiffuse_InverseMatrix;
 	int LTC_LUT_DisneyDiffuse_Terms;
 	int LTC_LUT_GGX_InverseMatrix;
 	int LTC_LUT_GGX_Terms;
-	
-	int RenderTarget;
+	int BlueNoise;
+
+	int AnalyticUnshadowed;
+	int StochasticUnshadowed;
 };
 #define RenderPassDataType ShadingData
 #include "Global.hlsli"
@@ -25,10 +27,52 @@ struct ShadingResult
 	float3 StochasticUnshadowed;
 };
 
+struct LightSample
+{
+	float3 IntersectionPoint;
+	float PDF;
+};
+
 void InitShadingResult(out ShadingResult shadingResult)
 {
 	shadingResult.AnalyticUnshadowed = 0.0.xxx;
 	shadingResult.StochasticUnshadowed = 0.0.xxx;
+}
+
+void InitLightSample(out LightSample lightSample)
+{
+	lightSample.IntersectionPoint = 0.0.xxx;
+	lightSample.PDF = -1.0f;
+}
+
+LightSample SampleRectLight(PolygonalLight light, float3 lightPoints[4], float samplePDF, float3 surfacePoint, float3 samplingVector)
+{
+	Ray ray = InitRay(surfacePoint, samplingVector);
+	Plane plane = InitPlane(light.Orientation.xyz, light.Position.xyz);
+	LightSample lightSample;
+	InitLightSample(lightSample);
+
+	float3 intersectionPoint;
+	if (RayPlaneIntersection(ray, plane, intersectionPoint))
+	{
+		float3 localPoint = intersectionPoint - light.Position.xyz;
+		float3 zAlignedPoint = mul(transpose((float3x3) light.World), localPoint);
+
+		float hw = light.Width * 0.5;
+		float hh = light.Height * 0.5;
+
+		bool pointInsideRect =
+            all(zAlignedPoint.xy >= float2(-hw, -hh)) &&
+            all(zAlignedPoint.xy <= float2(hw, hh));
+
+		if (pointInsideRect)
+		{
+			lightSample.IntersectionPoint = intersectionPoint;
+			lightSample.PDF = samplePDF;
+		}
+	}
+
+	return lightSample;
 }
 
 float3x3 inverse(float3x3 m)
@@ -82,7 +126,7 @@ void GetLTCTerms(float3 N, float3 V, float roughness, out LTCTerms ltcTerms)
 	ltcTerms.Fresnel = terms.y;
 }
 
-float3 ShadeWithAreaLight(float3 P, float3 diffuse, float3 specular, LTCTerms ltcTerms, float3 points[4])
+float3 ShadeWithAreaLight(float3 P, float3 diffuse, float3 specular, LTCTerms ltcTerms, float3 points[4], out float diffProb, out float brdfProb)
 {
 	// Apply BRDF magnitude and Fresnel
 	specular = specular * ltcTerms.Magnitude + (1.0.xxx - specular) * ltcTerms.Fresnel;
@@ -94,7 +138,32 @@ float3 ShadeWithAreaLight(float3 P, float3 diffuse, float3 specular, LTCTerms lt
 	float diffuseLobe = LTC_Evaluate(P, ltcTerms.MinvD, points, true);
 	diffuse *= diffuseLobe;
 	
+	float specMag = RGBToCIELuminance(specular);
+	float diffMag = RGBToCIELuminance(diffuse);
+	
+	diffProb = diffMag / max(diffMag + specMag, 1e-5);
+	brdfProb = lerp(specularLobe, diffuseLobe, diffProb);
+	
 	return specular + diffuse;
+}
+
+float3 BRDFEval(float3 diffuse, float3 specular, LTCTerms ltcTerms, float3 w_i, float diffProb, out float pdf)
+{
+	float specPDF = LTC_Sample_PDF(ltcTerms.MinvS, ltcTerms.MdetS, w_i);
+	float diffPDF = LTC_Sample_PDF(ltcTerms.MinvD, ltcTerms.MdetD, w_i);
+
+    // (Could be precomputed)
+	specular = specular * ltcTerms.Magnitude + (1.0.xxx - specular) * ltcTerms.Fresnel;
+
+	pdf = lerp(specPDF, diffPDF, diffProb);
+
+	return specular * specPDF + diffuse * diffPDF;
+}
+
+float3 BRDFSample(bool bSpec, float u1, float u2, LTCTerms ltcTerms)
+{
+	float3x3 m = bSpec ? ltcTerms.MS : ltcTerms.MD;
+	return LTC_Sample_Vector(m, u1, u2);
 }
 
 struct RayPayload
@@ -132,6 +201,9 @@ float TraceShadowRay(float3 Origin, float TMin, float3 Direction, float TMax)
 [shader("raygeneration")]
 void RayGeneration()
 {
+	// Distance bias to avoid self-shadowing
+	const float epsilon = 0.005f;
+	
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
 	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(g_SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
@@ -151,7 +223,6 @@ void RayGeneration()
 	
 	uint GBufferType = GetGBufferType(GBuffer, launchIndex);
 	
-	float3 color = float3(0.0f, 0.0f, 0.0f);
 	if (GBufferType == GBufferTypeMesh)
 	{
 		GBufferMesh GBufferMesh = GetGBufferMesh(GBuffer, launchIndex);
@@ -162,6 +233,8 @@ void RayGeneration()
 		
 		LTCTerms ltcTerms;
 		GetLTCTerms(normal, viewDir, GBufferMesh.Roughness, ltcTerms);
+		Texture2D BlueNoise = g_Texture2DTable[g_RenderPassData.BlueNoise];
+		float4 blueNoise = BlueNoise.SampleLevel(SamplerLinearClamp, launchIndex & 127.xx, 0.0f);
 		
 		float3 specular = lerp(float3(0.04f, 0.04f, 0.04f), GBufferMesh.Albedo, GBufferMesh.Metallic);
 		float3 diffuse = GBufferMesh.Albedo;
@@ -191,22 +264,89 @@ void RayGeneration()
 			points[2] = p1 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
 			points[3] = p0 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
 			
-			// float Visibility = TraceShadowRay(position, 0.001f, )
+			float3 ex = points[1] - points[0];
+			float3 ey = points[3] - points[0];
+			SphericalRectangle squad = SphericalRectangleInit(points[0], ex, ey, position);
+			
+			float diffProb, brdfProb;
 
-			color += (Light.Color * Light.Luminance) * (ShadeWithAreaLight(position, diffuse, specular, ltcTerms, points));
+			shadingResult.AnalyticUnshadowed += (Light.Color * Light.Luminance) * (ShadeWithAreaLight(position, diffuse, specular, ltcTerms, points, diffProb, brdfProb));
+		
+			// Used for 2D position on light/BRDF
+			const float u1 = frac(Random(i + g_SystemConstants.TotalFrameCount) + blueNoise.r);
+			const float u2 = frac(Random(i + g_SystemConstants.TotalFrameCount + 1) + blueNoise.g);
+			
+			// Choosing BRDF lobes
+			const float u3 = frac(Random(i + g_SystemConstants.TotalFrameCount + 2) + blueNoise.b);
+			
+			// Choosing between light and BRDF sampling
+			const float u4 = frac(Random(i + g_SystemConstants.TotalFrameCount + 3) + blueNoise.a);
+		
+			// BRDF sample
+			if (u4 <= brdfProb)
+			{
+				// Randomly pick specular or diffuse lobe based on diffuse probability
+				const bool bSpec = u3 > diffProb;
+				
+				// Importance sample the BRDF
+				float3 wi = BRDFSample(bSpec, u1, u2, ltcTerms);
+				Ray ray = InitRay(position, 0.0f, wi, 1e6);
+				Plane plane = InitPlane(Light.Orientation.xyz, Light.Position.xyz);
+				float3 intersectionPoint;
+				if (RayPlaneIntersection(ray, plane, intersectionPoint))
+				{
+					float3 delta = intersectionPoint - position;
+					float len = length(delta);
+					
+					float lightPDF = 1.0f / squad.SolidAngle;
+					
+					float brdfPDF;
+					float3 f = BRDFEval(diffuse, specular, ltcTerms, wi, diffProb, brdfPDF);
+					
+					const float misPDF = lerp(lightPDF, brdfPDF, brdfProb);
+					
+					// This test should almost never fail because we just importance sampled from the BRDF.
+					// Only an all black BRDF or a precision issue could trigger this.
+					if (brdfPDF > 0.0f)
+					{
+						// Stochastic estimate of incident light, without shadow
+						// Note: projection cosine dot(w_i, n) is baked into the LTC-based BRDF
+						float3 L_i = (Light.Color * Light.Luminance) * f / misPDF;
+
+						shadingResult.StochasticUnshadowed += L_i;
+
+						bool veryClose = (len < epsilon);
+
+						if (!veryClose)
+						{
+							// Cast the shadow ray from the source towards the surface 
+							// so that shadowing is consistent with front faces from the 
+							// light's perspective. There's no reason to cast from the light
+							// for coherence because this is an area source.
+							//ray0Origin = Vector4(Y, 0.0f);
+							//ray0Direction = Vector4(-wi, max(len - epsilon, epsilon));
+							//ray0Contribution = L_i;
+						}
+					}
+				}
+			}
 		}
 	}
 	else if (GBufferType == GBufferTypeLight)
 	{
 		GBufferLight GBufferLight = GetGBufferLight(GBuffer, launchIndex);
 		PolygonalLight Light = Lights[GBufferLight.LightIndex];
-		color = (Light.Color * Light.Luminance);
+		shadingResult.AnalyticUnshadowed = (Light.Color * Light.Luminance);
 	}
 	
-	color = ExposeLuminance(color, g_SystemConstants.Camera);
+	shadingResult.AnalyticUnshadowed = ExposeLuminance(shadingResult.AnalyticUnshadowed, g_SystemConstants.Camera);
+	shadingResult.StochasticUnshadowed = ExposeLuminance(shadingResult.StochasticUnshadowed, g_SystemConstants.Camera);
 	
-	RWTexture2D<float4> RenderTarget = g_RWTexture2DTable[g_RenderPassData.RenderTarget];
-	RenderTarget[launchIndex] = float4(color, 1.0f);
+	RWTexture2D<float4> AnalyticUnshadowed = g_RWTexture2DTable[g_RenderPassData.AnalyticUnshadowed];
+	RWTexture2D<float4> StochasticUnshadowed = g_RWTexture2DTable[g_RenderPassData.StochasticUnshadowed];
+	
+	AnalyticUnshadowed[launchIndex] = float4(shadingResult.AnalyticUnshadowed, 1.0f);
+	StochasticUnshadowed[launchIndex] = float4(shadingResult.StochasticUnshadowed, 1.0f);
 }
 
 [shader("miss")]

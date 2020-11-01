@@ -23,6 +23,7 @@ public:
 	inline auto GetLTC_LUT_DisneyDiffuse_TermsTexture()			{ return m_SystemReservedTextures[LTC_LUT_DisneyDiffuse_Terms]; }
 	inline auto GetLTC_LUT_GGX_InverseMatrixTexture()			{ return m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]; }
 	inline auto GetLTC_LUT_GGX_TermsTexture()					{ return m_SystemReservedTextures[LTC_LUT_GGX_Terms]; }
+	inline auto GetBlueNoise()									{ return m_SystemReservedTextures[BlueNoise]; }
 	inline auto GetSkyboxTexture()								{ return m_SystemReservedTextures[SkyboxCubemap]; }
 
 	void StageSystemReservedTextures(RenderContext& RenderContext);
@@ -41,6 +42,7 @@ private:
 		LTC_LUT_DisneyDiffuse_Terms,
 		LTC_LUT_GGX_InverseMatrix,
 		LTC_LUT_GGX_Terms,
+		BlueNoise,
 		SkyboxEquirectangularMap,
 		SkyboxCubemap,
 		NumSystemReservedTextures

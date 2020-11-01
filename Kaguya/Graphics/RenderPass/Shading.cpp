@@ -63,14 +63,17 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 
 void Shading::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
-	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	for (UINT i = 0; i < NumResources; ++i)
 	{
-		proxy.SetFormat(Properties.Format);
-		proxy.SetWidth(Properties.Width);
-		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-		proxy.InitialState = DeviceResource::State::UnorderedAccess;
-	});
+		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		{
+			proxy.SetFormat(Properties.Format);
+			proxy.SetWidth(Properties.Width);
+			proxy.SetHeight(Properties.Height);
+			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
+			proxy.InitialState = DeviceResource::State::UnorderedAccess;
+		});
+	}
 }
 
 void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
@@ -123,8 +126,10 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		int LTC_LUT_DisneyDiffuse_Terms;
 		int LTC_LUT_GGX_InverseMatrix;
 		int LTC_LUT_GGX_Terms;
+		int BlueNoise;
 
-		int RenderTarget;
+		int AnalyticUnshadowed;
+		int StochasticUnshadowed;
 	} Data;
 
 	Data.Position								= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Position]).HeapIndex;
@@ -137,12 +142,15 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	Data.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;
 	Data.LTC_LUT_GGX_InverseMatrix				= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
 	Data.LTC_LUT_GGX_Terms						= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
+	Data.BlueNoise								= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetBlueNoise()).HeapIndex;
 	
-	Data.RenderTarget							= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	Data.AnalyticUnshadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::AnalyticUnshadowed]).HeapIndex;
+	Data.StochasticUnshadowed					= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticUnshadowed]).HeapIndex;
 	
 	RenderContext.UpdateRenderPassData<ShadingData>(Data);
 
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
+	RenderContext.TransitionBarrier(Resources[EResources::AnalyticUnshadowed], DeviceResource::State::UnorderedAccess);
+	RenderContext.TransitionBarrier(Resources[EResources::StochasticUnshadowed], DeviceResource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Shading);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
@@ -159,7 +167,8 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		Properties.Width,
 		Properties.Height);
 
-	RenderContext.UAVBarrier(Resources[EResources::RenderTarget]);
+	RenderContext.UAVBarrier(Resources[EResources::AnalyticUnshadowed]);
+	RenderContext.UAVBarrier(Resources[EResources::StochasticUnshadowed]);
 }
 
 void Shading::StateRefresh()

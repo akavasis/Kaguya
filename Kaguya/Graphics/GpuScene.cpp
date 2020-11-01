@@ -21,18 +21,23 @@ namespace
 HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
 {
 	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Light.Transform.Matrix()));
-	return {
-		.World		= World,
-		.Color		= Light.Color,
-		.Luminance	= Light.GetLuminance(),
-		.Width		= Light.GetWidth(),
-		.Height		= Light.GetHeight()
+	float4 Orientation; XMStoreFloat4(&Orientation, DirectX::XMVector3Normalize(Light.Transform.Forward()));
+	return
+	{
+		.Position		= Light.Transform.Position,
+		.Orientation	= Orientation,
+		.World			= World,
+		.Color			= Light.Color,
+		.Luminance		= Light.GetLuminance(),
+		.Width			= Light.GetWidth(),
+		.Height			= Light.GetHeight()
 	};
 }
 
 HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 {
-	return {
+	return
+	{
 		.Albedo				= Material.Albedo,
 		.Emissive			= Material.Emissive,
 		.Specular			= Material.Specular,
@@ -43,7 +48,8 @@ HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 		.Fuzziness			= Material.Fuzziness,
 		.IndexOfRefraction	= Material.IndexOfRefraction,
 		.Model				= Material.Model,
-		.TextureIndices		= { 
+		.TextureIndices		=
+		{
 			Material.TextureIndices[0],
 			Material.TextureIndices[1],
 			Material.TextureIndices[2],
@@ -67,7 +73,8 @@ HLSL::Camera GetHLSLCameraDesc(const PerspectiveCamera& Camera)
 	XMStoreFloat4x4(&InvView, XMMatrixTranspose(Camera.InverseViewMatrix()));
 	XMStoreFloat4x4(&InvProjection, XMMatrixTranspose(Camera.InverseProjectionMatrix()));
 
-	return {
+	return
+	{
 		.NearZ				= Camera.NearZ(),
 		.FarZ				= Camera.FarZ(),
 		.ExposureValue100	= Camera.ExposureValue100(),
@@ -94,7 +101,8 @@ HLSL::Camera GetHLSLCameraDesc(const PerspectiveCamera& Camera)
 HLSL::Mesh GetShaderMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
 {
 	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
-	return {
+	return
+	{
 		.VertexOffset = MeshInstance.pMesh->BaseVertexLocation,
 		.IndexOffset = MeshInstance.pMesh->StartIndexLocation,
 		.MaterialIndex = (uint)MaterialIndex,
@@ -425,7 +433,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 			Desc.InstanceID						= meshInstance.InstanceID;
 			Desc.InstanceMask					= RAYTRACING_INSTANCEMASK_ALL;
 
-			Desc.HitGroupIndex					= hitGroupIndex;
+			Desc.InstanceContributionToHitGroupIndex					= hitGroupIndex;
 
 			m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(Desc);
 

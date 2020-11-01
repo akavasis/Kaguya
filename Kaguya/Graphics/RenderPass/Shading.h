@@ -9,7 +9,8 @@ class Shading : public RenderPass
 public:
 	enum EResources
 	{
-		RenderTarget,
+		AnalyticUnshadowed,
+		StochasticUnshadowed,
 		NumResources
 	};
 

@@ -11,7 +11,6 @@
 #define ENABLE_LEAK_DETECTION() 0
 #define SET_LEAK_BREAKPOINT(X) X
 #endif
-#include <exception>
 
 #include <Core/Application.h>
 #include <Graphics/Renderer.h>

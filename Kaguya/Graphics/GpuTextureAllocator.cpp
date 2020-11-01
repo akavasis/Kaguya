@@ -73,6 +73,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* SV_pRenderDevice)
 	m_SystemReservedTextures[LTC_LUT_DisneyDiffuse_Terms]			= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_DisneyDiffuse_Terms.dds", false, false);
 	m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]				= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_GGX_InverseMatrix.dds", false, false);
 	m_SystemReservedTextures[LTC_LUT_GGX_Terms]						= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/LTC_LUT_GGX_Terms.dds", false, false);
+	m_SystemReservedTextures[BlueNoise]								= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/Blue_Noise_RGBA_0.dds", false, false);
 }
 
 void GpuTextureAllocator::StageSystemReservedTextures(RenderContext& RenderContext)

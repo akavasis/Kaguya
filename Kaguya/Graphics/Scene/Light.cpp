@@ -36,7 +36,7 @@ void PolygonalLight::SetDimension(float Width, float Height)
 {
 	this->Width = Width;
 	this->Height = Height;
-	Area = (Width * 0.5f) * (Height * 0.5f) * DirectX::XM_PI;
+	Area = Width * Height;
 }
 
 void PolygonalLight::SetLuminousPower(Lumen LuminousPower)
