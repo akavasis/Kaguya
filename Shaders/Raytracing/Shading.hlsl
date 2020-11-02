@@ -239,7 +239,7 @@ void RayGeneration()
 		LTCTerms ltcTerms;
 		GetLTCTerms(normal, viewDir, GBufferMesh.Roughness, ltcTerms);
 		Texture2D BlueNoise = g_Texture2DTable[g_RenderPassData.BlueNoise];
-		float4 blueNoise = BlueNoise.SampleLevel(SamplerLinearClamp, float2(RandomFloat01(seed), RandomFloat01(seed)), 0.0f);
+		float4 blueNoise = BlueNoise[int2(launchIndex.x & 127, launchIndex.y & 127)];
 		
 		float3 specular = lerp(float3(0.04f, 0.04f, 0.04f), GBufferMesh.Albedo, GBufferMesh.Metallic);
 		float3 diffuse = GBufferMesh.Albedo;
