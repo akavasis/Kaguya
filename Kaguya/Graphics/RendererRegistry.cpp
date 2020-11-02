@@ -28,6 +28,8 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 		CS::EquirectangularToCubemap					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/EquirectangularToCubemap.hlsl",					L"CSMain", {});
 		CS::GenerateMips								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/GenerateMips.hlsl",								L"CSMain", {});
 
+		CS::ShadingComposition							= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/ShadingComposition.hlsl",						L"CSMain", {});
+
 		CS::Accumulation								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Raytracing/Accumulation.hlsl",					L"CSMain", {});
 
 		CS::PostProcess_BloomMask						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl",						L"CSMain", {});

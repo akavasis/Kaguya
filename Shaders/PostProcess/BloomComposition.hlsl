@@ -6,7 +6,6 @@ cbuffer Settings : register(b0)
 	uint BloomIndex;
 	uint OutputIndex;
 };
-
 #include "../ShaderLayout.hlsli"
 
 SamplerState LinearSampler : register(s0);

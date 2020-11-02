@@ -98,6 +98,8 @@ struct Shaders
 		inline static Shader EquirectangularToCubemap;
 		inline static Shader GenerateMips;
 
+		inline static Shader ShadingComposition;
+
 		inline static Shader Accumulation;
 
 		inline static Shader PostProcess_BloomMask;
@@ -129,7 +131,7 @@ struct RootSignatures
 	inline static RenderResourceHandle Skybox;
 	inline static RenderResourceHandle GBufferMeshes;
 	inline static RenderResourceHandle GBufferLights;
-	inline static RenderResourceHandle LTC;
+	inline static RenderResourceHandle ShadingComposition;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 	inline static RenderResourceHandle PostProcess_BloomMask;
@@ -166,6 +168,8 @@ struct ComputePSOs
 {
 	inline static RenderResourceHandle GenerateMips;
 	inline static RenderResourceHandle EquirectangularToCubemap;
+
+	inline static RenderResourceHandle ShadingComposition;
 
 	inline static RenderResourceHandle Accumulation;
 

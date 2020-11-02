@@ -9,6 +9,7 @@
 // Render passes
 #include "RenderPass/GBuffer.h"
 #include "RenderPass/Shading.h"
+#include "RenderPass/ShadingComposition.h"
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/AmbientOcclusion.h"
 #include "RenderPass/Accumulation.h"
@@ -64,6 +65,7 @@ bool Renderer::Initialize()
 
 	m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
 	m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
+	m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
 	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
 	//m_RenderGraph.AddRenderPass(new Accumulation(Width, Height));
