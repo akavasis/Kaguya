@@ -172,7 +172,7 @@ void ClipQuadToHorizon(inout float3 L[5], out int n)
 		L[4] = L[0];
 }
 
-float LTC_Evaluate(float3 P, float3x3 Minv, float3 points[4], bool twoSided)
+float LTC_Evaluate(float3 P, float3x3 Minv, float3 points[4])
 {
 	// MInv matrix is expected to be multiplied by a World to Tangent space matrix 
 	// Rotate area light in (T1, T2, N) basis
@@ -215,13 +215,13 @@ float LTC_Evaluate(float3 P, float3x3 Minv, float3 points[4], bool twoSided)
 	if (n == 5)
 		Lo_i += IntegrateEdge(L[4], L[0]);
 
-	return twoSided ? abs(Lo_i) : max(0.0f, Lo_i);
+	return max(0.0f, Lo_i);
 }
 
 /* L = vector to the light from the surface */
 float LTC_Sample_PDF(float3x3 MInv, float MDet, float3 L)
 {
-	float3 LCosine = mul(MInv, L);
+	float3 LCosine = mul(L, MInv);
 	float l2 = dot(LCosine, LCosine);
 	float Jacobian = MDet * l2 * l2;
 
@@ -236,7 +236,7 @@ float3 LTC_Sample_Vector(float3x3 M, float u1, float u2)
 
 	float3 dir = float3(st * cos(phi), st * sin(phi), ct);
 
-	float3 L = mul(M, dir);
+	float3 L = mul(dir, M);
 	float3 w_i = normalize(L);
 
 	return w_i;
@@ -335,6 +335,12 @@ float3 SphericalRectangleSample(SphericalRectangle squad, float u, float v)
 
     // 4. transform (xu, yv, z0) to world coords
 	return squad.o + xu * squad.x + yv * squad.y + squad.z0 * squad.z;
+}
+
+float3 SphericalRectangleSampleSurfaceToLightVector(SphericalRectangle squad, float u, float v)
+{
+	float3 pointOnLight = SphericalRectangleSample(squad, u, v);
+	return normalize(pointOnLight - squad.o);
 }
 
 #endif

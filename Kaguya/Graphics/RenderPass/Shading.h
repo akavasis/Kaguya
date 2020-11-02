@@ -11,6 +11,7 @@ public:
 	{
 		AnalyticUnshadowed,
 		StochasticUnshadowed,
+		StochasticShadowed,
 		NumResources
 	};
 
@@ -26,4 +27,6 @@ private:
 	GpuScene* pGpuScene;
 
 	RenderResourceHandle m_RayGenerationShaderTable;
+	RenderResourceHandle m_MissShaderTable;
+	RenderResourceHandle m_HitGroupShaderTable;
 };

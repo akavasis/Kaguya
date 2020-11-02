@@ -30,6 +30,17 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 			ENUM_TO_LSTR(ShadowClosestHit),
 		};
 
+		enum HitGroups
+		{
+			Default,
+			NumHitGroups
+		};
+
+		const LPCWSTR hitGroups[NumHitGroups] =
+		{
+			ENUM_TO_LSTR(Default)
+		};
+
 		const Library* pRaytraceLibrary = &Libraries::Shading;
 
 		proxy.AddLibrary(pRaytraceLibrary,
@@ -38,6 +49,8 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 				symbols[ShadowMiss],
 				symbols[ShadowClosestHit]
 			});
+
+		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ShadowClosestHit], nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
@@ -101,6 +114,46 @@ void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		DeviceBuffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_RayGenerationShaderTable);
 		shaderTable.Generate(pShaderTableBuffer);
 	}
+
+	// Miss Shader Table
+	{
+		ShaderTable<void> shaderTable;
+		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"ShadowMiss"));
+
+		UINT64 shaderTableSizeInBytes; UINT stride;
+		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		stride = shaderTable.GetShaderRecordStride();
+
+		m_MissShaderTable = pRenderDevice->CreateDeviceBuffer([shaderTableSizeInBytes, stride](DeviceBufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(shaderTableSizeInBytes);
+			proxy.SetStride(stride);
+			proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+		});
+
+		DeviceBuffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_MissShaderTable);
+		shaderTable.Generate(pShaderTableBuffer);
+	}
+
+	// Hit Group Shader Table
+	{
+		ShaderTable<void> shaderTable;
+		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"Default"));
+
+		UINT64 shaderTableSizeInBytes; UINT stride;
+		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		stride = shaderTable.GetShaderRecordStride();
+
+		m_HitGroupShaderTable = pRenderDevice->CreateDeviceBuffer([shaderTableSizeInBytes, stride](DeviceBufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(shaderTableSizeInBytes);
+			proxy.SetStride(stride);
+			proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+		});
+
+		DeviceBuffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_HitGroupShaderTable);
+		shaderTable.Generate(pShaderTableBuffer);
+	}
 }
 
 void Shading::RenderGui()
@@ -130,6 +183,7 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 		int AnalyticUnshadowed;
 		int StochasticUnshadowed;
+		int StochasticShadowed;
 	} Data;
 
 	Data.Position								= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Position]).HeapIndex;
@@ -146,11 +200,13 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	
 	Data.AnalyticUnshadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::AnalyticUnshadowed]).HeapIndex;
 	Data.StochasticUnshadowed					= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticUnshadowed]).HeapIndex;
+	Data.StochasticShadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticShadowed]).HeapIndex;
 	
 	RenderContext.UpdateRenderPassData<ShadingData>(Data);
 
 	RenderContext.TransitionBarrier(Resources[EResources::AnalyticUnshadowed], DeviceResource::State::UnorderedAccess);
 	RenderContext.TransitionBarrier(Resources[EResources::StochasticUnshadowed], DeviceResource::State::UnorderedAccess);
+	RenderContext.TransitionBarrier(Resources[EResources::StochasticShadowed], DeviceResource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Shading);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
@@ -162,13 +218,14 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	RenderContext.DispatchRays(
 		m_RayGenerationShaderTable,
-		RenderResourceHandle(),
-		RenderResourceHandle(),
+		m_MissShaderTable,
+		m_HitGroupShaderTable,
 		Properties.Width,
 		Properties.Height);
 
 	RenderContext.UAVBarrier(Resources[EResources::AnalyticUnshadowed]);
 	RenderContext.UAVBarrier(Resources[EResources::StochasticUnshadowed]);
+	RenderContext.UAVBarrier(Resources[EResources::StochasticShadowed]);
 }
 
 void Shading::StateRefresh()

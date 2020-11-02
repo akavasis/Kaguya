@@ -399,13 +399,6 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		light2.SetDimension(2, 5);
 		light2.SetLuminousPower(20000);
 
-		auto& light3 = Scene.AddLight();
-		light3.Transform.Position = { 0, 5, -10 };
-		light3.Transform.Rotate(XM_PI - 0.5f, 180.0_Deg, 0);
-		light3.Color = { 1, 1, 1 };
-		light3.SetDimension(4, 4);
-		light3.SetLuminousPower(5000);
-
 		// Plane
 		{
 			auto& metal = Scene.AddMaterial(MaterialLoader.LoadMaterial(

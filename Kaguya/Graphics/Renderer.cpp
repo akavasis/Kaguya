@@ -56,7 +56,6 @@ bool Renderer::Initialize()
 
 	m_pGpuScene->GpuTextureAllocator.StageSystemReservedTextures(m_RenderContext);
 
-	PIXCapture();
 	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
 	m_pRenderDevice->ExecuteRenderCommandContexts(1, pCommandContexts);
 	m_pGpuScene->GpuTextureAllocator.DisposeResources();

@@ -177,7 +177,7 @@ void PostProcess::RenderGui()
 void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
-	Descriptor InputSRV = RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::AnalyticUnshadowed]);
+	Descriptor InputSRV = RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::StochasticShadowed]);
 
 	//auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);

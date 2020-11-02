@@ -1,5 +1,6 @@
-#ifndef __RANDOM_HLSLI__
-#define __RANDOM_HLSLI__
+#ifndef RANDOM_HLSLI
+#define RANDOM_HLSLI
+
 #include "Constants.hlsli"
 
 uint WangHash(inout uint seed)

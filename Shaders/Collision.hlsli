@@ -1,6 +1,8 @@
 #ifndef COLLISION_HLSLI
 #define COLLISION_HLSLI
 
+#include "Constants.hlsli"
+
 struct Ray
 {
 	float3	Origin;
@@ -21,7 +23,7 @@ Ray InitRay(float3 origin, float tMin, float3 direction, float tMax)
 
 Ray InitRay(float3 origin, float3 direction)
 {
-	return InitRay(origin, 0.0, direction, 3.402823466e+38);
+	return InitRay(origin, 0.0f, direction, FLT_MAX);
 }
 
 struct Plane
