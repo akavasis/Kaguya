@@ -5,7 +5,9 @@
 
 struct SystemConstants
 {
-	Camera Camera;
+	Camera Camera, PreviousCamera;
+	
+	float4 OutputSize;
 
 	uint TotalFrameCount;
 

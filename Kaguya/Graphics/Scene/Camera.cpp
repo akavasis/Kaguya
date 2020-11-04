@@ -14,14 +14,19 @@ Camera::Camera(float NearZ, float FarZ)
 	m_Projection = Math::Identity();
 }
 
-XMMATRIX Camera::ViewMatrix() const
+DirectX::XMMATRIX Camera::ViewMatrix() const
 {
 	return XMMatrixInverse(nullptr, Transform.Matrix());
 }
 
-XMMATRIX Camera::ProjectionMatrix() const
+DirectX::XMMATRIX Camera::ProjectionMatrix() const
 {
 	return XMLoadFloat4x4(&m_Projection);
+}
+
+DirectX::XMMATRIX Camera::ViewProjectionMatrix() const
+{
+	return XMMatrixMultiply(ViewMatrix(), ProjectionMatrix());
 }
 
 DirectX::XMMATRIX Camera::InverseViewMatrix() const
@@ -29,17 +34,12 @@ DirectX::XMMATRIX Camera::InverseViewMatrix() const
 	return XMMatrixInverse(nullptr, ViewMatrix());
 }
 
-XMMATRIX Camera::InverseProjectionMatrix() const
+DirectX::XMMATRIX Camera::InverseProjectionMatrix() const
 {
 	return XMMatrixInverse(nullptr, ProjectionMatrix());
 }
 
-XMMATRIX Camera::ViewProjectionMatrix() const
-{
-	return XMMatrixMultiply(ViewMatrix(), ProjectionMatrix());
-}
-
-XMMATRIX Camera::InverseViewProjectionMatrix() const
+DirectX::XMMATRIX Camera::InverseViewProjectionMatrix() const
 {
 	return XMMatrixInverse(nullptr, ViewProjectionMatrix());
 }
@@ -48,11 +48,6 @@ void Camera::SetLookAt(DirectX::XMVECTOR EyePosition, DirectX::XMVECTOR FocusPos
 {
 	XMMATRIX view = XMMatrixLookAtLH(EyePosition, FocusPosition, UpDirection);
 	Transform.SetTransform(XMMatrixInverse(nullptr, view));
-}
-
-void Camera::SetProjection(DirectX::XMMATRIX M)
-{
-	XMStoreFloat4x4(&m_Projection, M);
 }
 
 void Camera::SetPosition(float x, float y, float z)

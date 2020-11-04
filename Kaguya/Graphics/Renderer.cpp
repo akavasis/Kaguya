@@ -82,6 +82,7 @@ void Renderer::HandleMouse(int32_t X, int32_t Y, float DeltaTime)
 {
 	Scene& scene = *m_pGpuScene->pScene;
 
+	scene.PreviousCamera = scene.Camera;
 	scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
 }
 
@@ -89,6 +90,8 @@ void Renderer::HandleMouse(int32_t X, int32_t Y, float DeltaTime)
 void Renderer::HandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 {
 	Scene& scene = *m_pGpuScene->pScene;
+
+	scene.PreviousCamera = scene.Camera;
 
 	if (Keyboard.IsKeyPressed('W'))
 		scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
@@ -129,6 +132,8 @@ void Renderer::Render()
 
 	HLSL::SystemConstants HLSLSystemConstants	= {};
 	HLSLSystemConstants.Camera					= m_pGpuScene->GetHLSLCamera();
+	HLSLSystemConstants.PreviousCamera			= m_pGpuScene->GetHLSLPreviousCamera();
+	HLSLSystemConstants.OutputSize				= { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
 	HLSLSystemConstants.TotalFrameCount			= static_cast<unsigned int>(Statistics::TotalFrameCount);
 	HLSLSystemConstants.NumPolygonalLights		= scene.Lights.size();
 

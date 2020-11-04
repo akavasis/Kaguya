@@ -19,47 +19,46 @@ ModelInstance::ModelInstance(const Model* pModel, const Material* pMaterial)
 	}
 }
 
-void ModelInstance::SetTransform(DirectX::FXMMATRIX M)
-{
-	Transform.SetTransform(M);
-	for (auto& meshInstance : MeshInstances)
-	{
-		meshInstance.Transform.SetTransform(M);
-	}
-}
-
 void ModelInstance::Translate(float DeltaX, float DeltaY, float DeltaZ)
 {
+	PreviousTransform = Transform;
 	Transform.Translate(DeltaX, DeltaY, DeltaZ);
 	for (auto& meshInstance : MeshInstances)
 	{
+		meshInstance.PreviousTransform = meshInstance.Transform;
 		meshInstance.Transform.Translate(DeltaX, DeltaY, DeltaZ);
 	}
 }
 
 void ModelInstance::SetScale(float Scale)
 {
+	PreviousTransform = Transform;
 	Transform.SetScale(Scale, Scale, Scale);
 	for (auto& meshInstance : MeshInstances)
 	{
+		meshInstance.PreviousTransform = meshInstance.Transform;
 		meshInstance.Transform.SetScale(Scale, Scale, Scale);
 	}
 }
 
 void ModelInstance::SetScale(float ScaleX, float ScaleY, float ScaleZ)
 {
+	PreviousTransform = Transform;
 	Transform.SetScale(ScaleX, ScaleY, ScaleZ);
 	for (auto& meshInstance : MeshInstances)
 	{
+		meshInstance.PreviousTransform = meshInstance.Transform;
 		meshInstance.Transform.SetScale(ScaleX, ScaleY, ScaleZ);
 	}
 }
 
 void ModelInstance::Rotate(float AngleX, float AngleY, float AngleZ)
 {
+	PreviousTransform = Transform;
 	Transform.Rotate(AngleX, AngleY, AngleZ);
 	for (auto& meshInstance : MeshInstances)
 	{
+		meshInstance.PreviousTransform = meshInstance.Transform;
 		meshInstance.Transform.Rotate(AngleX, AngleY, AngleZ);
 	}
 }

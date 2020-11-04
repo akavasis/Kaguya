@@ -13,6 +13,9 @@ public:
 		Normal,
 		Albedo,
 		TypeAndIndex,
+		SVGF_LinearZ,
+		SVGF_MotionVector,
+		SVGF_Compact,
 
 		DepthStencil,
 
@@ -28,12 +31,12 @@ public:
 
 	inline auto GetSettings() const { return Settings; }
 protected:
-	virtual void InitializePipeline(RenderDevice* pRenderDevice) override;
-	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
-	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
-	virtual void RenderGui() override;
-	virtual void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
-	virtual void StateRefresh() override;
+	void InitializePipeline(RenderDevice* pRenderDevice) override;
+	void ScheduleResource(ResourceScheduler* pResourceScheduler) override;
+	void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) override;
+	void RenderGui() override;
+	void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
+	void StateRefresh() override;
 private:
 	void RenderMeshes(RenderContext& RenderContext);
 	void RenderLights(RenderContext& RenderContext);

@@ -4,7 +4,7 @@
 struct MeshInstance
 {
 	const Mesh*				pMesh;
-	Transform				Transform;
+	Transform				Transform, PreviousTransform;
 	DirectX::BoundingBox	BoundingBox;
 	size_t					InstanceID;
 };

@@ -29,56 +29,13 @@ struct ShadingResult
 	float3 StochasticShadowed;
 };
 
-struct LightSample
-{
-	float3 IntersectionPoint;
-	float PDF;
-};
-
 ShadingResult InitShadingResult()
 {
 	ShadingResult Out;
-	Out.AnalyticUnshadowed = 0.0.xxx;
-	Out.StochasticUnshadowed = 0.0.xxx;
-	Out.StochasticShadowed = 0.0.xxx;
+	Out.AnalyticUnshadowed		= 0.0.xxx;
+	Out.StochasticUnshadowed	= 0.0.xxx;
+	Out.StochasticShadowed		= 0.0.xxx;
 	return Out;
-}
-
-LightSample InitLightSample()
-{
-	LightSample Out;
-	Out.IntersectionPoint = 0.0.xxx;
-	Out.PDF = -1.0f;
-	return Out;
-}
-
-LightSample SampleRectLight(PolygonalLight light, float3 lightPoints[4], float samplePDF, float3 surfacePoint, float3 samplingVector)
-{
-	Ray ray = InitRay(surfacePoint, samplingVector);
-	Plane plane = InitPlane(light.Orientation.xyz, light.Position.xyz);
-	LightSample lightSample = InitLightSample();
-
-	float3 intersectionPoint;
-	if (RayPlaneIntersection(ray, plane, intersectionPoint))
-	{
-		float3 localPoint = intersectionPoint - light.Position.xyz;
-		float3 zAlignedPoint = mul(localPoint, (float3x3) light.World);
-
-		float hw = light.Width * 0.5;
-		float hh = light.Height * 0.5;
-
-		bool pointInsideRect =
-            all(zAlignedPoint.xy >= float2(-hw, -hh)) &&
-            all(zAlignedPoint.xy <= float2(hw, hh));
-
-		if (pointInsideRect)
-		{
-			lightSample.IntersectionPoint = intersectionPoint;
-			lightSample.PDF = samplePDF;
-		}
-	}
-
-	return lightSample;
 }
 
 float3x3 inverse(float3x3 m)
@@ -211,11 +168,6 @@ void RayGeneration()
 	const float epsilon = 0.005f;
 	
 	const uint2 launchIndex = DispatchRaysIndex().xy;
-	const uint2 launchDimensions = DispatchRaysDimensions().xy;
-	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(g_SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
-	
-	const float2 pixel = (float2(launchIndex) + 0.5f) / float2(launchDimensions);
-	const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 	
 	ShadingResult shadingResult = InitShadingResult();
 	
@@ -277,18 +229,19 @@ void RayGeneration()
 			shadingResult.AnalyticUnshadowed += (Light.Color * Light.Luminance) * (ShadeWithAreaLight(position, diffuse, specular, ltcTerms, points, diffProb, brdfProb));
 		
 			static const uint RaysPerLight = 1;
+			[unroll]
 			for (uint rayIdx = 0; rayIdx < RaysPerLight; ++rayIdx)
 			{
 				uint I = i * RaysPerLight + rayIdx;
 				// Used for 2D position on light/BRDF
-				const float u1 = frac(Random(I + g_SystemConstants.TotalFrameCount) + blueNoise.r);
-				const float u2 = frac(Random(I + g_SystemConstants.TotalFrameCount + 1) + blueNoise.g);
+				const float u1 = frac(Random(I) + blueNoise.r);
+				const float u2 = frac(Random(I + 1) + blueNoise.g);
 			
 				// Choosing BRDF lobes
-				const float u3 = frac(Random(I + g_SystemConstants.TotalFrameCount + 2) + blueNoise.b);
+				const float u3 = frac(Random(I + 2) + blueNoise.b);
 			
 				// Choosing between light and BRDF sampling
-				const float u4 = frac(Random(I + g_SystemConstants.TotalFrameCount + 3) + blueNoise.a);
+				const float u4 = frac(Random(I + 3) + blueNoise.a);
 		
 				// BRDF sample
 				if (u4 <= brdfProb)

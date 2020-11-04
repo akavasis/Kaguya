@@ -3,9 +3,9 @@
 
 #include "HLSLCommon.hlsli"
 
-static const float LUT_SIZE = 64.0f;
-static const float LUT_SCALE = (LUT_SIZE - 1.0f) / LUT_SIZE;
-static const float LUT_BIAS = 0.5f / LUT_SIZE;
+static const float LUT_SIZE		= 64.0f;
+static const float LUT_SCALE	= (LUT_SIZE - 1.0f) / LUT_SIZE;
+static const float LUT_BIAS		= 0.5f / LUT_SIZE;
 
 struct LTCTerms
 {
@@ -242,6 +242,11 @@ float3 LTC_Sample_Vector(float3x3 M, float u1, float u2)
 	return w_i;
 }
 
+// Sampling the Solid Angle of Area Light Sources
+// https://schuttejoe.github.io/post/arealightsampling/
+// Solid-angle rectangular light sampling yields lower variance and faster convergence.
+// An Area-Preserving Parametrization for Spherical Rectangles:
+// https://www.arnoldrenderer.com/research/egsr2013_spherical_rectangle.pdf
 struct SphericalRectangle
 {
 	float3 o, x, y, z;

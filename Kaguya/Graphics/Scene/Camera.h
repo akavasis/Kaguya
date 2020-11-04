@@ -11,13 +11,12 @@ public:
 	inline float FarZ() const { return m_FarZ; }
 	DirectX::XMMATRIX ViewMatrix() const;
 	DirectX::XMMATRIX ProjectionMatrix() const;
+	DirectX::XMMATRIX ViewProjectionMatrix() const;
 	DirectX::XMMATRIX InverseViewMatrix() const;
 	DirectX::XMMATRIX InverseProjectionMatrix() const;
-	DirectX::XMMATRIX ViewProjectionMatrix() const;
 	DirectX::XMMATRIX InverseViewProjectionMatrix() const;
 
 	void SetLookAt(DirectX::XMVECTOR EyePosition, DirectX::XMVECTOR FocusPosition, DirectX::XMVECTOR UpDirection);
-	void SetProjection(DirectX::XMMATRIX M);
 
 	void SetPosition(float x, float y, float z);
 
@@ -42,10 +41,10 @@ public:
 	OrthographicCamera();
 	OrthographicCamera(float NearZ, float FarZ);
 
-	float ViewLeft() const { return m_ViewLeft; }
-	float ViewRight() const { return m_ViewRight; }
-	float ViewBottom() const { return m_ViewBottom; }
-	float ViewTop() const { return m_ViewTop; }
+	inline float ViewLeft() const { return m_ViewLeft; }
+	inline float ViewRight() const { return m_ViewRight; }
+	inline float ViewBottom() const { return m_ViewBottom; }
+	inline float ViewTop() const { return m_ViewTop; }
 
 	void SetLens(float ViewLeft, float ViewRight, float ViewBottom, float ViewTop, float NearZ, float FarZ);
 protected:

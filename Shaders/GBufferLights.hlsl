@@ -15,8 +15,6 @@ struct VSOutput
 {
 	float4 PositionH : SV_POSITION;
 	float3 PositionW : POSITION;
-	float Depth : DEPTH;
-	float2 Dimension : DIMENSION;
 };
 
 VSOutput VSMain(uint VertexID : SV_VertexID)
@@ -48,17 +46,22 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 		
 		// Transform to homogeneous/clip space
 		OUT.PositionH = mul(float4(OUT.PositionW, 1.0f), g_SystemConstants.Camera.ViewProjection);
-		
-		OUT.Depth = OUT.PositionH.z;
-		OUT.Dimension = float2(Light.Width, Light.Height);
 	}
 	return OUT;
 }
 
-PSOutput PSMain(VSOutput IN)
+MRT PSMain(VSOutput IN)
 {
-	GBufferLight LIGHT = (GBufferLight) 0;
-	LIGHT.LightIndex = LightIndex;
+	GBufferLight light = (GBufferLight) 0;
+	light.LightIndex = LightIndex;
 	
-	return PackLightForPSOutput(LIGHT);
+	MRT OUT;
+	OUT.Position			= 0.0.xxxx;
+	OUT.Normal				= 0.0.xxxx;
+	OUT.Albedo				= 0.0.xxxx;
+	OUT.TypeAndIndex		= (GBufferTypeLight << 4) | (light.LightIndex & 0x0000000F);
+	OUT.SVGF_LinearZ		= 0.0.xxxx;
+	OUT.SVGF_MotionVector	= 0.0.xxxx;
+	OUT.SVGF_Compact		= 0.0.xxxx;
+	return OUT;
 }

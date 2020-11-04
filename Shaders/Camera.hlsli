@@ -12,7 +12,7 @@ struct Camera
 	float	RelativeAperture;
 	float	ShutterTime;
 	float	SensorSensitivity;
-	
+
 	float4	Position;
 	float4	U;
 	float4	V;
@@ -23,6 +23,7 @@ struct Camera
 	matrix	ViewProjection;
 	matrix	InvView;
 	matrix	InvProjection;
+	matrix	InvViewProjection;
 };
 
 // Physically-based camera from Moving Frostbite to PBR

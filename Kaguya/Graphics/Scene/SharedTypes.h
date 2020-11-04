@@ -52,6 +52,7 @@ namespace HLSL
 		matrix	ViewProjection;
 		matrix	InvView;
 		matrix	InvProjection;
+		matrix	InvViewProjection;
 	};
 
 	struct Mesh
@@ -60,11 +61,14 @@ namespace HLSL
 		uint	IndexOffset;
 		uint	MaterialIndex;
 		matrix	World;
+		matrix	PreviousWorld;
 	};
 
 	struct SystemConstants
 	{
-		Camera Camera;
+		Camera Camera, PreviousCamera;
+
+		float4 OutputSize;
 
 		uint TotalFrameCount;
 

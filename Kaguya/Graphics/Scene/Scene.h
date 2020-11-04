@@ -20,7 +20,7 @@ struct Scene
 	using ModelInstanceList = std::list<ModelInstance>;
 
 	Skybox				Skybox;
-	PerspectiveCamera	Camera;
+	PerspectiveCamera	Camera, PreviousCamera;
 	LightList			Lights;
 	MaterialList		Materials;
 	ModelList			Models;

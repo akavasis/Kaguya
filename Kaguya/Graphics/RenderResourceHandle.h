@@ -20,9 +20,9 @@ enum class RenderResourceType : size_t
 
 enum class RenderResourceFlags : size_t
 {
-	Inactive = 0,
-	Active = 1 << 0,
-	Destroyed = 1 << 1
+	Inactive	= 0,
+	Active		= 1 << 0,
+	Destroyed	= 1 << 1
 };
 
 DECL_HANDLE(RenderResourceHandle, RenderResourceType, RENDER_RESOURCE_HANDLE_TYPE_BIT_FIELD, RenderResourceFlags, RENDER_RESOURCE_HANDLE_FLAGS_BIT_FIELD)

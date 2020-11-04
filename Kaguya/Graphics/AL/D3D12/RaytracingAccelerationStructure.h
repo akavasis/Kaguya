@@ -34,8 +34,8 @@ public:
 	BottomLevelAccelerationStructure();
 
 	void AddGeometry(const RaytracingGeometryDesc& Desc);
-	void ComputeMemoryRequirements(const Device* pDevice, bool AllowUpdate, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes);
-	void Generate(CommandContext* pCommandContext, DeviceBuffer* pScratch, DeviceBuffer* pResult, bool UpdateOnly = false, DeviceBuffer* pSource = nullptr);
+	void ComputeMemoryRequirements(const Device* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes);
+	void Generate(CommandContext* pCommandContext, DeviceBuffer* pScratch, DeviceBuffer* pResult);
 private:
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> RaytracingGeometryDescs;
 	UINT64 ScratchSizeInBytes;
@@ -53,14 +53,16 @@ struct RaytracingInstanceDesc
 	UINT InstanceContributionToHitGroupIndex;
 };
 
+// https://developer.nvidia.com/blog/rtx-best-practices/
+// We should rebuild the TLAS rather than update, It’s just easier to manage in most circumstances, and the cost savings to refit likely aren’t worth sacrificing quality of TLAS.
 class TopLevelAccelerationStructure
 {
 public:
 	TopLevelAccelerationStructure();
 
 	void AddInstance(const RaytracingInstanceDesc& Desc);
-	void ComputeMemoryRequirements(const Device* pDevice, bool AllowUpdate, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes);
-	void Generate(CommandContext* pCommandContext, DeviceBuffer* pScratch, DeviceBuffer* pResult, DeviceBuffer* pInstanceDescs, bool UpdateOnly = false, DeviceBuffer* pSource = nullptr);
+	void ComputeMemoryRequirements(const Device* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes);
+	void Generate(CommandContext* pCommandContext, DeviceBuffer* pScratch, DeviceBuffer* pResult, DeviceBuffer* pInstanceDescs);
 private:
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> RaytracingInstanceDescs;
 	UINT64 ScratchSizeInBytes;

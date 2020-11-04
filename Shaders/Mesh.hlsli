@@ -7,6 +7,7 @@ struct Mesh
 	uint	IndexOffset;
 	uint	MaterialIndex;
 	matrix	World;
+	matrix	PreviousWorld;
 };
 
 #endif

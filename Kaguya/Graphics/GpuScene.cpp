@@ -63,50 +63,56 @@ HLSL::Camera GetHLSLCameraDesc(const PerspectiveCamera& Camera)
 {
 	DirectX::XMFLOAT4 Position = { Camera.Transform.Position.x, Camera.Transform.Position.y, Camera.Transform.Position.z, 1.0f };
 	DirectX::XMFLOAT4 U, V, W;
-	DirectX::XMFLOAT4X4 View, Projection, ViewProjection, InvView, InvProjection;
+	DirectX::XMFLOAT4X4 View, Projection, ViewProjection, InvView, InvProjection, InvViewProjection;
+	
 	XMStoreFloat4(&U, Camera.GetUVector());
 	XMStoreFloat4(&V, Camera.GetVVector());
 	XMStoreFloat4(&W, Camera.GetWVector());
+
 	XMStoreFloat4x4(&View, XMMatrixTranspose(Camera.ViewMatrix()));
 	XMStoreFloat4x4(&Projection, XMMatrixTranspose(Camera.ProjectionMatrix()));
 	XMStoreFloat4x4(&ViewProjection, XMMatrixTranspose(Camera.ViewProjectionMatrix()));
 	XMStoreFloat4x4(&InvView, XMMatrixTranspose(Camera.InverseViewMatrix()));
 	XMStoreFloat4x4(&InvProjection, XMMatrixTranspose(Camera.InverseProjectionMatrix()));
+	XMStoreFloat4x4(&InvViewProjection, XMMatrixTranspose(Camera.InverseViewProjectionMatrix()));
 
 	return
 	{
-		.NearZ				= Camera.NearZ(),
-		.FarZ				= Camera.FarZ(),
-		.ExposureValue100	= Camera.ExposureValue100(),
-		._padding1			= 0.0f,
+		.NearZ						= Camera.NearZ(),
+		.FarZ						= Camera.FarZ(),
+		.ExposureValue100			= Camera.ExposureValue100(),
+		._padding1					= 0.0f,
 
-		.FocalLength		= Camera.FocalLength,
-		.RelativeAperture	= Camera.RelativeAperture,
-		.ShutterTime		= Camera.ShutterTime,
-		.SensorSensitivity	= Camera.SensorSensitivity,
+		.FocalLength				= Camera.FocalLength,
+		.RelativeAperture			= Camera.RelativeAperture,
+		.ShutterTime				= Camera.ShutterTime,
+		.SensorSensitivity			= Camera.SensorSensitivity,
 
-		.Position			= Position,
-		.U					= U,
-		.V					= V,
-		.W					= W,
+		.Position					= Position,
+		.U							= U,
+		.V							= V,
+		.W							= W,
 
-		.View				= View,
-		.Projection			= Projection,
-		.ViewProjection		= ViewProjection,
-		.InvView			= InvView,
-		.InvProjection		= InvProjection
+		.View						= View,
+		.Projection					= Projection,
+		.ViewProjection				= ViewProjection,
+		.InvView					= InvView,
+		.InvProjection				= InvProjection,
+		.InvViewProjection			= InvViewProjection
 	};
 }
 
 HLSL::Mesh GetShaderMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
 {
-	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
+	matrix World;			XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
+	matrix PreviousWorld;	XMStoreFloat4x4(&PreviousWorld, XMMatrixTranspose(MeshInstance.PreviousTransform.Matrix()));
 	return
 	{
-		.VertexOffset = MeshInstance.pMesh->BaseVertexLocation,
-		.IndexOffset = MeshInstance.pMesh->StartIndexLocation,
-		.MaterialIndex = (uint)MaterialIndex,
-		.World = World
+		.VertexOffset	= MeshInstance.pMesh->BaseVertexLocation,
+		.IndexOffset	= MeshInstance.pMesh->StartIndexLocation,
+		.MaterialIndex	= (uint)MaterialIndex,
+		.World			= World,
+		.PreviousWorld	= PreviousWorld
 	};
 }
 
@@ -270,14 +276,10 @@ void GpuScene::UploadModelInstances(RenderContext& RenderContext)
 	RenderContext->TransitionBarrier(pGeometryInfoTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 
 	CreateBottomLevelAS(RenderContext);
-	CreateTopLevelAS(RenderContext);
 }
 
 void GpuScene::DisposeResources()
 {
-	SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
-	SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
-
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
 		SV_pRenderDevice->Destroy(&rtblas.Handles.Scratch);
@@ -308,6 +310,8 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Update");
 
 	pScene->Camera.SetAspectRatio(AspectRatio);
+
+	CreateTopLevelAS(RenderContext);
 
 	{
 		auto pLightTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[LightTable]);
@@ -366,6 +370,11 @@ HLSL::Camera GpuScene::GetHLSLCamera() const
 	return GetHLSLCameraDesc(pScene->Camera);
 }
 
+HLSL::Camera GpuScene::GetHLSLPreviousCamera() const
+{
+	return GetHLSLCameraDesc(pScene->PreviousCamera);
+}
+
 size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer)
 {
 	if (pData && ByteSize != 0)
@@ -390,7 +399,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
 		UINT64 scratchSizeInBytes, resultSizeInBytes;
-		rtblas.BLAS.ComputeMemoryRequirements(&SV_pRenderDevice->Device, false, &scratchSizeInBytes, &resultSizeInBytes);
+		rtblas.BLAS.ComputeMemoryRequirements(&SV_pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
 
 		// BLAS Scratch
 		rtblas.Handles.Scratch = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
@@ -419,58 +428,79 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Top Level Acceleration Structure Generation");
 
+	TopLevelAccelerationStructure TopLevelAccelerationStructure;
+
 	size_t hitGroupIndex = 0;
 	for (const auto& modelInstance : pScene->ModelInstances)
 	{
 		for (const auto& meshInstance : modelInstance.MeshInstances)
 		{
-			RTBLAS&					RTBLAS		= m_RaytracingBottomLevelAccelerationStructures[meshInstance.pMesh->BottomLevelAccelerationStructureIndex];
-			DeviceBuffer*			pBLAS		= SV_pRenderDevice->GetBuffer(RTBLAS.Handles.Result);
-			RaytracingInstanceDesc	Desc		= {};
+			RTBLAS&					RTBLAS				= m_RaytracingBottomLevelAccelerationStructures[meshInstance.pMesh->BottomLevelAccelerationStructureIndex];
+			DeviceBuffer*			pBLAS				= SV_pRenderDevice->GetBuffer(RTBLAS.Handles.Result);
 
-			Desc.AccelerationStructure			= pBLAS->GetGpuVirtualAddress();
-			Desc.Transform						= meshInstance.Transform.Matrix();
-			Desc.InstanceID						= meshInstance.InstanceID;
-			Desc.InstanceMask					= RAYTRACING_INSTANCEMASK_ALL;
+			RaytracingInstanceDesc	Desc				= {};
+			Desc.AccelerationStructure					= pBLAS->GetGpuVirtualAddress();
+			Desc.Transform								= meshInstance.Transform.Matrix();
+			Desc.InstanceID								= meshInstance.InstanceID;
+			Desc.InstanceMask							= RAYTRACING_INSTANCEMASK_ALL;
 
-			Desc.InstanceContributionToHitGroupIndex					= hitGroupIndex;
+			Desc.InstanceContributionToHitGroupIndex	= hitGroupIndex;
 
-			m_RaytracingTopLevelAccelerationStructure.TLAS.AddInstance(Desc);
+			TopLevelAccelerationStructure.AddInstance(Desc);
 
 			hitGroupIndex++;
 		}
 	}
 
 	UINT64 scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
-	m_RaytracingTopLevelAccelerationStructure.TLAS.ComputeMemoryRequirements(&SV_pRenderDevice->Device, true, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
+	TopLevelAccelerationStructure.ComputeMemoryRequirements(&SV_pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
 
-	// TLAS Scratch
-	m_RaytracingTopLevelAccelerationStructure.Handles.Scratch = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+	DeviceBuffer* pScratch			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch);
+	DeviceBuffer* pResult			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
+	DeviceBuffer* pInstanceDescs	= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
+
+	if (!pScratch || pScratch->GetSizeInBytes() < scratchSizeInBytes)
 	{
-		proxy.SetSizeInBytes(scratchSizeInBytes);
-		proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
-		proxy.InitialState = DeviceResource::State::UnorderedAccess;
-	});
+		SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Scratch);
 
-	// TLAS Result
-	m_RaytracingTopLevelAccelerationStructure.Handles.Result = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		// TLAS Scratch
+		m_RaytracingTopLevelAccelerationStructure.Scratch = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(scratchSizeInBytes);
+			proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
+			proxy.InitialState = DeviceResource::State::UnorderedAccess;
+		});
+		pScratch = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch);
+	}
+
+	if (!pResult || pResult->GetSizeInBytes() < resultSizeInBytes)
 	{
-		proxy.SetSizeInBytes(resultSizeInBytes);
-		proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
-		proxy.InitialState = DeviceResource::State::AccelerationStructure;
-	});
+		SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Result);
 
-	m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		// TLAS Result
+		m_RaytracingTopLevelAccelerationStructure.Result = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(resultSizeInBytes);
+			proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
+			proxy.InitialState = DeviceResource::State::AccelerationStructure;
+		});
+		pResult = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
+	}
+	
+	if (!pInstanceDescs || pInstanceDescs->GetSizeInBytes() < instanceDescsSizeInBytes)
 	{
-		proxy.SetSizeInBytes(instanceDescsSizeInBytes);
-		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
-	});
+		SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
 
-	DeviceBuffer* pScratch			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Scratch);
-	DeviceBuffer* pResult			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.Result);
-	DeviceBuffer* pInstanceDescs	= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Handles.InstanceDescs);
+		// TLAS Instance Desc
+		m_RaytracingTopLevelAccelerationStructure.InstanceDescs = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(instanceDescsSizeInBytes);
+			proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+		});
+		pInstanceDescs = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
+	}
 
-	pResult->SetDebugName(L"Ray Tracing Top Level Acceleration Structure");
+	pResult->SetDebugName(L"Top Level Acceleration Structure");
 
-	m_RaytracingTopLevelAccelerationStructure.TLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
+	TopLevelAccelerationStructure.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
 }

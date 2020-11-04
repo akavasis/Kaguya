@@ -39,6 +39,9 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_LinearZ
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_Compact
 
 		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
 	});
@@ -66,6 +69,9 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_LinearZ
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_Compact
 
 		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
 	});
@@ -78,7 +84,10 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 		DXGI_FORMAT_R32G32B32A32_FLOAT,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
-		DXGI_FORMAT_R8_UINT
+		DXGI_FORMAT_R8_UINT,
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		DXGI_FORMAT_R16G16B16A16_FLOAT,
+		DXGI_FORMAT_R32G32B32A32_FLOAT
 	};
 	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
 	{
@@ -135,7 +144,10 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		RenderContext.GetRenderTargetView(Resources[Position]),
 		RenderContext.GetRenderTargetView(Resources[Normal]),
 		RenderContext.GetRenderTargetView(Resources[Albedo]),
-		RenderContext.GetRenderTargetView(Resources[TypeAndIndex])
+		RenderContext.GetRenderTargetView(Resources[TypeAndIndex]),
+		RenderContext.GetRenderTargetView(Resources[SVGF_LinearZ]),
+		RenderContext.GetRenderTargetView(Resources[SVGF_MotionVector]),
+		RenderContext.GetRenderTargetView(Resources[SVGF_Compact]),
 	};
 	Descriptor DepthStencilView = RenderContext.GetDepthStencilView(Resources[EResources::DepthStencil]);
 

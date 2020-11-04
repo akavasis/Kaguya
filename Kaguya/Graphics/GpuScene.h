@@ -36,9 +36,10 @@ public:
 	inline auto GetVertexBufferHandle()			const { return m_ResourceTables[VertexBuffer]; }
 	inline auto GetIndexBufferHandle()			const { return m_ResourceTables[IndexBuffer]; }
 	inline auto GetGeometryInfoTableHandle()	const { return m_ResourceTables[MeshTable]; }
-	inline auto GetRTTLASResourceHandle()		const { return m_RaytracingTopLevelAccelerationStructure.Handles.Result; }
+	inline auto GetRTTLASResourceHandle()		const { return m_RaytracingTopLevelAccelerationStructure.Result; }
 
 	HLSL::Camera GetHLSLCamera() const;
+	HLSL::Camera GetHLSLPreviousCamera() const;
 
 	Scene* pScene;
 	GpuTextureAllocator GpuTextureAllocator;
@@ -53,12 +54,6 @@ private:
 		BottomLevelAccelerationStructure BLAS;
 	};
 
-	struct RTTLAS
-	{
-		RaytracingAccelerationStructureHandles Handles;
-		TopLevelAccelerationStructure TLAS;
-	};
-
 	RenderDevice*			SV_pRenderDevice;
 
 	RenderResourceHandle	m_UploadResourceTables[NumResources];
@@ -66,5 +61,5 @@ private:
 	VariableSizedAllocator	m_Allocators[NumResources];
 
 	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
-	RTTLAS					m_RaytracingTopLevelAccelerationStructure;
+	RaytracingAccelerationStructureHandles m_RaytracingTopLevelAccelerationStructure;
 };

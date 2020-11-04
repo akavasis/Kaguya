@@ -70,7 +70,7 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.SetGlobalRootSignature(pGlobalRootSignature);
 
 		proxy.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
-		proxy.SetRaytracingPipelineConfig(2);
+		proxy.SetRaytracingPipelineConfig(1);
 	});
 }
 

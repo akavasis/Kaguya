@@ -3,7 +3,10 @@
 #pragma warning(disable : 26812) // prefer enum class over enum warning
 
 // Win32 APIs
-#define WIN32_LEAN_AND_MEAN
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers.
+#endif
+
 #define NOMINMAX
 #include <Windows.h>
 #include <DirectXMath.h>
