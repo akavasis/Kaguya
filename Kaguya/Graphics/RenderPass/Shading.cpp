@@ -169,11 +169,10 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	struct ShadingData
 	{
-		int Position;
-		int Normal;
 		int Albedo;
+		int Normal;
 		int TypeAndIndex;
-		int DepthStencil;
+		int Depth;
 
 		int LTC_LUT_DisneyDiffuse_InverseMatrix;
 		int LTC_LUT_DisneyDiffuse_Terms;
@@ -186,11 +185,10 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		int StochasticShadowed;
 	} Data;
 
-	Data.Position								= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Position]).HeapIndex;
-	Data.Normal									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
 	Data.Albedo									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;
+	Data.Normal									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
 	Data.TypeAndIndex							= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
-	Data.DepthStencil							= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::DepthStencil]).HeapIndex;
+	Data.Depth									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Depth]).HeapIndex;
 
 	Data.LTC_LUT_DisneyDiffuse_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture()).HeapIndex;
 	Data.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;

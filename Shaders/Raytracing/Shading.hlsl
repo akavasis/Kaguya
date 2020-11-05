@@ -3,11 +3,10 @@
 
 struct ShadingData
 {
-	int Position;
-	int Normal;
 	int Albedo;
+	int Normal;
 	int TypeAndIndex;
-	int DepthStencil;
+	int Depth;
 
 	int LTC_LUT_DisneyDiffuse_InverseMatrix;
 	int LTC_LUT_DisneyDiffuse_Terms;
@@ -168,23 +167,24 @@ void RayGeneration()
 	const float epsilon = 0.005f;
 	
 	const uint2 launchIndex = DispatchRaysIndex().xy;
+	const float2 pixelCenter = (launchIndex + 0.5f) / DispatchRaysDimensions().xy;
 	
 	ShadingResult shadingResult = InitShadingResult();
 	
 	GBuffer GBuffer;
-	GBuffer.Position = g_Texture2DTable[g_RenderPassData.Position];
 	GBuffer.Normal = g_Texture2DTable[g_RenderPassData.Normal];
 	GBuffer.Albedo = g_Texture2DTable[g_RenderPassData.Albedo];
 	GBuffer.TypeAndIndex = g_Texture2DUINT4Table[g_RenderPassData.TypeAndIndex];
-	GBuffer.DepthStencil = g_Texture2DTable[g_RenderPassData.DepthStencil];
+	GBuffer.Depth = g_Texture2DTable[g_RenderPassData.Depth];
 	
+	float Depth = GBuffer.Depth[launchIndex].r;
 	uint GBufferType = GetGBufferType(GBuffer, launchIndex);
 	
 	if (GBufferType == GBufferTypeMesh)
 	{
 		GBufferMesh GBufferMesh = GetGBufferMesh(GBuffer, launchIndex);
 		
-		float3 position = GBufferMesh.Position;
+		float3 position = NDCDepthToWorldPosition(Depth, pixelCenter, g_SystemConstants.Camera);
 		float3 normal = GBufferMesh.Normal;
 		float3 viewDir = normalize(g_SystemConstants.Camera.Position.xyz - position);
 		

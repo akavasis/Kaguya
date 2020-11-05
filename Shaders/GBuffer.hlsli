@@ -8,18 +8,16 @@ static const uint GBufferTypeLight	= 1 << 1;
 
 struct GBuffer
 {
-	Texture2D			Position;
-	Texture2D			Normal;
 	Texture2D			Albedo;
+	Texture2D			Normal;
 	Texture2D<uint4>	TypeAndIndex;
-	Texture2D			DepthStencil;
+	Texture2D			Depth;
 };
 
 struct GBufferMesh
 {
-	float3	Position;
-	float3	Normal;
 	float3	Albedo;
+	float3	Normal;
 	float	Roughness;
 	float	Metallic;
 	uint	MaterialIndex;
@@ -33,13 +31,12 @@ struct GBufferLight
 // Multiple Render Targets
 struct MRT
 {
-	float4	Position			: SV_TARGET0;
+	float4	Albedo				: SV_TARGET0;
 	float4	Normal				: SV_TARGET1;
-	float4	Albedo				: SV_TARGET2;
-	uint	TypeAndIndex		: SV_TARGET3; // If Type is Mesh, Index is MaterialIndex, If Type if Light, Index is LightIndex
-	float4	SVGF_LinearZ		: SV_TARGET4;
-	float4	SVGF_MotionVector	: SV_TARGET5;
-	float4	SVGF_Compact		: SV_TARGET6;
+	uint	TypeAndIndex		: SV_TARGET2; // If Type is Mesh, Index is MaterialIndex, If Type if Light, Index is LightIndex
+	float4	SVGF_LinearZ		: SV_TARGET3;
+	float4	SVGF_MotionVector	: SV_TARGET4;
+	float4	SVGF_Compact		: SV_TARGET5;
 };
 
 float3 EncodeNormal(float3 n)
@@ -62,10 +59,9 @@ GBufferMesh GetGBufferMesh(GBuffer gbuffer, uint2 uv)
 {
 	GBufferMesh OUT;
 	{
-		float4 NormalRoughness	= gbuffer.Normal[uv];
-		float4 AlbedoMetallic	= gbuffer.Albedo[uv];
+		float4	NormalRoughness	= gbuffer.Normal[uv];
+		float4	AlbedoMetallic	= gbuffer.Albedo[uv];
 		
-		OUT.Position			= gbuffer.Position[uv].xyz;
 		OUT.Normal				= DecodeNormal(NormalRoughness.xyz);
 		OUT.Albedo				= AlbedoMetallic.rgb;
 		OUT.Roughness			= NormalRoughness.a;

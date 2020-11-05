@@ -38,4 +38,5 @@ private:
 	Nit						Luminance;
 
 	size_t					GpuLightIndex;
+	DirectX::XMFLOAT3		EulerAngles = { 0, 0, 0 };
 };

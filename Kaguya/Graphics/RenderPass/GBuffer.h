@@ -9,15 +9,14 @@ class GBuffer : public RenderPass
 public:
 	enum EResources
 	{
-		Position,
-		Normal,
 		Albedo,
+		Normal,
 		TypeAndIndex,
 		SVGF_LinearZ,
 		SVGF_MotionVector,
 		SVGF_Compact,
 
-		DepthStencil,
+		Depth,
 
 		NumResources
 	};

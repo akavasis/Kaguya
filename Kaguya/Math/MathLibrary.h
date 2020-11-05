@@ -67,6 +67,7 @@ namespace Math
 
 	// Returns an Identity matrix in the type XMFLOAT4X4
 	DirectX::XMFLOAT4X4 Identity();
+	DirectX::XMVECTOR QuaternionToEulerAngles(DirectX::CXMVECTOR Q);
 
 	template<typename T>
 	constexpr inline T AlignUp(T Size, T Alignment)

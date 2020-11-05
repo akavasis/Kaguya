@@ -56,9 +56,8 @@ MRT PSMain(VSOutput IN)
 	light.LightIndex = LightIndex;
 	
 	MRT OUT;
-	OUT.Position			= 0.0.xxxx;
-	OUT.Normal				= 0.0.xxxx;
 	OUT.Albedo				= 0.0.xxxx;
+	OUT.Normal				= 0.0.xxxx;
 	OUT.TypeAndIndex		= (GBufferTypeLight << 4) | (light.LightIndex & 0x0000000F);
 	OUT.SVGF_LinearZ		= 0.0.xxxx;
 	OUT.SVGF_MotionVector	= 0.0.xxxx;

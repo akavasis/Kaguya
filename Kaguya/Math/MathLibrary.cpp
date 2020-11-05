@@ -104,4 +104,34 @@ namespace Math
 			0.0f, 0.0f, 1.0f, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f);
 	}
+
+	DirectX::XMVECTOR QuaternionToEulerAngles(DirectX::CXMVECTOR Q)
+	{
+		XMVECTOR EulerAngles;
+
+		float Q_x = XMVectorGetX(Q);
+		float Q_y = XMVectorGetY(Q);
+		float Q_z = XMVectorGetZ(Q);
+		float Q_w = XMVectorGetW(Q);
+
+		// roll (x-axis rotation)
+		float sinr_cosp = 2.0f * (Q_w * Q_x + Q_y * Q_z);
+		float cosr_cosp = 1.0f - 2.0f * (Q_x * Q_x + Q_y * Q_y);
+		float roll = std::atan2(sinr_cosp, cosr_cosp);
+
+		// pitch (y-axis rotation)
+		float pitch;
+		float sinp = 2.0f * (Q_w * Q_y - Q_z * Q_x);
+		if (std::abs(sinp) >= 1.0f)
+			pitch = std::copysign(XM_PIDIV2, sinp); // use 90 degrees if out of range
+		else
+			pitch = std::asin(sinp);
+
+		// yaw (z-axis rotation)
+		float siny_cosp = 2.0f * (Q_w * Q_z + Q_x * Q_y);
+		float cosy_cosp = 1.0f - 2.0f * (Q_y * Q_y + Q_z * Q_z);
+		float yaw = std::atan2(siny_cosp, cosy_cosp);
+
+		return DirectX::XMVectorSet(roll, pitch, yaw, 0.0f);
+	}
 }

@@ -5,7 +5,7 @@ using namespace DirectX;
 struct MeshData
 {
 	std::vector<Vertex> Vertices;
-	std::vector<std::uint32_t> Indices;
+	std::vector<uint32_t> Indices;
 };
 
 Vertex MidPoint(const Vertex& v0, const Vertex& v1)
@@ -51,7 +51,7 @@ void Subdivide(MeshData& meshData)
 	// *-----*-----* 
 	// v0    m2     v2 
 
-	UINT NumTriangles = (UINT)inputCopy.Indices.size() / 3;
+	uint32_t NumTriangles = (uint32_t)inputCopy.Indices.size() / 3;
 	for (UINT i = 0; i < NumTriangles; ++i)
 	{
 		Vertex v0 = inputCopy.Vertices[inputCopy.Indices[size_t(i) * 3 + 0]];
@@ -125,13 +125,13 @@ Model CreateTriangle()
 
 	meshData.Vertices.assign(&v[0], &v[2]);
 
-	unsigned int i[3] = { 0, 1, 2 };
+	uint32_t i[3] = { 0, 1, 2 };
 	meshData.Indices.assign(&i[0], &i[2]);
 
 	return CreateFromMeshData(meshData);
 }
 
-Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions)
+Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions)
 {
 	MeshData meshData;
 
@@ -178,7 +178,7 @@ Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions)
 
 	meshData.Vertices.assign(&v[0], &v[24]);
 
-	unsigned int i[36];
+	uint32_t i[36];
 	// Fill in the front face index data 
 	i[0] = 0; i[1] = 1; i[2] = 2;
 	i[3] = 0; i[4] = 2; i[5] = 3;
@@ -206,20 +206,20 @@ Model CreateBox(float Width, float Height, float Depth, UINT NumSubdivisions)
 	meshData.Indices.assign(&i[0], &i[36]);
 
 	// Put a cap on the number of subdivisions. 
-	NumSubdivisions = std::min<UINT>(NumSubdivisions, 6u);
+	NumSubdivisions = std::min<uint32_t>(NumSubdivisions, 6u);
 
-	for (UINT i = 0; i < NumSubdivisions; ++i)
+	for (uint32_t i = 0; i < NumSubdivisions; ++i)
 		Subdivide(meshData);
 
 	return CreateFromMeshData(meshData);
 }
 
-Model CreateGrid(float Width, float Depth, UINT M, UINT N)
+Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 {
 	MeshData meshData;
 
-	UINT vertexCount = M * N;
-	UINT faceCount = (M - 1) * (N - 1) * 2;
+	uint32_t vertexCount = M * N;
+	uint32_t faceCount = (M - 1) * (N - 1) * 2;
 
 	// Create the vertices.
 	float halfWidth = 0.5f * Width;
@@ -232,10 +232,10 @@ Model CreateGrid(float Width, float Depth, UINT M, UINT N)
 	float dv = 1.0f / (M - 1);
 
 	meshData.Vertices.resize(vertexCount);
-	for (UINT i = 0; i < M; ++i)
+	for (uint32_t i = 0; i < M; ++i)
 	{
 		float z = halfDepth - i * dz;
-		for (UINT j = 0; j < N; ++j)
+		for (uint32_t j = 0; j < N; ++j)
 		{
 			float x = -halfWidth + j * dx;
 
@@ -252,10 +252,10 @@ Model CreateGrid(float Width, float Depth, UINT M, UINT N)
 	meshData.Indices.resize(size_t(faceCount) * 3); // 3 indices per face
 
 	// Iterate over each quad and compute indices.
-	UINT k = 0;
-	for (UINT i = 0; i < M - 1; ++i)
+	uint32_t k = 0;
+	for (uint32_t i = 0; i < M - 1; ++i)
 	{
-		for (UINT j = 0; j < N - 1; ++j)
+		for (uint32_t j = 0; j < N - 1; ++j)
 		{
 			meshData.Indices[k] = i * N + j;
 			meshData.Indices[size_t(k) + 1] = i * N + j + 1;

@@ -35,9 +35,8 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 
 		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Position
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_LinearZ
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
@@ -65,9 +64,8 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 
 		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// Position
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
+		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_LinearZ
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
@@ -81,7 +79,6 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 {
 	DXGI_FORMAT Formats[EResources::NumResources - 1] =
 	{
-		DXGI_FORMAT_R32G32B32A32_FLOAT,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		DXGI_FORMAT_R8_UINT,
@@ -107,7 +104,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
 		proxy.SetFormat(RenderDevice::DepthStencilFormat);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(RenderDevice::DepthStencilFormat, 1.0f, 0));
+		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0));
 		proxy.BindFlags = DeviceResource::BindFlags::DepthStencil;
 		proxy.InitialState = DeviceResource::State::DepthWrite;
 	});
@@ -131,7 +128,7 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	{
 		RenderContext.TransitionBarrier(Resources[i], DeviceResource::State::RenderTarget);
 	}
-	RenderContext.TransitionBarrier(Resources[EResources::DepthStencil], DeviceResource::State::DepthWrite);
+	RenderContext.TransitionBarrier(Resources[EResources::Depth], DeviceResource::State::DepthWrite);
 
 	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
 	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
@@ -141,15 +138,14 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	Descriptor RenderTargetViews[] =
 	{
-		RenderContext.GetRenderTargetView(Resources[Position]),
-		RenderContext.GetRenderTargetView(Resources[Normal]),
 		RenderContext.GetRenderTargetView(Resources[Albedo]),
+		RenderContext.GetRenderTargetView(Resources[Normal]),
 		RenderContext.GetRenderTargetView(Resources[TypeAndIndex]),
 		RenderContext.GetRenderTargetView(Resources[SVGF_LinearZ]),
 		RenderContext.GetRenderTargetView(Resources[SVGF_MotionVector]),
 		RenderContext.GetRenderTargetView(Resources[SVGF_Compact]),
 	};
-	Descriptor DepthStencilView = RenderContext.GetDepthStencilView(Resources[EResources::DepthStencil]);
+	Descriptor DepthStencilView = RenderContext.GetDepthStencilView(Resources[EResources::Depth]);
 
 	RenderContext->SetRenderTargets(ARRAYSIZE(RenderTargetViews), RenderTargetViews, TRUE, DepthStencilView);
 

@@ -19,6 +19,10 @@ void PolygonalLight::RenderGui()
 	if (ImGui::TreeNode(Name.data()))
 	{
 		Dirty |= ImGui::DragFloat3("Position", &Transform.Position.x, 0.01f, -Math::Infinity, Math::Infinity);
+
+		Dirty |= ImGui::DragFloat3("Orientation", &EulerAngles.x, 0.01f, -Math::Infinity, Math::Infinity);
+		XMStoreFloat4(&Transform.Orientation, DirectX::XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&EulerAngles)));
+
 		Dirty |= ImGui::ColorEdit3("Color", &Color.x);
 		Dirty |= ImGui::DragFloat("Luminous Power", &LuminousPower, 5, 0, Math::Infinity, "%.3f lm");
 		Dirty |= ImGui::DragFloat2("Dimension", &Width, 0.5f, 1, 50);

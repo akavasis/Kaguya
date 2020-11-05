@@ -113,7 +113,6 @@ MRT PSMain(VSOutput IN)
 	Material material = Materials[mesh.MaterialIndex];
 	
 	GBufferMesh gbufferMesh = (GBufferMesh) 0;
-	gbufferMesh.Position = IN.PositionW;
 	gbufferMesh.Normal = GetNormalMap(IN, material);
 	gbufferMesh.Albedo = GetAlbedoMap(IN, material);
 	gbufferMesh.Roughness = GetRoughnessMap(IN, material);
@@ -128,13 +127,12 @@ MRT PSMain(VSOutput IN)
 
 	// The 'motion vector' buffer
 	float2 svgfMotionVec = calcMotionVector(IN.PreviousPositionH, IN.PositionH.xy, g_SystemConstants.OutputSize.zw);
-	float2 posNormFWidth = float2(length(fwidth(gbufferMesh.Position)), length(fwidth(gbufferMesh.Normal)));
+	float2 posNormFWidth = float2(length(fwidth(IN.PositionW)), length(fwidth(gbufferMesh.Normal)));
 	float4 svgfMotionVecOut = float4(svgfMotionVec, posNormFWidth);
 
 	MRT OUT;
-	OUT.Position			= float4(gbufferMesh.Position, 1.0f);
-	OUT.Normal				= float4(EncodeNormal(gbufferMesh.Normal), gbufferMesh.Roughness);
 	OUT.Albedo				= float4(gbufferMesh.Albedo, gbufferMesh.Metallic);
+	OUT.Normal				= float4(EncodeNormal(gbufferMesh.Normal), gbufferMesh.Roughness);
 	OUT.TypeAndIndex		= (GBufferTypeMesh << 4) | (mesh.MaterialIndex & 0x0000000F);
 	OUT.SVGF_LinearZ		= svgfLinearZOut;
 	OUT.SVGF_MotionVector	= svgfMotionVecOut;
