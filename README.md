@@ -1,15 +1,18 @@
 # Kaguya
 ## Description
-This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR)
+This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR). This project have evolved from a path tracer to a deferred renderer. See pathtracing branch for full details of the implementation (Path tracing is still supported in the main branch, just need to change a couple lines of code).
 
 ### Showcase
+
+### Path Tracer Showcase
 ![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
 ![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
 ![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")
 
 ### Features
 + __Path tracing__
-+ __Bindless Texturing__
++ __Deferred rendering__
++ __Bindless resource__
 + __Multi-threaded commandlist recording__
 + __Lambertian, Glossy, Metal, and Dielectric material models__
 + __Various post processing effects__

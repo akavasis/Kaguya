@@ -98,6 +98,10 @@ struct Shaders
 		inline static Shader EquirectangularToCubemap;
 		inline static Shader GenerateMips;
 
+		inline static Shader EstimateNoise;
+		inline static Shader FilterNoise;
+		inline static Shader Denoise;
+		inline static Shader WeightedShadowComposition;
 		inline static Shader ShadingComposition;
 
 		inline static Shader Accumulation;
@@ -131,6 +135,10 @@ struct RootSignatures
 	inline static RenderResourceHandle Skybox;
 	inline static RenderResourceHandle GBufferMeshes;
 	inline static RenderResourceHandle GBufferLights;
+	inline static RenderResourceHandle EstimateNoise;
+	inline static RenderResourceHandle FilterNoise;
+	inline static RenderResourceHandle Denoise;
+	inline static RenderResourceHandle WeightedShadowComposition;
 	inline static RenderResourceHandle ShadingComposition;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
@@ -169,6 +177,10 @@ struct ComputePSOs
 	inline static RenderResourceHandle GenerateMips;
 	inline static RenderResourceHandle EquirectangularToCubemap;
 
+	inline static RenderResourceHandle EstimateNoise;
+	inline static RenderResourceHandle FilterNoise;
+	inline static RenderResourceHandle Denoise;
+	inline static RenderResourceHandle WeightedShadowComposition;
 	inline static RenderResourceHandle ShadingComposition;
 
 	inline static RenderResourceHandle Accumulation;

@@ -1,6 +1,13 @@
 #ifndef SHADER_LAYOUT_HLSLI
 #define SHADER_LAYOUT_HLSLI
 
+/*
+	Defines bindless resource layout, contains 5 total root parameters,
+	Resources are grouped together based on their usage [Read/Write] within
+	their respected descriptor tables
+*/
+
+#include "Constants.hlsli"
 #include "SharedTypes.hlsli"
 
 struct SystemConstants
@@ -40,4 +47,4 @@ RWTexture2DArray<float4>				g_RWTexture2DArrayTable[]	: register(u0, space101);
 // Sampler
 SamplerState							g_SamplerTable[]			: register(s0, space100);
 
-#endif
+#endif // SHADER_LAYOUT_HLSLI

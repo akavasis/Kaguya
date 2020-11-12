@@ -217,7 +217,7 @@ void RayGeneration()
 	{
 		// Calculate subpixel camera jitter for anti aliasing
 		const float2 jitter = float2(RandomFloat01(seed), RandomFloat01(seed)) - 0.5f;
-		const float2 pixel = (float2(launchIndex) + jitter) / float2(launchDimensions); // Convert from discrete to continuous
+		const float2 pixel = (float2(launchIndex) + jitter) / float2(launchDimensions);
 
 		const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 

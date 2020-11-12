@@ -49,6 +49,7 @@ float NDCDepthToViewDepth(float NDCDepth, Camera Camera)
 	return Camera.Projection[3][2] / (NDCDepth - Camera.Projection[2][2]);
 }
 
+// Reconstructs view position from depth buffer
 float3 NDCDepthToViewPosition(float NDCDepth, float2 ScreenSpaceUV, Camera Camera)
 {
 	ScreenSpaceUV.y = 1.0f - ScreenSpaceUV.y; // Flip due to DirectX convention
@@ -65,7 +66,7 @@ float3 NDCDepthToViewPosition(float NDCDepth, float2 ScreenSpaceUV, Camera Camer
 	return viewSpacePosition.xyz;
 }
 
-// this is supposed to get the world position from the depth buffer
+// Reconstructs world position from depth buffer
 float3 NDCDepthToWorldPosition(float NDCDepth, float2 ScreenSpaceUV, Camera Camera)
 {
 	float4 viewSpacePosition = float4(NDCDepthToViewPosition(NDCDepth, ScreenSpaceUV, Camera), 1.0f);
@@ -73,4 +74,14 @@ float3 NDCDepthToWorldPosition(float NDCDepth, float2 ScreenSpaceUV, Camera Came
 	return worldSpacePosition.xyz;
 }
 
-#endif
+float3 EncodeNormal(float3 n)
+{
+	return n * 0.5f + 0.5f;
+}
+
+float3 DecodeNormal(float3 n)
+{
+	return n * 2.0f - 1.0f;
+}
+
+#endif // HLSL_COMMON_HLSLI

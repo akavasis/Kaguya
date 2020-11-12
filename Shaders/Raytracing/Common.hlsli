@@ -10,7 +10,6 @@ struct Triangle
     Vertex v2;
 };
 
-// BERP: Short for barycentric interpolation
 float BarycentricInterpolation(in float v0, in float v1, in float v2, in float3 barycentric)
 {
     return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;

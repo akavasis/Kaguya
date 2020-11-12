@@ -5,6 +5,7 @@
 void Shaders::Register(RenderDevice* pRenderDevice)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
+
 	// Load VS
 	{
 		VS::Quad										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",			L"VSMain", {});
@@ -28,6 +29,10 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 		CS::EquirectangularToCubemap					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/EquirectangularToCubemap.hlsl",					L"CSMain", {});
 		CS::GenerateMips								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/GenerateMips.hlsl",								L"CSMain", {});
 
+		CS::EstimateNoise								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Denoiser/EstimateNoise.hlsl",					L"CSMain", {});
+		CS::FilterNoise									= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Denoiser/FilterNoise.hlsl",						L"CSMain", {});
+		CS::Denoise										= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Denoiser/Denoise.hlsl",							L"CSMain", {});
+		CS::WeightedShadowComposition					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Denoiser/WeightedShadowComposition.hlsl",		L"CSMain", {});
 		CS::ShadingComposition							= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/ShadingComposition.hlsl",						L"CSMain", {});
 
 		CS::Accumulation								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Raytracing/Accumulation.hlsl",					L"CSMain", {});
@@ -43,6 +48,7 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 void Libraries::Register(RenderDevice* pRenderDevice)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
+
 	Pathtracing			= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
 	AmbientOcclusion	= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
 	Shading				= pRenderDevice->CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Shading.hlsl");

@@ -413,20 +413,20 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 			auto& floorInstance = Scene.AddModelInstance({ &plane, &metal });
 		}
 
-		// Box
+		// Hexgate
 		{
-			auto& alienMetal = Scene.AddMaterial(MaterialLoader.LoadMaterial(
-				"Assets/Textures/alien-metal1/alien-metal_albedo.dds",
-				"Assets/Textures/alien-metal1/alien-metal_normal-ogl.dds",
-				"Assets/Textures/alien-metal1/alien-metal_roughness.dds",
-				"Assets/Textures/alien-metal1/alien-metal_metallic.dds",
+			auto& nullMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+				0,
+				0,
+				0,
+				0,
 				0));
 
-			auto& box = Scene.AddModel(CreateBox(2.5, 2.5, 2.5, 1));
+			auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/hexgate.obj"));
 
-			auto& boxInstance = Scene.AddModelInstance({ &box, &alienMetal });
-			boxInstance.Translate(0, 1.25, -4);
-			boxInstance.Rotate(0, 45.0_Deg, 0);
+			auto& boxInstance = Scene.AddModelInstance({ &hexgate, &nullMat });
+			boxInstance.SetScale(0.025f);
+			boxInstance.Translate(0, 2.5, -4);
 		}
 	}
 	return Scene;

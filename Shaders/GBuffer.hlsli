@@ -39,43 +39,33 @@ struct MRT
 	float4	SVGF_Compact		: SV_TARGET5;
 };
 
-float3 EncodeNormal(float3 n)
+uint GetGBufferType(GBuffer gbuffer, uint2 ScreenSpaceCoord)
 {
-	return n * 0.5f + 0.5f;
-}
-
-float3 DecodeNormal(float3 n)
-{
-	return n * 2.0f - 1.0f;
-}
-
-uint GetGBufferType(GBuffer gbuffer, uint2 uv)
-{
-	uint type = gbuffer.TypeAndIndex[uv].x;
+	uint type = gbuffer.TypeAndIndex[ScreenSpaceCoord].x;
 	return type >> 4;
 }
 
-GBufferMesh GetGBufferMesh(GBuffer gbuffer, uint2 uv)
+GBufferMesh GetGBufferMesh(GBuffer gbuffer, uint2 ScreenSpaceCoord)
 {
 	GBufferMesh OUT;
 	{
-		float4	NormalRoughness	= gbuffer.Normal[uv];
-		float4	AlbedoMetallic	= gbuffer.Albedo[uv];
+		float4 NormalRoughness	= gbuffer.Normal[ScreenSpaceCoord];
+		float4 AlbedoMetallic	= gbuffer.Albedo[ScreenSpaceCoord];
 		
 		OUT.Normal				= DecodeNormal(NormalRoughness.xyz);
 		OUT.Albedo				= AlbedoMetallic.rgb;
 		OUT.Roughness			= NormalRoughness.a;
 		OUT.Metallic			= AlbedoMetallic.a;
-		OUT.MaterialIndex		= gbuffer.TypeAndIndex[uv].x & 0x0000000F;
+		OUT.MaterialIndex = gbuffer.TypeAndIndex[ScreenSpaceCoord].x & 0x0000000F;
 	}
 	return OUT;
 }
 
-GBufferLight GetGBufferLight(GBuffer gbuffer, uint2 uv)
+GBufferLight GetGBufferLight(GBuffer gbuffer, uint2 ScreenSpaceCoord)
 {
 	GBufferLight OUT;
 	{
-		OUT.LightIndex = gbuffer.TypeAndIndex[uv].x & 0x0000000F;
+		OUT.LightIndex = gbuffer.TypeAndIndex[ScreenSpaceCoord].x & 0x0000000F;
 	}
 	return OUT;
 }

@@ -32,6 +32,11 @@ file(GLOB_RECURSE External_SourceList
 ../External/*.cpp
 )
 
+file(GLOB_RECURSE GLM_Submodule
+../Submodules/glm/*.h
+../Submodules/glm/*.hpp
+)
+
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${Main})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${PCH_Header})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${PCH_Source})
@@ -39,6 +44,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${HeaderList})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SourceList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_HeaderList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_SourceList})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${GLM_Submodule})
 
 foreach(Source IN LISTS SourceList)
     set_source_files_properties("${Source}" PROPERTIES COMPILE_FLAGS "/Yupch.h")
@@ -54,9 +60,11 @@ ${HeaderList}
 ${SourceList}
 ${External_HeaderList}
 ${External_SourceList}
-${Shaders_HeaderList}
-${Shaders_SourceList}
+${GLM_Submodule}
 )
+
+# Submodules
+include_directories("../Submodules/glm")
 
 include_directories("../External/assimp/include")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/assimp/lib/Release/assimp-vc142-mt.lib)

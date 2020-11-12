@@ -47,6 +47,8 @@
 #include "../External/imgui/imgui_impl_win32.h"
 #include "../External/imgui/imgui_impl_dx12.h"
 
+#include <glm/glm.hpp>
+
 // DX12
 #include <d3d12.h>
 #pragma comment(lib, "d3d12.lib")

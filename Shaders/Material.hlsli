@@ -36,4 +36,4 @@ struct Material
 	int		TextureIndices[NumTextureTypes];
 };
 
-#endif
+#endif // MATERIAL_HLSLI

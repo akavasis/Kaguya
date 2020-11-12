@@ -9,6 +9,7 @@
 // Render passes
 #include "RenderPass/GBuffer.h"
 #include "RenderPass/Shading.h"
+#include "RenderPass/ShadowDenoiser.h"
 #include "RenderPass/ShadingComposition.h"
 #include "RenderPass/Pathtracing.h"
 #include "RenderPass/AmbientOcclusion.h"
@@ -65,6 +66,7 @@ bool Renderer::Initialize()
 
 	m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
 	m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
+	m_pRenderGraph->AddRenderPass(new ShadowDenoiser(Width, Height));
 	m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
 	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
@@ -82,7 +84,6 @@ void Renderer::HandleMouse(int32_t X, int32_t Y, float DeltaTime)
 {
 	Scene& scene = *m_pGpuScene->pScene;
 
-	scene.PreviousCamera = scene.Camera;
 	scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
 }
 
@@ -91,7 +92,6 @@ void Renderer::HandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 {
 	Scene& scene = *m_pGpuScene->pScene;
 
-	scene.PreviousCamera = scene.Camera;
 
 	if (Keyboard.IsKeyPressed('W'))
 		scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
@@ -125,7 +125,10 @@ void Renderer::Render()
 
 	RenderGui();
 
+
 	Scene& scene = *m_pGpuScene->pScene;
+	scene.PreviousCamera = scene.Camera;
+
 	scene.Camera.RelativeAperture = 0.8f;
 	scene.Camera.ShutterTime = 1.0f / 125.0f;
 	scene.Camera.SensorSensitivity = 200.0f;

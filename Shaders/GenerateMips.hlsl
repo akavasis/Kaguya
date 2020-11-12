@@ -1,4 +1,4 @@
-// Credit: https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/GenerateMipsCS.hlsli
+// Reference: https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/GenerateMipsCS.hlsli
 /**
  * Compute shader to generate mipmaps for a given texture.
  */

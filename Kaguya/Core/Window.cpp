@@ -351,7 +351,7 @@ LRESULT CALLBACK Window::WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 	Window* pWindow = nullptr;
 	if (uMsg == WM_NCCREATE)
 	{
-		LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
+		auto lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
 		pWindow = reinterpret_cast<Window*>(lpcs->lpCreateParams);
 		pWindow->m_WindowHandle = hwnd;
 		::SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LPARAM>(pWindow));

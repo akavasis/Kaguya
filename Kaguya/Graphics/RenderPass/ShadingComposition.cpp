@@ -2,6 +2,7 @@
 #include "ShadingComposition.h"
 
 #include "Shading.h"
+#include "ShadowDenoiser.h"
 
 ShadingComposition::ShadingComposition(UINT Width, UINT Height)
 	: RenderPass("Shading Composition",
@@ -52,18 +53,17 @@ void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRen
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Shading Composition");
 
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
+	auto pShadowDenoiserRenderPass = pRenderGraph->GetRenderPass<ShadowDenoiser>();
 
 	struct ShadingCompositionData
 	{
-		int AnalyticUnshadowed;
-		int StochasticUnshadowed;
-		int StochasticShadowed;
+		int AnalyticUnshadowed; // U
+		int WeightedShadow;		// W_N
 
 		int RenderTarget;
 	} Data;
 	Data.AnalyticUnshadowed		= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::AnalyticUnshadowed]).HeapIndex;
-	Data.StochasticUnshadowed	= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::StochasticUnshadowed]).HeapIndex;
-	Data.StochasticShadowed		= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::StochasticShadowed]).HeapIndex;
+	Data.WeightedShadow			= RenderContext.GetShaderResourceView(pShadowDenoiserRenderPass->Resources[ShadowDenoiser::EResources::WeightedShadow]).HeapIndex;
 
 	Data.RenderTarget			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 
