@@ -2,6 +2,21 @@
 #include "RenderContext.h"
 #include "RendererRegistry.h"
 
+void RenderContext::CopyResource(RenderResourceHandle Dst, RenderResourceHandle Src)
+{
+	assert(Dst.Type == Src.Type);
+	switch (Dst.Type)
+	{
+	case RenderResourceType::DeviceBuffer:
+		SV_pCommandContext->CopyResource(SV_pRenderDevice->GetBuffer(Dst), SV_pRenderDevice->GetBuffer(Src));
+		break;
+
+	case RenderResourceType::DeviceTexture:
+		SV_pCommandContext->CopyResource(SV_pRenderDevice->GetTexture(Dst), SV_pRenderDevice->GetTexture(Src));
+		break;
+	}
+}
+
 void RenderContext::TransitionBarrier(RenderResourceHandle ResourceHandle, DeviceResource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
 {
 	switch (ResourceHandle.Type)

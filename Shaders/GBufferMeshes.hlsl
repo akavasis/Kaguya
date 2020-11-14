@@ -113,8 +113,8 @@ MRT PSMain(VSOutput IN)
 	Material material = Materials[mesh.MaterialIndex];
 	
 	GBufferMesh gbufferMesh = (GBufferMesh) 0;
-	gbufferMesh.Normal = GetNormalMap(IN, material);
 	gbufferMesh.Albedo = GetAlbedoMap(IN, material);
+	gbufferMesh.Normal = GetNormalMap(IN, material);
 	gbufferMesh.Roughness = GetRoughnessMap(IN, material);
 	gbufferMesh.Metallic = GetMetallicMap(IN, material);
 	gbufferMesh.MaterialIndex = mesh.MaterialIndex;

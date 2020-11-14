@@ -2,7 +2,7 @@
 #include "ShadingComposition.h"
 
 #include "Shading.h"
-#include "ShadowDenoiser.h"
+#include "SVGF.h"
 
 ShadingComposition::ShadingComposition(UINT Width, UINT Height)
 	: RenderPass("Shading Composition",
@@ -53,19 +53,24 @@ void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRen
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Shading Composition");
 
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
-	auto pShadowDenoiserRenderPass = pRenderGraph->GetRenderPass<ShadowDenoiser>();
+	auto pSVGFAtrousRenderPass = pRenderGraph->GetRenderPass<SVGFAtrous>();
 
 	struct ShadingCompositionData
 	{
-		int AnalyticUnshadowed; // U
-		int WeightedShadow;		// W_N
+		// Input Textures
+		uint AnalyticUnshadowed;	// U
+		uint Source0Index;			// S_N
+		uint Source1Index;			// U_N
 
-		int RenderTarget;
+		// Output Textures
+		uint RenderTarget;
 	} Data;
-	Data.AnalyticUnshadowed		= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::AnalyticUnshadowed]).HeapIndex;
-	Data.WeightedShadow			= RenderContext.GetShaderResourceView(pShadowDenoiserRenderPass->Resources[ShadowDenoiser::EResources::WeightedShadow]).HeapIndex;
 
-	Data.RenderTarget			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	Data.AnalyticUnshadowed	= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::AnalyticUnshadowed]).HeapIndex;
+	Data.Source0Index		= RenderContext.GetShaderResourceView(pSVGFAtrousRenderPass->Resources[SVGFAtrous::EResources::RenderTarget0]).HeapIndex;
+	Data.Source1Index		= RenderContext.GetShaderResourceView(pSVGFAtrousRenderPass->Resources[SVGFAtrous::EResources::RenderTarget1]).HeapIndex;
+
+	Data.RenderTarget		= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 
 	RenderContext.UpdateRenderPassData<ShadingCompositionData>(Data);
 

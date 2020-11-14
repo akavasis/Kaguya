@@ -29,10 +29,10 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 		CS::EquirectangularToCubemap					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/EquirectangularToCubemap.hlsl",					L"CSMain", {});
 		CS::GenerateMips								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/GenerateMips.hlsl",								L"CSMain", {});
 
-		CS::EstimateNoise								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Denoiser/EstimateNoise.hlsl",					L"CSMain", {});
-		CS::FilterNoise									= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Denoiser/FilterNoise.hlsl",						L"CSMain", {});
-		CS::Denoise										= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Denoiser/Denoise.hlsl",							L"CSMain", {});
-		CS::WeightedShadowComposition					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Denoiser/WeightedShadowComposition.hlsl",		L"CSMain", {});
+		CS::SVGF_Reproject								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_Reproject.hlsl",						L"CSMain", {});
+		CS::SVGF_FilterMoments							= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_FilterMoments.hlsl",					L"CSMain", {});
+		CS::SVGF_Atrous									= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_Atrous.hlsl",							L"CSMain", {});
+
 		CS::ShadingComposition							= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/ShadingComposition.hlsl",						L"CSMain", {});
 
 		CS::Accumulation								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Raytracing/Accumulation.hlsl",					L"CSMain", {});

@@ -61,6 +61,8 @@ public:
 		SV_pGpuData->Update<T>(SV_RenderPassIndex, Data);
 	}
 
+	void CopyResource(RenderResourceHandle Dst, RenderResourceHandle Src);
+
 	void TransitionBarrier(RenderResourceHandle ResourceHandle, DeviceResource::State TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 	void AliasingBarrier(RenderResourceHandle BeforeResourceHandle, RenderResourceHandle AfterResourceHandle);
 	void UAVBarrier(RenderResourceHandle ResourceHandle);
