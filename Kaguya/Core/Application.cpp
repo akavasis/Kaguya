@@ -40,9 +40,12 @@ int Application::Run(RenderSystem* pRenderSystem)
 			throw std::exception("Null RenderSystem");
 
 		// Begin our render thread
-		Application::pRenderSystem	= pRenderSystem;
 		ExitRenderThread			= false;
-		RenderThread				= std::thread(RenderThreadMain);
+		RenderThread				= ::CreateThread(NULL, 0, Application::RenderThreadProc, pRenderSystem, 0, nullptr);
+		if (!RenderThread)
+		{
+			LOG_ERROR("Failed to create thread (error={})", ::GetLastError());
+		}
 
 		MSG msg = {};
 		while (msg.message != WM_QUIT)
@@ -93,18 +96,18 @@ int Application::Run(RenderSystem* pRenderSystem)
 		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
 
-	if (RenderThread.joinable())
+	// Set ExitRenderThread to true and wait for it to join
+	if (RenderThread)
 	{
 		ExitRenderThread = true;
-
-		// Join the thread
-		RenderThread.join();
+		::WaitForSingleObject(RenderThread, INFINITE);
+		::CloseHandle(RenderThread);
 	}
 
-	if (Application::pRenderSystem)
+	if (pRenderSystem)
 	{
-		delete Application::pRenderSystem;
-		Application::pRenderSystem = nullptr;
+		delete pRenderSystem;
+		pRenderSystem = nullptr;
 	}
 
 	if (pWindow)
@@ -118,12 +121,20 @@ int Application::Run(RenderSystem* pRenderSystem)
 }
 
 //----------------------------------------------------------------------------------------------------
-void Application::RenderThreadMain()
+DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 {
 	// Set to high priority thread
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	//SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 
+	auto pRenderSystem = reinterpret_cast<RenderSystem*>(pParameter);
+	RenderThreadMain(pRenderSystem);
+	return EXIT_SUCCESS;
+}
+
+//----------------------------------------------------------------------------------------------------
+void Application::RenderThreadMain(RenderSystem* pRenderSystem)
+{
 	Time Time;
 	Time.Restart();
 
@@ -147,13 +158,13 @@ void Application::RenderThreadMain()
 					continue;
 				}
 
-				HandleRenderMessage(messsage);
+				HandleRenderMessage(pRenderSystem, messsage);
 			}
 
 			// Now we process resize message
 			if (resizeMessage.type == Window::Message::Type::Resize)
 			{
-				if (!HandleRenderMessage(resizeMessage))
+				if (!HandleRenderMessage(pRenderSystem, resizeMessage))
 				{
 					// Requeue this message if it failed to resize
 					pWindow->MessageQueue.push(resizeMessage);
@@ -191,7 +202,7 @@ Error:
 }
 
 //----------------------------------------------------------------------------------------------------
-bool Application::HandleRenderMessage(const Window::Message& Message)
+bool Application::HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message)
 {
 	switch (Message.type)
 	{

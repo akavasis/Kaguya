@@ -93,11 +93,11 @@ private:
 	void BindComputeShaderLayoutResource(const RootSignature* pRootSignature);
 
 	// SV have the same notion as Shader's SV, it is provided by the RenderGraph
-	size_t			SV_RenderPassIndex		= 0;
-	DeviceBuffer*	SV_pSystemConstants		= nullptr;
-	DeviceBuffer*	SV_pGpuData				= nullptr;
-	RenderDevice*	SV_pRenderDevice		= nullptr;
-	CommandContext* SV_pCommandContext		= nullptr;
+	size_t					SV_RenderPassIndex		= 0;
+	DeviceBuffer*			SV_pSystemConstants		= nullptr;
+	DeviceBuffer*			SV_pGpuData				= nullptr;
+	RenderDevice*			SV_pRenderDevice		= nullptr;
+	CommandContext*			SV_pCommandContext		= nullptr;
 
-	RenderResourceHandle m_PipelineStateHandle;
+	RenderResourceHandle	m_PipelineStateHandle;
 };

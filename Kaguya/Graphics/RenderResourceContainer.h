@@ -33,7 +33,6 @@ public:
 	// Returns null if not found
 	T* GetResource(const RenderResourceHandle& RenderResourceHandle)
 	{
-		std::scoped_lock lk(m_Mutex);
 		auto iter = m_ResourceTable.find(RenderResourceHandle);
 		if (iter != m_ResourceTable.end())
 			return &iter->second;
@@ -43,7 +42,6 @@ public:
 	// Returns null if not found
 	const T* GetResource(const RenderResourceHandle& RenderResourceHandle) const
 	{
-		std::scoped_lock lk(m_Mutex);
 		auto iter = m_ResourceTable.find(RenderResourceHandle);
 		if (iter != m_ResourceTable.end())
 			return &iter->second;

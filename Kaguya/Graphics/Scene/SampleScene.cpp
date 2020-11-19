@@ -392,12 +392,12 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		light1.SetDimension(2, 5);
 		light1.SetLuminousPower(20000);
 
-		auto& light2 = Scene.AddLight();
+		/*auto& light2 = Scene.AddLight();
 		light2.Transform.Position = { 7, 5, 3 };
 		light2.Transform.Rotate(XM_PI - 0.5f, XM_PIDIV4, 0);
 		light2.Color = { 201.0 / 255, 226.0 / 255.0, 255.0 / 255 };
 		light2.SetDimension(2, 5);
-		light2.SetLuminousPower(20000);
+		light2.SetLuminousPower(20000);*/
 
 		// Plane
 		{
@@ -422,11 +422,18 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 				0,
 				0));
 
-			auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/hexgate.obj"));
+			//auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/hexgate.obj"));
+			//auto& box = Scene.AddModel(CreateBox(2.5, 2.5, 2.5, 1));
+			auto& sphere = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere1.obj"));
 
-			auto& boxInstance = Scene.AddModelInstance({ &hexgate, &nullMat });
+			auto& boxInstance = Scene.AddModelInstance({ &sphere, &nullMat });
+			boxInstance.Translate(0, 2.25, -4);
+			boxInstance.Rotate(0, 45.0_Deg, 0);
 			boxInstance.SetScale(0.025f);
-			boxInstance.Translate(0, 2.5, -4);
+
+			//auto& hexgateInstance = Scene.AddModelInstance({ &hexgate, &nullMat });
+			//hexgateInstance.SetScale(0.025f);
+			//hexgateInstance.Translate(0, 2.5, -4);
 		}
 	}
 	return Scene;

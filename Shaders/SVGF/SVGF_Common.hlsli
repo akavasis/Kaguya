@@ -122,5 +122,4 @@ float computeWeightNoLuminance(float depthCenter, float depthP, float phiDepth, 
 	return exp(-max(wZ, 0.0)) * wNormal;
 }
 
-
 #endif

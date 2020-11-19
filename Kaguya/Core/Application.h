@@ -1,5 +1,4 @@
 #pragma once
-#include <thread>
 #include <filesystem>
 #include "Window.h"
 #include "RenderSystem.h"
@@ -16,11 +15,11 @@ public:
 
 	inline static std::filesystem::path			ExecutableFolderPath;
 	inline static Window*						pWindow					= nullptr;
-	inline static RenderSystem*					pRenderSystem			= nullptr;
 private:
-	static void RenderThreadMain();
-	static bool HandleRenderMessage(const Window::Message& Message);
+	static DWORD WINAPI RenderThreadProc(_In_ PVOID pParameter);
+	static void RenderThreadMain(RenderSystem* pRenderSystem);
+	static bool HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message);
 
-	inline static std::thread					RenderThread;
+	inline static HANDLE						RenderThread;
 	inline static bool							ExitRenderThread		= false;
 };

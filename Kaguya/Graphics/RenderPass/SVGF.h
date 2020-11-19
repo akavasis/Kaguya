@@ -4,6 +4,7 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
+//----------------------------------------------------------------------------------------------------
 struct SVGFSettings
 {
 	inline static float Alpha			= 0.05f;
@@ -12,6 +13,7 @@ struct SVGFSettings
 	inline static float PhiNormal		= 128.0f;
 };
 
+//----------------------------------------------------------------------------------------------------
 class SVGFReproject : public RenderPass
 {
 public:
