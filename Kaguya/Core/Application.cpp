@@ -123,9 +123,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 //----------------------------------------------------------------------------------------------------
 DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 {
-	// Set to high priority thread
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
-	//SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 
 	auto pRenderSystem = reinterpret_cast<RenderSystem*>(pParameter);
 	RenderThreadMain(pRenderSystem);

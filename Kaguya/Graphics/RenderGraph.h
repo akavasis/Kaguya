@@ -3,7 +3,6 @@
 #include <vector>
 #include <unordered_set>
 #include <string>
-#include "Core/ThreadPool.h"
 #include "RenderDevice.h"
 #include "Scene/Scene.h"
 #include "GpuScene.h"
@@ -80,12 +79,8 @@ private:
 class RenderGraph
 {
 public:
-	struct Settings
-	{
-		static constexpr bool MultiThreaded = true;
-	};
-
 	RenderGraph(RenderDevice* pRenderDevice);
+	~RenderGraph();
 
 	template<typename RenderPass>
 	RenderPass* GetRenderPass() const;
@@ -102,17 +97,37 @@ public:
 	void Execute();
 	void ExecuteCommandContexts(RenderContext& RendererRenderContext);
 private:
+	struct RenderPassThreadProcParameter
+	{
+		RenderGraph*	pRenderGraph;
+		int32_t			ThreadID;
+		HANDLE			ExecuteSignal;
+		HANDLE			CompleteSignal;
+		RenderPass*		pRenderPass;
+		RenderDevice*	pRenderDevice;
+		CommandContext* pCommandContext;
+		DeviceBuffer*	pSystemConstants;
+		DeviceBuffer*	pGpuData;
+	};
+
+	static DWORD WINAPI RenderPassThreadProc(_In_ PVOID pParameter);
+
 	void CreaterResources();
 	void CreateResourceViews();
 
+	inline static bool											ExitRenderPassThread = false;
+
 	RenderDevice*												SV_pRenderDevice;
 
-	ThreadPool													m_ThreadPool;
+	std::vector<HANDLE>											m_WorkerExecuteSignals;
+	std::vector<HANDLE>											m_WorkerCompleteSignals;
+	std::vector<RenderPassThreadProcParameter>					m_ThreadParameters;
+	std::vector<HANDLE>											m_Threads;
+
 	ResourceScheduler											m_ResourceScheduler;
 	std::vector<std::unique_ptr<RenderPass>>					m_RenderPasses;
 	std::vector<std::reference_wrapper<const std::type_info>>	m_RenderPassIDs;
 	std::vector<CommandContext*>								m_CommandContexts;
-	std::vector<std::future<void>>								m_Futures;
 	RenderResourceHandle										m_SystemConstants;
 	RenderResourceHandle										m_GpuData;
 };
