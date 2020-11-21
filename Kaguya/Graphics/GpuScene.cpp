@@ -13,9 +13,9 @@ namespace
 
 	static constexpr size_t LightBufferByteSize			= NumLights * sizeof(HLSL::PolygonalLight);
 	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSL::Material);
+	static constexpr size_t MeshBufferByteSize			= 30_MiB;
 	static constexpr size_t VertexBufferByteSize		= 30_MiB;
 	static constexpr size_t IndexBufferByteSize			= 30_MiB;
-	static constexpr size_t GeometryInfoBufferByteSize	= 30_MiB;
 }
 
 HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
@@ -121,87 +121,106 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	pScene(nullptr),
 	GpuTextureAllocator(pRenderDevice)
 {
-	// Resource
-	size_t resourceTablesMemorySizeInBytes[NumResources] = { LightBufferByteSize, MaterialBufferByteSize, VertexBufferByteSize, IndexBufferByteSize, GeometryInfoBufferByteSize };
-	size_t resourceTablesMemoryStrides[NumResources] = { sizeof(HLSL::PolygonalLight), sizeof(HLSL::Material), sizeof(Vertex), sizeof(unsigned int), sizeof(HLSL::Mesh) };
-
-	for (size_t i = 0; i < NumResources; ++i)
+	m_LightTable = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
 	{
-		m_UploadResourceTables[i] = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
-		{
-			proxy.SetSizeInBytes(resourceTablesMemorySizeInBytes[i]);
-			proxy.SetStride(resourceTablesMemoryStrides[i]);
-			proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
-		});
-		m_ResourceTables[i] = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
-		{
-			proxy.SetSizeInBytes(resourceTablesMemorySizeInBytes[i]);
-			proxy.SetStride(resourceTablesMemoryStrides[i]);
-			proxy.InitialState = DeviceResource::State::CopyDest;
-		});
-		m_Allocators[i].Reset(resourceTablesMemorySizeInBytes[i]);
-	}
+		proxy.SetSizeInBytes(LightBufferByteSize);
+		proxy.SetStride(sizeof(HLSL::PolygonalLight));
+		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+	});
+
+	m_MaterialTable = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(MaterialBufferByteSize);
+		proxy.SetStride(sizeof(HLSL::Material));
+		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+	});
+
+	m_MeshTable = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(MeshBufferByteSize);
+		proxy.SetStride(sizeof(HLSL::Mesh));
+		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+	});
+	
+	// Vertex Buffer
+	m_VertexBuffer = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(VertexBufferByteSize);
+		proxy.SetStride(sizeof(Vertex));
+		proxy.InitialState = DeviceResource::State::NonPixelShaderResource;
+	});
+
+	m_UploadVertexBuffer = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(VertexBufferByteSize);
+		proxy.SetStride(sizeof(Vertex));
+		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+	});
+
+	m_VertexBufferAllocator.Reset(VertexBufferByteSize);
+
+	// Index Buffer
+	m_IndexBuffer = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(IndexBufferByteSize);
+		proxy.SetStride(sizeof(unsigned int));
+		proxy.InitialState = DeviceResource::State::NonPixelShaderResource;
+	});
+
+	m_UploadIndexBuffer = pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
+	{
+		proxy.SetSizeInBytes(IndexBufferByteSize);
+		proxy.SetStride(sizeof(unsigned int));
+		proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+	});
+
+	m_IndexBufferAllocator.Reset(IndexBufferByteSize);
 }
 
-void GpuScene::UploadLights(RenderContext& RenderContext)
+void GpuScene::UploadTextures(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Upload Lights");
-
-	auto pLightTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[LightTable]);
-	auto pUploadLightTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[LightTable]);
-
-	std::vector<HLSL::PolygonalLight> hlslLights; hlslLights.reserve(pScene->Lights.size());
-	for (auto& light : pScene->Lights)
-	{
-		light.SetGpuLightIndex(hlslLights.size());
-
-		hlslLights.push_back(GetHLSLLightDesc(light));
-	}
-
-	Upload(LightTable, hlslLights.data(), hlslLights.size() * sizeof(HLSL::PolygonalLight), pUploadLightTable);
-	RenderContext->CopyResource(pLightTable, pUploadLightTable);
-	RenderContext->TransitionBarrier(pLightTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
-}
-
-void GpuScene::UploadMaterials(RenderContext& RenderContext)
-{
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Upload Materials");
-
 	GpuTextureAllocator.Stage(*pScene, RenderContext);
-
-	auto pMaterialTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[MaterialTable]);
-	auto pUploadMaterialTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[MaterialTable]);
-
-	std::vector<HLSL::Material> hlslMaterials; hlslMaterials.reserve(pScene->Materials.size());
-	for (auto& material : pScene->Materials)
-	{
-		material.GpuMaterialIndex = hlslMaterials.size();
-
-		hlslMaterials.push_back(GetHLSLMaterialDesc(material));
-	}
-
-	Upload(MaterialTable, hlslMaterials.data(), hlslMaterials.size() * sizeof(HLSL::Material), pUploadMaterialTable);
-	RenderContext->CopyResource(pMaterialTable, pUploadMaterialTable);
-	RenderContext->TransitionBarrier(pMaterialTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 }
 
 void GpuScene::UploadModels(RenderContext& RenderContext)
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Upload Models");
 
-	auto pVertexBuffer = SV_pRenderDevice->GetBuffer(m_ResourceTables[VertexBuffer]);
-	auto pUploadVertexBuffer = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[VertexBuffer]);
+	auto pVertexBuffer = SV_pRenderDevice->GetBuffer(m_VertexBuffer);
+	auto pUploadVertexBuffer = SV_pRenderDevice->GetBuffer(m_UploadVertexBuffer);
 
-	auto pIndexBuffer = SV_pRenderDevice->GetBuffer(m_ResourceTables[IndexBuffer]);
-	auto pUploadIndexBuffer = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[IndexBuffer]);
+	auto pIndexBuffer = SV_pRenderDevice->GetBuffer(m_IndexBuffer);
+	auto pUploadIndexBuffer = SV_pRenderDevice->GetBuffer(m_UploadIndexBuffer);
 
 	for (auto& model : pScene->Models)
 	{
 		UINT64 totalVertexBytes = model.Vertices.size() * sizeof(Vertex);
 		UINT64 totalIndexBytes = model.Indices.size() * sizeof(UINT);
 
-		auto vertexByteOffset = Upload(VertexBuffer, model.Vertices.data(), totalVertexBytes, pUploadVertexBuffer);
-		auto indexByteOffset = Upload(IndexBuffer, model.Indices.data(), totalIndexBytes, pUploadIndexBuffer);
+		size_t vertexByteOffset, indexByteOffset;
+
+		// Stage vertex
+		{
+			auto pair = m_VertexBufferAllocator.Allocate(totalVertexBytes);
+			assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
+			auto [offset, size] = pair.value();
+
+			auto pGPU = pUploadVertexBuffer->Map();
+			auto pCPU = model.Vertices.data();
+			memcpy(&pGPU[offset], pCPU, size);
+			vertexByteOffset = offset;
+		}
+
+		{
+			auto pair = m_IndexBufferAllocator.Allocate(totalIndexBytes);
+			assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
+			auto [offset, size] = pair.value();
+
+			auto pGPU = pUploadIndexBuffer->Map();
+			auto pCPU = model.Indices.data();
+			memcpy(&pGPU[offset], pCPU, size);
+			indexByteOffset = offset;
+		}
 
 		for (auto& mesh : model.Meshes)
 		{
@@ -221,18 +240,18 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 		for (auto& mesh : model.Meshes)
 		{
 			// Update mesh's BLAS Index
-			mesh.BottomLevelAccelerationStructureIndex	= m_RaytracingBottomLevelAccelerationStructures.size();
+			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
 
-			RaytracingGeometryDesc Desc					= {};
-			Desc.pVertexBuffer							= pVertexBuffer;
-			Desc.VertexStride							= sizeof(Vertex);
-			Desc.pIndexBuffer							= pIndexBuffer;
-			Desc.IndexStride							= sizeof(unsigned int);
-			Desc.IsOpaque								= true;
-			Desc.NumVertices							= mesh.VertexCount;
-			Desc.VertexOffset							= mesh.BaseVertexLocation;
-			Desc.NumIndices								= mesh.IndexCount;
-			Desc.IndexOffset							= mesh.StartIndexLocation;
+			RaytracingGeometryDesc Desc = {};
+			Desc.pVertexBuffer = pVertexBuffer;
+			Desc.VertexStride = sizeof(Vertex);
+			Desc.pIndexBuffer = pIndexBuffer;
+			Desc.IndexStride = sizeof(unsigned int);
+			Desc.IsOpaque = true;
+			Desc.NumVertices = mesh.VertexCount;
+			Desc.VertexOffset = mesh.BaseVertexLocation;
+			Desc.NumIndices = mesh.IndexCount;
+			Desc.IndexOffset = mesh.StartIndexLocation;
 
 			rtblas.BLAS.AddGeometry(Desc);
 		}
@@ -244,36 +263,8 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 
 	RenderContext->CopyResource(pIndexBuffer, pUploadIndexBuffer);
 	RenderContext->TransitionBarrier(pIndexBuffer, DeviceResource::State::IndexBuffer | DeviceResource::State::NonPixelShaderResource);
-}
 
-void GpuScene::UploadModelInstances(RenderContext& RenderContext)
-{
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Upload Model Instances");
-
-	auto pGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[MeshTable]);
-	auto pUploadGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[MeshTable]);
-
-	size_t instanceID = 0;
-	std::vector<HLSL::Mesh> hlslMeshes;
-	for (auto& modelInstance : pScene->ModelInstances)
-	{
-		for (auto& meshInstance : modelInstance.MeshInstances)
-		{
-			meshInstance.InstanceID = instanceID++;
-
-			HLSL::Mesh info			= {};
-			info.VertexOffset		= meshInstance.pMesh->BaseVertexLocation;
-			info.IndexOffset		= meshInstance.pMesh->StartIndexLocation;
-			info.MaterialIndex		= modelInstance.pMaterial->GpuMaterialIndex;
-			XMStoreFloat4x4(&info.World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
-
-			hlslMeshes.push_back(info);
-		}
-	}
-
-	Upload(MeshTable, hlslMeshes.data(), hlslMeshes.size() * sizeof(HLSL::Mesh), pUploadGeometryInfoTable);
-	RenderContext->CopyResource(pGeometryInfoTable, pUploadGeometryInfoTable);
-	RenderContext->TransitionBarrier(pGeometryInfoTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
+	RenderContext->FlushResourceBarriers();
 
 	CreateBottomLevelAS(RenderContext);
 }
@@ -286,6 +277,66 @@ void GpuScene::DisposeResources()
 	}
 
 	GpuTextureAllocator.DisposeResources();
+}
+
+void GpuScene::UploadLights()
+{
+	auto pLightTable = SV_pRenderDevice->GetBuffer(m_LightTable);
+
+	std::vector<HLSL::PolygonalLight> hlslLights; hlslLights.reserve(pScene->Lights.size());
+	for (auto& light : pScene->Lights)
+	{
+		light.SetGpuLightIndex(hlslLights.size());
+
+		hlslLights.push_back(GetHLSLLightDesc(light));
+	}
+
+	auto pGPU = pLightTable->Map();
+	auto pCPU = hlslLights.data();
+	memcpy(pGPU, pCPU, hlslLights.size() * sizeof(HLSL::PolygonalLight));
+}
+
+void GpuScene::UploadMaterials()
+{
+	auto pMaterialTable = SV_pRenderDevice->GetBuffer(m_MaterialTable);
+
+	std::vector<HLSL::Material> hlslMaterials; hlslMaterials.reserve(pScene->Materials.size());
+	for (auto& material : pScene->Materials)
+	{
+		material.GpuMaterialIndex = hlslMaterials.size();
+
+		hlslMaterials.push_back(GetHLSLMaterialDesc(material));
+	}
+
+	auto pGPU = pMaterialTable->Map();
+	auto pCPU = hlslMaterials.data();
+	memcpy(pGPU, pCPU, hlslMaterials.size() * sizeof(HLSL::Material));
+}
+
+void GpuScene::UploadMeshes()
+{
+	auto pMeshTable = SV_pRenderDevice->GetBuffer(m_MeshTable);
+
+	std::vector<HLSL::Mesh> hlslMeshes;
+	for (auto& modelInstance : pScene->ModelInstances)
+	{
+		for (auto& meshInstance : modelInstance.MeshInstances)
+		{
+			meshInstance.InstanceID = hlslMeshes.size();
+
+			HLSL::Mesh hlslMesh		= {};
+			hlslMesh.VertexOffset	= meshInstance.pMesh->BaseVertexLocation;
+			hlslMesh.IndexOffset	= meshInstance.pMesh->StartIndexLocation;
+			hlslMesh.MaterialIndex	= modelInstance.pMaterial->GpuMaterialIndex;
+			XMStoreFloat4x4(&hlslMesh.World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
+
+			hlslMeshes.push_back(hlslMesh);
+		}
+	}
+
+	auto pGPU = pMeshTable->Map();
+	auto pCPU = hlslMeshes.data();
+	memcpy(pGPU, pCPU, hlslMeshes.size() * sizeof(HLSL::Mesh));
 }
 
 void GpuScene::RenderGui()
@@ -314,42 +365,33 @@ bool GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 	CreateTopLevelAS(RenderContext);
 
 	bool Refresh = false;
+
+	auto pLightTable = SV_pRenderDevice->GetBuffer(m_LightTable);
+	for (auto& light : pScene->Lights)
 	{
-		auto pLightTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[LightTable]);
-		auto pUploadLightTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[LightTable]);
-		for (auto& light : pScene->Lights)
+		if (light.IsDirty())
 		{
-			if (light.IsDirty())
-			{
-				Refresh |= true;
+			Refresh |= true;
 
-				light.ResetDirtyFlag();
+			light.ResetDirtyFlag();
 
-				HLSL::PolygonalLight hlslPolygonalLight = GetHLSLLightDesc(light);
-				pUploadLightTable->Update<HLSL::PolygonalLight>(light.GetGpuLightIndex(), hlslPolygonalLight);
-			}
+			HLSL::PolygonalLight hlslPolygonalLight = GetHLSLLightDesc(light);
+			pLightTable->Update<HLSL::PolygonalLight>(light.GetGpuLightIndex(), hlslPolygonalLight);
 		}
-		RenderContext->CopyResource(pLightTable, pUploadLightTable);
-		RenderContext->TransitionBarrier(pLightTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 	}
 
+	auto pMaterialTable = SV_pRenderDevice->GetBuffer(m_MaterialTable);
+	for (auto& material : pScene->Materials)
 	{
-		auto pMaterialTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[MaterialTable]);
-		auto pUploadMaterialTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[MaterialTable]);
-		for (auto& material : pScene->Materials)
+		if (material.Dirty)
 		{
-			if (material.Dirty)
-			{
-				Refresh |= true;
+			Refresh |= true;
 
-				material.Dirty = false;
+			material.Dirty = false;
 
-				HLSL::Material hlslMaterial = GetHLSLMaterialDesc(material);
-				pUploadMaterialTable->Update<HLSL::Material>(material.GpuMaterialIndex, hlslMaterial);
-			}
+			HLSL::Material hlslMaterial = GetHLSLMaterialDesc(material);
+			pMaterialTable->Update<HLSL::Material>(material.GpuMaterialIndex, hlslMaterial);
 		}
-		RenderContext->CopyResource(pMaterialTable, pUploadMaterialTable);
-		RenderContext->TransitionBarrier(pMaterialTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 	}
 
 	/*{
@@ -379,23 +421,6 @@ HLSL::Camera GpuScene::GetHLSLCamera() const
 HLSL::Camera GpuScene::GetHLSLPreviousCamera() const
 {
 	return GetHLSLCameraDesc(pScene->PreviousCamera);
-}
-
-size_t GpuScene::Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer)
-{
-	if (pData && ByteSize != 0)
-	{
-		auto pair = m_Allocators[Type].Allocate(ByteSize);
-		assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
-		auto [offset, size] = pair.value();
-
-		// Stage vertex
-		auto pGPU = pUploadBuffer->Map();
-		auto pCPU = pData;
-		memcpy(&pGPU[offset], pCPU, size);
-		return offset;
-	}
-	return 0;
 }
 
 void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
@@ -461,49 +486,49 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	UINT64 scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
 	TopLevelAccelerationStructure.ComputeMemoryRequirements(&SV_pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
 
-	DeviceBuffer* pScratch			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch);
-	DeviceBuffer* pResult			= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
-	DeviceBuffer* pInstanceDescs	= SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
+	DeviceBuffer* pScratch			= SV_pRenderDevice->GetBuffer(m_TopLevelAccelerationStructure.Scratch);
+	DeviceBuffer* pResult			= SV_pRenderDevice->GetBuffer(m_TopLevelAccelerationStructure.Result);
+	DeviceBuffer* pInstanceDescs	= SV_pRenderDevice->GetBuffer(m_TopLevelAccelerationStructure.InstanceDescs);
 
 	if (!pScratch || pScratch->GetSizeInBytes() < scratchSizeInBytes)
 	{
-		SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Scratch);
+		SV_pRenderDevice->Destroy(&m_TopLevelAccelerationStructure.Scratch);
 
 		// TLAS Scratch
-		m_RaytracingTopLevelAccelerationStructure.Scratch = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		m_TopLevelAccelerationStructure.Scratch = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(scratchSizeInBytes);
 			proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
 			proxy.InitialState = DeviceResource::State::UnorderedAccess;
 		});
-		pScratch = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch);
+		pScratch = SV_pRenderDevice->GetBuffer(m_TopLevelAccelerationStructure.Scratch);
 	}
 
 	if (!pResult || pResult->GetSizeInBytes() < resultSizeInBytes)
 	{
-		SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.Result);
+		SV_pRenderDevice->Destroy(&m_TopLevelAccelerationStructure.Result);
 
 		// TLAS Result
-		m_RaytracingTopLevelAccelerationStructure.Result = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		m_TopLevelAccelerationStructure.Result = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(resultSizeInBytes);
 			proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
 			proxy.InitialState = DeviceResource::State::AccelerationStructure;
 		});
-		pResult = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
+		pResult = SV_pRenderDevice->GetBuffer(m_TopLevelAccelerationStructure.Result);
 	}
 	
 	if (!pInstanceDescs || pInstanceDescs->GetSizeInBytes() < instanceDescsSizeInBytes)
 	{
-		SV_pRenderDevice->Destroy(&m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
+		SV_pRenderDevice->Destroy(&m_TopLevelAccelerationStructure.InstanceDescs);
 
 		// TLAS Instance Desc
-		m_RaytracingTopLevelAccelerationStructure.InstanceDescs = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		m_TopLevelAccelerationStructure.InstanceDescs = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(instanceDescsSizeInBytes);
 			proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
 		});
-		pInstanceDescs = SV_pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
+		pInstanceDescs = SV_pRenderDevice->GetBuffer(m_TopLevelAccelerationStructure.InstanceDescs);
 	}
 
 	pResult->SetDebugName(L"Top Level Acceleration Structure");

@@ -74,7 +74,7 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void Shading::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void Shading::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	for (UINT i = 0; i < NumResources; ++i)
 	{
@@ -202,15 +202,11 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	
 	RenderContext.UpdateRenderPassData<ShadingData>(Data);
 
-	RenderContext.TransitionBarrier(Resources[EResources::AnalyticUnshadowed], DeviceResource::State::UnorderedAccess);
-	RenderContext.TransitionBarrier(Resources[EResources::StochasticUnshadowed], DeviceResource::State::UnorderedAccess);
-	RenderContext.TransitionBarrier(Resources[EResources::StochasticShadowed], DeviceResource::State::UnorderedAccess);
-
 	RenderContext.SetPipelineState(RaytracingPSOs::Shading);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
-	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetGeometryInfoTableHandle());
+	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTableHandle());
 	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTableHandle());
 
@@ -220,10 +216,6 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		m_HitGroupShaderTable,
 		Properties.Width,
 		Properties.Height);
-
-	RenderContext.UAVBarrier(Resources[EResources::AnalyticUnshadowed]);
-	RenderContext.UAVBarrier(Resources[EResources::StochasticUnshadowed]);
-	RenderContext.UAVBarrier(Resources[EResources::StochasticShadowed]);
 }
 
 void Shading::StateRefresh()

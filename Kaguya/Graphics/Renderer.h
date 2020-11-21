@@ -23,6 +23,8 @@ protected:
 private:
 	void SetScene(Scene Scene);
 	void RenderGui();
+
+	static DWORD WINAPI AsyncComputeThreadProc(_In_ PVOID pParameter);
 	
 	DXGIManager								m_DXGIManager;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;

@@ -9,7 +9,7 @@ PostProcess::PostProcess(UINT Width, UINT Height)
 	: RenderPass("Post Process",
 		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
-
+	ExplicitResourceTransition = true;
 }
 
 void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
@@ -112,7 +112,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{

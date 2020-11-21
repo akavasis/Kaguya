@@ -238,10 +238,11 @@ void Renderer::SetScene(Scene Scene)
 	m_pGpuScene->pScene = &m_Scene;
 
 	m_pRenderDevice->BindGpuDescriptorHeap(m_RenderContext.GetCommandContext());
-	m_pGpuScene->UploadLights(m_RenderContext);
-	m_pGpuScene->UploadMaterials(m_RenderContext);
+	m_pGpuScene->UploadTextures(m_RenderContext);
 	m_pGpuScene->UploadModels(m_RenderContext);
-	m_pGpuScene->UploadModelInstances(m_RenderContext);
+	m_pGpuScene->UploadLights();
+	m_pGpuScene->UploadMaterials();
+	m_pGpuScene->UploadMeshes();
 
 	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
 	m_pRenderDevice->ExecuteRenderCommandContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
@@ -273,4 +274,10 @@ void Renderer::RenderGui()
 		}
 	}
 	ImGui::End();
+}
+
+DWORD __stdcall Renderer::AsyncComputeThreadProc(PVOID pParameter)
+{
+	// TODO: Add generation of TLAS and use events to signal the graphics queue when is done
+	return 0;
 }

@@ -10,33 +10,25 @@
 class GpuScene
 {
 public:
-	enum EResource
-	{
-		LightTable,
-		MaterialTable,
-		VertexBuffer,
-		IndexBuffer,
-		MeshTable,
-		NumResources
-	};
-
 	GpuScene(RenderDevice* pRenderDevice);
 
-	void UploadLights(RenderContext& RenderContext);
-	void UploadMaterials(RenderContext& RenderContext);
+	void UploadTextures(RenderContext& RenderContext);
 	void UploadModels(RenderContext& RenderContext);
-	void UploadModelInstances(RenderContext& RenderContext);
 	void DisposeResources();
+
+	void UploadLights();
+	void UploadMaterials();
+	void UploadMeshes();
 
 	void RenderGui();
 	bool Update(float AspectRatio, RenderContext& RenderContext);
 
-	inline auto GetLightTableHandle()			const { return m_ResourceTables[LightTable]; }
-	inline auto GetMaterialTableHandle()		const { return m_ResourceTables[MaterialTable]; }
-	inline auto GetVertexBufferHandle()			const { return m_ResourceTables[VertexBuffer]; }
-	inline auto GetIndexBufferHandle()			const { return m_ResourceTables[IndexBuffer]; }
-	inline auto GetGeometryInfoTableHandle()	const { return m_ResourceTables[MeshTable]; }
-	inline auto GetRTTLASResourceHandle()		const { return m_RaytracingTopLevelAccelerationStructure.Result; }
+	inline auto GetLightTableHandle()			const { return m_LightTable; }
+	inline auto GetMaterialTableHandle()		const { return m_MaterialTable; }
+	inline auto GetMeshTable()					const { return m_MeshTable; }
+	inline auto GetVertexBufferHandle()			const { return m_VertexBuffer; }
+	inline auto GetIndexBufferHandle()			const { return m_IndexBuffer; }
+	inline auto GetRTTLASResourceHandle()		const { return m_TopLevelAccelerationStructure.Result; }
 
 	HLSL::Camera GetHLSLCamera() const;
 	HLSL::Camera GetHLSLPreviousCamera() const;
@@ -44,7 +36,6 @@ public:
 	Scene* pScene;
 	GpuTextureAllocator GpuTextureAllocator;
 private:
-	size_t Upload(EResource Type, const void* pData, size_t ByteSize, DeviceBuffer* pUploadBuffer);
 	void CreateBottomLevelAS(RenderContext& RenderContext);
 	void CreateTopLevelAS(RenderContext& RenderContext);
 
@@ -56,10 +47,16 @@ private:
 
 	RenderDevice*			SV_pRenderDevice;
 
-	RenderResourceHandle	m_UploadResourceTables[NumResources];
-	RenderResourceHandle	m_ResourceTables[NumResources];
-	VariableSizedAllocator	m_Allocators[NumResources];
+	RenderResourceHandle	m_LightTable;
+	RenderResourceHandle	m_MaterialTable;
+	RenderResourceHandle	m_MeshTable;
+
+	RenderResourceHandle	m_VertexBuffer, m_UploadVertexBuffer;
+	VariableSizedAllocator	m_VertexBufferAllocator;
+
+	RenderResourceHandle	m_IndexBuffer, m_UploadIndexBuffer;
+	VariableSizedAllocator	m_IndexBufferAllocator;
 
 	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
-	RaytracingAccelerationStructureHandles m_RaytracingTopLevelAccelerationStructure;
+	RaytracingAccelerationStructureHandles m_TopLevelAccelerationStructure;
 };

@@ -4,6 +4,7 @@
 RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties)
 	: Enabled(true),
 	Refresh(false),
+	ExplicitResourceTransition(false),
 	Name(std::move(Name)),
 	Properties(Properties)
 {
@@ -34,7 +35,7 @@ void RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 	m_ResourceScheduler.m_pCurrentRenderPass = renderPass.get();
 
 	renderPass->OnInitializePipeline(SV_pRenderDevice);
-	renderPass->OnScheduleResource(&m_ResourceScheduler);
+	renderPass->OnScheduleResource(&m_ResourceScheduler, this);
 
 	m_RenderPasses.emplace_back(std::move(renderPass));
 	m_CommandContexts.emplace_back(SV_pRenderDevice->AllocateContext(CommandContext::Direct));
@@ -189,10 +190,40 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 		// Wait for parent thread to tell us to execute
 		WaitForSingleObject(ExecuteSignal, INFINITE);
 
-		pRenderDevice->BindGpuDescriptorHeap(pCommandContext);
-		pRenderPass->OnExecute(RenderContext(ThreadID, pSystemConstants, pGpuData, pRenderDevice, pCommandContext), pRenderGraph);
+		RenderContext RenderContext(ThreadID, pSystemConstants, pGpuData, pRenderDevice, pCommandContext);
 
-		// Tell paraent thread that we are done
+		if (!pRenderPass->ExplicitResourceTransition)
+		{
+			for (auto& resource : pRenderPass->Resources)
+			{
+				auto pTexture = pRenderDevice->GetTexture(resource);
+
+				// Transition any UAVs to UnorderedAccess state
+				if (pTexture->GetBindFlags() == DeviceResource::BindFlags::UnorderedAccess)
+				{
+					RenderContext.TransitionBarrier(resource, DeviceResource::State::UnorderedAccess);
+				}
+			}
+		}
+
+		pRenderDevice->BindGpuDescriptorHeap(pCommandContext);
+		pRenderPass->OnExecute(RenderContext, pRenderGraph);
+
+		if (!pRenderPass->ExplicitResourceTransition)
+		{
+			for (auto& resource : pRenderPass->Resources)
+			{
+				auto pTexture = pRenderDevice->GetTexture(resource);
+
+				// Ensure UAV writes are complete
+				if (pTexture->GetBindFlags() == DeviceResource::BindFlags::UnorderedAccess)
+				{
+					RenderContext.UAVBarrier(resource);
+				}
+			}
+		}
+
+		// Tell parent thread that we are done
 		SetEvent(pRenderPassThreadProcParameter->CompleteSignal);
 	}
 
@@ -201,17 +232,6 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 
 void RenderGraph::CreaterResources()
 {
-	for (auto& bufferRequest : m_ResourceScheduler.m_BufferRequests)
-	{
-		for (const auto& bufferProxy : bufferRequest.second)
-		{
-			bufferRequest.first->Resources.push_back(SV_pRenderDevice->CreateDeviceBuffer([&](DeviceBufferProxy& proxy)
-			{
-				proxy = bufferProxy;
-			}));
-		}
-	}
-
 	for (auto& textureRequest : m_ResourceScheduler.m_TextureRequests)
 	{
 		for (const auto& textureProxy : textureRequest.second)
@@ -230,9 +250,6 @@ void RenderGraph::CreateResourceViews()
 	{
 		for (auto handle : renderPass->Resources)
 		{
-			if (handle.Type == RenderResourceType::DeviceBuffer)
-				continue;
-
 			SV_pRenderDevice->CreateShaderResourceView(handle);
 
 			auto texture = SV_pRenderDevice->GetTexture(handle);

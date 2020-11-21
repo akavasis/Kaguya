@@ -26,7 +26,7 @@ void SVGFReproject::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	// PrevRenderTarget0, PrevRenderTarget1, PrevMoments, PrevLinearZ
 	for (size_t i = 0; i < 4; ++i)
@@ -93,11 +93,6 @@ void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGr
 	RenderContext.TransitionBarrier(Resources[EResources::PrevMoments], DeviceResource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[EResources::PrevHistoryLength], DeviceResource::State::NonPixelShaderResource);
 
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget0], DeviceResource::State::UnorderedAccess);
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget1], DeviceResource::State::UnorderedAccess);
-	RenderContext.TransitionBarrier(Resources[EResources::Moments], DeviceResource::State::UnorderedAccess);
-	RenderContext.TransitionBarrier(Resources[EResources::HistoryLength], DeviceResource::State::UnorderedAccess);
-
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
 
@@ -155,11 +150,6 @@ void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGr
 	RenderContext.SetPipelineState(ComputePSOs::SVGF_Reproject);
 	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
 
-	RenderContext.UAVBarrier(Resources[EResources::RenderTarget0]);
-	RenderContext.UAVBarrier(Resources[EResources::RenderTarget1]);
-	RenderContext.UAVBarrier(Resources[EResources::Moments]);
-	RenderContext.UAVBarrier(Resources[EResources::HistoryLength]);
-
 	RenderContext.CopyResource(Resources[EResources::PrevRenderTarget0], Resources[EResources::RenderTarget0]);
 	RenderContext.CopyResource(Resources[EResources::PrevRenderTarget1], Resources[EResources::RenderTarget1]);
 	RenderContext.CopyResource(Resources[EResources::PrevLinearZ], pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_LinearZ]);
@@ -195,7 +185,7 @@ void SVGFFilterMoments::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void SVGFFilterMoments::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void SVGFFilterMoments::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	// RenderTarget0, RenderTarget1
 	for (size_t i = 0; i < 2; ++i)
@@ -295,7 +285,7 @@ void SVGFAtrous::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void SVGFAtrous::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void SVGFAtrous::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	// RenderTarget0, RenderTarget1
 	for (size_t i = 0; i < 2; ++i)

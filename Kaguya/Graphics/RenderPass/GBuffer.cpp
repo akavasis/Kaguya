@@ -75,7 +75,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	DXGI_FORMAT Formats[EResources::NumResources - 1] =
 	{
@@ -178,7 +178,7 @@ void GBuffer::RenderMeshes(RenderContext& RenderContext)
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferMeshes);
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
-	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetGeometryInfoTableHandle());
+	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
 
 	const Scene& Scene = *pGpuScene->pScene;

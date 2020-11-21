@@ -26,7 +26,7 @@ void ShadingComposition::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void ShadingComposition::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void ShadingComposition::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
@@ -74,13 +74,8 @@ void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRen
 
 	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
 
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
-
 	RenderContext.SetPipelineState(ComputePSOs::ShadingComposition);
-
 	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
-
-	RenderContext.UAVBarrier(Resources[EResources::RenderTarget]);
 }
 
 void ShadingComposition::StateRefresh()

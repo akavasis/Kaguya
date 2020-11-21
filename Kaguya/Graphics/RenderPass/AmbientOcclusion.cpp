@@ -72,7 +72,7 @@ void AmbientOcclusion::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void AmbientOcclusion::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void AmbientOcclusion::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
@@ -207,7 +207,7 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
-	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetGeometryInfoTableHandle());
+	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
 
 	RenderContext.DispatchRays(

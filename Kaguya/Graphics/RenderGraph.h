@@ -30,7 +30,7 @@ public:
 	virtual ~RenderPass() = default;
 
 	void OnInitializePipeline(RenderDevice* pRenderDevice) { return InitializePipeline(pRenderDevice); }
-	void OnScheduleResource(ResourceScheduler* pResourceScheduler) { return ScheduleResource(pResourceScheduler); }
+	void OnScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph) { return ScheduleResource(pResourceScheduler, pRenderGraph); }
 	void OnInitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return InitializeScene(pGpuScene, pRenderDevice); }
 	void OnRenderGui() { return RenderGui(); }
 	void OnExecute(RenderContext& RenderContext, RenderGraph* pRenderGraph) { return Execute(RenderContext, pRenderGraph); }
@@ -38,29 +38,28 @@ public:
 
 	bool Enabled;
 	bool Refresh;
+	bool ExplicitResourceTransition; // If this is true, then the render pass is responsible for handling resource transitions, by default, this is false
 	std::string Name;
 	RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Resources;
 protected:
 	virtual void InitializePipeline(RenderDevice* pRenderDevice) = 0;
-	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler) = 0;
+	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph) = 0;
 	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
 	virtual void RenderGui() = 0;
 	virtual void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) = 0;
 	virtual void StateRefresh() = 0;
+private:
+	friend class RenderGraph;
+	friend class ResourceScheduler;
+
+	std::vector<RenderResourceHandle> Reads;
+	std::vector<RenderResourceHandle> Writes;
 };
 
 class ResourceScheduler
 {
 public:
-	void AllocateBuffer(std::function<void(DeviceBufferProxy&)> Configurator)
-	{
-		DeviceBufferProxy proxy;
-		Configurator(proxy);
-
-		m_BufferRequests[m_pCurrentRenderPass].push_back(proxy);
-	}
-
 	void AllocateTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
 	{
 		DeviceTextureProxy proxy(Type);
@@ -68,11 +67,24 @@ public:
 
 		m_TextureRequests[m_pCurrentRenderPass].push_back(proxy);
 	}
+
+	void Read(RenderResourceHandle Resource)
+	{
+		assert(Resource.Type == RenderResourceType::DeviceBuffer || Resource.Type == RenderResourceType::DeviceTexture);
+
+		m_pCurrentRenderPass->Reads.push_back(Resource);
+	}
+
+	void Write(RenderResourceHandle Resource)
+	{
+		assert(Resource.Type == RenderResourceType::DeviceBuffer || Resource.Type == RenderResourceType::DeviceTexture);
+
+		m_pCurrentRenderPass->Writes.push_back(Resource);
+	}
 private:
 	friend class RenderGraph;
 
 	RenderPass* m_pCurrentRenderPass;
-	std::unordered_map<RenderPass*, std::vector<DeviceBufferProxy>> m_BufferRequests;
 	std::unordered_map<RenderPass*, std::vector<DeviceTextureProxy>> m_TextureRequests;
 };
 

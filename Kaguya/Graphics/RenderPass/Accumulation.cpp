@@ -27,7 +27,7 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 	});
 }
 
-void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler)
+void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
 	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
@@ -91,10 +91,7 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 	Data.RenderTarget = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
 
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
-
 	RenderContext.SetPipelineState(ComputePSOs::Accumulation);
-
 	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
 
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::NonPixelShaderResource);
