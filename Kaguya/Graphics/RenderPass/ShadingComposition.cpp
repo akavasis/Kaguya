@@ -55,7 +55,7 @@ void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRen
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
 	auto pSVGFAtrousRenderPass = pRenderGraph->GetRenderPass<SVGFAtrous>();
 
-	struct ShadingCompositionData
+	struct RenderPassData
 	{
 		// Input Textures
 		uint AnalyticUnshadowed;	// U
@@ -72,7 +72,7 @@ void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRen
 
 	Data.RenderTarget		= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 
-	RenderContext.UpdateRenderPassData<ShadingCompositionData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
 
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
 

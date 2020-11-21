@@ -1,7 +1,7 @@
 #ifndef COMMON_HLSLI
 #define COMMON_HLSLI
 
-#include "../Vertex.hlsli"
+#include <Vertex.hlsli>
 
 struct Triangle
 {

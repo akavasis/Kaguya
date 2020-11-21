@@ -305,7 +305,7 @@ void GpuScene::RenderGui()
 	ImGui::End();
 }
 
-void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
+bool GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Update");
 
@@ -313,6 +313,7 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 
 	CreateTopLevelAS(RenderContext);
 
+	bool Refresh = false;
 	{
 		auto pLightTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[LightTable]);
 		auto pUploadLightTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[LightTable]);
@@ -320,6 +321,8 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		{
 			if (light.IsDirty())
 			{
+				Refresh |= true;
+
 				light.ResetDirtyFlag();
 
 				HLSL::PolygonalLight hlslPolygonalLight = GetHLSLLightDesc(light);
@@ -337,6 +340,8 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		{
 			if (material.Dirty)
 			{
+				Refresh |= true;
+
 				material.Dirty = false;
 
 				HLSL::Material hlslMaterial = GetHLSLMaterialDesc(material);
@@ -363,6 +368,7 @@ void GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		RenderContext->TransitionBarrier(pGeometryInfoTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
 	}*/
 	RenderContext->FlushResourceBarriers();
+	return Refresh;
 }
 
 HLSL::Camera GpuScene::GetHLSLCamera() const

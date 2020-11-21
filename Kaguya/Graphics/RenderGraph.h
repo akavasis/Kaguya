@@ -94,7 +94,7 @@ public:
 	// Call every frame
 	void RenderGui();
 	void UpdateSystemConstants(const HLSL::SystemConstants& HostSystemConstants);
-	void Execute();
+	void Execute(bool Refresh);
 	void ExecuteCommandContexts(RenderContext& RendererRenderContext);
 private:
 	struct RenderPassThreadProcParameter

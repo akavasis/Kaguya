@@ -1,11 +1,11 @@
-#ifndef __GLOBAL_HLSLI__
-#define __GLOBAL_HLSLI__
+#ifndef GLOBAL_HLSLI
+#define GLOBAL_HLSLI
 
 // This file defines global root signature for raytracing shaders
-#include "../HLSLCommon.hlsli"
-#include "../Random.hlsli"
-#include "../Sampling.hlsli"
-#include "../BxDF.hlsli"
+#include <HLSLCommon.hlsli>
+#include <Random.hlsli>
+#include <Sampling.hlsli>
+#include <BxDF.hlsli>
 #include "Common.hlsli"
 
 #define RAYTRACING_INSTANCEMASK_ALL 	(0xff)
@@ -22,7 +22,7 @@ StructuredBuffer<Material>			Materials			: register(t5, space0);
 SamplerState						SamplerLinearWrap	: register(s0, space0);
 SamplerState						SamplerLinearClamp	: register(s1, space0);
 
-#include "../ShaderLayout.hlsli"
+#include <ShaderLayout.hlsli>
 
 Triangle GetTriangle()
 {

@@ -29,7 +29,7 @@ public:
 	void DisposeResources();
 
 	void RenderGui();
-	void Update(float AspectRatio, RenderContext& RenderContext);
+	bool Update(float AspectRatio, RenderContext& RenderContext);
 
 	inline auto GetLightTableHandle()			const { return m_ResourceTables[LightTable]; }
 	inline auto GetMaterialTableHandle()		const { return m_ResourceTables[MaterialTable]; }

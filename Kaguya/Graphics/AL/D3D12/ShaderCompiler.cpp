@@ -42,6 +42,11 @@ ShaderCompiler::ShaderCompiler()
 	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(m_DxcUtils.ReleaseAndGetAddressOf())));
 }
 
+void ShaderCompiler::SetIncludeDirectory(const std::filesystem::path& pPath)
+{
+	m_IncludeDirectory = pPath;
+}
+
 Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
 	auto profileString	= ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_4);
@@ -91,6 +96,9 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 #else
 		L"-O3",				// Optimization level 3
 #endif
+		// Add include directory
+		L"-I",
+		m_IncludeDirectory.data()
 	};
 
 	Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSource;

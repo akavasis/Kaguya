@@ -123,11 +123,10 @@ void RenderGraph::UpdateSystemConstants(const HLSL::SystemConstants& HostSystemC
 	pSystemConstants->Update<HLSL::SystemConstants>(0, HostSystemConstants);
 }
 
-void RenderGraph::Execute()
+void RenderGraph::Execute(bool Refresh)
 {
 	// Before we begin executing render passes, check to see if any render pass requested for
 	// a state request
-	bool stateRefresh = false;
 	for (const auto& renderPass : m_RenderPasses)
 	{
 		if (!renderPass->Enabled)
@@ -135,12 +134,12 @@ void RenderGraph::Execute()
 
 		if (renderPass->Refresh)
 		{
-			stateRefresh = true;
+			Refresh = true;
 			break;
 		}
 	}
 
-	if (stateRefresh)
+	if (Refresh)
 	{
 		for (auto& renderPass : m_RenderPasses)
 		{
@@ -153,6 +152,7 @@ void RenderGraph::Execute()
 		SetEvent(m_WorkerExecuteSignals[i]); // Tell each worker to start executing.
 	}
 
+	// Fork-join all the events
 	WaitForMultipleObjects(m_RenderPasses.size(), m_WorkerCompleteSignals.data(), TRUE, INFINITE);
 }
 

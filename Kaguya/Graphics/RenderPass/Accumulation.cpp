@@ -3,6 +3,7 @@
 
 #include "Pathtracing.h"
 #include "AmbientOcclusion.h"
+#include "ShadingComposition.h"
 
 Accumulation::Accumulation(UINT Width, UINT Height)
 	: RenderPass("Accumulation",
@@ -15,8 +16,6 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 {
 	RootSignatures::Raytracing::Accumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<Accumulation::SSettings>(0, 0));
-
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
@@ -58,52 +57,50 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Accumulation");
 
-	auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
-	Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);
-
-	//auto pAmbientOcclusionRenderPass = pRenderGraph->GetRenderPass<AmbientOcclusion>();
-	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAmbientOcclusionRenderPass->Resources[AmbientOcclusion::EResources::RenderTarget]);
-
-	struct AccumulationData
-	{
-		uint InputIndex;
-		uint OutputIndex;
-	} Data;
-
-	Data.InputIndex = InputSRV.HeapIndex;
-	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
-	RenderContext.UpdateRenderPassData<AccumulationData>(Data);
-
 	// If the camera has moved
 	if (pGpuScene->pScene->Camera.FocalLength != LastFocalLength ||
 		pGpuScene->pScene->Camera.RelativeAperture != LastRelativeAperture ||
 		pGpuScene->pScene->Camera.Transform != LastCameraTransform)
 	{
-		Settings.AccumulationCount = 0;
+		settings.AccumulationCount = 0;
 		LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
 		LastRelativeAperture = pGpuScene->pScene->Camera.RelativeAperture;
 		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 	}
 
+	//auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
+	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);
+
+	//auto pAmbientOcclusionRenderPass = pRenderGraph->GetRenderPass<AmbientOcclusion>();
+	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAmbientOcclusionRenderPass->Resources[AmbientOcclusion::EResources::RenderTarget]);
+
+	auto pShadingCompositionRenderPass = pRenderGraph->GetRenderPass<ShadingComposition>();
+	Descriptor InputSRV = RenderContext.GetShaderResourceView(pShadingCompositionRenderPass->Resources[ShadingComposition::EResources::RenderTarget]);
+
+	struct RenderPassData
+	{
+		uint AccumulationCount;
+
+		uint Input;
+		uint RenderTarget;
+	} Data;
+
+	Data.AccumulationCount = settings.AccumulationCount++;
+
+	Data.Input = InputSRV.HeapIndex;
+	Data.RenderTarget = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
+
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
 
-	// Bind Pipeline
 	RenderContext.SetPipelineState(ComputePSOs::Accumulation);
 
-	// Bind Resources
-	struct
-	{
-		unsigned int AccumulationCount;
-	} AccumulationSettings;
-	AccumulationSettings.AccumulationCount = Settings.AccumulationCount++;
-	RenderContext->SetComputeRoot32BitConstants(0, 1, &AccumulationSettings, 0);
-
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
+	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
 
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::NonPixelShaderResource);
 }
 
 void Accumulation::StateRefresh()
 {
-	Settings.AccumulationCount = 0;
+	settings.AccumulationCount = 0;
 }

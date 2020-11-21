@@ -1,4 +1,4 @@
-struct ShadingCompositionData
+struct RenderPassData
 {
 	// Input Textures
 	uint AnalyticUnshadowed;	// U
@@ -8,8 +8,8 @@ struct ShadingCompositionData
 	// Output Textures
 	uint RenderTarget;
 };
-#define RenderPassDataType ShadingCompositionData
-#include "ShaderLayout.hlsli"
+#define RenderPassDataType RenderPassData
+#include <ShaderLayout.hlsli>
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)

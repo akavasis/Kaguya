@@ -169,6 +169,7 @@ void RayGeneration()
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const float2 pixelCenter = (launchIndex + 0.5f) / DispatchRaysDimensions().xy;
 	
+	HaltonState haltonState = InitHaltonState(launchIndex.x, launchIndex.y, 0, 16, g_SystemConstants.TotalFrameCount, 64, 16);
 	ShadingResult shadingResult = InitShadingResult();
 	
 	GBuffer GBuffer;
@@ -234,14 +235,14 @@ void RayGeneration()
 			{
 				uint I = i * RaysPerLight + rayIdx;
 				// Used for 2D position on light/BRDF
-				const float u1 = frac(Random(I) + blueNoise.r);
-				const float u2 = frac(Random(I + 1) + blueNoise.g);
+				const float u1 = frac(HaltonNext(haltonState) + blueNoise.r);
+				const float u2 = frac(HaltonNext(haltonState) + blueNoise.g);
 			
 				// Choosing BRDF lobes
-				const float u3 = frac(Random(I + 2) + blueNoise.b);
+				const float u3 = frac(HaltonNext(haltonState) + blueNoise.b);
 			
 				// Choosing between light and BRDF sampling
-				const float u4 = frac(Random(I + 3) + blueNoise.a);
+				const float u4 = frac(HaltonNext(haltonState) + blueNoise.a);
 		
 				// BRDF sample
 				if (u4 <= brdfProb)

@@ -1,3 +1,5 @@
+// Taken from the NVIDIA SVGF sample code
+
 #ifndef SVGF_COMMON_HLSLI
 #define SVGF_COMMON_HLSLI
 
@@ -39,21 +41,6 @@ COMPARE_FUNC4(int4)
 COMPARE_FUNC4(float4)
 
 #undef COMPARE_FUNC4
-
-// Returns a relative luminance of an input linear RGB color in the ITU-R BT.709 color space
-// \param RGBColor linear HDR RGB color in the ITU-R BT.709 color space
-float luminance(float3 rgb)
-{
-	return dot(rgb, float3(0.2126f, 0.7152f, 0.0722f));
-}
-
-// ----------------------------------------------------------------------------------------------------------------------------
-int2 getTextureDims(Texture2D tex, uint mip)
-{
-	uint w, h;
-	tex.GetDimensions(w, h);
-	return int2(w, h);
-}
 
 // ----------------------------------------------------------------------------------------------------------------------------
 float3 octToDir(uint octo)

@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "PostProcess.h"
 
-#include "Shading.h"
-#include "ShadingComposition.h"
 #include "Accumulation.h"
 
 constexpr size_t NumTonemapRootConstants = 1 + sizeof(PostProcess::GranTurismoOperator) / 4;
@@ -179,11 +177,8 @@ void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Post Process");
 
-	auto pShadingCompositionRenderPass = pRenderGraph->GetRenderPass<ShadingComposition>();
-	Descriptor InputSRV = RenderContext.GetShaderResourceView(pShadingCompositionRenderPass->Resources[ShadingComposition::EResources::RenderTarget]);
-
-	//auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
-	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
+	auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
+	Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
 
 	if (settings.ApplyBloom)
 		ApplyBloom(InputSRV, RenderContext, pRenderGraph);

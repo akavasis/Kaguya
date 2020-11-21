@@ -1,4 +1,6 @@
-#include "../HLSLCommon.hlsli"
+// Modified from the NVIDIA SVGF sample code, https://research.nvidia.com/publication/2017-07_Spatiotemporal-Variance-Guided-Filtering%3A
+
+#include <HLSLCommon.hlsli>
 #include "SVGF_Common.hlsli"
 
 struct RenderPassData
@@ -28,7 +30,7 @@ struct RenderPassData
 	uint HistoryLength;
 };
 #define RenderPassDataType RenderPassData
-#include "../ShaderLayout.hlsli"
+#include <ShaderLayout.hlsli>
 
 // ----------------------------------------------------------------------------------------------------------------------------
 inline bool isReprojectionValid(int2 coord, int2 imageDim, float currentZ, float previousZ, float fwidthZ, float3 currentNormal, float3 prevNormal, float fwidthNormal)
@@ -59,14 +61,14 @@ inline bool isReprojectionValid(int2 coord, int2 imageDim, float currentZ, float
 // ----------------------------------------------------------------------------------------------------------------------------
 inline bool loadPrevData(int2 ScreenSpaceCoord, out float4 prevDirect, out float4 prevIndirect, out float4 prevMoments, out float historyLength)
 {
-	Texture2D Motion = g_Texture2DTable[g_RenderPassData.Motion];
-	Texture2D LinearZ = g_Texture2DTable[g_RenderPassData.LinearZ];
+	Texture2D Motion			= g_Texture2DTable[g_RenderPassData.Motion];
+	Texture2D LinearZ			= g_Texture2DTable[g_RenderPassData.LinearZ];
 	
-	Texture2D PrevSource0 = g_Texture2DTable[g_RenderPassData.PrevSource0];
-	Texture2D PrevSource1 = g_Texture2DTable[g_RenderPassData.PrevSource1];
-	Texture2D PrevMoments = g_Texture2DTable[g_RenderPassData.PrevMoments];
+	Texture2D PrevSource0		= g_Texture2DTable[g_RenderPassData.PrevSource0];
+	Texture2D PrevSource1		= g_Texture2DTable[g_RenderPassData.PrevSource1];
+	Texture2D PrevMoments		= g_Texture2DTable[g_RenderPassData.PrevMoments];
 	Texture2D PrevHistoryLength = g_Texture2DTable[g_RenderPassData.PrevHistoryLength];
-	Texture2D PrevLinearZ = g_Texture2DTable[g_RenderPassData.PrevLinearZ];
+	Texture2D PrevLinearZ		= g_Texture2DTable[g_RenderPassData.PrevLinearZ];
 	
 	const float2 imageDim = g_RenderPassData.RenderTargetDimension;
 	const float4 motion = Motion[ScreenSpaceCoord]; // xy = motion, z = length(fwidth(pos)), w = length(fwidth(normal))
@@ -213,8 +215,8 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
     // Compute first two moments of luminance
 	float4 moments;
 	float2 variance;
-	moments.r = luminance(stochasticShadowed);
-	moments.b = luminance(stochasticUnshadowed);
+	moments.r = RGBToCIELuminance(stochasticShadowed);
+	moments.b = RGBToCIELuminance(stochasticUnshadowed);
 	moments.g = moments.r * moments.r;
 	moments.a = moments.b * moments.b;
 

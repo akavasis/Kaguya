@@ -1,4 +1,6 @@
-#include "../HLSLCommon.hlsli"
+// Modified from the NVIDIA SVGF sample code, https://research.nvidia.com/publication/2017-07_Spatiotemporal-Variance-Guided-Filtering%3A
+
+#include <HLSLCommon.hlsli>
 #include "SVGF_Common.hlsli"
 
 struct RenderPassData
@@ -21,7 +23,7 @@ struct RenderPassData
 	uint RenderTarget1;
 };
 #define RenderPassDataType RenderPassData
-#include "../ShaderLayout.hlsli"
+#include <ShaderLayout.hlsli>
 
 // ----------------------------------------------------------------------------------------------------------------------------
 // Computes a 3x3 gaussian blur of the variance, centered around the current pixel
@@ -53,28 +55,28 @@ float2 computeVarianceCenter(int2 ipos, Texture2D sDirect, Texture2D sIndirect)
 [numthreads(8, 8, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
-	Texture2D DenoisedSource0 = g_Texture2DTable[g_RenderPassData.DenoisedSource0];
-	Texture2D DenoisedSource1 = g_Texture2DTable[g_RenderPassData.DenoisedSource1];
-	Texture2D Moments = g_Texture2DTable[g_RenderPassData.Moments];
-	Texture2D HistoryLength = g_Texture2DTable[g_RenderPassData.HistoryLength];
-	Texture2D Compact = g_Texture2DTable[g_RenderPassData.Compact];
+	Texture2D			DenoisedSource0		= g_Texture2DTable[g_RenderPassData.DenoisedSource0];
+	Texture2D			DenoisedSource1		= g_Texture2DTable[g_RenderPassData.DenoisedSource1];
+	Texture2D			Moments				= g_Texture2DTable[g_RenderPassData.Moments];
+	Texture2D			HistoryLength		= g_Texture2DTable[g_RenderPassData.HistoryLength];
+	Texture2D			Compact				= g_Texture2DTable[g_RenderPassData.Compact];
 	
-	RWTexture2D<float4> RenderTarget0 = g_RWTexture2DTable[g_RenderPassData.RenderTarget0];
-	RWTexture2D<float4> RenderTarget1 = g_RWTexture2DTable[g_RenderPassData.RenderTarget1];
+	RWTexture2D<float4> RenderTarget0		= g_RWTexture2DTable[g_RenderPassData.RenderTarget0];
+	RWTexture2D<float4> RenderTarget1		= g_RWTexture2DTable[g_RenderPassData.RenderTarget1];
 	
-	const int2 screenSize = int2(g_RenderPassData.RenderTargetDimension);
-	const float epsVariance = 1e-10;
-	const float kernelWeights[3] = { 1.0, 2.0 / 3.0, 1.0 / 6.0 };
-	const float4 directCenter = DenoisedSource0[DTid.xy];
-	const float4 indirectCenter = DenoisedSource1[DTid.xy];
-	const float lDirectCenter = luminance(directCenter.rgb);
-	const float lIndirectCenter = luminance(indirectCenter.rgb);
+	const int2			screenSize			= int2(g_RenderPassData.RenderTargetDimension);
+	const float			epsVariance			= 1e-10;
+	const float			kernelWeights[3]	= { 1.0, 2.0 / 3.0, 1.0 / 6.0 };
+	const float4		directCenter		= DenoisedSource0[DTid.xy];
+	const float4		indirectCenter		= DenoisedSource1[DTid.xy];
+	const float			lDirectCenter		= RGBToCIELuminance(directCenter.rgb);
+	const float			lIndirectCenter		= RGBToCIELuminance(indirectCenter.rgb);
 
     // Variance for direct and indirect, filtered using 3x3 gaussin blur
-	const float2 var = computeVarianceCenter(DTid.xy, DenoisedSource0, DenoisedSource1);
+	const float2		var					= computeVarianceCenter(DTid.xy, DenoisedSource0, DenoisedSource1);
 
     // Number of temporally integrated pixels
-	const float historyLength = HistoryLength[DTid.xy].r;
+	const float			historyLength		= HistoryLength[DTid.xy].r;
 
 	float3 normalCenter;
 	float2 zCenter;
@@ -115,8 +117,8 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 				float3 normalP;
 				float2 zP;
 				fetchNormalAndLinearZ(Compact, p, normalP, zP);
-				const float lDirectP = luminance(directP.rgb);
-				const float lIndirectP = luminance(indirectP.rgb);
+				const float lDirectP = RGBToCIELuminance(directP.rgb);
+				const float lIndirectP = RGBToCIELuminance(indirectP.rgb);
 
                 // Compute the edge-stopping functions
 				const float2 w = computeWeight(

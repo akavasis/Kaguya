@@ -389,7 +389,7 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		light1.Transform.Position = { -7, 5, 3 };
 		light1.Transform.Rotate(XM_PI - 0.5f, -XM_PIDIV4, 0);
 		light1.Color = { 201.0 / 255, 226.0 / 255.0, 255.0 / 255 };
-		light1.SetDimension(2, 5);
+		light1.SetDimension(2, 2);
 		light1.SetLuminousPower(20000);
 
 		/*auto& light2 = Scene.AddLight();

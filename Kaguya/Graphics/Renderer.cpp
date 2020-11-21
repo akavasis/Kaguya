@@ -33,6 +33,8 @@ bool Renderer::Initialize()
 	try
 	{
 		m_pRenderDevice	= new RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get());
+		m_pRenderDevice->ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
+
 		m_pRenderGraph	= new RenderGraph(m_pRenderDevice);
 		m_pGpuScene		= new GpuScene(m_pRenderDevice);
 		m_pSwapChain	= m_DXGIManager.CreateSwapChain(m_pRenderDevice->GraphicsQueue.GetD3DCommandQueue(), Application::pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
@@ -70,9 +72,9 @@ bool Renderer::Initialize()
 	m_pRenderGraph->AddRenderPass(new SVGFFilterMoments(Width, Height));
 	m_pRenderGraph->AddRenderPass(new SVGFAtrous(Width, Height));
 	m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
+	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
 	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
-	//m_RenderGraph.AddRenderPass(new Accumulation(Width, Height));
 	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
 	m_pRenderGraph->Initialize();
 
@@ -94,7 +96,6 @@ void Renderer::HandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 {
 	Scene& scene = *m_pGpuScene->pScene;
 
-
 	if (Keyboard.IsKeyPressed('W'))
 		scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
 	if (Keyboard.IsKeyPressed('A'))
@@ -113,6 +114,9 @@ void Renderer::HandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 void Renderer::Update(const Time& Time)
 {
 	m_pRenderDevice->FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
+
+	Scene& scene = *m_pGpuScene->pScene;
+	scene.PreviousCamera = scene.Camera;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -127,9 +131,7 @@ void Renderer::Render()
 
 	RenderGui();
 
-
 	Scene& scene = *m_pGpuScene->pScene;
-	scene.PreviousCamera = scene.Camera;
 
 	scene.Camera.RelativeAperture = 0.8f;
 	scene.Camera.ShutterTime = 1.0f / 125.0f;
@@ -143,10 +145,10 @@ void Renderer::Render()
 	HLSLSystemConstants.NumPolygonalLights		= scene.Lights.size();
 
 	m_pGpuScene->RenderGui();
-	m_pGpuScene->Update(AspectRatio, m_RenderContext);
+	bool Refresh = m_pGpuScene->Update(AspectRatio, m_RenderContext);
 	m_pRenderGraph->RenderGui();
 	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
-	m_pRenderGraph->Execute();
+	m_pRenderGraph->Execute(Refresh);
 	m_pRenderGraph->ExecuteCommandContexts(m_RenderContext);
 
 	uint32_t				SyncInterval		= Settings::VSync ? 1u : 0u;

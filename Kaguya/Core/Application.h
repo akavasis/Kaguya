@@ -17,7 +17,6 @@ public:
 	inline static Window*						pWindow					= nullptr;
 private:
 	static DWORD WINAPI RenderThreadProc(_In_ PVOID pParameter);
-	static void RenderThreadMain(RenderSystem* pRenderSystem);
 	static bool HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message);
 
 	inline static HANDLE						RenderThread;

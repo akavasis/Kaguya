@@ -18,12 +18,15 @@ public:
 	ShaderCompiler();
 	~ShaderCompiler() = default;
 
+	void SetIncludeDirectory(const std::filesystem::path& pPath);
+
 	Shader CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
 	Library CompileLibrary(LPCWSTR pPath);
 private:
 	Microsoft::WRL::ComPtr<IDxcBlob> Compile(LPCWSTR pPath, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines);
 
-	Microsoft::WRL::ComPtr<IDxcCompiler> m_DxcCompiler;
-	Microsoft::WRL::ComPtr<IDxcLibrary> m_DxcLibrary;
-	Microsoft::WRL::ComPtr<IDxcUtils> m_DxcUtils;
+	Microsoft::WRL::ComPtr<IDxcCompiler>	m_DxcCompiler;
+	Microsoft::WRL::ComPtr<IDxcLibrary>		m_DxcLibrary;
+	Microsoft::WRL::ComPtr<IDxcUtils>		m_DxcUtils;
+	std::wstring							m_IncludeDirectory;
 };

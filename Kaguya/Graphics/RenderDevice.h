@@ -25,7 +25,7 @@ struct RaytracingAccelerationStructureHandles
 {
 	RenderResourceHandle Scratch;
 	RenderResourceHandle Result;
-	RenderResourceHandle InstanceDescs;
+	RenderResourceHandle InstanceDescs; // Only used by TLAS
 };
 
 struct RootParameters
@@ -129,13 +129,13 @@ public:
 	CommandQueue																			ComputeQueue;	// TODO: Add asynchronous work submission using this queue
 	CommandQueue																			CopyQueue;		// TODO: Add asynchronous work submission using this queue
 	ResourceStateTracker																	GlobalResourceStateTracker;
+	ShaderCompiler																			ShaderCompiler;
 
 	UINT																					FrameIndex;
 	RenderResourceHandle																	SwapChainTextures[NumSwapChainBuffers];
 private:
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 
-	ShaderCompiler																			m_ShaderCompiler;
 	std::vector<std::unique_ptr<CommandContext>>											m_CommandContexts[CommandContext::NumTypes];
 
 	RenderResourceContainer<RenderResourceType::DeviceBuffer, DeviceBuffer>					m_DeviceBuffers;

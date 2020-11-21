@@ -1,4 +1,6 @@
-#include "../HLSLCommon.hlsli"
+// Modified from the NVIDIA SVGF sample code, https://research.nvidia.com/publication/2017-07_Spatiotemporal-Variance-Guided-Filtering%3A
+
+#include <HLSLCommon.hlsli>
 #include "SVGF_Common.hlsli"
 
 struct RenderPassData
@@ -20,25 +22,25 @@ struct RenderPassData
 	uint RenderTarget1;
 };
 #define RenderPassDataType RenderPassData
-#include "../ShaderLayout.hlsli"
+#include <ShaderLayout.hlsli>
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
-	Texture2D Source0 = g_Texture2DTable[g_RenderPassData.Source0];
-	Texture2D Source1 = g_Texture2DTable[g_RenderPassData.Source1];
-	Texture2D Moments = g_Texture2DTable[g_RenderPassData.Moments];
-	Texture2D HistoryLength = g_Texture2DTable[g_RenderPassData.HistoryLength];
-	Texture2D Compact = g_Texture2DTable[g_RenderPassData.Compact];
+	Texture2D			Source0			= g_Texture2DTable[g_RenderPassData.Source0];
+	Texture2D			Source1			= g_Texture2DTable[g_RenderPassData.Source1];
+	Texture2D			Moments			= g_Texture2DTable[g_RenderPassData.Moments];
+	Texture2D			HistoryLength	= g_Texture2DTable[g_RenderPassData.HistoryLength];
+	Texture2D			Compact			= g_Texture2DTable[g_RenderPassData.Compact];
 	
-	RWTexture2D<float4> RenderTarget0 = g_RWTexture2DTable[g_RenderPassData.RenderTarget0];
-	RWTexture2D<float4> RenderTarget1 = g_RWTexture2DTable[g_RenderPassData.RenderTarget1];
+	RWTexture2D<float4> RenderTarget0	= g_RWTexture2DTable[g_RenderPassData.RenderTarget0];
+	RWTexture2D<float4> RenderTarget1	= g_RWTexture2DTable[g_RenderPassData.RenderTarget1];
 	
-	float h = HistoryLength[DTid.xy].r;
-	int2 screenSize = int2(g_RenderPassData.RenderTargetDimension);
+	float				historyLength	= HistoryLength[DTid.xy].r;
+	int2				screenSize		= int2(g_RenderPassData.RenderTargetDimension);
 	
     // Not enough temporal history available
-	if (h < 4.0)
+	if (historyLength < 4.0)
 	{
 		float sumWDirect = 0.0;
 		float sumWIndirect = 0.0;
@@ -47,8 +49,8 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 		float4 sumMoments = float4(0.0, 0.0, 0.0, 0.0);
 		const float4 directCenter = Source0[DTid.xy];
 		const float4 indirectCenter = Source1[DTid.xy];
-		const float lDirectCenter = luminance(directCenter.rgb);
-		const float lIndirectCenter = luminance(indirectCenter.rgb);
+		const float lDirectCenter = RGBToCIELuminance(directCenter.rgb);
+		const float lIndirectCenter = RGBToCIELuminance(indirectCenter.rgb);
 
 		float3 normalCenter;
 		float2 zCenter;
@@ -82,8 +84,8 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 					const float3 directP = Source0[p].rgb;
 					const float3 indirectP = Source1[p].rgb;
 					const float4 momentsP = Moments[p];
-					const float lDirectP = luminance(directP.rgb);
-					const float lIndirectP = luminance(indirectP.rgb);
+					const float lDirectP = RGBToCIELuminance(directP.rgb);
+					const float lIndirectP = RGBToCIELuminance(indirectP.rgb);
 
 					float3 normalP;
 					float2 zP;
@@ -121,7 +123,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 		float2 variance = sumMoments.ga - sumMoments.rb * sumMoments.rb;
 
         // Give the variance a boost for the first frames
-		variance *= 4.0 / h;
+		variance *= 4.0 / max(1.0, historyLength);
 
 		RenderTarget0[DTid.xy] = float4(sumDirect, variance.r);
 		RenderTarget1[DTid.xy] = float4(sumIndirect, variance.g);

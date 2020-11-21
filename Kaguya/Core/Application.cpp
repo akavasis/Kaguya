@@ -104,12 +104,6 @@ int Application::Run(RenderSystem* pRenderSystem)
 		::CloseHandle(RenderThread);
 	}
 
-	if (pRenderSystem)
-	{
-		delete pRenderSystem;
-		pRenderSystem = nullptr;
-	}
-
 	if (pWindow)
 	{
 		delete pWindow;
@@ -126,13 +120,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
 
 	auto pRenderSystem = reinterpret_cast<RenderSystem*>(pParameter);
-	RenderThreadMain(pRenderSystem);
-	return EXIT_SUCCESS;
-}
-
-//----------------------------------------------------------------------------------------------------
-void Application::RenderThreadMain(RenderSystem* pRenderSystem)
-{
+	
 	Time Time;
 	Time.Restart();
 
@@ -197,6 +185,8 @@ void Application::RenderThreadMain(RenderSystem* pRenderSystem)
 
 Error:
 	pRenderSystem->OnDestroy();
+
+	return EXIT_SUCCESS;
 }
 
 //----------------------------------------------------------------------------------------------------

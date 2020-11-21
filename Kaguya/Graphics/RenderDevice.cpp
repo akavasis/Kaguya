@@ -84,12 +84,12 @@ void RenderDevice::ResetDescriptor()
 
 Shader RenderDevice::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
-	return m_ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines);
+	return ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines);
 }
 
 Library RenderDevice::CompileLibrary(const std::filesystem::path& Path)
 {
-	return m_ShaderCompiler.CompileLibrary(Path.c_str());
+	return ShaderCompiler.CompileLibrary(Path.c_str());
 }
 
 DeviceResourceAllocationInfo RenderDevice::GetDeviceResourceAllocationInfo(UINT NumDescs, DeviceBufferProxy* pDescs)

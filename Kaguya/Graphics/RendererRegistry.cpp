@@ -35,7 +35,7 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 
 		CS::ShadingComposition							= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/ShadingComposition.hlsl",						L"CSMain", {});
 
-		CS::Accumulation								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Raytracing/Accumulation.hlsl",					L"CSMain", {});
+		CS::Accumulation								= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Accumulation.hlsl",								L"CSMain", {});
 
 		CS::PostProcess_BloomMask						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl",						L"CSMain", {});
 		CS::PostProcess_BloomDownsample					= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl",				L"CSMain", {});
