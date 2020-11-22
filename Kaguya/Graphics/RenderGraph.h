@@ -14,74 +14,14 @@ class ResourceScheduler;
 class ResourceRegistry;
 class RenderGraph;
 
-struct RenderTargetProperties
-{
-	UINT Width = 0;
-	UINT Height = 0;
-	DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
-};
-
-class RenderPass
-{
-public:
-	inline static constexpr size_t GpuDataByteSize = 2048;
-
-	RenderPass(std::string Name, RenderTargetProperties Properties);
-	virtual ~RenderPass() = default;
-
-	void OnInitializePipeline(RenderDevice* pRenderDevice) { return InitializePipeline(pRenderDevice); }
-	void OnScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph) { return ScheduleResource(pResourceScheduler, pRenderGraph); }
-	void OnInitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) { return InitializeScene(pGpuScene, pRenderDevice); }
-	void OnRenderGui() { return RenderGui(); }
-	void OnExecute(RenderContext& RenderContext, RenderGraph* pRenderGraph) { return Execute(RenderContext, pRenderGraph); }
-	void OnStateRefresh() { Refresh = false; StateRefresh(); }
-
-	bool Enabled;
-	bool Refresh;
-	bool ExplicitResourceTransition;	// If this is true, then the render pass is responsible for handling resource transitions, by default, this is false
-	bool UseRayTracing;					// If this is true, then the render pass will wait until async compute is done generating the acceleration structure
-	std::string Name;
-	RenderTargetProperties Properties;
-	std::vector<RenderResourceHandle> Resources;
-protected:
-	virtual void InitializePipeline(RenderDevice* pRenderDevice) = 0;
-	virtual void ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph) = 0;
-	virtual void InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice) = 0;
-	virtual void RenderGui() = 0;
-	virtual void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) = 0;
-	virtual void StateRefresh() = 0;
-private:
-	friend class RenderGraph;
-	friend class ResourceScheduler;
-
-	std::vector<RenderResourceHandle> Reads;
-	std::vector<RenderResourceHandle> Writes;
-};
-
 class ResourceScheduler
 {
 public:
-	void AllocateTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
-	{
-		DeviceTextureProxy proxy(Type);
-		Configurator(proxy);
+	void AllocateTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator);
 
-		m_TextureRequests[m_pCurrentRenderPass].push_back(proxy);
-	}
+	void Read(RenderResourceHandle Resource);
 
-	void Read(RenderResourceHandle Resource)
-	{
-		assert(Resource.Type == RenderResourceType::DeviceBuffer || Resource.Type == RenderResourceType::DeviceTexture);
-
-		m_pCurrentRenderPass->Reads.push_back(Resource);
-	}
-
-	void Write(RenderResourceHandle Resource)
-	{
-		assert(Resource.Type == RenderResourceType::DeviceBuffer || Resource.Type == RenderResourceType::DeviceTexture);
-
-		m_pCurrentRenderPass->Writes.push_back(Resource);
-	}
+	void Write(RenderResourceHandle Resource);
 private:
 	friend class RenderGraph;
 

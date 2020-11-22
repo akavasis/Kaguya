@@ -1,8 +1,5 @@
 #pragma once
-#include "Graphics/Scene/Scene.h"
-#include "Graphics/GpuScene.h"
-#include "Graphics/RenderGraph.h"
-#include "Graphics/RendererRegistry.h"
+#include "../RenderPass.h"
 
 class GBuffer : public RenderPass
 {
@@ -21,14 +18,7 @@ public:
 		NumResources
 	};
 
-	struct SSettings
-	{
-		int GBuffer = 0;
-	};
-
 	GBuffer(UINT Width, UINT Height);
-
-	inline auto GetSettings() const { return Settings; }
 protected:
 	void InitializePipeline(RenderDevice* pRenderDevice) override;
 	void ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph) override;
@@ -40,6 +30,5 @@ private:
 	void RenderMeshes(RenderContext& RenderContext);
 	void RenderLights(RenderContext& RenderContext);
 
-	SSettings Settings;
 	GpuScene* pGpuScene;
 };

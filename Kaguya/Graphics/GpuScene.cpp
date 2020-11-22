@@ -392,6 +392,11 @@ bool GpuScene::Update(float AspectRatio)
 		}
 	}
 
+	if (pScene->PreviousCamera != pScene->Camera)
+	{
+		Refresh |= true;
+	}
+
 	return Refresh;
 }
 

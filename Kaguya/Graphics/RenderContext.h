@@ -55,8 +55,6 @@ public:
 	template<typename T>
 	void UpdateRenderPassData(const T& Data)
 	{
-		static_assert(sizeof(T) < RenderPass::GpuDataByteSize);
-
 		auto pCpuPtr = SV_pGpuData->Map();
 		SV_pGpuData->Update<T>(SV_RenderPassIndex, Data);
 	}

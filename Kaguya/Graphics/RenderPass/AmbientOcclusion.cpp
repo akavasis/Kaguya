@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "AmbientOcclusion.h"
-#include <Core/RenderSystem.h>
+
+#include "Graphics/Scene/Scene.h"
+#include "Graphics/GpuScene.h"
+#include "Graphics/RenderGraph.h"
+#include "Graphics/RendererRegistry.h"
 
 AmbientOcclusion::AmbientOcclusion(UINT Width, UINT Height)
 	: RenderPass("Ambient Occlusion",

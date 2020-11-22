@@ -1,12 +1,16 @@
 #include "pch.h"
 #include "Pathtracing.h"
-#include <Core/RenderSystem.h>
+
+#include "Graphics/Scene/Scene.h"
+#include "Graphics/GpuScene.h"
+#include "Graphics/RenderGraph.h"
+#include "Graphics/RendererRegistry.h"
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
 	: RenderPass("Path tracing",
 		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
-
+	UseRayTracing = true;
 }
 
 void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
@@ -166,13 +170,13 @@ void Pathtracing::RenderGui()
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{
-			Settings = SSettings();
+			settings = Settings();
 			Refresh = true;
 		}
 
 		int Dirty = 0;
-		Dirty |= (int)ImGui::SliderInt("Num Samples Per Pixel", &Settings.NumSamplesPerPixel, 1, 10);
-		Dirty |= (int)ImGui::SliderInt("Max Depth", &Settings.MaxDepth, 1, 7);
+		Dirty |= (int)ImGui::SliderInt("Num Samples Per Pixel", &settings.NumSamplesPerPixel, 1, 10);
+		Dirty |= (int)ImGui::SliderInt("Max Depth", &settings.MaxDepth, 1, 7);
 		
 		if (Dirty) Refresh = true;
 		ImGui::TreePop();
@@ -183,13 +187,13 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Path tracing");
 
-	struct PathtracingData
+	struct RenderPassData
 	{
 		uint OutputIndex;
 	} Data;
 
 	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
-	RenderContext.UpdateRenderPassData<PathtracingData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
 
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
 

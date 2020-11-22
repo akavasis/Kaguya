@@ -1,6 +1,11 @@
 #include "pch.h"
 #include "PostProcess.h"
 
+#include "Graphics/Scene/Scene.h"
+#include "Graphics/GpuScene.h"
+#include "Graphics/RenderGraph.h"
+#include "Graphics/RendererRegistry.h"
+
 #include "Accumulation.h"
 
 constexpr size_t NumTonemapRootConstants = 1 + sizeof(PostProcess::GranTurismoOperator) / 4;
@@ -210,7 +215,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 			float Threshold;
 			uint InputIndex;
 			uint OutputIndex;
-		} data;
+		} data = {};
 		data.InverseOutputSize = { 1.0f / Properties.Width, 1.0f / Properties.Height };
 		data.Threshold = settings.Bloom.Threshold;
 		data.InputIndex = InputSRV.HeapIndex;
@@ -240,7 +245,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 			uint Output2Index;
 			uint Output3Index;
 			uint Output4Index;
-		} data;
+		} data = {};
 
 		data.InverseOutputSize = { 1.0f / Properties.Width, 1.0f / Properties.Height };
 		data.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
@@ -289,7 +294,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 			uint InputIndex;
 			uint BloomIndex;
 			uint OutputIndex;
-		} data;
+		} data = {};
 		data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
 		data.Intensity = settings.Bloom.Intensity;
 		data.InputIndex = InputSRV.HeapIndex;
@@ -336,7 +341,7 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 				float LinearSectionLength;
 				float BlackTightness_C;
 				float BlackTightness_B;
-			} data;
+			} data = {};
 			data.InputIndex				= settings.ApplyBloom ? RenderContext.GetShaderResourceView(Resources[EResources::RenderTarget]).HeapIndex :
 				InputSRV.HeapIndex;
 			data.MaximumBrightness		= granTurismoOperator.MaximumBrightness;
@@ -375,7 +380,7 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 		float2 InverseOutputSize;
 		uint InputIndex;
 		uint OutputIndex;
-	} data;
+	} data = {};
 	data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
 	data.InputIndex = RenderContext.GetShaderResourceView(Resources[Input]).HeapIndex;
 	data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
@@ -404,7 +409,7 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 		uint HighResolutionIndex;
 		uint LowResolutionIndex;
 		uint OutputIndex;
-	} data;
+	} data = {};
 	data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
 	data.UpsampleInterpolationFactor = 0.5f;
 	data.HighResolutionIndex = RenderContext.GetShaderResourceView(Resources[HighResolution]).HeapIndex;

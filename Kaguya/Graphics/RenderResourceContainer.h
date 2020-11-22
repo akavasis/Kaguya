@@ -1,6 +1,6 @@
 #pragma once
+#include <Core/Synchronization/RWLock.h>
 #include <atomic>
-#include <mutex>
 #include <unordered_map>
 #include <queue>
 #include "RenderResourceHandle.h"
@@ -13,8 +13,8 @@ public:
 	std::pair<RenderResourceHandle, T*> CreateResource(Args&&... args)
 	{
 		T resource = T(std::forward<Args>(args)...);
-		std::scoped_lock lk(m_Mutex);
 
+		ScopedWriteLock lk(m_RWLock);
 		RenderResourceHandle handle;
 		if (!m_AvailableHandles.empty())
 		{
@@ -33,6 +33,7 @@ public:
 	// Returns null if not found
 	T* GetResource(const RenderResourceHandle& RenderResourceHandle)
 	{
+		ScopedReadLock lk(m_RWLock);
 		auto iter = m_ResourceTable.find(RenderResourceHandle);
 		if (iter != m_ResourceTable.end())
 			return &iter->second;
@@ -42,6 +43,7 @@ public:
 	// Returns null if not found
 	const T* GetResource(const RenderResourceHandle& RenderResourceHandle) const
 	{
+		ScopedReadLock lk(m_RWLock);
 		auto iter = m_ResourceTable.find(RenderResourceHandle);
 		if (iter != m_ResourceTable.end())
 			return &iter->second;
@@ -54,7 +56,7 @@ public:
 		if (!pRenderResourceHandle)
 			return false;
 
-		std::scoped_lock lk(m_Mutex);
+		ScopedWriteLock lk(m_RWLock);
 		auto iter = m_ResourceTable.find(*pRenderResourceHandle);
 		if (iter != m_ResourceTable.end())
 		{
@@ -76,22 +78,22 @@ private:
 		RenderResourceHandleFactory()
 		{
 			m_AtomicData = 0;
-			m_Handle.Type = Type;
-			m_Handle.Flags = RenderResourceFlags::Active;
-			m_Handle.Data = 0;
 		}
 
 		RenderResourceHandle GetNewHandle()
 		{
-			m_Handle.Data = m_AtomicData.fetch_add(1);
-			return m_Handle;
+			RenderResourceHandle Handle;
+			Handle.Type = Type;
+			Handle.Flags = RenderResourceFlags::Active;
+			Handle.Data = m_AtomicData.fetch_add(1);
+
+			return Handle;
 		}
 	private:
-		RenderResourceHandle m_Handle;
 		std::atomic<size_t> m_AtomicData;
 	};
 
-	std::mutex m_Mutex;
+	RWLock m_RWLock;
 	std::unordered_map<RenderResourceHandle, T> m_ResourceTable;
 	RenderResourceHandleFactory<Type> m_HandleFactory;
 	std::queue<RenderResourceHandle> m_AvailableHandles;

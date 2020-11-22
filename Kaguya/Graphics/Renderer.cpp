@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Renderer.h"
-#include "Core/Application.h"
 #include "Core/Window.h"
 #include "Core/Time.h"
 
@@ -65,7 +64,7 @@ bool Renderer::Initialize()
 	m_pGpuScene->GpuTextureAllocator.StageSystemReservedTextures(m_RenderContext);
 
 	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
-	m_pRenderDevice->ExecuteRenderCommandContexts(CommandContext::Direct, 1, pCommandContexts);
+	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Direct, 1, pCommandContexts);
 	m_pGpuScene->GpuTextureAllocator.DisposeResources();
 
 	SetScene(GenerateScene(SampleScene::PlaneWithLights));
@@ -253,7 +252,7 @@ void Renderer::SetScene(Scene Scene)
 	//m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
 
 	m_Scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
-	m_Scene.Camera.SetPosition(0.0f, 5.0f, -20.0f);
+	m_Scene.Camera.Transform.Position = { 0.0f, 5.0f, -20.0f };
 
 	m_pGpuScene->pScene = &m_Scene;
 
@@ -265,7 +264,7 @@ void Renderer::SetScene(Scene Scene)
 	m_pGpuScene->UploadMeshes();
 
 	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
-	m_pRenderDevice->ExecuteRenderCommandContexts(CommandContext::Direct, ARRAYSIZE(pCommandContexts), pCommandContexts);
+	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Direct, ARRAYSIZE(pCommandContexts), pCommandContexts);
 	m_pGpuScene->DisposeResources();
 }
 
@@ -302,6 +301,7 @@ void Renderer::RenderGui()
 	ImGui::End();
 }
 
+//----------------------------------------------------------------------------------------------------
 DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 {
 	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
@@ -318,7 +318,7 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 			 pRenderer->m_pGpuScene->CreateTopLevelAS(RenderContext);
 
 			 CommandContext* pCommandContexts[] = { RenderContext.GetCommandContext() };
-			 pRenderDevice->ExecuteRenderCommandContexts(CommandContext::Compute, 1, pCommandContexts);
+			 pRenderDevice->ExecuteCommandContexts(CommandContext::Compute, 1, pCommandContexts);
 		 }
 		 SetEvent(pRenderer->AccelerationStructureCompleteSignal); // Set the event after AS build is complete
 	}

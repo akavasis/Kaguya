@@ -1,5 +1,6 @@
 #pragma once
 #include "DeviceResource.h"
+#include <cassert>
 
 class Device;
 class DeviceBufferProxy;

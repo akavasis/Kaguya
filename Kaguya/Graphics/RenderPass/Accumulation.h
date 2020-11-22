@@ -1,8 +1,5 @@
 #pragma once
-#include "Graphics/Scene/Scene.h"
-#include "Graphics/GpuScene.h"
-#include "Graphics/RenderGraph.h"
-#include "Graphics/RendererRegistry.h"
+#include "../RenderPass.h"
 
 class Accumulation : public RenderPass
 {
@@ -28,9 +25,4 @@ protected:
 	void StateRefresh() override;
 private:
 	Settings settings;
-	GpuScene* pGpuScene;
-
-	float LastRelativeAperture;
-	float LastFocalLength;
-	Transform LastCameraTransform;
 };

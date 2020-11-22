@@ -132,6 +132,9 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 		if (!pWindow->IsFocused())
 			continue;
 
+		Time.Signal();
+		pRenderSystem->OnUpdate(Time);
+
 		// Process window messages
 		{
 			Window::Message messsage;
@@ -177,9 +180,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 				pRenderSystem->OnHandleKeyboard(pWindow->Keyboard, Time.DeltaTime());
 			}
 		}
-
-		Time.Signal();
-		pRenderSystem->OnUpdate(Time);
+		
 		pRenderSystem->OnRender();
 	}
 

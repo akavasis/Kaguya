@@ -1,8 +1,5 @@
 #pragma once
-#include "Graphics/Scene/Scene.h"
-#include "Graphics/GpuScene.h"
-#include "Graphics/RenderGraph.h"
-#include "Graphics/RendererRegistry.h"
+#include "../RenderPass.h"
 
 class Pathtracing : public RenderPass
 {
@@ -13,7 +10,7 @@ public:
 		NumResources
 	};
 
-	struct SSettings
+	struct Settings
 	{
 		int NumSamplesPerPixel	= 1;
 		int MaxDepth			= 4;
@@ -28,7 +25,7 @@ protected:
 	void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
 	void StateRefresh() override;
 private:
-	SSettings Settings;
+	Settings settings;
 	GpuScene* pGpuScene;
 
 	RenderResourceHandle m_RayGenerationShaderTable;

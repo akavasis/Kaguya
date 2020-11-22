@@ -1,7 +1,7 @@
 #include "../LTC.hlsli"
 #include "../GBuffer.hlsli"
 
-struct ShadingData
+struct RenderPassData
 {
 	int Albedo;
 	int Normal;
@@ -18,7 +18,7 @@ struct ShadingData
 	int StochasticUnshadowed;
 	int StochasticShadowed;
 };
-#define RenderPassDataType ShadingData
+#define RenderPassDataType RenderPassData
 #include "Global.hlsli"
 
 struct ShadingResult

@@ -1,6 +1,11 @@
 #include "pch.h"
 #include "Accumulation.h"
 
+#include "Graphics/Scene/Scene.h"
+#include "Graphics/GpuScene.h"
+#include "Graphics/RenderGraph.h"
+#include "Graphics/RendererRegistry.h"
+
 #include "Pathtracing.h"
 #include "AmbientOcclusion.h"
 #include "ShadingComposition.h"
@@ -41,11 +46,7 @@ void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler, Rende
 
 void Accumulation::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
-	this->pGpuScene = pGpuScene;
 
-	LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
-	LastRelativeAperture = pGpuScene->pScene->Camera.RelativeAperture;
-	LastCameraTransform = pGpuScene->pScene->Camera.Transform;
 }
 
 void Accumulation::RenderGui()
@@ -56,17 +57,6 @@ void Accumulation::RenderGui()
 void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Accumulation");
-
-	// If the camera has moved
-	if (pGpuScene->pScene->Camera.FocalLength != LastFocalLength ||
-		pGpuScene->pScene->Camera.RelativeAperture != LastRelativeAperture ||
-		pGpuScene->pScene->Camera.Transform != LastCameraTransform)
-	{
-		settings.AccumulationCount = 0;
-		LastFocalLength = pGpuScene->pScene->Camera.FocalLength;
-		LastRelativeAperture = pGpuScene->pScene->Camera.RelativeAperture;
-		LastCameraTransform = pGpuScene->pScene->Camera.Transform;
-	}
 
 	//auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);

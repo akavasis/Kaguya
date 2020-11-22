@@ -14,7 +14,7 @@
 #include <wrl/client.h>
 
 // C++ Standard Libraries
-#include <assert.h>
+#include <cassert>
 #include <memory>
 #include <typeinfo>
 #include <functional>
@@ -38,18 +38,18 @@
 #include <unordered_map>
 #include <queue>
 
-// operator <=>
+// Operator <=>
 #include <compare>
 
-// third parties
+// External
 #include <DirectXTex.h>
-#include "../External/imgui/imgui.h"
-#include "../External/imgui/imgui_impl_win32.h"
-#include "../External/imgui/imgui_impl_dx12.h"
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+#include <imgui_impl_dx12.h>
 
 #include <glm/glm.hpp>
 
-// DX12
+// D3D12
 #include <d3d12.h>
 #pragma comment(lib, "d3d12.lib")
 
@@ -57,6 +57,9 @@
 #include <Core/Utility.h>
 #include <Core/Log.h>
 #include <Core/Exception.h>
+#include <Core/Synchronization/RWLock.h>
+
 #include <Math/MathLibrary.h>
+
 #include <Graphics/Debug/PIXMarker.h>
 #include <Graphics/Debug/PIXCapture.h>

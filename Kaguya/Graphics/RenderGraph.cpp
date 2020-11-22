@@ -1,15 +1,6 @@
 #include "pch.h"
 #include "RenderGraph.h"
-
-RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties)
-	: Enabled(true),
-	Refresh(false),
-	ExplicitResourceTransition(false),
-	Name(std::move(Name)),
-	Properties(Properties)
-{
-
-}
+#include "RenderPass.h"
 
 RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
 	: SV_pRenderDevice(pRenderDevice)
@@ -164,7 +155,7 @@ void RenderGraph::ExecuteCommandContexts(RenderContext& RendererRenderContext)
 		CommandContexts[i] = m_CommandContexts[i - 1];
 	}
 
-	SV_pRenderDevice->ExecuteRenderCommandContexts(CommandContext::Direct, CommandContexts.size(), CommandContexts.data());
+	SV_pRenderDevice->ExecuteCommandContexts(CommandContext::Direct, CommandContexts.size(), CommandContexts.data());
 }
 
 DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
@@ -273,4 +264,26 @@ void RenderGraph::CreateResourceViews()
 			}
 		}
 	}
+}
+
+void ResourceScheduler::AllocateTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
+{
+	DeviceTextureProxy proxy(Type);
+	Configurator(proxy);
+
+	m_TextureRequests[m_pCurrentRenderPass].push_back(proxy);
+}
+
+void ResourceScheduler::Read(RenderResourceHandle Resource)
+{
+	assert(Resource.Type == RenderResourceType::DeviceBuffer || Resource.Type == RenderResourceType::DeviceTexture);
+
+	m_pCurrentRenderPass->Reads.push_back(Resource);
+}
+
+void ResourceScheduler::Write(RenderResourceHandle Resource)
+{
+	assert(Resource.Type == RenderResourceType::DeviceBuffer || Resource.Type == RenderResourceType::DeviceTexture);
+
+	m_pCurrentRenderPass->Writes.push_back(Resource);
 }

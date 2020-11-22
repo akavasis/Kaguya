@@ -47,7 +47,7 @@ void RenderDevice::BindGpuDescriptorHeap(CommandContext* pCommandContext)
 	pCommandContext->SetDescriptorHeaps(&m_ShaderVisibleCBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
 }
 
-void RenderDevice::ExecuteRenderCommandContexts(CommandContext::Type Type, UINT NumCommandContexts, CommandContext* ppCommandContexts[])
+void RenderDevice::ExecuteCommandContexts(CommandContext::Type Type, UINT NumCommandContexts, CommandContext* ppCommandContexts[])
 {
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
 	commandlistsToBeExecuted.reserve(size_t(NumCommandContexts) * 2);

@@ -94,7 +94,8 @@ TopLevelAccelerationStructure::TopLevelAccelerationStructure()
 void TopLevelAccelerationStructure::AddInstance(const RaytracingInstanceDesc& Desc)
 {
 	D3D12_RAYTRACING_INSTANCE_DESC D3DDesc		= {};
-	memcpy(D3DDesc.Transform, &DirectX::XMMatrixTranspose(Desc.Transform), sizeof(D3DDesc.Transform));
+	auto Transform = DirectX::XMMatrixTranspose(Desc.Transform);
+	memcpy(D3DDesc.Transform, &Transform, sizeof(D3DDesc.Transform));
 	D3DDesc.InstanceID							= Desc.InstanceID;
 	D3DDesc.InstanceMask						= Desc.InstanceMask;
 	D3DDesc.InstanceContributionToHitGroupIndex = Desc.InstanceContributionToHitGroupIndex;

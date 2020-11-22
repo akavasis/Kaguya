@@ -7,6 +7,8 @@ public:
 	Camera();
 	Camera(float NearZ, float FarZ);
 
+	auto operator<=>(const Camera&) const = default;
+
 	inline float NearZ() const { return m_NearZ; }
 	inline float FarZ() const { return m_FarZ; }
 	DirectX::XMMATRIX ViewMatrix() const;
@@ -18,21 +20,15 @@ public:
 
 	void SetLookAt(DirectX::XMVECTOR EyePosition, DirectX::XMVECTOR FocusPosition, DirectX::XMVECTOR UpDirection);
 
-	void SetPosition(float x, float y, float z);
-
 	void Translate(float DeltaX, float DeltaY, float DeltaZ);
 	void Rotate(float AngleX, float AngleY);
 
 	Transform Transform;
 protected:
-	static constexpr float s_TranslateSpeed = 15.0f;
-	static constexpr float s_RotationSpeed = 15.0f;
+	virtual DirectX::XMMATRIX GetProjectionMatrix() const = 0;
 
-	DirectX::XMFLOAT4X4 m_Projection;
 	float m_NearZ;
 	float m_FarZ;
-
-	virtual void UpdateProjectionMatrix() = 0;
 };
 
 class OrthographicCamera : public Camera
@@ -41,15 +37,17 @@ public:
 	OrthographicCamera();
 	OrthographicCamera(float NearZ, float FarZ);
 
+	auto operator<=>(const OrthographicCamera&) const = default;
+
 	inline float ViewLeft() const { return m_ViewLeft; }
 	inline float ViewRight() const { return m_ViewRight; }
 	inline float ViewBottom() const { return m_ViewBottom; }
 	inline float ViewTop() const { return m_ViewTop; }
 
 	void SetLens(float ViewLeft, float ViewRight, float ViewBottom, float ViewTop, float NearZ, float FarZ);
-protected:
-	void UpdateProjectionMatrix() override;
 private:
+	DirectX::XMMATRIX GetProjectionMatrix() const override;
+
 	float m_ViewLeft;
 	float m_ViewRight;
 	float m_ViewBottom;
@@ -66,6 +64,8 @@ public:
 	PerspectiveCamera();
 	PerspectiveCamera(float NearZ, float FarZ);
 
+	auto operator<=>(const PerspectiveCamera&) const = default;
+
 	float FoVY() const;
 	float AspectRatio() const;
 	DirectX::XMVECTOR GetUVector() const;
@@ -80,13 +80,13 @@ public:
 	void SetFarZ(float FarZ);
 	void SetLens(float FoVY, float AspectRatio, float NearZ, float FarZ);
 
-	float FocalLength;		// controls the focus distance of the camera. Impacts the depth of field.
-	FStop RelativeAperture; // controls how wide the aperture is opened. Impacts the depth of field.
-	float ShutterTime;		// controls how long the aperture is opened. Impacts the motion blur.
-	ISO SensorSensitivity;	// controls how photons are counted/quantized on the digital sensor.
-protected:
-	void UpdateProjectionMatrix() override;
+	float	FocalLength;		// controls the focus distance of the camera. Impacts the depth of field.
+	FStop	RelativeAperture;	// controls how wide the aperture is opened. Impacts the depth of field.
+	float	ShutterTime;		// controls how long the aperture is opened. Impacts the motion blur.
+	ISO		SensorSensitivity;	// controls how photons are counted/quantized on the digital sensor.
 private:
+	DirectX::XMMATRIX GetProjectionMatrix() const override;
+
 	float m_FoVY;
 	float m_AspectRatio;
 };

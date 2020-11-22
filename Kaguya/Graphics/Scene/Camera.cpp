@@ -2,16 +2,17 @@
 #include "Camera.h"
 using namespace DirectX;
 
+static constexpr float s_TranslateSpeed = 15.0f;
+static constexpr float s_RotationSpeed = 15.0f;
+
 Camera::Camera()
 {
 	m_NearZ = m_FarZ = 0.0f;
-	m_Projection = Math::Identity();
 }
 
 Camera::Camera(float NearZ, float FarZ)
 	: m_NearZ(NearZ), m_FarZ(FarZ)
 {
-	m_Projection = Math::Identity();
 }
 
 DirectX::XMMATRIX Camera::ViewMatrix() const
@@ -21,7 +22,7 @@ DirectX::XMMATRIX Camera::ViewMatrix() const
 
 DirectX::XMMATRIX Camera::ProjectionMatrix() const
 {
-	return XMLoadFloat4x4(&m_Projection);
+	return GetProjectionMatrix();
 }
 
 DirectX::XMMATRIX Camera::ViewProjectionMatrix() const
@@ -48,11 +49,6 @@ void Camera::SetLookAt(DirectX::XMVECTOR EyePosition, DirectX::XMVECTOR FocusPos
 {
 	XMMATRIX view = XMMatrixLookAtLH(EyePosition, FocusPosition, UpDirection);
 	Transform.SetTransform(XMMatrixInverse(nullptr, view));
-}
-
-void Camera::SetPosition(float x, float y, float z)
-{
-	Transform.Position = XMFLOAT3(x, y, z);
 }
 
 void Camera::Translate(float DeltaX, float DeltaY, float DeltaZ)
@@ -89,14 +85,11 @@ void OrthographicCamera::SetLens(float ViewLeft, float ViewRight, float ViewBott
 	this->m_ViewTop		= ViewTop;
 	this->m_NearZ		= NearZ;
 	this->m_FarZ		= FarZ;
-
-	UpdateProjectionMatrix();
 }
 
-void OrthographicCamera::UpdateProjectionMatrix()
+DirectX::XMMATRIX OrthographicCamera::GetProjectionMatrix() const
 {
-	XMMATRIX projection = XMMatrixOrthographicOffCenterLH(m_ViewLeft, m_ViewRight, m_ViewBottom, m_ViewTop, m_NearZ, m_FarZ);
-	XMStoreFloat4x4(&m_Projection, projection);
+	return XMMatrixOrthographicOffCenterLH(m_ViewLeft, m_ViewRight, m_ViewBottom, m_ViewTop, m_NearZ, m_FarZ);
 }
 
 PerspectiveCamera::PerspectiveCamera()
@@ -175,12 +168,9 @@ void PerspectiveCamera::SetLens(float FoVY, float AspectRatio, float NearZ, floa
 	m_AspectRatio = AspectRatio;
 	m_NearZ = NearZ;
 	m_FarZ = FarZ;
-
-	UpdateProjectionMatrix();
 }
 
-void PerspectiveCamera::UpdateProjectionMatrix()
+DirectX::XMMATRIX PerspectiveCamera::GetProjectionMatrix() const
 {
-	XMMATRIX projection = XMMatrixPerspectiveFovLH(m_FoVY, m_AspectRatio, m_NearZ, m_FarZ);
-	XMStoreFloat4x4(&m_Projection, projection);
+	return XMMatrixPerspectiveFovLH(m_FoVY, m_AspectRatio, m_NearZ, m_FarZ);
 }

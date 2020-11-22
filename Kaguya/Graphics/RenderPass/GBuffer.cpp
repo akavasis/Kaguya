@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "GBuffer.h"
-#include "../Renderer.h"
+
+#include "Graphics/Scene/Scene.h"
+#include "Graphics/GpuScene.h"
+#include "Graphics/RenderGraph.h"
+#include "Graphics/RendererRegistry.h"
 
 GBuffer::GBuffer(UINT Width, UINT Height)
 	: RenderPass("GBuffer",
