@@ -77,7 +77,7 @@ public:
 	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
 	inline auto GetSamplerDescriptorHeapDescriptorFromStart() const { return m_SamplerDescriptorHeap.GetDescriptorFromStart(); }
-	void ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
+	void ExecuteRenderCommandContexts(CommandContext::Type Type, UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
 	void ResetDescriptor();
 
@@ -125,9 +125,7 @@ public:
 	Descriptor GetDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 
 	Device																					Device;
-	CommandQueue																			GraphicsQueue;
-	CommandQueue																			ComputeQueue;	// TODO: Add asynchronous work submission using this queue
-	CommandQueue																			CopyQueue;		// TODO: Add asynchronous work submission using this queue
+	CommandQueue																			GraphicsQueue, ComputeQueue, CopyQueue;
 	ResourceStateTracker																	GlobalResourceStateTracker;
 	ShaderCompiler																			ShaderCompiler;
 

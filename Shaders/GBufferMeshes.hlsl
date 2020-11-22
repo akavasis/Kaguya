@@ -58,6 +58,9 @@ VSOutput VSMain(uint VertexID : SV_VertexID)
 
 float3 GetAlbedoMap(VSOutput IN, Material Material)
 {
+	if (Material.UseAttributeAsValues)
+		return Material.Albedo;
+	
 	int Index = Material.TextureIndices[AlbedoIdx];
 	Texture2D AlbedoMap = g_Texture2DTable[Index];
 	return AlbedoMap.Sample(AnisotropicClamp, IN.TextureCoord).rgb;
@@ -75,6 +78,9 @@ float3 GetNormalMap(VSOutput IN, Material Material)
 
 float GetRoughnessMap(VSOutput IN, Material Material)
 {
+	if (Material.UseAttributeAsValues)
+		return Material.Roughness;
+	
 	int Index = Material.TextureIndices[RoughnessIdx];
 	Texture2D RoughnessMap = g_Texture2DTable[Index];
 	return RoughnessMap.Sample(AnisotropicClamp, IN.TextureCoord).r;
@@ -82,6 +88,9 @@ float GetRoughnessMap(VSOutput IN, Material Material)
 
 float GetMetallicMap(VSOutput IN, Material Material)
 {
+	if (Material.UseAttributeAsValues)
+		return Material.Metallic;
+	
 	int Index = Material.TextureIndices[MetallicIdx];
 	Texture2D MetallicMap = g_Texture2DTable[Index];
 	return MetallicMap.Sample(AnisotropicClamp, IN.TextureCoord).r;

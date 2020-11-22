@@ -42,8 +42,10 @@ void RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 	m_RenderPassIDs.emplace_back(typeid(*pRenderPass));
 }
 
-void RenderGraph::Initialize()
+void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
 {
+	m_AccelerationStructureCompleteSignal = AccelerationStructureCompleteSignal;
+
 	m_WorkerExecuteSignals.resize(m_RenderPasses.size());
 	m_WorkerCompleteSignals.resize(m_RenderPasses.size());
 	m_ThreadParameters.resize(m_RenderPasses.size());
@@ -106,14 +108,10 @@ void RenderGraph::InitializeScene(GpuScene* pGpuScene)
 
 void RenderGraph::RenderGui()
 {
-	if (ImGui::Begin("Render Pipeline"))
+	for (auto& renderPass : m_RenderPasses)
 	{
-		for (auto& renderPass : m_RenderPasses)
-		{
-			renderPass->OnRenderGui();
-		}
+		renderPass->OnRenderGui();
 	}
-	ImGui::End();
 }
 
 void RenderGraph::UpdateSystemConstants(const HLSL::SystemConstants& HostSystemConstants)
@@ -166,7 +164,7 @@ void RenderGraph::ExecuteCommandContexts(RenderContext& RendererRenderContext)
 		CommandContexts[i] = m_CommandContexts[i - 1];
 	}
 
-	SV_pRenderDevice->ExecuteRenderCommandContexts(CommandContexts.size(), CommandContexts.data());
+	SV_pRenderDevice->ExecuteRenderCommandContexts(CommandContext::Direct, CommandContexts.size(), CommandContexts.data());
 }
 
 DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
@@ -174,6 +172,7 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 	auto pRenderPassThreadProcParameter = reinterpret_cast<RenderPassThreadProcParameter*>(pParameter);
 
 	auto pRenderGraph		= pRenderPassThreadProcParameter->pRenderGraph;
+	auto ASBuildEvent		= pRenderGraph->m_AccelerationStructureCompleteSignal;
 	auto ThreadID			= pRenderPassThreadProcParameter->ThreadID;
 	auto ExecuteSignal		= pRenderPassThreadProcParameter->ExecuteSignal;
 	auto CompleteSignal		= pRenderPassThreadProcParameter->CompleteSignal;
@@ -204,6 +203,11 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 					RenderContext.TransitionBarrier(resource, DeviceResource::State::UnorderedAccess);
 				}
 			}
+		}
+
+		if (pRenderPass->UseRayTracing)
+		{
+			DWORD Result = WaitForSingleObject(ASBuildEvent, INFINITE);
 		}
 
 		pRenderDevice->BindGpuDescriptorHeap(pCommandContext);

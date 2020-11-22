@@ -21,7 +21,8 @@ public:
 	void UploadMeshes();
 
 	void RenderGui();
-	bool Update(float AspectRatio, RenderContext& RenderContext);
+	bool Update(float AspectRatio);
+	void CreateTopLevelAS(RenderContext& RenderContext);
 
 	inline auto GetLightTableHandle()			const { return m_LightTable; }
 	inline auto GetMaterialTableHandle()		const { return m_MaterialTable; }
@@ -37,7 +38,6 @@ public:
 	GpuTextureAllocator GpuTextureAllocator;
 private:
 	void CreateBottomLevelAS(RenderContext& RenderContext);
-	void CreateTopLevelAS(RenderContext& RenderContext);
 
 	struct RTBLAS
 	{

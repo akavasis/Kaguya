@@ -58,10 +58,14 @@ bool Renderer::Initialize()
 
 	m_RenderContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice, m_pRenderDevice->AllocateContext(CommandContext::Direct));
 
+	BuildAccelerationStructureSignal = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+	AccelerationStructureCompleteSignal = ::CreateEvent(NULL, TRUE, FALSE, NULL); // This is a manual-reset event
+	AsyncComputeThread = ::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr);
+
 	m_pGpuScene->GpuTextureAllocator.StageSystemReservedTextures(m_RenderContext);
 
 	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
-	m_pRenderDevice->ExecuteRenderCommandContexts(1, pCommandContexts);
+	m_pRenderDevice->ExecuteRenderCommandContexts(CommandContext::Direct, 1, pCommandContexts);
 	m_pGpuScene->GpuTextureAllocator.DisposeResources();
 
 	SetScene(GenerateScene(SampleScene::PlaneWithLights));
@@ -76,7 +80,7 @@ bool Renderer::Initialize()
 	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
 	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
-	m_pRenderGraph->Initialize();
+	m_pRenderGraph->Initialize(AccelerationStructureCompleteSignal);
 
 	m_pRenderGraph->InitializeScene(m_pGpuScene);
 
@@ -145,8 +149,8 @@ void Renderer::Render()
 	HLSLSystemConstants.NumPolygonalLights		= scene.Lights.size();
 
 	m_pGpuScene->RenderGui();
-	bool Refresh = m_pGpuScene->Update(AspectRatio, m_RenderContext);
-	m_pRenderGraph->RenderGui();
+	bool Refresh = m_pGpuScene->Update(AspectRatio);
+	SetEvent(BuildAccelerationStructureSignal); // Tell the AsyncComputeThreadProc to build our TLAS after we have updated any scene objects
 	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
 	m_pRenderGraph->Execute(Refresh);
 	m_pRenderGraph->ExecuteCommandContexts(m_RenderContext);
@@ -203,6 +207,22 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 //----------------------------------------------------------------------------------------------------
 void Renderer::Destroy()
 {
+	if (AsyncComputeThread)
+	{
+		ExitAsyncComputeThread = true;
+		::CloseHandle(AsyncComputeThread);
+	}
+
+	if (AccelerationStructureCompleteSignal)
+	{
+		::CloseHandle(AccelerationStructureCompleteSignal);
+	}
+
+	if (BuildAccelerationStructureSignal)
+	{
+		::CloseHandle(BuildAccelerationStructureSignal);
+	}
+
 	if (m_pGpuScene)
 	{
 		delete m_pGpuScene;
@@ -245,7 +265,7 @@ void Renderer::SetScene(Scene Scene)
 	m_pGpuScene->UploadMeshes();
 
 	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
-	m_pRenderDevice->ExecuteRenderCommandContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
+	m_pRenderDevice->ExecuteRenderCommandContexts(CommandContext::Direct, ARRAYSIZE(pCommandContexts), pCommandContexts);
 	m_pGpuScene->DisposeResources();
 }
 
@@ -272,12 +292,36 @@ void Renderer::RenderGui()
 			ImGui::Checkbox("V-Sync", &Settings::VSync);
 			ImGui::TreePop();
 		}
+
+		if (ImGui::TreeNode("Render Pipeline"))
+		{
+			m_pRenderGraph->RenderGui();
+			ImGui::TreePop();
+		}
 	}
 	ImGui::End();
 }
 
-DWORD __stdcall Renderer::AsyncComputeThreadProc(PVOID pParameter)
+DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 {
-	// TODO: Add generation of TLAS and use events to signal the graphics queue when is done
+	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
+	auto pRenderDevice = pRenderer->m_pRenderDevice;
+
+	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->AllocateContext(CommandContext::Compute));
+
+	while (!pRenderer->ExitAsyncComputeThread)
+	{
+		 WaitForSingleObject(pRenderer->BuildAccelerationStructureSignal, INFINITE);
+
+		 ResetEvent(pRenderer->AccelerationStructureCompleteSignal);
+		 {
+			 pRenderer->m_pGpuScene->CreateTopLevelAS(RenderContext);
+
+			 CommandContext* pCommandContexts[] = { RenderContext.GetCommandContext() };
+			 pRenderDevice->ExecuteRenderCommandContexts(CommandContext::Compute, 1, pCommandContexts);
+		 }
+		 SetEvent(pRenderer->AccelerationStructureCompleteSignal); // Set the event after AS build is complete
+	}
+
 	return 0;
 }

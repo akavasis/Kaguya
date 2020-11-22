@@ -38,17 +38,18 @@ HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 {
 	return
 	{
-		.Albedo				= Material.Albedo,
-		.Emissive			= Material.Emissive,
-		.Specular			= Material.Specular,
-		.Refraction			= Material.Refraction,
-		.SpecularChance		= Material.SpecularChance,
-		.Roughness			= Material.Roughness,
-		.Metallic			= Material.Metallic,
-		.Fuzziness			= Material.Fuzziness,
-		.IndexOfRefraction	= Material.IndexOfRefraction,
-		.Model				= Material.Model,
-		.TextureIndices		=
+		.Albedo					= Material.Albedo,
+		.Emissive				= Material.Emissive,
+		.Specular				= Material.Specular,
+		.Refraction				= Material.Refraction,
+		.SpecularChance			= Material.SpecularChance,
+		.Roughness				= Material.Roughness,
+		.Metallic				= Material.Metallic,
+		.Fuzziness				= Material.Fuzziness,
+		.IndexOfRefraction		= Material.IndexOfRefraction,
+		.Model					= Material.Model,
+		.UseAttributeAsValues	= Material.UseAttributeAsValues, // If this is true, then the attributes above will be used rather than actual textures
+		.TextureIndices			=
 		{
 			Material.TextureIndices[0],
 			Material.TextureIndices[1],
@@ -211,6 +212,7 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 			vertexByteOffset = offset;
 		}
 
+		// Stage index
 		{
 			auto pair = m_IndexBufferAllocator.Allocate(totalIndexBytes);
 			assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
@@ -356,13 +358,9 @@ void GpuScene::RenderGui()
 	ImGui::End();
 }
 
-bool GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
+bool GpuScene::Update(float AspectRatio)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Update");
-
 	pScene->Camera.SetAspectRatio(AspectRatio);
-
-	CreateTopLevelAS(RenderContext);
 
 	bool Refresh = false;
 
@@ -394,65 +392,7 @@ bool GpuScene::Update(float AspectRatio, RenderContext& RenderContext)
 		}
 	}
 
-	/*{
-		auto pGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_ResourceTables[GeometryInfoTable]);
-		auto pUploadGeometryInfoTable = SV_pRenderDevice->GetBuffer(m_UploadResourceTables[GeometryInfoTable]);
-		for (const auto& modelInstance : pScene->ModelInstances)
-		{
-			for (const auto& meshInstance : modelInstance.MeshInstances)
-			{
-				GeometryInfo hlslMesh = GetShaderMeshDesc(modelInstance.pMaterial->GpuMaterialIndex, meshInstance);
-
-				pUploadGeometryInfoTable->Update<GeometryInfo>(meshInstance.InstanceID, hlslMesh);
-			}
-		}
-		RenderContext->CopyResource(pGeometryInfoTable, pUploadGeometryInfoTable);
-		RenderContext->TransitionBarrier(pGeometryInfoTable, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
-	}*/
-	RenderContext->FlushResourceBarriers();
 	return Refresh;
-}
-
-HLSL::Camera GpuScene::GetHLSLCamera() const
-{
-	return GetHLSLCameraDesc(pScene->Camera);
-}
-
-HLSL::Camera GpuScene::GetHLSLPreviousCamera() const
-{
-	return GetHLSLCameraDesc(pScene->PreviousCamera);
-}
-
-void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
-{
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Bottom Level Acceleration Structure Generation");
-
-	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
-	{
-		UINT64 scratchSizeInBytes, resultSizeInBytes;
-		rtblas.BLAS.ComputeMemoryRequirements(&SV_pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
-
-		// BLAS Scratch
-		rtblas.Handles.Scratch = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
-		{
-			proxy.SetSizeInBytes(scratchSizeInBytes);
-			proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
-			proxy.InitialState = DeviceResource::State::UnorderedAccess;
-		});
-
-		// BLAS Result
-		rtblas.Handles.Result = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
-		{
-			proxy.SetSizeInBytes(resultSizeInBytes);
-			proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
-			proxy.InitialState = DeviceResource::State::AccelerationStructure;
-		});
-
-		DeviceBuffer* pResult = SV_pRenderDevice->GetBuffer(rtblas.Handles.Result);
-		DeviceBuffer* pScratch = SV_pRenderDevice->GetBuffer(rtblas.Handles.Scratch);
-
-		rtblas.BLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult);
-	}
 }
 
 void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
@@ -466,10 +406,10 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	{
 		for (const auto& meshInstance : modelInstance.MeshInstances)
 		{
-			RTBLAS&					RTBLAS				= m_RaytracingBottomLevelAccelerationStructures[meshInstance.pMesh->BottomLevelAccelerationStructureIndex];
-			DeviceBuffer*			pBLAS				= SV_pRenderDevice->GetBuffer(RTBLAS.Handles.Result);
+			RTBLAS& RTBLAS = m_RaytracingBottomLevelAccelerationStructures[meshInstance.pMesh->BottomLevelAccelerationStructureIndex];
+			DeviceBuffer* pBLAS = SV_pRenderDevice->GetBuffer(RTBLAS.Handles.Result);
 
-			RaytracingInstanceDesc	Desc				= {};
+			RaytracingInstanceDesc Desc					= {};
 			Desc.AccelerationStructure					= pBLAS->GetGpuVirtualAddress();
 			Desc.Transform								= meshInstance.Transform.Matrix();
 			Desc.InstanceID								= meshInstance.InstanceID;
@@ -517,7 +457,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		});
 		pResult = SV_pRenderDevice->GetBuffer(m_TopLevelAccelerationStructure.Result);
 	}
-	
+
 	if (!pInstanceDescs || pInstanceDescs->GetSizeInBytes() < instanceDescsSizeInBytes)
 	{
 		SV_pRenderDevice->Destroy(&m_TopLevelAccelerationStructure.InstanceDescs);
@@ -534,4 +474,46 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	pResult->SetDebugName(L"Top Level Acceleration Structure");
 
 	TopLevelAccelerationStructure.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
+}
+
+HLSL::Camera GpuScene::GetHLSLCamera() const
+{
+	return GetHLSLCameraDesc(pScene->Camera);
+}
+
+HLSL::Camera GpuScene::GetHLSLPreviousCamera() const
+{
+	return GetHLSLCameraDesc(pScene->PreviousCamera);
+}
+
+void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
+{
+	PIXMarker(RenderContext->GetD3DCommandList(), L"Bottom Level Acceleration Structure Generation");
+
+	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
+	{
+		UINT64 scratchSizeInBytes, resultSizeInBytes;
+		rtblas.BLAS.ComputeMemoryRequirements(&SV_pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
+
+		// BLAS Scratch
+		rtblas.Handles.Scratch = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(scratchSizeInBytes);
+			proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
+			proxy.InitialState = DeviceResource::State::UnorderedAccess;
+		});
+
+		// BLAS Result
+		rtblas.Handles.Result = SV_pRenderDevice->CreateDeviceBuffer([=](DeviceBufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(resultSizeInBytes);
+			proxy.BindFlags = DeviceResource::BindFlags::AccelerationStructure;
+			proxy.InitialState = DeviceResource::State::AccelerationStructure;
+		});
+
+		DeviceBuffer* pResult = SV_pRenderDevice->GetBuffer(rtblas.Handles.Result);
+		DeviceBuffer* pScratch = SV_pRenderDevice->GetBuffer(rtblas.Handles.Scratch);
+
+		rtblas.BLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult);
+	}
 }

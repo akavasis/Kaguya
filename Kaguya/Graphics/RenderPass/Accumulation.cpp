@@ -93,8 +93,6 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 
 	RenderContext.SetPipelineState(ComputePSOs::Accumulation);
 	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
-
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::NonPixelShaderResource);
 }
 
 void Accumulation::StateRefresh()

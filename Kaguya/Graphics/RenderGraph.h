@@ -38,7 +38,8 @@ public:
 
 	bool Enabled;
 	bool Refresh;
-	bool ExplicitResourceTransition; // If this is true, then the render pass is responsible for handling resource transitions, by default, this is false
+	bool ExplicitResourceTransition;	// If this is true, then the render pass is responsible for handling resource transitions, by default, this is false
+	bool UseRayTracing;					// If this is true, then the render pass will wait until async compute is done generating the acceleration structure
 	std::string Name;
 	RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Resources;
@@ -100,7 +101,7 @@ public:
 	void AddRenderPass(RenderPass* pRenderPass);
 
 	// Only call once
-	void Initialize();
+	void Initialize(HANDLE AccelerationStructureCompleteSignal);
 	void InitializeScene(GpuScene* pGpuScene);
 
 	// Call every frame
@@ -131,6 +132,7 @@ private:
 
 	RenderDevice*												SV_pRenderDevice;
 
+	HANDLE														m_AccelerationStructureCompleteSignal;
 	std::vector<HANDLE>											m_WorkerExecuteSignals;
 	std::vector<HANDLE>											m_WorkerCompleteSignals;
 	std::vector<RenderPassThreadProcParameter>					m_ThreadParameters;

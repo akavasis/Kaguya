@@ -9,7 +9,7 @@ CommandQueue::CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 
 	D3D12_COMMAND_QUEUE_DESC CommandQueueDesc	= {};
 	CommandQueueDesc.Type						= Type;
-	CommandQueueDesc.Priority					= D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
+	CommandQueueDesc.Priority					= D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	CommandQueueDesc.Flags						= D3D12_COMMAND_QUEUE_FLAG_NONE;
 	CommandQueueDesc.NodeMask					= 0;
 	ThrowCOMIfFailed(pD3DDevice->CreateCommandQueue(&CommandQueueDesc, IID_PPV_ARGS(&m_pCommandQueue)));
@@ -66,6 +66,11 @@ void CommandQueue::WaitForIdle()
 {
 	// NOTE: There is a known debug layer bug which can cause problems if you call IDXGISwapChain::Present without rendering.
 	WaitForFenceValue(Signal());
+}
+
+void CommandQueue::Wait(const CommandQueue& CommandQueue)
+{
+	m_pCommandQueue->Wait(CommandQueue.m_pFence.Get(), CommandQueue.m_FenceValue);
 }
 
 ID3D12CommandAllocator* CommandQueue::RequestAllocator()

@@ -26,6 +26,7 @@ namespace HLSL
 		float	Fuzziness;
 		float	IndexOfRefraction;
 		uint	Model;
+		uint	UseAttributeAsValues; // If this is true, then the attributes above will be used rather than actual textures
 
 		int		TextureIndices[NumTextureTypes];
 	};

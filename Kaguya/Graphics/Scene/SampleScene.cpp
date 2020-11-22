@@ -386,8 +386,8 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 	Scene Scene;
 	{
 		auto& light1 = Scene.AddLight();
-		light1.Transform.Position = { -7, 5, 3 };
-		light1.Transform.Rotate(XM_PI - 0.5f, -XM_PIDIV4, 0);
+		light1.Transform.Position = { 0, 9.9, 0 };
+		light1.Transform.Rotate(XM_PIDIV2, 0, 0);
 		light1.Color = { 201.0 / 255, 226.0 / 255.0, 255.0 / 255 };
 		light1.SetDimension(2, 2);
 		light1.SetLuminousPower(20000);
@@ -399,42 +399,81 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		light2.SetDimension(2, 5);
 		light2.SetLuminousPower(20000);*/
 
-		// Plane
-		{
-			auto& metal = Scene.AddMaterial(MaterialLoader.LoadMaterial(
-				"Assets/Textures/modern-tile1/modern-tile1-albedo.dds",
-				"Assets/Textures/modern-tile1/modern-tile1-normal-ogl.dds",
-				"Assets/Textures/modern-tile1/modern-tile1-roughness.dds",
-				"Assets/Textures/modern-tile1/modern-tile1-metallic.dds",
-				0));
-			
-			auto& plane = Scene.AddModel(CreateGrid(50.0f, 50.0f, 2, 2));
+		// Materials
+		auto& defaultMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
+		defaultMat.UseAttributeAsValues = 1;
 
-			auto& floorInstance = Scene.AddModelInstance({ &plane, &metal });
-		}
+		auto& leftWallMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		leftWallMat.Albedo = { 0.7f, 0.1f, 0.1f };
+		leftWallMat.UseAttributeAsValues = 1;
 
-		// Hexgate
-		{
-			auto& nullMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(
-				0,
-				0,
-				0,
-				0,
-				0));
+		auto& rightWallMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(0, 0, 0, 0, 0));
+		rightWallMat.Albedo = { 0.1f, 0.7f, 0.1f };
+		rightWallMat.UseAttributeAsValues = 1;
 
-			//auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/hexgate.obj"));
-			//auto& box = Scene.AddModel(CreateBox(2.5, 2.5, 2.5, 1));
-			auto& sphere = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere1.obj"));
+		// Models
+		auto& rect = Scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
+		auto& box = Scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f, 1));
 
-			auto& boxInstance = Scene.AddModelInstance({ &sphere, &nullMat });
-			boxInstance.Translate(0, 2.25, -4);
-			boxInstance.Rotate(0, 45.0_Deg, 0);
-			boxInstance.SetScale(0.025f);
+		// Model instances
+		auto& floorInstance = Scene.AddModelInstance({ &rect, &defaultMat });
+		auto& backwallInstance = Scene.AddModelInstance({ &rect, &defaultMat });
+		backwallInstance.Translate(0.0f, 5.0f, 5.0f);
+		backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
+		auto& leftwallInstance = Scene.AddModelInstance({ &rect, &leftWallMat });
+		leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
+		leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
+		auto& rightwallInstance = Scene.AddModelInstance({ &rect, &rightWallMat });
+		rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
+		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
 
-			//auto& hexgateInstance = Scene.AddModelInstance({ &hexgate, &nullMat });
-			//hexgateInstance.SetScale(0.025f);
-			//hexgateInstance.Translate(0, 2.5, -4);
-		}
+		auto& leftboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
+		leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
+		leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
+		leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
+
+		auto& rightboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
+		rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
+		rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
+		rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
+
+		//// Plane
+		//{
+		//	auto& metal = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+		//		"Assets/Textures/modern-tile1/modern-tile1-albedo.dds",
+		//		"Assets/Textures/modern-tile1/modern-tile1-normal-ogl.dds",
+		//		"Assets/Textures/modern-tile1/modern-tile1-roughness.dds",
+		//		"Assets/Textures/modern-tile1/modern-tile1-metallic.dds",
+		//		0));
+		//	
+		//	auto& plane = Scene.AddModel(CreateGrid(50.0f, 50.0f, 2, 2));
+
+		//	auto& floorInstance = Scene.AddModelInstance({ &plane, &metal });
+		//}
+
+		//// Hexgate
+		//{
+		//	auto& nullMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+		//		0,
+		//		0,
+		//		0,
+		//		0,
+		//		0));
+
+		//	//auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/hexgate.obj"));
+		//	//auto& box = Scene.AddModel(CreateBox(2.5, 2.5, 2.5, 1));
+		//	auto& sphere = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Sphere1.obj"));
+
+		//	auto& boxInstance = Scene.AddModelInstance({ &sphere, &nullMat });
+		//	boxInstance.Translate(0, 2.25, -4);
+		//	boxInstance.Rotate(0, 45.0_Deg, 0);
+		//	boxInstance.SetScale(0.025f);
+
+		//	//auto& hexgateInstance = Scene.AddModelInstance({ &hexgate, &nullMat });
+		//	//hexgateInstance.SetScale(0.025f);
+		//	//hexgateInstance.Translate(0, 2.5, -4);
+		//}
 	}
 	return Scene;
 }

@@ -29,10 +29,15 @@ private:
 	DXGIManager								m_DXGIManager;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
 
-	RenderDevice*							m_pRenderDevice	= nullptr;
-	RenderGraph*							m_pRenderGraph	= nullptr;
+	RenderDevice*							m_pRenderDevice						= nullptr;
+	RenderGraph*							m_pRenderGraph						= nullptr;
 	RenderContext							m_RenderContext; // Used exclusively by the renderer
 
 	Scene									m_Scene;
-	GpuScene*								m_pGpuScene		= nullptr;
+	GpuScene*								m_pGpuScene							= nullptr;
+
+	HANDLE									BuildAccelerationStructureSignal	= nullptr;
+	HANDLE									AccelerationStructureCompleteSignal = nullptr;
+	HANDLE									AsyncComputeThread					= nullptr;
+	bool									ExitAsyncComputeThread				= false;
 };

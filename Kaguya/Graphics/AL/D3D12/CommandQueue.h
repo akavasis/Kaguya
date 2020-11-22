@@ -16,6 +16,7 @@ public:
 	bool IsFenceValueReached(UINT64 FenceValue);
 	void WaitForFenceValue(UINT64 FenceValue);
 	void WaitForIdle();
+	void Wait(const CommandQueue& CommandQueue);
 
 	ID3D12CommandAllocator* RequestAllocator();
 	void MarkAllocatorAsActive(UINT64 FenceValue, ID3D12CommandAllocator* Allocator);

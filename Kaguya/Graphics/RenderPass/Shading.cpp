@@ -8,6 +8,8 @@ Shading::Shading(UINT Width, UINT Height)
 	: RenderPass("Shading", 
 		{ Width, Height, RendererFormats::HDRBufferFormat })
 {
+	UseRayTracing = true;
+
 	pGpuScene = nullptr;
 }
 

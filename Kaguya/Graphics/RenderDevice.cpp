@@ -47,7 +47,7 @@ void RenderDevice::BindGpuDescriptorHeap(CommandContext* pCommandContext)
 	pCommandContext->SetDescriptorHeaps(&m_ShaderVisibleCBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
 }
 
-void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[])
+void RenderDevice::ExecuteRenderCommandContexts(CommandContext::Type Type, UINT NumCommandContexts, CommandContext* ppCommandContexts[])
 {
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
 	commandlistsToBeExecuted.reserve(size_t(NumCommandContexts) * 2);
@@ -61,15 +61,24 @@ void RenderDevice::ExecuteRenderCommandContexts(UINT NumCommandContexts, Command
 		commandlistsToBeExecuted.push_back(pCommandContext->m_pCommandList.Get());
 	}
 
-	GraphicsQueue.GetD3DCommandQueue()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
-	UINT64 fenceValue = GraphicsQueue.Signal();
+	CommandQueue* pCommandQueue = nullptr;
+	switch (Type)
+	{
+	case CommandContext::Type::Direct:	pCommandQueue = &GraphicsQueue;								break;
+	case CommandContext::Type::Compute: pCommandQueue = &ComputeQueue;								break;
+	case CommandContext::Type::Copy:	pCommandQueue = &CopyQueue;									break;
+	default:							assert(pCommandQueue && "Unsupported command list type");	break;
+	}
+
+	pCommandQueue->GetD3DCommandQueue()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
+	UINT64 fenceValue = pCommandQueue->Signal();
 	for (UINT i = 0; i < NumCommandContexts; ++i)
 	{
 		CommandContext* pCommandContext = ppCommandContexts[i];
 		pCommandContext->RequestNewAllocator(fenceValue);
 		pCommandContext->Reset();
 	}
-	GraphicsQueue.Flush();
+	pCommandQueue->Flush();
 }
 
 void RenderDevice::ResetDescriptor()
