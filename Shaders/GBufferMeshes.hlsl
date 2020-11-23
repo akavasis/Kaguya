@@ -83,7 +83,15 @@ float GetRoughnessMap(VSOutput IN, Material Material)
 	
 	int Index = Material.TextureIndices[RoughnessIdx];
 	Texture2D RoughnessMap = g_Texture2DTable[Index];
-	return RoughnessMap.Sample(AnisotropicClamp, IN.TextureCoord).r;
+	
+	switch (Material.TextureChannel[RoughnessIdx])
+	{
+		case TEXTURE_CHANNEL_RED:	return RoughnessMap.Sample(AnisotropicClamp, IN.TextureCoord).r;
+		case TEXTURE_CHANNEL_GREEN: return RoughnessMap.Sample(AnisotropicClamp, IN.TextureCoord).g;
+		case TEXTURE_CHANNEL_BLUE:	return RoughnessMap.Sample(AnisotropicClamp, IN.TextureCoord).b;
+		case TEXTURE_CHANNEL_ALPHA: return RoughnessMap.Sample(AnisotropicClamp, IN.TextureCoord).a;
+		default:					return RoughnessMap.Sample(AnisotropicClamp, IN.TextureCoord).r;
+	}
 }
 
 float GetMetallicMap(VSOutput IN, Material Material)
@@ -93,7 +101,15 @@ float GetMetallicMap(VSOutput IN, Material Material)
 	
 	int Index = Material.TextureIndices[MetallicIdx];
 	Texture2D MetallicMap = g_Texture2DTable[Index];
-	return MetallicMap.Sample(AnisotropicClamp, IN.TextureCoord).r;
+	
+	switch (Material.TextureChannel[MetallicIdx])
+	{
+		case TEXTURE_CHANNEL_RED:	return MetallicMap.Sample(AnisotropicClamp, IN.TextureCoord).r;
+		case TEXTURE_CHANNEL_GREEN: return MetallicMap.Sample(AnisotropicClamp, IN.TextureCoord).g;
+		case TEXTURE_CHANNEL_BLUE:	return MetallicMap.Sample(AnisotropicClamp, IN.TextureCoord).b;
+		case TEXTURE_CHANNEL_ALPHA: return MetallicMap.Sample(AnisotropicClamp, IN.TextureCoord).a;
+		default:					return MetallicMap.Sample(AnisotropicClamp, IN.TextureCoord).r;
+	}
 }
 
 // A simple utility to convert a float to a 2-component octohedral representation packed into one uint

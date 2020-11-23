@@ -5,21 +5,19 @@
 BlendState::RenderTarget::operator D3D12_RENDER_TARGET_BLEND_DESC() const noexcept
 {
 	D3D12_RENDER_TARGET_BLEND_DESC Desc = {};
-	{
-		Desc.BlendEnable			= Operation == Operation::Blend ? TRUE : FALSE;
-		Desc.LogicOpEnable			= Operation == Operation::Logic ? TRUE : FALSE;
-		Desc.SrcBlend				= GetD3DBlend(SrcBlendRGB);
-		Desc.DestBlend				= GetD3DBlend(DstBlendRGB);
-		Desc.BlendOp				= GetD3DBlendOp(BlendOpRGB);
-		Desc.SrcBlendAlpha			= GetD3DBlend(SrcBlendAlpha);
-		Desc.DestBlendAlpha			= GetD3DBlend(DstBlendAlpha);
-		Desc.BlendOpAlpha			= GetD3DBlendOp(BlendOpAlpha);
-		Desc.LogicOp				= GetD3DLogicOp(LogicOpRGB);
-		Desc.RenderTargetWriteMask |= WriteMask.WriteRed ? D3D12_COLOR_WRITE_ENABLE_RED : 0;
-		Desc.RenderTargetWriteMask |= WriteMask.WriteGreen ? D3D12_COLOR_WRITE_ENABLE_GREEN : 0;
-		Desc.RenderTargetWriteMask |= WriteMask.WriteBlue ? D3D12_COLOR_WRITE_ENABLE_BLUE : 0;
-		Desc.RenderTargetWriteMask |= WriteMask.WriteAlpha ? D3D12_COLOR_WRITE_ENABLE_ALPHA : 0;
-	}
+	Desc.BlendEnable					= Operation == Operation::Blend ? TRUE : FALSE;
+	Desc.LogicOpEnable					= Operation == Operation::Logic ? TRUE : FALSE;
+	Desc.SrcBlend						= GetD3DBlend(SrcBlendRGB);
+	Desc.DestBlend						= GetD3DBlend(DstBlendRGB);
+	Desc.BlendOp						= GetD3DBlendOp(BlendOpRGB);
+	Desc.SrcBlendAlpha					= GetD3DBlend(SrcBlendAlpha);
+	Desc.DestBlendAlpha					= GetD3DBlend(DstBlendAlpha);
+	Desc.BlendOpAlpha					= GetD3DBlendOp(BlendOpAlpha);
+	Desc.LogicOp						= GetD3DLogicOp(LogicOpRGB);
+	Desc.RenderTargetWriteMask			|= WriteMask.WriteRed ? D3D12_COLOR_WRITE_ENABLE_RED : 0;
+	Desc.RenderTargetWriteMask			|= WriteMask.WriteGreen ? D3D12_COLOR_WRITE_ENABLE_GREEN : 0;
+	Desc.RenderTargetWriteMask			|= WriteMask.WriteBlue ? D3D12_COLOR_WRITE_ENABLE_BLUE : 0;
+	Desc.RenderTargetWriteMask			|= WriteMask.WriteAlpha ? D3D12_COLOR_WRITE_ENABLE_ALPHA : 0;
 	return Desc;
 }
 
@@ -45,17 +43,15 @@ void BlendState::AddRenderTargetForBlendOp(Factor SrcBlendRGB, Factor DstBlendRG
 	if (m_NumRenderTargets >= 8)
 		return;
 
-	RenderTarget RenderTarget = {};
-	{
-		RenderTarget.Operation		= Operation::Blend;
-		RenderTarget.SrcBlendRGB	= SrcBlendRGB;
-		RenderTarget.DstBlendRGB	= DstBlendAlpha;
-		RenderTarget.BlendOpRGB		= BlendOpRGB;
-		RenderTarget.SrcBlendAlpha	= SrcBlendRGB;
-		RenderTarget.DstBlendAlpha	= DstBlendAlpha;
-		RenderTarget.BlendOpAlpha	= BlendOpRGB;
-	}
-	m_RenderTargets[m_NumRenderTargets++] = RenderTarget;
+	RenderTarget RenderTarget				= {};
+	RenderTarget.Operation					= Operation::Blend;
+	RenderTarget.SrcBlendRGB				= SrcBlendRGB;
+	RenderTarget.DstBlendRGB				= DstBlendAlpha;
+	RenderTarget.BlendOpRGB					= BlendOpRGB;
+	RenderTarget.SrcBlendAlpha				= SrcBlendRGB;
+	RenderTarget.DstBlendAlpha				= DstBlendAlpha;
+	RenderTarget.BlendOpAlpha				= BlendOpRGB;
+	m_RenderTargets[m_NumRenderTargets++]	= RenderTarget;
 }
 
 void BlendState::AddRenderTargetForLogicOp(LogicOp LogicOpRGB)
@@ -63,24 +59,20 @@ void BlendState::AddRenderTargetForLogicOp(LogicOp LogicOpRGB)
 	if (m_NumRenderTargets >= 8)
 		return;
 
-	RenderTarget RenderTarget = {};
-	{
-		RenderTarget.Operation	= Operation::Logic;
-		RenderTarget.LogicOpRGB = LogicOpRGB;
-	}
-	m_RenderTargets[m_NumRenderTargets++] = RenderTarget;
+	RenderTarget RenderTarget				= {};
+	RenderTarget.Operation					= Operation::Logic;
+	RenderTarget.LogicOpRGB					= LogicOpRGB;
+	m_RenderTargets[m_NumRenderTargets++]	= RenderTarget;
 }
 
 BlendState::operator D3D12_BLEND_DESC() const noexcept
 {
 	D3D12_BLEND_DESC Desc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	Desc.AlphaToCoverageEnable	= m_AlphaToCoverageEnable ? TRUE : FALSE;
+	Desc.IndependentBlendEnable = m_IndependentBlendEnable ? TRUE : FALSE;
+	for (UINT i = 0; i < m_NumRenderTargets; ++i)
 	{
-		Desc.AlphaToCoverageEnable	= m_AlphaToCoverageEnable ? TRUE : FALSE;
-		Desc.IndependentBlendEnable = m_IndependentBlendEnable ? TRUE : FALSE;
-		for (UINT i = 0; i < m_NumRenderTargets; ++i)
-		{
-			Desc.RenderTarget[i]	= m_RenderTargets[i];
-		}
+		Desc.RenderTarget[i]	= m_RenderTargets[i];
 	}
 	return Desc;
 }

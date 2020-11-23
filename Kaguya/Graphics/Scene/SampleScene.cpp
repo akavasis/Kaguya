@@ -414,7 +414,12 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 
 		auto& keybladeMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(
 			"Assets/Models/keyblade/textures/albedo.dds",
-			"Assets/Models/keyblade/textures/normal.dds", 0, 0, 0));
+			"Assets/Models/keyblade/textures/normal.dds",
+			"Assets/Models/keyblade/textures/ao_r_m.dds",
+			"Assets/Models/keyblade/textures/ao_r_m.dds",
+			0));
+		keybladeMat.TextureChannel[RoughnessIdx] = TEXTURE_CHANNEL_GREEN;
+		keybladeMat.TextureChannel[MetallicIdx] = TEXTURE_CHANNEL_BLUE;
 
 		// Models
 		auto& rect = Scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));

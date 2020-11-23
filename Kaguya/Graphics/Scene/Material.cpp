@@ -20,7 +20,8 @@ Material::Material()
 
 	for (int i = 0; i < NumTextureTypes; ++i)
 	{
-		TextureIndices[i]	= -1;
+		TextureIndices[i]	= 0;
+		TextureChannel[i]	= 0;
 		Textures[i]			= {};
 	}
 	GpuMaterialIndex		= 0;

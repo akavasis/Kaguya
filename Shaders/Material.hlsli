@@ -20,6 +20,11 @@ enum TextureTypes
 	NumTextureTypes
 };
 
+#define TEXTURE_CHANNEL_RED		0
+#define TEXTURE_CHANNEL_GREEN	1
+#define TEXTURE_CHANNEL_BLUE	2
+#define TEXTURE_CHANNEL_ALPHA	3
+
 struct Material
 {
 	float3	Albedo;
@@ -35,6 +40,7 @@ struct Material
 	uint	UseAttributeAsValues; // If this is true, then the attributes above will be used rather than actual textures
 
 	int		TextureIndices[NumTextureTypes];
+	int		TextureChannel[NumTextureTypes];
 };
 
 #endif // MATERIAL_HLSLI

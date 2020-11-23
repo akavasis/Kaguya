@@ -288,6 +288,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	StagingTexture.PlacedSubresourceLayouts = std::move(PlacedSubresourceLayouts);
 	StagingTexture.MipLevels				= MipLevels;
 	StagingTexture.GenerateMips				= GenerateMips;
+	m_Textures[StagingTexture.Path]			= TextureHandle;
 	m_UnstagedTextures[TextureHandle]		= std::move(StagingTexture);
 	SV_pRenderDevice->CreateShaderResourceView(TextureHandle); // Create SRV
 	return TextureHandle;
@@ -371,8 +372,6 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 	}
 
 	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::PixelShaderResource | DeviceResource::State::NonPixelShaderResource);
-
-	m_Textures[StagingTexture.Path] = TextureHandle;
 	LOG_INFO("{} Loaded", StagingTexture.Path);
 }
 

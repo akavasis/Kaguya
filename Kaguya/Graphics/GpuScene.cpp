@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "GpuScene.h"
-#include "RendererRegistry.h"
 
 #define RAYTRACING_INSTANCEMASK_ALL 	(0xff)
 #define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
@@ -56,6 +55,14 @@ HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 			Material.TextureIndices[2],
 			Material.TextureIndices[3],
 			Material.TextureIndices[4]
+		},
+		.TextureChannel			=
+		{
+			Material.TextureChannel[0],
+			Material.TextureChannel[1],
+			Material.TextureChannel[2],
+			Material.TextureChannel[3],
+			Material.TextureChannel[4],
 		}
 	};
 }

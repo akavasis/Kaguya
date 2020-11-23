@@ -29,6 +29,7 @@ namespace HLSL
 		uint	UseAttributeAsValues; // If this is true, then the attributes above will be used rather than actual textures
 
 		int		TextureIndices[NumTextureTypes];
+		int		TextureChannel[NumTextureTypes];
 	};
 
 	struct Camera
