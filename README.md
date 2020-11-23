@@ -2,14 +2,6 @@
 ## Description
 This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR). This project have evolved from a path tracer to a deferred renderer. See pathtracing branch for full details of the implementation (Path tracing is still supported in the main branch, just need to change a couple lines of code).
 
-## Deferred Renderer Showcase
-![1](/Gallery/DeferredRenderer_CornellBox_Keyblade.png?raw=true "DeferredRenderer_CornellBox_Keyblade")
-
-## Path Tracer Showcase
-![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
-![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
-![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")
-
 # Features
 - __Path tracing__
 - __Deferred rendering__
@@ -24,7 +16,8 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 
 # Goals
 - Experiment with DirectX 12 Ultimate features: DirectX Raytracing 1.1, Variable Rate Shading, Mesh Shaders, and Sampler Feedback
-- Anti-aliasing
+- Implement multiple anti-aliasing techniques
+- Resume reading ray tracing books to implement a fully functional path tracer while maintaining the deferred renderer
 
 # Build
 - Visual Studio 2019
@@ -47,3 +40,13 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - imgui (https://github.com/ocornut/imgui)
 - spdlog (https://github.com/gabime/spdlog)
 - WinPixEventRunTime (https://devblogs.microsoft.com/pix/winpixeventruntime/)
+
+# Showcase
+
+# Deferred Renderer Showcase
+![1](/Gallery/DeferredRenderer_CornellBox_Keyblade.png?raw=true "DeferredRenderer_CornellBox_Keyblade")
+
+# Path Tracer Showcase
+![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
+![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
+![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")
