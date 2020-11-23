@@ -412,9 +412,14 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		rightWallMat.Albedo = { 0.1f, 0.7f, 0.1f };
 		rightWallMat.UseAttributeAsValues = 1;
 
+		auto& keybladeMat = Scene.AddMaterial(MaterialLoader.LoadMaterial(
+			"Assets/Models/keyblade/textures/albedo.dds",
+			"Assets/Models/keyblade/textures/normal.dds", 0, 0, 0));
+
 		// Models
 		auto& rect = Scene.AddModel(CreateGrid(10.0f, 10.0f, 10, 10));
-		auto& box = Scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f, 1));
+		//auto& box = Scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f, 1));
+		auto& keyblade = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/keyblade/keyblade_pbr.fbx"));
 
 		// Model instances
 		auto& floorInstance = Scene.AddModelInstance({ &rect, &defaultMat });
@@ -428,15 +433,19 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
 		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
 
-		auto& leftboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
-		leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
-		leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
-		leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
+		auto& keybladeInstance = Scene.AddModelInstance({ &keyblade, &keybladeMat });
+		keybladeInstance.Translate(4.5f, -2.0f, 0.0f);
+		keybladeInstance.Rotate(0, 90.0_Deg, 0);
 
-		auto& rightboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
-		rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
-		rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
-		rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
+		//auto& leftboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
+		//leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
+		//leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
+		//leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
+
+		//auto& rightboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
+		//rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
+		//rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
+		//rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
 
 		//// Plane
 		//{

@@ -1,76 +1,51 @@
 #pragma once
-#include <atomic>
+#include "Synchronization/CriticalSection.h"
+#include "Synchronization/ConditionVariable.h"
 #include <queue>
-#include <mutex>
-#include <condition_variable>
-#include <functional>
 
 template<typename T>
 class ThreadSafeQueue
 {
 public:
-	ThreadSafeQueue()
-		: Empty(true),
-		NumElements(0)
-	{
-	}
+	ThreadSafeQueue() = default;
 	ThreadSafeQueue(const ThreadSafeQueue&) = delete;
 	ThreadSafeQueue& operator=(const ThreadSafeQueue&) = delete;
 
-	bool pop(T& Item, int TimeOutMicroseconds)
+	bool pop(T& Item, int Milliseconds)
 	{
-		std::unique_lock<std::mutex> lk(Mutex);
+		ScopedCriticalSection SCS(CriticalSection);
 
-		while (Empty)
+		while (Queue.empty())
 		{
-			if (TimeOutMicroseconds >= 0)
-			{
-				bool timedOut = ConditionVariable.wait_for(lk,
-					std::chrono::microseconds(TimeOutMicroseconds),
-					std::bind(&ThreadSafeQueue::Empty, this));
-
-				if (Empty || timedOut)
-				{
-					return false;
-				}
-			}
-			else
-			{
-				ConditionVariable.wait(lk,
-					std::bind(&ThreadSafeQueue::Empty, this));
-			}
+			BOOL Result = ::SleepConditionVariableCS(&ConditionVariable, &CriticalSection, Milliseconds);
+			if (Result == ERROR_TIMEOUT || Queue.empty())
+				return false;
 		}
 
 		Item = Queue.front();
 		Queue.pop();
-		NumElements--;
-		Empty = (Queue.size() == 0);
 
 		return true;
 	}
 
 	void push(const T& Item)
 	{
-		std::scoped_lock lk(Mutex);
+		ScopedCriticalSection SCS(CriticalSection);
 		Queue.push(Item);
-		NumElements++;
-		Empty = false;
-		ConditionVariable.notify_one();
+		::WakeConditionVariable(&ConditionVariable);
 	}
 
-	int32_t size() const
+	size_t size() const
 	{
-		return NumElements.load();
+		return Queue.size();
 	}
 
 	bool empty() const
 	{
-		return Empty.load();
+		return Queue.empty();
 	}
 private:
-	std::atomic<bool> Empty;
-	std::atomic<int32_t> NumElements;
-	std::mutex Mutex;
-	std::condition_variable ConditionVariable;
-	std::queue<T> Queue;
+	CriticalSection		CriticalSection;
+	ConditionVariable	ConditionVariable;
+	std::queue<T>		Queue;
 };

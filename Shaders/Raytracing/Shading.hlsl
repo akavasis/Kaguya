@@ -361,7 +361,7 @@ void RayGeneration()
 [shader("miss")]
 void ShadowMiss(inout ShadowRayPayload rayPayload)
 {
-	// If we miss all geometry, then the light is visibile
+	// If we miss all geometry, then the light is visible
 	rayPayload.Visibility = 1.0f;
 }
 

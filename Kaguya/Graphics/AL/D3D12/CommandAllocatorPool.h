@@ -3,7 +3,8 @@
 #include <wrl/client.h>
 #include <vector>
 #include <queue>
-#include <mutex>
+
+#include <Core/Synchronization/CriticalSection.h>
 
 class Device;
 
@@ -21,5 +22,5 @@ private:
 
 	std::vector<ID3D12CommandAllocator*> m_AllocatorPool;
 	std::queue<std::pair<UINT64, ID3D12CommandAllocator*>> m_ReadyAllocators;
-	std::mutex m_AllocatorMutex;
+	CriticalSection CriticalSection;
 };

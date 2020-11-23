@@ -4,7 +4,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 
 ### Showcase
 
-### Path Tracer Showcase
+## Path Tracer Showcase
 ![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
 ![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
 ![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")

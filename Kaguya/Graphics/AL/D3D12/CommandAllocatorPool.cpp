@@ -17,7 +17,7 @@ CommandAllocatorPool::~CommandAllocatorPool()
 
 ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(UINT64 CompletedFenceValue)
 {
-	std::scoped_lock lk(m_AllocatorMutex);
+	ScopedCriticalSection SCS(CriticalSection);
 
 	ID3D12CommandAllocator* pAllocator = nullptr;
 
@@ -51,7 +51,7 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(UINT64 CompletedF
 
 void CommandAllocatorPool::MarkAllocatorAsActive(UINT64 FenceValue, ID3D12CommandAllocator* Allocator)
 {
-	std::scoped_lock lk(m_AllocatorMutex);
+	ScopedCriticalSection SCS(CriticalSection);
 	// That fence value indicates we are free to reset the allocator
 	m_ReadyAllocators.push(std::make_pair(FenceValue, Allocator));
 }

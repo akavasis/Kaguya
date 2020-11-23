@@ -4,6 +4,9 @@
 #include <cmath>
 #include <limits>
 
+#include "glm/glm.hpp"
+#include "glm/gtc/quaternion.hpp"
+
 namespace Math
 {
 	static constexpr DirectX::XMVECTOR Right = { 1.0f,  0.0f,  0.0f, 0.0f };

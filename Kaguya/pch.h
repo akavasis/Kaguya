@@ -47,7 +47,9 @@
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx12.h>
 
+#define GLM_FORCE_XYZW_ONLY
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 // D3D12
 #include <d3d12.h>
@@ -58,6 +60,8 @@
 #include <Core/Log.h>
 #include <Core/Exception.h>
 #include <Core/Synchronization/RWLock.h>
+#include <Core/Synchronization/CriticalSection.h>
+#include <Core/Synchronization/ConditionVariable.h>
 
 #include <Math/MathLibrary.h>
 
