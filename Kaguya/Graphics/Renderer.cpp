@@ -89,28 +89,24 @@ bool Renderer::Initialize()
 //----------------------------------------------------------------------------------------------------
 void Renderer::HandleMouse(int32_t X, int32_t Y, float DeltaTime)
 {
-	Scene& scene = *m_pGpuScene->pScene;
-
-	scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
+	m_Scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
 }
 
 //----------------------------------------------------------------------------------------------------
 void Renderer::HandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 {
-	Scene& scene = *m_pGpuScene->pScene;
-
 	if (Keyboard.IsKeyPressed('W'))
-		scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
+		m_Scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
 	if (Keyboard.IsKeyPressed('A'))
-		scene.Camera.Translate(-DeltaTime, 0.0f, 0.0f);
+		m_Scene.Camera.Translate(-DeltaTime, 0.0f, 0.0f);
 	if (Keyboard.IsKeyPressed('S'))
-		scene.Camera.Translate(0.0f, 0.0f, -DeltaTime);
+		m_Scene.Camera.Translate(0.0f, 0.0f, -DeltaTime);
 	if (Keyboard.IsKeyPressed('D'))
-		scene.Camera.Translate(DeltaTime, 0.0f, 0.0f);
+		m_Scene.Camera.Translate(DeltaTime, 0.0f, 0.0f);
 	if (Keyboard.IsKeyPressed('Q'))
-		scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
+		m_Scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
 	if (Keyboard.IsKeyPressed('E'))
-		scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
+		m_Scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -118,8 +114,7 @@ void Renderer::Update(const Time& Time)
 {
 	m_pRenderDevice->FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 
-	Scene& scene = *m_pGpuScene->pScene;
-	scene.PreviousCamera = scene.Camera;
+	m_Scene.PreviousCamera = m_Scene.Camera;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -134,18 +129,16 @@ void Renderer::Render()
 
 	RenderGui();
 
-	Scene& scene = *m_pGpuScene->pScene;
-
-	scene.Camera.RelativeAperture = 0.8f;
-	scene.Camera.ShutterTime = 1.0f / 125.0f;
-	scene.Camera.SensorSensitivity = 200.0f;
+	m_Scene.Camera.RelativeAperture = 0.8f;
+	m_Scene.Camera.ShutterTime = 1.0f / 125.0f;
+	m_Scene.Camera.SensorSensitivity = 200.0f;
 
 	HLSL::SystemConstants HLSLSystemConstants	= {};
 	HLSLSystemConstants.Camera					= m_pGpuScene->GetHLSLCamera();
 	HLSLSystemConstants.PreviousCamera			= m_pGpuScene->GetHLSLPreviousCamera();
 	HLSLSystemConstants.OutputSize				= { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
 	HLSLSystemConstants.TotalFrameCount			= static_cast<unsigned int>(Statistics::TotalFrameCount);
-	HLSLSystemConstants.NumPolygonalLights		= scene.Lights.size();
+	HLSLSystemConstants.NumPolygonalLights		= m_Scene.Lights.size();
 
 	m_pGpuScene->RenderGui();
 	bool Refresh = m_pGpuScene->Update(AspectRatio);

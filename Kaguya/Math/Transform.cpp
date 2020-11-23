@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Transform.h"
+
 using namespace DirectX;
 
 Transform::Transform()

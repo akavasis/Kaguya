@@ -3,10 +3,6 @@
 
 struct Transform
 {
-	DirectX::XMFLOAT3 Position;
-	DirectX::XMFLOAT3 Scale;
-	DirectX::XMFLOAT4 Orientation;
-
 	Transform();
 
 	void SetTransform(DirectX::FXMMATRIX M);
@@ -24,4 +20,8 @@ struct Transform
 
 	bool operator==(const Transform& Transform) const;
 	bool operator!=(const Transform& Transform) const;
+
+	DirectX::XMFLOAT3 Position;
+	DirectX::XMFLOAT3 Scale;
+	DirectX::XMFLOAT4 Orientation;
 };

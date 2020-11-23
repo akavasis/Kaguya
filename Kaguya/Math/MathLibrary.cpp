@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "MathLibrary.h"
-#include <stdlib.h>
+#include <cstdlib>
 #include <random>
+
 using namespace DirectX;
 
 static std::random_device rd;
@@ -73,7 +74,8 @@ namespace Math
 
 	DirectX::XMVECTOR RandomInUnitSphere()
 	{
-		while (true) {
+		while (true)
+		{
 			XMVECTOR p = RandomVector(-1.0f, 1.0f);
 			if (XMVectorGetX(XMVector3LengthSq(p)) >= 1.0f) continue;
 			return p;
