@@ -24,6 +24,7 @@ Device::Device(IDXGIAdapter4* pAdapter)
 	CheckRS_1_1Support();
 	CheckSM6PlusSupport();
 	CheckRaytracingSupport();
+	CheckMeshShaderSupport();
 
 	// Query descriptor size (descriptor size vary based on GPU vendor)
 	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
@@ -45,26 +46,33 @@ Device::~Device()
 
 void Device::CheckRS_1_1Support()
 {
-	D3D12_FEATURE_DATA_ROOT_SIGNATURE rootSignature = {};
-	rootSignature.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-	ThrowCOMIfFailed(m_pDevice5->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &rootSignature, sizeof(rootSignature)));
-	if (rootSignature.HighestVersion < D3D_ROOT_SIGNATURE_VERSION_1_1)
+	D3D12_FEATURE_DATA_ROOT_SIGNATURE Feature_RootSignature = {};
+	Feature_RootSignature.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+	ThrowCOMIfFailed(m_pDevice5->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &Feature_RootSignature, sizeof(Feature_RootSignature)));
+	if (Feature_RootSignature.HighestVersion < D3D_ROOT_SIGNATURE_VERSION_1_1)
 		throw std::runtime_error("RS 1.1 not supported on device");
 }
 
 void Device::CheckSM6PlusSupport()
 {
-	D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = {};
-	shaderModel.HighestShaderModel = D3D_SHADER_MODEL_6_5;
-	ThrowCOMIfFailed(m_pDevice5->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(shaderModel)));
-	if (shaderModel.HighestShaderModel < D3D_SHADER_MODEL_6_0)
+	D3D12_FEATURE_DATA_SHADER_MODEL Feature_ShaderModel = { D3D_SHADER_MODEL_6_5 };
+	ThrowCOMIfFailed(m_pDevice5->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &Feature_ShaderModel, sizeof(Feature_ShaderModel)));
+	if (Feature_ShaderModel.HighestShaderModel < D3D_SHADER_MODEL_6_0)
 		throw std::runtime_error("SM6+ not supported on device");
 }
 
 void Device::CheckRaytracingSupport()
 {
-	D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
-	ThrowCOMIfFailed(m_pDevice5->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5)));
-	if (options5.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
+	D3D12_FEATURE_DATA_D3D12_OPTIONS5 Feature_Options5 = {};
+	ThrowCOMIfFailed(m_pDevice5->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &Feature_Options5, sizeof(Feature_Options5)));
+	if (Feature_Options5.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
 		throw std::runtime_error("Raytracing not supported on device");
+}
+
+void Device::CheckMeshShaderSupport()
+{
+	D3D12_FEATURE_DATA_D3D12_OPTIONS7 Feature_Options7 = {};
+	ThrowCOMIfFailed(m_pDevice5->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &Feature_Options7, sizeof(Feature_Options7)));
+	if (Feature_Options7.MeshShaderTier < D3D12_MESH_SHADER_TIER_1)
+		throw std::runtime_error("Mesh shader not supported on device");
 }

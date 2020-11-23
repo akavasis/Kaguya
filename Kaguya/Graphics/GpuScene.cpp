@@ -252,15 +252,15 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
 
 			RaytracingGeometryDesc Desc = {};
-			Desc.pVertexBuffer = pVertexBuffer;
-			Desc.VertexStride = sizeof(Vertex);
-			Desc.pIndexBuffer = pIndexBuffer;
-			Desc.IndexStride = sizeof(unsigned int);
-			Desc.IsOpaque = true;
-			Desc.NumVertices = mesh.VertexCount;
-			Desc.VertexOffset = mesh.BaseVertexLocation;
-			Desc.NumIndices = mesh.IndexCount;
-			Desc.IndexOffset = mesh.StartIndexLocation;
+			Desc.pVertexBuffer			= pVertexBuffer;
+			Desc.VertexStride			= sizeof(Vertex);
+			Desc.pIndexBuffer			= pIndexBuffer;
+			Desc.IndexStride			= sizeof(unsigned int);
+			Desc.IsOpaque				= true;
+			Desc.NumVertices			= mesh.VertexCount;
+			Desc.VertexOffset			= mesh.BaseVertexLocation;
+			Desc.NumIndices				= mesh.IndexCount;
+			Desc.IndexOffset			= mesh.StartIndexLocation;
 
 			rtblas.BLAS.AddGeometry(Desc);
 		}

@@ -16,6 +16,7 @@ private:
 	void CheckRS_1_1Support();
 	void CheckSM6PlusSupport();
 	void CheckRaytracingSupport();
+	void CheckMeshShaderSupport();
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> m_pDevice5;
 	UINT m_DescriptorHandleIncrementSizeCache[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];

@@ -347,12 +347,12 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 	RenderContext->TransitionBarrier(pTexture, DeviceResource::State::CopyDest);
 	for (size_t subresourceIndex = 0; subresourceIndex < StagingTexture.NumSubresources; ++subresourceIndex)
 	{
-		D3D12_TEXTURE_COPY_LOCATION Destination;
+		D3D12_TEXTURE_COPY_LOCATION Destination = {};
 		Destination.pResource = pTexture->GetD3DResource();
 		Destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		Destination.SubresourceIndex = subresourceIndex;
 
-		D3D12_TEXTURE_COPY_LOCATION Source;
+		D3D12_TEXTURE_COPY_LOCATION Source = {};
 		Source.pResource = pStagingResourceTexture->GetD3DResource();
 		Source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		Source.PlacedFootprint = StagingTexture.PlacedSubresourceLayouts[subresourceIndex];

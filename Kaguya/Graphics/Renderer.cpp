@@ -169,12 +169,12 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		}
 
 		// Resize backbuffer
-		constexpr uint32_t	NodeMask = 0;
-		uint32_t			Nodes[RenderDevice::NumSwapChainBuffers];
-		IUnknown*			CommandQueues[RenderDevice::NumSwapChainBuffers];
+		constexpr uint32_t	NodeMask											= 0;
+		uint32_t			Nodes[RenderDevice::NumSwapChainBuffers]			= {};
+		IUnknown*			CommandQueues[RenderDevice::NumSwapChainBuffers]	= {};
 
-		for (auto& node : Nodes) { node = NodeMask; }
-		for (auto& commandQueue : CommandQueues) { commandQueue = m_pRenderDevice->GraphicsQueue.GetD3DCommandQueue(); }
+		for (auto& node : Nodes)					{ node = NodeMask; }
+		for (auto& commandQueue : CommandQueues)	{ commandQueue = m_pRenderDevice->GraphicsQueue.GetD3DCommandQueue(); }
 
 		uint32_t SwapChainFlags	= m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags, Nodes, CommandQueues));

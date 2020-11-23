@@ -24,7 +24,7 @@ public:
 	inline auto GetAdapterDesc() const { return m_QueriedAdapterDesc; }
 	inline auto TearingSupport() const { return m_TearingSupport; }
 private:
-	Microsoft::WRL::ComPtr<IDXGIFactory7> m_pDXGIFactory;
+	Microsoft::WRL::ComPtr<IDXGIFactory6> m_pDXGIFactory;
 	std::vector<Microsoft::WRL::ComPtr<IDXGIAdapter4>> m_pAdapters;
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> m_pQueriedAdapter;
 	DXGI_ADAPTER_DESC3 m_QueriedAdapterDesc;

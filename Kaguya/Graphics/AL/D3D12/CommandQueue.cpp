@@ -7,15 +7,15 @@ CommandQueue::CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 {
 	auto pD3DDevice = pDevice->GetD3DDevice();
 
-	D3D12_COMMAND_QUEUE_DESC CommandQueueDesc	= {};
-	CommandQueueDesc.Type						= Type;
-	CommandQueueDesc.Priority					= D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-	CommandQueueDesc.Flags						= D3D12_COMMAND_QUEUE_FLAG_NONE;
-	CommandQueueDesc.NodeMask					= 0;
-	ThrowCOMIfFailed(pD3DDevice->CreateCommandQueue(&CommandQueueDesc, IID_PPV_ARGS(&m_pCommandQueue)));
+	D3D12_COMMAND_QUEUE_DESC Desc	= {};
+	Desc.Type						= Type;
+	Desc.Priority					= D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+	Desc.Flags						= D3D12_COMMAND_QUEUE_FLAG_NONE;
+	Desc.NodeMask					= 0;
+	ThrowCOMIfFailed(pD3DDevice->CreateCommandQueue(&Desc, IID_PPV_ARGS(&m_pCommandQueue)));
 	ThrowCOMIfFailed(pD3DDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
-	m_EventHandle								= ::CreateEvent(nullptr, false, false, nullptr);
-	m_FenceValue								= 0;
+	m_EventHandle					= ::CreateEvent(nullptr, false, false, nullptr);
+	m_FenceValue					= 0;
 }
 
 CommandQueue::~CommandQueue()
