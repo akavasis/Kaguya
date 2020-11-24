@@ -44,7 +44,7 @@ void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
 	m_Threads.resize(m_RenderPasses.size());
 
 	// Create system constants
-	SV_pRenderDevice->CreateDeviceBuffer(m_SystemConstants, [](DeviceBufferProxy& Proxy)
+	SV_pRenderDevice->CreateDeviceBuffer(m_SystemConstants, [](BufferProxy& Proxy)
 	{
 		constexpr UINT64 AlignedStride = Math::AlignUp<UINT64>(sizeof(HLSL::SystemConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
@@ -54,7 +54,7 @@ void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
 	});
 
 	// Create render pass upload data
-	SV_pRenderDevice->CreateDeviceBuffer(m_GpuData, [numRenderPasses = m_RenderPasses.size()](DeviceBufferProxy& Proxy)
+	SV_pRenderDevice->CreateDeviceBuffer(m_GpuData, [numRenderPasses = m_RenderPasses.size()](BufferProxy& Proxy)
 	{
 		constexpr UINT64 AlignedStride = Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
@@ -232,7 +232,7 @@ void RenderGraph::CreaterResources()
 	{
 		for (size_t i = 0; i < textureRequest.second.size(); ++i)
 		{
-			SV_pRenderDevice->CreateDeviceTexture(textureRequest.first->Resources[i], Resource::Type::Unknown, [&](DeviceTextureProxy& proxy)
+			SV_pRenderDevice->CreateDeviceTexture(textureRequest.first->Resources[i], Resource::Type::Unknown, [&](TextureProxy& proxy)
 			{
 				proxy = textureRequest.second[i];
 			});
@@ -267,9 +267,9 @@ void RenderGraph::CreateResourceViews()
 	}
 }
 
-void ResourceScheduler::AllocateTexture(Resource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
+void ResourceScheduler::AllocateTexture(Resource::Type Type, std::function<void(TextureProxy&)> Configurator)
 {
-	DeviceTextureProxy proxy(Type);
+	TextureProxy proxy(Type);
 	Configurator(proxy);
 
 	m_TextureRequests[m_pCurrentRenderPass].push_back(proxy);

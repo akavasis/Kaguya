@@ -1,16 +1,16 @@
 #pragma once
-#include "DeviceResource.h"
+#include "Resource.h"
 
 class Device;
-class DeviceTextureProxy;
+class TextureProxy;
 
 class Texture : public Resource
 {
 public:
 	Texture() = default;
 	Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
-	Texture(const Device* pDevice, DeviceTextureProxy& Proxy);
-	Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceTextureProxy& Proxy);
+	Texture(const Device* pDevice, TextureProxy& Proxy);
+	Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy);
 	~Texture() override;
 
 	inline auto GetFormat() const { return m_Format; }

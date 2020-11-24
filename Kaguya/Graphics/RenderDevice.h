@@ -16,8 +16,8 @@
 #include "AL/D3D12/CommandContext.h"
 #include "AL/D3D12/RaytracingAccelerationStructure.h"
 
-#include "AL/Proxy/DeviceBufferProxy.h"
-#include "AL/Proxy/DeviceTextureProxy.h"
+#include "AL/Proxy/BufferProxy.h"
+#include "AL/Proxy/TextureProxy.h"
 #include "AL/Proxy/HeapProxy.h"
 #include "AL/Proxy/RootSignatureProxy.h"
 #include "AL/Proxy/PipelineStateProxy.h"
@@ -80,18 +80,16 @@ public:
 	[[nodiscard]] Shader CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
 	[[nodiscard]] Library CompileLibrary(const std::filesystem::path& Path);
 
-	DeviceResourceAllocationInfo GetDeviceResourceAllocationInfo(UINT NumDescs, DeviceBufferProxy* pDescs);
-
 	RenderResourceHandle InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name);
 	std::string GetRenderResourceHandleName(RenderResourceHandle RenderResourceHandle);
 
 	// Resource creation
-	void CreateDeviceBuffer(RenderResourceHandle Handle, std::function<void(DeviceBufferProxy&)> Configurator);
-	void CreateDeviceBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceBufferProxy&)> Configurator);
+	void CreateDeviceBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator);
+	void CreateDeviceBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator);
 
 	void CreateDeviceTexture(RenderResourceHandle Handle, Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
-	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator);
-	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceTextureProxy&)> Configurator);
+	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
+	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator);
 
 	void CreateHeap(RenderResourceHandle Handle, std::function<void(HeapProxy&)> Configurator);
 

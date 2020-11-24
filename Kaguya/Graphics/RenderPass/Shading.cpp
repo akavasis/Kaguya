@@ -92,7 +92,7 @@ void Shading::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 {
 	for (UINT i = 0; i < NumResources; ++i)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width);
@@ -118,7 +118,7 @@ void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](DeviceBufferProxy& proxy)
+		pRenderDevice->CreateDeviceBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -138,7 +138,7 @@ void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](DeviceBufferProxy& proxy)
+		pRenderDevice->CreateDeviceBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -158,7 +158,7 @@ void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](DeviceBufferProxy& proxy)
+		pRenderDevice->CreateDeviceBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);

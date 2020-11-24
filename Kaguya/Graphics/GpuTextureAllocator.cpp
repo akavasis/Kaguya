@@ -177,7 +177,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	{
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
 	{
-		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture1D, [&](DeviceTextureProxy& proxy)
+		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture1D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(TexMetadata.format);
 			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
@@ -191,7 +191,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
 	{
-		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(TexMetadata.format);
 			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
@@ -206,7 +206,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
 	{
-		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture3D, [&](DeviceTextureProxy& proxy)
+		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture3D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(TexMetadata.format);
 			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
@@ -458,7 +458,7 @@ void GpuTextureAllocator::GenerateMipsSRGB(const std::string& Name, RenderResour
 	Texture* pTexture = SV_pRenderDevice->GetTexture(TextureHandle);
 
 	RenderResourceHandle textureCopyHandle = SV_pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
-	SV_pRenderDevice->CreateDeviceTexture(textureCopyHandle, pTexture->GetType(), [&](DeviceTextureProxy& proxy)
+	SV_pRenderDevice->CreateDeviceTexture(textureCopyHandle, pTexture->GetType(), [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(pTexture->GetFormat());
 		proxy.SetWidth(pTexture->GetWidth());
@@ -555,7 +555,7 @@ void GpuTextureAllocator::EquirectangularToCubemapSRGB(const std::string& Name, 
 	Texture* pCubemap = SV_pRenderDevice->GetTexture(Cubemap);
 
 	RenderResourceHandle textureCopyHandle = SV_pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
-	SV_pRenderDevice->CreateDeviceTexture(textureCopyHandle, pCubemap->GetType(), [&](DeviceTextureProxy& proxy)
+	SV_pRenderDevice->CreateDeviceTexture(textureCopyHandle, pCubemap->GetType(), [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(pCubemap->GetFormat());
 		proxy.SetWidth(pCubemap->GetWidth());

@@ -1,15 +1,12 @@
 #pragma once
-#include "DeviceResourceProxy.h"
-#include "../D3D12/DeviceTexture.h"
+#include "ResourceProxy.h"
+#include "../D3D12/Texture.h"
 
-class DeviceTextureProxy : public DeviceResourceProxy
+class TextureProxy : public ResourceProxy
 {
 public:
 	friend class Texture;
-	DeviceTextureProxy(Resource::Type Type);
-
-	D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const override;
-	D3D12_RESOURCE_DESC BuildD3DDesc() const override;
+	TextureProxy(Resource::Type Type);
 
 	void SetFormat(DXGI_FORMAT Format);
 	void SetWidth(UINT64 Width);
@@ -19,6 +16,9 @@ public:
 	void SetClearValue(D3D12_CLEAR_VALUE ClearValue);
 protected:
 	void Link() override;
+
+	D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const override;
+	D3D12_RESOURCE_DESC BuildD3DDesc() const override;
 private:
 	DXGI_FORMAT m_Format;			// Default value: DXGI_FORMAT_UNKNOWN, must be set
 	UINT64		m_Width;			// Default value: 0, must be set

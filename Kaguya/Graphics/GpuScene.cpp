@@ -146,21 +146,21 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure (InstanceDescs)")
 	};
 
-	pRenderDevice->CreateDeviceBuffer(m_LightTable, [&](DeviceBufferProxy& proxy)
+	pRenderDevice->CreateDeviceBuffer(m_LightTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(LightBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::PolygonalLight));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_MaterialTable, [&](DeviceBufferProxy& proxy)
+	pRenderDevice->CreateDeviceBuffer(m_MaterialTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(MaterialBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::Material));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_MeshTable, [&](DeviceBufferProxy& proxy)
+	pRenderDevice->CreateDeviceBuffer(m_MeshTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(MeshBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::Mesh));
@@ -168,14 +168,14 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	});
 	
 	// Vertex Buffer
-	pRenderDevice->CreateDeviceBuffer(m_VertexBuffer, [&](DeviceBufferProxy& proxy)
+	pRenderDevice->CreateDeviceBuffer(m_VertexBuffer, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(VertexBufferByteSize);
 		proxy.SetStride(sizeof(Vertex));
 		proxy.InitialState = Resource::State::NonPixelShaderResource;
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_UploadVertexBuffer, [&](DeviceBufferProxy& proxy)
+	pRenderDevice->CreateDeviceBuffer(m_UploadVertexBuffer, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(VertexBufferByteSize);
 		proxy.SetStride(sizeof(Vertex));
@@ -185,14 +185,14 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	m_VertexBufferAllocator.Reset(VertexBufferByteSize);
 
 	// Index Buffer
-	pRenderDevice->CreateDeviceBuffer(m_IndexBuffer, [&](DeviceBufferProxy& proxy)
+	pRenderDevice->CreateDeviceBuffer(m_IndexBuffer, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(IndexBufferByteSize);
 		proxy.SetStride(sizeof(unsigned int));
 		proxy.InitialState = Resource::State::NonPixelShaderResource;
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_UploadIndexBuffer, [&](DeviceBufferProxy& proxy)
+	pRenderDevice->CreateDeviceBuffer(m_UploadIndexBuffer, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(IndexBufferByteSize);
 		proxy.SetStride(sizeof(unsigned int));
@@ -466,7 +466,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.Scratch);
 
 		// TLAS Scratch
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch, [=](DeviceBufferProxy& proxy)
+		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(scratchSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
@@ -480,7 +480,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.Result);
 
 		// TLAS Result
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.Result, [=](DeviceBufferProxy& proxy)
+		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.Result, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(resultSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
@@ -494,7 +494,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
 
 		// TLAS Instance Desc
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs, [=](DeviceBufferProxy& proxy)
+		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(instanceDescsSizeInBytes);
 			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
@@ -527,7 +527,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		rtblas.BLAS.ComputeMemoryRequirements(&pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
 
 		// BLAS Scratch
-		pRenderDevice->CreateDeviceBuffer(rtblas.Scratch, [=](DeviceBufferProxy& proxy)
+		pRenderDevice->CreateDeviceBuffer(rtblas.Scratch, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(scratchSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
@@ -535,7 +535,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		});
 
 		// BLAS Result
-		pRenderDevice->CreateDeviceBuffer(rtblas.Result, [=](DeviceBufferProxy& proxy)
+		pRenderDevice->CreateDeviceBuffer(rtblas.Result, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(resultSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;

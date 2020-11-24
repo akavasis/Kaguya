@@ -2,7 +2,7 @@
 #include <vector>
 #include <Math/MathLibrary.h>
 #include "Shader.h"
-#include "DeviceBuffer.h"
+#include "Buffer.h"
 
 // ShaderRecord = {{Shader Identifier}, {RootArguments}}
 template<typename TRootArguments>

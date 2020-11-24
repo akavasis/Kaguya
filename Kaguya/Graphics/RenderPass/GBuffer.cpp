@@ -101,7 +101,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 	};
 	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(Formats[i]);
 			proxy.SetWidth(Properties.Width);
@@ -112,7 +112,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 		});
 	}
 
-	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(RenderDevice::DepthStencilFormat);
 		proxy.SetWidth(Properties.Width);

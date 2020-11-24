@@ -17,7 +17,7 @@ class RenderGraph;
 class ResourceScheduler
 {
 public:
-	void AllocateTexture(Resource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator);
+	void AllocateTexture(Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
 
 	void Read(RenderResourceHandle Resource);
 
@@ -26,7 +26,7 @@ private:
 	friend class RenderGraph;
 
 	RenderPass* m_pCurrentRenderPass;
-	std::unordered_map<RenderPass*, std::vector<DeviceTextureProxy>> m_TextureRequests;
+	std::unordered_map<RenderPass*, std::vector<TextureProxy>> m_TextureRequests;
 };
 
 class RenderGraph

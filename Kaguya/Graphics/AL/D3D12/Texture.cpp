@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "DeviceTexture.h"
+#include "Texture.h"
 #include "Device.h"
-#include "../Proxy/DeviceTextureProxy.h"
+#include "../Proxy/TextureProxy.h"
 
 Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 	: Resource(ExistingID3D12Resource),
@@ -11,9 +11,10 @@ Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 	m_DepthOrArraySize(ExistingID3D12Resource->GetDesc().DepthOrArraySize),
 	m_MipLevels(ExistingID3D12Resource->GetDesc().MipLevels)
 {
+
 }
 
-Texture::Texture(const Device* pDevice, DeviceTextureProxy& Proxy)
+Texture::Texture(const Device* pDevice, TextureProxy& Proxy)
 	: Resource(pDevice, Proxy),
 	m_Format(Proxy.m_Format),
 	m_Width(Proxy.m_Width),
@@ -24,7 +25,7 @@ Texture::Texture(const Device* pDevice, DeviceTextureProxy& Proxy)
 	m_MipLevels = m_pResource->GetDesc().MipLevels;
 }
 
-Texture::Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceTextureProxy& Proxy)
+Texture::Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy)
 	: Resource(pDevice, pHeap, HeapOffset, Proxy),
 	m_Format(Proxy.m_Format),
 	m_Width(Proxy.m_Width),

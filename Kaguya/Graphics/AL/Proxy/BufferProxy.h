@@ -1,15 +1,12 @@
 #pragma once
-#include "DeviceResourceProxy.h"
-#include "../D3D12/DeviceBuffer.h"
+#include "ResourceProxy.h"
+#include "../D3D12/Buffer.h"
 
-class DeviceBufferProxy : public DeviceResourceProxy
+class BufferProxy : public ResourceProxy
 {
 public:
 	friend class Buffer;
-	DeviceBufferProxy();
-
-	D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const override;
-	D3D12_RESOURCE_DESC BuildD3DDesc() const override;
+	BufferProxy();
 
 	void SetSizeInBytes(UINT64 SizeInBytes);
 	void SetStride(UINT Stride);
@@ -17,9 +14,12 @@ public:
 	void SetOptionalDataForUpload(const void* pOptionDataForUpload);
 protected:
 	void Link() override;
+
+	D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const override;
+	D3D12_RESOURCE_DESC BuildD3DDesc() const override;
 private:
 	UINT64					m_SizeInBytes;				//< Default value: 0, must be set
 	UINT					m_Stride;					//< Default value: 0, must be set
-	Buffer::CpuAccess m_CpuAccess;				//< Default value: None, optional set
+	Buffer::CpuAccess		m_CpuAccess;				//< Default value: None, optional set
 	const void*				m_pOptionalDataForUpload;	//< Default value: nullptr, optional set when CpuAccess is Upload
 };

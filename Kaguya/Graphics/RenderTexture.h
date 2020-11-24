@@ -1,6 +1,6 @@
 #pragma once
 #include <unordered_map>
-#include "AL/D3D12/DeviceTexture.h"
+#include "AL/D3D12/Texture.h"
 #include "AL/D3D12/DescriptorHeap.h"
 
 class RenderTexture

@@ -49,7 +49,7 @@ void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler, Rend
 	// PrevRenderTarget0, PrevRenderTarget1, PrevMoments, PrevLinearZ
 	for (size_t i = 0; i < 4; ++i)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
@@ -59,7 +59,7 @@ void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler, Rend
 	}
 
 	// PrevHistoryLength
-	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(DXGI_FORMAT_R16_FLOAT);
 		proxy.SetWidth(Properties.Width);
@@ -70,7 +70,7 @@ void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler, Rend
 	// RenderTarget0, RenderTarget1, Moments
 	for (size_t i = 0; i < 3; ++i)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
@@ -81,7 +81,7 @@ void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler, Rend
 	}
 
 	// HistoryLength
-	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(DXGI_FORMAT_R16_FLOAT);
 		proxy.SetWidth(Properties.Width);
@@ -212,7 +212,7 @@ void SVGFFilterMoments::ScheduleResource(ResourceScheduler* pResourceScheduler, 
 	// RenderTarget0, RenderTarget1
 	for (size_t i = 0; i < 2; ++i)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
@@ -316,7 +316,7 @@ void SVGFAtrous::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderG
 	// RenderTarget0, RenderTarget1
 	for (size_t i = 0; i < 2; ++i)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);

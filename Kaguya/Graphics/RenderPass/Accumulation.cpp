@@ -37,7 +37,7 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 
 void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
-	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);

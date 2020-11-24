@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "DeviceBuffer.h"
+#include "Buffer.h"
 #include "Device.h"
-#include "../Proxy/DeviceBufferProxy.h"
+#include "../Proxy/BufferProxy.h"
 
-Buffer::Buffer(const Device* pDevice, DeviceBufferProxy& Proxy)
+Buffer::Buffer(const Device* pDevice, BufferProxy& Proxy)
 	: Resource(pDevice, Proxy),
 	m_Stride(Proxy.m_Stride),
 	m_CpuAccess(Proxy.m_CpuAccess),
@@ -17,7 +17,7 @@ Buffer::Buffer(const Device* pDevice, DeviceBufferProxy& Proxy)
 	}
 }
 
-Buffer::Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceBufferProxy& Proxy)
+Buffer::Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy)
 	: Resource(pDevice, pHeap, HeapOffset, Proxy),
 	m_Stride(Proxy.m_Stride),
 	m_CpuAccess(Proxy.m_CpuAccess),

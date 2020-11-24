@@ -5,13 +5,7 @@
 #include "Heap.h"
 
 class Device;
-class DeviceResourceProxy;
-
-struct DeviceResourceAllocationInfo
-{
-	UINT64 SizeInBytes;
-	UINT64 Alignment;
-};
+class ResourceProxy;
 
 class Resource
 {
@@ -64,8 +58,8 @@ public:
 
 	Resource() = default;
 	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
-	Resource(const Device* pDevice, DeviceResourceProxy& Proxy);
-	Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceResourceProxy& Proxy);
+	Resource(const Device* pDevice, ResourceProxy& Proxy);
+	Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy);
 	virtual ~Resource() = 0;
 
 	inline auto GetApiHandle() const { return m_pResource.Get(); }

@@ -132,7 +132,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 
 void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
-	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
@@ -145,7 +145,7 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 	const UINT denominators[EResources::NumResources / 2] = { 1, 2, 4, 8, 16 };
 	for (size_t i = 1; i < EResources::NumResources; i += 2, denominatorIndex++)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
@@ -154,7 +154,7 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);

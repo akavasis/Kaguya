@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "DeviceResourceProxy.h"
+#include "ResourceProxy.h"
 
-DeviceResourceProxy::DeviceResourceProxy(Resource::Type Type)
+ResourceProxy::ResourceProxy(Resource::Type Type)
 	: m_Type(Type),
 	m_NumSubresources(0),
 	m_ClearValue(std::nullopt)
@@ -10,7 +10,7 @@ DeviceResourceProxy::DeviceResourceProxy(Resource::Type Type)
 	InitialState = Resource::State::Unknown;
 }
 
-void DeviceResourceProxy::Link()
+void ResourceProxy::Link()
 {
 	assert(InitialState != Resource::State::Unknown);
 	assert(m_Type != Resource::Type::Unknown);

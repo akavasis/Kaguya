@@ -106,17 +106,6 @@ Library RenderDevice::CompileLibrary(const std::filesystem::path& Path)
 	return ShaderCompiler.CompileLibrary(Path.c_str());
 }
 
-DeviceResourceAllocationInfo RenderDevice::GetDeviceResourceAllocationInfo(UINT NumDescs, DeviceBufferProxy* pDescs)
-{
-	std::vector<D3D12_RESOURCE_DESC> Descs(NumDescs);
-	for (UINT i = 0; i < NumDescs; ++i)
-	{
-		Descs[i] = pDescs[i].BuildD3DDesc();
-	}
-	auto AllocationInfo = Device.GetD3DDevice()->GetResourceAllocationInfo(0, NumDescs, Descs.data());
-	return { .SizeInBytes = AllocationInfo.SizeInBytes, .Alignment = AllocationInfo.Alignment };
-}
-
 RenderResourceHandle RenderDevice::InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name)
 {
 	RenderResourceHandle Handle = {};
@@ -151,9 +140,9 @@ std::string RenderDevice::GetRenderResourceHandleName(RenderResourceHandle Rende
 	return std::string();
 }
 
-void RenderDevice::CreateDeviceBuffer(RenderResourceHandle Handle, std::function<void(DeviceBufferProxy&)> Configurator)
+void RenderDevice::CreateDeviceBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator)
 {
-	DeviceBufferProxy proxy;
+	BufferProxy proxy;
 	Configurator(proxy);
 
 	auto pBuffer = m_Buffers.CreateResource(Handle, &Device, proxy);
@@ -165,9 +154,9 @@ void RenderDevice::CreateDeviceBuffer(RenderResourceHandle Handle, std::function
 		GlobalResourceStateTracker.AddResourceState(pBuffer->GetApiHandle(), GetD3DResourceStates(proxy.InitialState));
 }
 
-void RenderDevice::CreateDeviceBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceBufferProxy&)> Configurator)
+void RenderDevice::CreateDeviceBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator)
 {
-	DeviceBufferProxy proxy;
+	BufferProxy proxy;
 	Configurator(proxy);
 
 	const auto pHeap = this->GetHeap(HeapHandle);
@@ -189,9 +178,9 @@ void RenderDevice::CreateDeviceTexture(RenderResourceHandle Handle, Microsoft::W
 	GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3DResourceStates(InitialState));
 }
 
-void RenderDevice::CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
+void RenderDevice::CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(TextureProxy&)> Configurator)
 {
-	DeviceTextureProxy proxy(Type);
+	TextureProxy proxy(Type);
 	Configurator(proxy);
 
 	auto pTexture = m_Textures.CreateResource(Handle, &Device, proxy);
@@ -201,9 +190,9 @@ void RenderDevice::CreateDeviceTexture(RenderResourceHandle Handle, Resource::Ty
 	GlobalResourceStateTracker.AddResourceState(pTexture->GetApiHandle(), GetD3DResourceStates(proxy.InitialState));
 }
 
-void RenderDevice::CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceTextureProxy&)> Configurator)
+void RenderDevice::CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator)
 {
-	DeviceTextureProxy proxy(Type);
+	TextureProxy proxy(Type);
 	Configurator(proxy);
 
 	const auto pHeap = this->GetHeap(HeapHandle);

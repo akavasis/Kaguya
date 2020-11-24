@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "RaytracingAccelerationStructure.h"
 #include "Device.h"
-#include "DeviceBuffer.h"
+#include "Buffer.h"
 #include "CommandContext.h"
 
 BottomLevelAccelerationStructure::BottomLevelAccelerationStructure()

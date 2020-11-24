@@ -1,9 +1,9 @@
 #pragma once
-#include "DeviceResource.h"
+#include "Resource.h"
 #include <cassert>
 
 class Device;
-class DeviceBufferProxy;
+class BufferProxy;
 
 class Buffer : public Resource
 {
@@ -16,8 +16,8 @@ public:
 	};
 
 	Buffer() = default;
-	Buffer(const Device* pDevice, DeviceBufferProxy& Proxy);
-	Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceBufferProxy& Proxy);
+	Buffer(const Device* pDevice, BufferProxy& Proxy);
+	Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy);
 	~Buffer() override;
 
 	inline auto GetStride() const { return m_Stride; }

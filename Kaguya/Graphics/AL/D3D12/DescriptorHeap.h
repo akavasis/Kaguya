@@ -5,8 +5,8 @@
 
 #include <vector>
 
-#include "DeviceTexture.h"
-#include "DeviceBuffer.h"
+#include "Texture.h"
+#include "Buffer.h"
 
 //----------------------------------------------------------------------------------------------------
 class Device;
