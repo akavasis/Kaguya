@@ -3,11 +3,11 @@
 #include "../D3D12/d3dx12.h"
 
 DeviceBufferProxy::DeviceBufferProxy()
-	: DeviceResourceProxy(DeviceResource::Type::Buffer)
+	: DeviceResourceProxy(Resource::Type::Buffer)
 {
 	m_SizeInBytes				= 0;
 	m_Stride					= 0;
-	m_CpuAccess					= DeviceBuffer::CpuAccess::None;
+	m_CpuAccess					= Buffer::CpuAccess::None;
 	m_pOptionalDataForUpload	= nullptr;
 }
 
@@ -15,8 +15,8 @@ D3D12_HEAP_PROPERTIES DeviceBufferProxy::BuildD3DHeapProperties() const
 {
 	switch (m_CpuAccess)
 	{
-	case DeviceBuffer::CpuAccess::Write:	return kUploadHeapProps;
-	case DeviceBuffer::CpuAccess::Read:		return kReadbackHeapProps;
+	case Buffer::CpuAccess::Write:	return kUploadHeapProps;
+	case Buffer::CpuAccess::Read:		return kReadbackHeapProps;
 	default:								return kDefaultHeapProps;
 	}
 }
@@ -36,7 +36,7 @@ void DeviceBufferProxy::SetStride(UINT Stride)
 	m_Stride = Stride;
 }
 
-void DeviceBufferProxy::SetCpuAccess(DeviceBuffer::CpuAccess CpuAccess)
+void DeviceBufferProxy::SetCpuAccess(Buffer::CpuAccess CpuAccess)
 {
 	m_CpuAccess = CpuAccess;
 }
@@ -54,8 +54,8 @@ void DeviceBufferProxy::Link()
 
 	switch (m_CpuAccess)
 	{
-	case DeviceBuffer::CpuAccess::Write:	InitialState = DeviceResource::State::GenericRead; break;
-	case DeviceBuffer::CpuAccess::Read:		InitialState = DeviceResource::State::CopyDest; break;
+	case Buffer::CpuAccess::Write:	InitialState = Resource::State::GenericRead; break;
+	case Buffer::CpuAccess::Read:		InitialState = Resource::State::CopyDest; break;
 	}
 
 	DeviceResourceProxy::Link();

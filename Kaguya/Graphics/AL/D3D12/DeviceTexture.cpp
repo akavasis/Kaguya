@@ -3,8 +3,8 @@
 #include "Device.h"
 #include "../Proxy/DeviceTextureProxy.h"
 
-DeviceTexture::DeviceTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
-	: DeviceResource(ExistingID3D12Resource),
+Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
+	: Resource(ExistingID3D12Resource),
 	m_Format(ExistingID3D12Resource->GetDesc().Format),
 	m_Width(ExistingID3D12Resource->GetDesc().Width),
 	m_Height(ExistingID3D12Resource->GetDesc().Height),
@@ -13,8 +13,8 @@ DeviceTexture::DeviceTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D
 {
 }
 
-DeviceTexture::DeviceTexture(const Device* pDevice, DeviceTextureProxy& Proxy)
-	: DeviceResource(pDevice, Proxy),
+Texture::Texture(const Device* pDevice, DeviceTextureProxy& Proxy)
+	: Resource(pDevice, Proxy),
 	m_Format(Proxy.m_Format),
 	m_Width(Proxy.m_Width),
 	m_Height(Proxy.m_Height),
@@ -24,8 +24,8 @@ DeviceTexture::DeviceTexture(const Device* pDevice, DeviceTextureProxy& Proxy)
 	m_MipLevels = m_pResource->GetDesc().MipLevels;
 }
 
-DeviceTexture::DeviceTexture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceTextureProxy& Proxy)
-	: DeviceResource(pDevice, pHeap, HeapOffset, Proxy),
+Texture::Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceTextureProxy& Proxy)
+	: Resource(pDevice, pHeap, HeapOffset, Proxy),
 	m_Format(Proxy.m_Format),
 	m_Width(Proxy.m_Width),
 	m_Height(Proxy.m_Height),
@@ -35,11 +35,11 @@ DeviceTexture::DeviceTexture(const Device* pDevice, const Heap* pHeap, UINT64 He
 	m_MipLevels = m_pResource->GetDesc().MipLevels;
 }
 
-DeviceTexture::~DeviceTexture()
+Texture::~Texture()
 {
 }
 
-bool DeviceTexture::IsArray() const
+bool Texture::IsArray() const
 {
-	return (m_Type == DeviceResource::Type::Texture1D || m_Type == DeviceResource::Type::Texture2D || m_Type == DeviceResource::Type::TextureCube) && m_DepthOrArraySize > 1;
+	return (m_Type == Resource::Type::Texture1D || m_Type == Resource::Type::Texture2D || m_Type == Resource::Type::TextureCube) && m_DepthOrArraySize > 1;
 }

@@ -26,6 +26,7 @@ public:
 		RenderTarget1,
 		Moments,
 		HistoryLength,
+		NumResources
 	};
 
 	SVGFReproject(UINT Width, UINT Height);
@@ -46,7 +47,8 @@ public:
 	enum EResources
 	{
 		RenderTarget0,
-		RenderTarget1
+		RenderTarget1,
+		NumResources
 	};
 
 	SVGFFilterMoments(UINT Width, UINT Height);
@@ -67,7 +69,8 @@ public:
 	enum EResources
 	{
 		RenderTarget0,
-		RenderTarget1
+		RenderTarget1,
+		NumResources
 	};
 
 	SVGFAtrous(UINT Width, UINT Height);

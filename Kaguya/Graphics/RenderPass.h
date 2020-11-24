@@ -18,7 +18,7 @@ class RenderPass
 public:
 	inline static constexpr size_t GpuDataByteSize = 2048;
 
-	RenderPass(std::string Name, RenderTargetProperties Properties);
+	RenderPass(std::string Name, RenderTargetProperties Properties, UINT NumResources);
 	virtual ~RenderPass() = default;
 
 	void OnInitializePipeline(RenderDevice* pRenderDevice);

@@ -73,7 +73,7 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 		// Add a subobject to declare the local root signature
 		auto pLocalRootSignatureSubobject = desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
 
-		pLocalRootSignatureSubobject->SetRootSignature(rootSignatureAssociation.pRootSignature->GetD3DRootSignature());
+		pLocalRootSignatureSubobject->SetRootSignature(rootSignatureAssociation.pRootSignature->GetApiHandle());
 
 		// Add a subobject for the association between the exported shader symbols and the local root signature
 		auto pAssociationSubobject = desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
@@ -87,7 +87,7 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 
 	// Add a subobject for global root signature
 	auto pGlobalRootSignatureSubobject = desc.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-	pGlobalRootSignatureSubobject->SetRootSignature(Proxy.m_pGlobalRootSignature->GetD3DRootSignature());
+	pGlobalRootSignatureSubobject->SetRootSignature(Proxy.m_pGlobalRootSignature->GetApiHandle());
 
 	// Add a subobject for the raytracing shader config
 	auto pShaderConfigSubobject = desc.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();

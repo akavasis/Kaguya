@@ -2,29 +2,29 @@
 #include <DirectXMath.h>
 
 class Device;
-class DeviceBuffer;
+class Buffer;
 class CommandContext;
 
 struct RaytracingAccelerationStructureBuffers
 {
-	DeviceBuffer* pScratch;
-	DeviceBuffer* pResult;
-	DeviceBuffer* pInstanceDescs;
+	Buffer* pScratch;
+	Buffer* pResult;
+	Buffer* pInstanceDescs;
 };
 
 struct RaytracingGeometryDesc
 {
-	DeviceBuffer* pVertexBuffer;
+	Buffer* pVertexBuffer;
 	UINT NumVertices;
 	UINT VertexStride;
 	UINT64 VertexOffset;
 
-	DeviceBuffer* pIndexBuffer;
+	Buffer* pIndexBuffer;
 	UINT NumIndices;
 	UINT IndexStride;
 	UINT64 IndexOffset;
 
-	DeviceBuffer* pTransformBuffer;
+	Buffer* pTransformBuffer;
 	bool IsOpaque;
 };
 
@@ -35,7 +35,7 @@ public:
 
 	void AddGeometry(const RaytracingGeometryDesc& Desc);
 	void ComputeMemoryRequirements(const Device* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes);
-	void Generate(CommandContext* pCommandContext, DeviceBuffer* pScratch, DeviceBuffer* pResult);
+	void Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult);
 private:
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> RaytracingGeometryDescs;
 	UINT64 ScratchSizeInBytes;
@@ -62,7 +62,7 @@ public:
 
 	void AddInstance(const RaytracingInstanceDesc& Desc);
 	void ComputeMemoryRequirements(const Device* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes);
-	void Generate(CommandContext* pCommandContext, DeviceBuffer* pScratch, DeviceBuffer* pResult, DeviceBuffer* pInstanceDescs);
+	void Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult, Buffer* pInstanceDescs);
 private:
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> RaytracingInstanceDescs;
 	UINT64 ScratchSizeInBytes;

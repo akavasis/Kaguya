@@ -5,7 +5,8 @@
 RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
 	: SV_pRenderDevice(pRenderDevice)
 {
-
+	m_SystemConstants = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render System Constants");
+	m_GpuData = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Graph Pass Data");
 }
 
 RenderGraph::~RenderGraph()
@@ -43,23 +44,23 @@ void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
 	m_Threads.resize(m_RenderPasses.size());
 
 	// Create system constants
-	m_SystemConstants = SV_pRenderDevice->CreateDeviceBuffer([](DeviceBufferProxy& Proxy)
+	SV_pRenderDevice->CreateDeviceBuffer(m_SystemConstants, [](DeviceBufferProxy& Proxy)
 	{
 		constexpr UINT64 AlignedStride = Math::AlignUp<UINT64>(sizeof(HLSL::SystemConstants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
 		Proxy.SetSizeInBytes(AlignedStride);
 		Proxy.SetStride(AlignedStride);
-		Proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+		Proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
 	// Create render pass upload data
-	m_GpuData = SV_pRenderDevice->CreateDeviceBuffer([numRenderPasses = m_RenderPasses.size()](DeviceBufferProxy& Proxy)
+	SV_pRenderDevice->CreateDeviceBuffer(m_GpuData, [numRenderPasses = m_RenderPasses.size()](DeviceBufferProxy& Proxy)
 	{
 		constexpr UINT64 AlignedStride = Math::AlignUp<UINT64>(RenderPass::GpuDataByteSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
 		Proxy.SetSizeInBytes(numRenderPasses * AlignedStride);
 		Proxy.SetStride(AlignedStride);
-		Proxy.SetCpuAccess(DeviceBuffer::CpuAccess::Write);
+		Proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
 	// Launch our threads
@@ -70,7 +71,7 @@ void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
 		m_WorkerExecuteSignals[i]	= ::CreateEvent(NULL, FALSE, FALSE, NULL);
 		m_WorkerCompleteSignals[i]	= ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
-		RenderPassThreadProcParameter Parameter;
+		RenderPassThreadProcParameter Parameter = {};
 		Parameter.pRenderGraph		= this;
 		Parameter.ThreadID			= i;
 		Parameter.ExecuteSignal		= m_WorkerExecuteSignals[i];
@@ -189,9 +190,9 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 				auto pTexture = pRenderDevice->GetTexture(resource);
 
 				// Transition any UAVs to UnorderedAccess state
-				if (pTexture->GetBindFlags() == DeviceResource::BindFlags::UnorderedAccess)
+				if (pTexture->GetBindFlags() == Resource::BindFlags::UnorderedAccess)
 				{
-					RenderContext.TransitionBarrier(resource, DeviceResource::State::UnorderedAccess);
+					RenderContext.TransitionBarrier(resource, Resource::State::UnorderedAccess);
 				}
 			}
 		}
@@ -211,7 +212,7 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 				auto pTexture = pRenderDevice->GetTexture(resource);
 
 				// Ensure UAV writes are complete
-				if (pTexture->GetBindFlags() == DeviceResource::BindFlags::UnorderedAccess)
+				if (pTexture->GetBindFlags() == Resource::BindFlags::UnorderedAccess)
 				{
 					RenderContext.UAVBarrier(resource);
 				}
@@ -229,12 +230,12 @@ void RenderGraph::CreaterResources()
 {
 	for (auto& textureRequest : m_ResourceScheduler.m_TextureRequests)
 	{
-		for (const auto& textureProxy : textureRequest.second)
+		for (size_t i = 0; i < textureRequest.second.size(); ++i)
 		{
-			textureRequest.first->Resources.push_back(SV_pRenderDevice->CreateDeviceTexture(DeviceResource::Type::Unknown, [&](DeviceTextureProxy& proxy)
+			SV_pRenderDevice->CreateDeviceTexture(textureRequest.first->Resources[i], Resource::Type::Unknown, [&](DeviceTextureProxy& proxy)
 			{
-				proxy = textureProxy;
-			}));
+				proxy = textureRequest.second[i];
+			});
 		}
 	}
 }
@@ -248,17 +249,17 @@ void RenderGraph::CreateResourceViews()
 			SV_pRenderDevice->CreateShaderResourceView(handle);
 
 			auto texture = SV_pRenderDevice->GetTexture(handle);
-			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::UnorderedAccess))
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::UnorderedAccess))
 			{
 				SV_pRenderDevice->CreateUnorderedAccessView(handle);
 			}
 
-			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::RenderTarget))
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::RenderTarget))
 			{
 				SV_pRenderDevice->CreateRenderTargetView(handle);
 			}
 
-			if (EnumMaskBitSet(texture->GetBindFlags(), DeviceResource::BindFlags::DepthStencil))
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::DepthStencil))
 			{
 				SV_pRenderDevice->CreateDepthStencilView(handle);
 			}
@@ -266,7 +267,7 @@ void RenderGraph::CreateResourceViews()
 	}
 }
 
-void ResourceScheduler::AllocateTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
+void ResourceScheduler::AllocateTexture(Resource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator)
 {
 	DeviceTextureProxy proxy(Type);
 	Configurator(proxy);
@@ -276,14 +277,14 @@ void ResourceScheduler::AllocateTexture(DeviceResource::Type Type, std::function
 
 void ResourceScheduler::Read(RenderResourceHandle Resource)
 {
-	assert(Resource.Type == RenderResourceType::DeviceBuffer || Resource.Type == RenderResourceType::DeviceTexture);
+	assert(Resource.Type == RenderResourceType::Buffer || Resource.Type == RenderResourceType::Texture);
 
 	m_pCurrentRenderPass->Reads.push_back(Resource);
 }
 
 void ResourceScheduler::Write(RenderResourceHandle Resource)
 {
-	assert(Resource.Type == RenderResourceType::DeviceBuffer || Resource.Type == RenderResourceType::DeviceTexture);
+	assert(Resource.Type == RenderResourceType::Buffer || Resource.Type == RenderResourceType::Texture);
 
 	m_pCurrentRenderPass->Writes.push_back(Resource);
 }

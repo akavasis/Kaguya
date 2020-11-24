@@ -68,22 +68,22 @@ public:
 	CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible);
 
 	// Returns a hash value that can be used for indexing Descriptor into hash tables
-	UINT64 AssignCBDescriptor(UINT HeapIndex, DeviceBuffer* pBuffer) { __debugbreak(); return 0; } // TODO: Implement 
-	UINT64 AssignSRDescriptor(UINT HeapIndex, DeviceBuffer* pBuffer);
-	UINT64 AssignUADescriptor(UINT HeapIndex, DeviceBuffer* pBuffer) { __debugbreak(); return 0; } // TODO: Implement 
+	UINT64 AssignCBDescriptor(UINT HeapIndex, Buffer* pBuffer) { __debugbreak(); return 0; } // TODO: Implement 
+	UINT64 AssignSRDescriptor(UINT HeapIndex, Buffer* pBuffer);
+	UINT64 AssignUADescriptor(UINT HeapIndex, Buffer* pBuffer) { __debugbreak(); return 0; } // TODO: Implement 
 
-	UINT64 AssignSRDescriptor(UINT HeapIndex, DeviceTexture* pTexture, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
-	UINT64 AssignUADescriptor(UINT HeapIndex, DeviceTexture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
+	UINT64 AssignSRDescriptor(UINT HeapIndex, Texture* pTexture, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
+	UINT64 AssignUADescriptor(UINT HeapIndex, Texture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
 
 	Descriptor GetCBDescriptorAt(UINT HeapIndex) const { return DescriptorHeap::GetDescriptorAt(ConstantBuffer, HeapIndex); }
 	Descriptor GetSRDescriptorAt(UINT HeapIndex) const { return DescriptorHeap::GetDescriptorAt(ShaderResource, HeapIndex); }
 	Descriptor GetUADescriptorAt(UINT HeapIndex) const { return DescriptorHeap::GetDescriptorAt(UnorderedAccess, HeapIndex); }
 
-	static D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(DeviceBuffer* pBuffer);
-	static D3D12_UNORDERED_ACCESS_VIEW_DESC GetUnorderedAccessViewDesc(DeviceBuffer* pBuffer) { __debugbreak(); } // TODO: Implement 
+	static D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(Buffer* pBuffer);
+	static D3D12_UNORDERED_ACCESS_VIEW_DESC GetUnorderedAccessViewDesc(Buffer* pBuffer) { __debugbreak(); } // TODO: Implement 
 
-	static D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(DeviceTexture* pTexture, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
-	static D3D12_UNORDERED_ACCESS_VIEW_DESC GetUnorderedAccessViewDesc(DeviceTexture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
+	static D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(Texture* pTexture, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
+	static D3D12_UNORDERED_ACCESS_VIEW_DESC GetUnorderedAccessViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
 
 	static UINT64 GetHashValue(const D3D12_SHADER_RESOURCE_VIEW_DESC& Desc);
 	static UINT64 GetHashValue(const D3D12_UNORDERED_ACCESS_VIEW_DESC& Desc);
@@ -123,7 +123,7 @@ public:
 		{
 		}
 
-		void operator=(DeviceTexture* pTexture);
+		void operator=(Texture* pTexture);
 		inline auto GetHashValue() { return HashValue; }
 
 		std::optional<UINT> ArraySlice;
@@ -148,7 +148,7 @@ public:
 		return DescriptorHeap::GetDescriptorAt(0, HeapIndex);
 	}
 
-	static D3D12_RENDER_TARGET_VIEW_DESC GetRenderTargetViewDesc(DeviceTexture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	static D3D12_RENDER_TARGET_VIEW_DESC GetRenderTargetViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 	static UINT64 GetHashValue(const D3D12_RENDER_TARGET_VIEW_DESC& Desc);
 };
 
@@ -164,7 +164,7 @@ public:
 		{
 		}
 
-		void operator=(DeviceTexture* pTexture);
+		void operator=(Texture* pTexture);
 		inline auto GetHashValue() { return HashValue; }
 
 		std::optional<UINT> ArraySlice;
@@ -189,6 +189,6 @@ public:
 		return DescriptorHeap::GetDescriptorAt(0, HeapIndex);
 	}
 
-	static D3D12_DEPTH_STENCIL_VIEW_DESC GetDepthStencilViewDesc(DeviceTexture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	static D3D12_DEPTH_STENCIL_VIEW_DESC GetDepthStencilViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 	static UINT64 GetHashValue(const D3D12_DEPTH_STENCIL_VIEW_DESC& Desc);
 };

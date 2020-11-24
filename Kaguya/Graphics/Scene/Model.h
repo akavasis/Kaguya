@@ -12,6 +12,5 @@ struct Model
 	std::vector<Mesh>			Meshes;
 };
 
-Model CreateTriangle();
 Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions);
 Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N);

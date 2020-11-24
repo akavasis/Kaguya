@@ -3,7 +3,7 @@
 #include "Device.h"
 #include "../Proxy/DeviceResourceProxy.h"
 
-DeviceResource::DeviceResource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
+Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 	: m_pResource(ExistingID3D12Resource)
 {
 	ID3D12Device* pDevice = nullptr;
@@ -18,10 +18,10 @@ DeviceResource::DeviceResource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID
 
 	switch (ResourceDesc.Dimension)
 	{
-	case D3D12_RESOURCE_DIMENSION_TEXTURE1D: m_Type = DeviceResource::Type::Texture1D; break;
-	case D3D12_RESOURCE_DIMENSION_TEXTURE2D: m_Type = DeviceResource::Type::Texture2D; break;
-	case D3D12_RESOURCE_DIMENSION_TEXTURE3D: m_Type = DeviceResource::Type::Texture3D; break;
-	default: m_Type = DeviceResource::Type::Unknown; break;
+	case D3D12_RESOURCE_DIMENSION_TEXTURE1D: m_Type = Resource::Type::Texture1D; break;
+	case D3D12_RESOURCE_DIMENSION_TEXTURE2D: m_Type = Resource::Type::Texture2D; break;
+	case D3D12_RESOURCE_DIMENSION_TEXTURE3D: m_Type = Resource::Type::Texture3D; break;
+	default: m_Type = Resource::Type::Unknown; break;
 	}
 	m_BindFlags = {};
 	m_NumSubresources = IsArray ? ResourceDesc.DepthOrArraySize * ResourceDesc.MipLevels : ResourceDesc.MipLevels;
@@ -31,7 +31,7 @@ DeviceResource::DeviceResource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID
 	m_HeapOffset = 0;
 }
 
-DeviceResource::DeviceResource(const Device* pDevice, DeviceResourceProxy& Proxy)
+Resource::Resource(const Device* pDevice, DeviceResourceProxy& Proxy)
 {
 	Proxy.Link();
 
@@ -58,7 +58,7 @@ DeviceResource::DeviceResource(const Device* pDevice, DeviceResourceProxy& Proxy
 		IID_PPV_ARGS(&m_pResource)));
 }
 
-DeviceResource::DeviceResource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceResourceProxy& Proxy)
+Resource::Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceResourceProxy& Proxy)
 {
 	Proxy.Link();
 
@@ -81,7 +81,7 @@ DeviceResource::DeviceResource(const Device* pDevice, const Heap* pHeap, UINT64 
 	}
 
 	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreatePlacedResource(
-		pHeap->GetD3DHeap(),
+		pHeap->GetApiHandle(),
 		HeapOffset,
 		&ResourceDesc,
 		ResourceStates,
@@ -89,64 +89,64 @@ DeviceResource::DeviceResource(const Device* pDevice, const Heap* pHeap, UINT64 
 		IID_PPV_ARGS(&m_pResource)));
 }
 
-DeviceResource::~DeviceResource()
+Resource::~Resource()
 {
 }
 
-D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(DeviceResource::Type Type)
+D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type)
 {
 	switch (Type)
 	{
-	case DeviceResource::Type::Buffer:	return D3D12_RESOURCE_DIMENSION_BUFFER;
-	case DeviceResource::Type::Texture1D: return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
-	case DeviceResource::Type::Texture2D: return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	case DeviceResource::Type::Texture3D: return D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+	case Resource::Type::Buffer:	return D3D12_RESOURCE_DIMENSION_BUFFER;
+	case Resource::Type::Texture1D: return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+	case Resource::Type::Texture2D: return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	case Resource::Type::Texture3D: return D3D12_RESOURCE_DIMENSION_TEXTURE3D;
 	default:						return D3D12_RESOURCE_DIMENSION_UNKNOWN;
 	}
 }
 
-D3D12_RESOURCE_FLAGS GetD3DResourceFlags(DeviceResource::BindFlags Flags)
+D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::BindFlags Flags)
 {
 	D3D12_RESOURCE_FLAGS ResourceFlags = D3D12_RESOURCE_FLAG_NONE;
 
-	if (EnumMaskBitSet(Flags, DeviceResource::BindFlags::RenderTarget)) ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	if (EnumMaskBitSet(Flags, DeviceResource::BindFlags::DepthStencil)) ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-	if (EnumMaskBitSet(Flags, DeviceResource::BindFlags::UnorderedAccess) ||
-		EnumMaskBitSet(Flags, DeviceResource::BindFlags::AccelerationStructure)) // Acceleration structure must have UAV access
+	if (EnumMaskBitSet(Flags, Resource::BindFlags::RenderTarget)) ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	if (EnumMaskBitSet(Flags, Resource::BindFlags::DepthStencil)) ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	if (EnumMaskBitSet(Flags, Resource::BindFlags::UnorderedAccess) ||
+		EnumMaskBitSet(Flags, Resource::BindFlags::AccelerationStructure)) // Acceleration structure must have UAV access
 		ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
 	return ResourceFlags;
 }
 
-D3D12_RESOURCE_STATES GetD3DResourceStates(DeviceResource::State State)
+D3D12_RESOURCE_STATES GetD3DResourceStates(Resource::State State)
 {
 	D3D12_RESOURCE_STATES ResourceStates = D3D12_RESOURCE_STATE_COMMON;
-	if (EnumMaskBitSet(State, DeviceResource::State::Unknown) ||
-		EnumMaskBitSet(State, DeviceResource::State::Common))
+	if (EnumMaskBitSet(State, Resource::State::Unknown) ||
+		EnumMaskBitSet(State, Resource::State::Common))
 		ResourceStates |= D3D12_RESOURCE_STATE_COMMON;
 
-	if (EnumMaskBitSet(State, DeviceResource::State::VertexBuffer) ||
-		EnumMaskBitSet(State, DeviceResource::State::ConstantBuffer))
+	if (EnumMaskBitSet(State, Resource::State::VertexBuffer) ||
+		EnumMaskBitSet(State, Resource::State::ConstantBuffer))
 		ResourceStates |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 
-	if (EnumMaskBitSet(State, DeviceResource::State::IndexBuffer))				ResourceStates |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
-	if (EnumMaskBitSet(State, DeviceResource::State::RenderTarget))				ResourceStates |= D3D12_RESOURCE_STATE_RENDER_TARGET;
-	if (EnumMaskBitSet(State, DeviceResource::State::UnorderedAccess))			ResourceStates |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	if (EnumMaskBitSet(State, DeviceResource::State::DepthWrite))				ResourceStates |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	if (EnumMaskBitSet(State, DeviceResource::State::DepthRead))				ResourceStates |= D3D12_RESOURCE_STATE_DEPTH_READ;
-	if (EnumMaskBitSet(State, DeviceResource::State::NonPixelShaderResource))	ResourceStates |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	if (EnumMaskBitSet(State, DeviceResource::State::PixelShaderResource))		ResourceStates |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	if (EnumMaskBitSet(State, DeviceResource::State::StreamOut))				ResourceStates |= D3D12_RESOURCE_STATE_STREAM_OUT;
-	if (EnumMaskBitSet(State, DeviceResource::State::IndirectArgument))			ResourceStates |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-	if (EnumMaskBitSet(State, DeviceResource::State::CopyDest))					ResourceStates |= D3D12_RESOURCE_STATE_COPY_DEST;
-	if (EnumMaskBitSet(State, DeviceResource::State::CopySource))				ResourceStates |= D3D12_RESOURCE_STATE_COPY_SOURCE;
-	if (EnumMaskBitSet(State, DeviceResource::State::ResolveDest))				ResourceStates |= D3D12_RESOURCE_STATE_RESOLVE_DEST;
-	if (EnumMaskBitSet(State, DeviceResource::State::ResolveSource))			ResourceStates |= D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-	if (EnumMaskBitSet(State, DeviceResource::State::AccelerationStructure))	ResourceStates |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-	if (EnumMaskBitSet(State, DeviceResource::State::ShadingRateSource))		ResourceStates |= D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
-	if (EnumMaskBitSet(State, DeviceResource::State::GenericRead))				ResourceStates |= D3D12_RESOURCE_STATE_GENERIC_READ;
-	if (EnumMaskBitSet(State, DeviceResource::State::Present))					ResourceStates |= D3D12_RESOURCE_STATE_PRESENT;
-	if (EnumMaskBitSet(State, DeviceResource::State::Predication))				ResourceStates |= D3D12_RESOURCE_STATE_PREDICATION;
+	if (EnumMaskBitSet(State, Resource::State::IndexBuffer))				ResourceStates |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+	if (EnumMaskBitSet(State, Resource::State::RenderTarget))				ResourceStates |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+	if (EnumMaskBitSet(State, Resource::State::UnorderedAccess))			ResourceStates |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	if (EnumMaskBitSet(State, Resource::State::DepthWrite))				ResourceStates |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	if (EnumMaskBitSet(State, Resource::State::DepthRead))				ResourceStates |= D3D12_RESOURCE_STATE_DEPTH_READ;
+	if (EnumMaskBitSet(State, Resource::State::NonPixelShaderResource))	ResourceStates |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	if (EnumMaskBitSet(State, Resource::State::PixelShaderResource))		ResourceStates |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	if (EnumMaskBitSet(State, Resource::State::StreamOut))				ResourceStates |= D3D12_RESOURCE_STATE_STREAM_OUT;
+	if (EnumMaskBitSet(State, Resource::State::IndirectArgument))			ResourceStates |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+	if (EnumMaskBitSet(State, Resource::State::CopyDest))					ResourceStates |= D3D12_RESOURCE_STATE_COPY_DEST;
+	if (EnumMaskBitSet(State, Resource::State::CopySource))				ResourceStates |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+	if (EnumMaskBitSet(State, Resource::State::ResolveDest))				ResourceStates |= D3D12_RESOURCE_STATE_RESOLVE_DEST;
+	if (EnumMaskBitSet(State, Resource::State::ResolveSource))			ResourceStates |= D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+	if (EnumMaskBitSet(State, Resource::State::AccelerationStructure))	ResourceStates |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+	if (EnumMaskBitSet(State, Resource::State::ShadingRateSource))		ResourceStates |= D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
+	if (EnumMaskBitSet(State, Resource::State::GenericRead))				ResourceStates |= D3D12_RESOURCE_STATE_GENERIC_READ;
+	if (EnumMaskBitSet(State, Resource::State::Present))					ResourceStates |= D3D12_RESOURCE_STATE_PRESENT;
+	if (EnumMaskBitSet(State, Resource::State::Predication))				ResourceStates |= D3D12_RESOURCE_STATE_PREDICATION;
 
 	return ResourceStates;
 }

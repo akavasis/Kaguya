@@ -12,14 +12,27 @@ constexpr size_t NumTonemapRootConstants = 1 + sizeof(PostProcess::GranTurismoOp
 
 PostProcess::PostProcess(UINT Width, UINT Height)
 	: RenderPass("Post Process",
-		{ Width, Height, RendererFormats::HDRBufferFormat })
+		{ Width, Height, RendererFormats::HDRBufferFormat },
+		NumResources)
 {
 	ExplicitResourceTransition = true;
 }
 
 void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	RootSignatures::PostProcess_Tonemapping = pRenderDevice->CreateRootSignature([&](RootSignatureProxy& proxy)
+	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
+	Resources[BloomRenderTarget1a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget1a");
+	Resources[BloomRenderTarget1b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget1b");
+	Resources[BloomRenderTarget2a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget2a");
+	Resources[BloomRenderTarget2b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget2b");
+	Resources[BloomRenderTarget3a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget3a");
+	Resources[BloomRenderTarget3b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget3b");
+	Resources[BloomRenderTarget4a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget4a");
+	Resources[BloomRenderTarget4b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget4b");
+	Resources[BloomRenderTarget5a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget5a");
+	Resources[BloomRenderTarget5b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget5b");
+
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_Tonemapping, [&](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, NumTonemapRootConstants)); // Settings b0 | space0
 
@@ -27,7 +40,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	RootSignatures::PostProcess_BloomMask = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomMask, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 5));
 
@@ -37,7 +50,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	RootSignatures::PostProcess_BloomDownsample = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomDownsample, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 7));
 
@@ -47,7 +60,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	RootSignatures::PostProcess_BloomBlur = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomBlur, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 4));
 
@@ -56,7 +69,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	RootSignatures::PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
 
@@ -66,7 +79,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	RootSignatures::PostProcess_BloomComposition = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomComposition, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
 
@@ -76,7 +89,7 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	GraphicsPSOs::PostProcess_Tonemapping = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
+	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::PostProcess_Tonemapping, [=](GraphicsPipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemapping);
 		proxy.pVS = &Shaders::VS::Quad;
@@ -86,31 +99,31 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddRenderTargetFormat(RenderDevice::SwapChainBufferFormat);
 	});
 
-	ComputePSOs::PostProcess_BloomMask = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomMask, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomMask);
 		proxy.pCS = &Shaders::CS::PostProcess_BloomMask;
 	});
 
-	ComputePSOs::PostProcess_BloomDownsample = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomDownsample, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomDownsample);
 		proxy.pCS = &Shaders::CS::PostProcess_BloomDownsample;
 	});
 
-	ComputePSOs::PostProcess_BloomBlur = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomBlur, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomBlur);
 		proxy.pCS = &Shaders::CS::PostProcess_BloomBlur;
 	});
 
-	ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation);
 		proxy.pCS = &Shaders::CS::PostProcess_BloomUpsampleBlurAccumulation;
 	});
 
-	ComputePSOs::PostProcess_BloomComposition = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomComposition, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomComposition);
 		proxy.pCS = &Shaders::CS::PostProcess_BloomComposition;
@@ -119,35 +132,35 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 
 void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
-	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-		proxy.InitialState = DeviceResource::State::UnorderedAccess;
+		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 
 	UINT denominatorIndex = 0;
 	const UINT denominators[EResources::NumResources / 2] = { 1, 2, 4, 8, 16 };
 	for (size_t i = 1; i < EResources::NumResources; i += 2, denominatorIndex++)
 	{
-		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
 			proxy.SetHeight(Properties.Height / denominators[denominatorIndex]);
-			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-			proxy.InitialState = DeviceResource::State::UnorderedAccess;
+			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 
-		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
 			proxy.SetHeight(Properties.Height / denominators[denominatorIndex]);
-			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-			proxy.InitialState = DeviceResource::State::UnorderedAccess;
+			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
 }
@@ -221,14 +234,14 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		data.InputIndex = InputSRV.HeapIndex;
 		data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
 
-		RenderContext->TransitionBarrier(pOutput, DeviceResource::State::UnorderedAccess);
+		RenderContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomMask);
 		RenderContext.SetRoot32BitConstants(0, 5, &data, 0);
 
 		RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
 
-		RenderContext->TransitionBarrier(pOutput, DeviceResource::State::NonPixelShaderResource);
+		RenderContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 	}
 
 	// Bloom Downsample
@@ -254,20 +267,20 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		data.Output3Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget4a]).HeapIndex;
 		data.Output4Index = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget5a]).HeapIndex;
 
-		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget2a], DeviceResource::State::UnorderedAccess);
-		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget3a], DeviceResource::State::UnorderedAccess);
-		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget4a], DeviceResource::State::UnorderedAccess);
-		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget5a], DeviceResource::State::UnorderedAccess);
+		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget2a], Resource::State::UnorderedAccess);
+		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget3a], Resource::State::UnorderedAccess);
+		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget4a], Resource::State::UnorderedAccess);
+		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget5a], Resource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomDownsample);
 		RenderContext.SetRoot32BitConstants(0, 7, &data, 0);
 
 		RenderContext->Dispatch2D(Properties.Width / 2, Properties.Height / 2, 8, 8);
 
-		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget2a], DeviceResource::State::NonPixelShaderResource);
-		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget3a], DeviceResource::State::NonPixelShaderResource);
-		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget4a], DeviceResource::State::NonPixelShaderResource);
-		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget5a], DeviceResource::State::NonPixelShaderResource);
+		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget2a], Resource::State::NonPixelShaderResource);
+		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget3a], Resource::State::NonPixelShaderResource);
+		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget4a], Resource::State::NonPixelShaderResource);
+		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget5a], Resource::State::NonPixelShaderResource);
 	}
 
 	// Upsample Blur Accumulation
@@ -301,14 +314,14 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		data.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1b]).HeapIndex;
 		data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 
-		RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::UnorderedAccess);
+		RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomComposition);
 		RenderContext.SetRoot32BitConstants(0, 6, &data, 0);
 
 		RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
-		RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], DeviceResource::State::PixelShaderResource);
+		RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::PixelShaderResource);
 	}
 }
 
@@ -317,7 +330,7 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 	auto pDestination = RenderContext.GetTexture(RenderContext.GetCurrentSwapChainResourceHandle());
 	auto DestinationRTV = RenderContext.GetRenderTargetView(RenderContext.GetCurrentSwapChainResourceHandle());
 
-	RenderContext->TransitionBarrier(pDestination, DeviceResource::State::RenderTarget);
+	RenderContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
 	{
 		D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, pDestination->GetWidth(), pDestination->GetHeight());
 		D3D12_RECT		sr = CD3DX12_RECT(0, 0, pDestination->GetWidth(), pDestination->GetHeight());
@@ -366,7 +379,7 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), RenderContext->GetD3DCommandList());
 		}
 	}
-	RenderContext->TransitionBarrier(pDestination, DeviceResource::State::Present);
+	RenderContext->TransitionBarrier(pDestination, Resource::State::Present);
 }
 
 void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext)
@@ -385,15 +398,15 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 	data.InputIndex = RenderContext.GetShaderResourceView(Resources[Input]).HeapIndex;
 	data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
 
-	RenderContext.TransitionBarrier(Resources[Input], DeviceResource::State::NonPixelShaderResource);
-	RenderContext.TransitionBarrier(Resources[Output], DeviceResource::State::UnorderedAccess);
+	RenderContext.TransitionBarrier(Resources[Input], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[Output], Resource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomBlur);
 	RenderContext.SetRoot32BitConstants(0, 4, &data, 0);
 
 	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
-	RenderContext.TransitionBarrier(Resources[Output], DeviceResource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[Output], Resource::State::NonPixelShaderResource);
 }
 
 void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowResolution, size_t Output, RenderContext& RenderContext)
@@ -416,14 +429,14 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 	data.LowResolutionIndex = RenderContext.GetShaderResourceView(Resources[LowResolution]).HeapIndex;
 	data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
 
-	RenderContext.TransitionBarrier(Resources[HighResolution], DeviceResource::State::NonPixelShaderResource);
-	RenderContext.TransitionBarrier(Resources[LowResolution], DeviceResource::State::NonPixelShaderResource);
-	RenderContext.TransitionBarrier(Resources[Output], DeviceResource::State::UnorderedAccess);
+	RenderContext.TransitionBarrier(Resources[HighResolution], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[LowResolution], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[Output], Resource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation);
 	RenderContext.SetRoot32BitConstants(0, 6, &data, 0);
 
 	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
 
-	RenderContext.TransitionBarrier(Resources[Output], DeviceResource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[Output], Resource::State::NonPixelShaderResource);
 }

@@ -9,8 +9,8 @@ class RenderContext
 public:
 	RenderContext() = default;
 	RenderContext(size_t RenderPassIndex,
-		DeviceBuffer* pSystemConstants,
-		DeviceBuffer* pGpuData,
+		Buffer* pSystemConstants,
+		Buffer* pGpuData,
 		RenderDevice* pRenderDevice,
 		CommandContext* pCommandContext)
 		: SV_RenderPassIndex(RenderPassIndex),
@@ -61,7 +61,7 @@ public:
 
 	void CopyResource(RenderResourceHandle Dst, RenderResourceHandle Src);
 
-	void TransitionBarrier(RenderResourceHandle ResourceHandle, DeviceResource::State TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	void TransitionBarrier(RenderResourceHandle ResourceHandle, Resource::State TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 	void AliasingBarrier(RenderResourceHandle BeforeResourceHandle, RenderResourceHandle AfterResourceHandle);
 	void UAVBarrier(RenderResourceHandle ResourceHandle);
 
@@ -92,8 +92,8 @@ private:
 
 	// SV have the same notion as Shader's SV, it is provided by the RenderGraph
 	size_t					SV_RenderPassIndex		= 0;
-	DeviceBuffer*			SV_pSystemConstants		= nullptr;
-	DeviceBuffer*			SV_pGpuData				= nullptr;
+	Buffer*			SV_pSystemConstants		= nullptr;
+	Buffer*			SV_pGpuData				= nullptr;
 	RenderDevice*			SV_pRenderDevice		= nullptr;
 	CommandContext*			SV_pCommandContext		= nullptr;
 

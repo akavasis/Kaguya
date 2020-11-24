@@ -11,6 +11,12 @@ PipelineState::PipelineState(PipelineStateProxy& Proxy)
 	pRootSignature = Proxy.pRootSignature;
 }
 
+PipelineState::PipelineState(const Device* pDevice, PipelineStateProxy& Proxy)
+{
+	D3D12_PIPELINE_STATE_STREAM_DESC Desc = Proxy.BuildD3DDesc();
+	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreatePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+}
+
 GraphicsPipelineState::GraphicsPipelineState(const Device* pDevice, GraphicsPipelineStateProxy& Proxy)
 	: PipelineState(Proxy)
 {

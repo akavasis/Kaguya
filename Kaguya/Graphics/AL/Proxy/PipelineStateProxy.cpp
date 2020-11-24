@@ -14,7 +14,11 @@ void PipelineStateProxy::Link()
 	assert(pRootSignature != nullptr);
 }
 
-//
+D3D12_PIPELINE_STATE_STREAM_DESC PipelineStateProxy::BuildD3DDesc()
+{
+	return D3D12_PIPELINE_STATE_STREAM_DESC();
+}
+
 GraphicsPipelineStateProxy::GraphicsPipelineStateProxy()
 	: PipelineStateProxy(PipelineState::Type::Graphics)
 {
@@ -64,7 +68,7 @@ void GraphicsPipelineStateProxy::Link()
 D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateProxy::BuildD3DDesc()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-	desc.pRootSignature = pRootSignature->GetD3DRootSignature();
+	desc.pRootSignature = pRootSignature->GetApiHandle();
 	if (pVS) desc.VS = pVS->GetD3DShaderBytecode();
 	if (pPS) desc.PS = pPS->GetD3DShaderBytecode();
 	if (pDS) desc.DS = pDS->GetD3DShaderBytecode();
@@ -89,7 +93,6 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateProxy::BuildD3DDesc()
 	return desc;
 }
 
-//
 ComputePipelineStateProxy::ComputePipelineStateProxy()
 	: PipelineStateProxy(PipelineState::Type::Compute)
 {
@@ -106,7 +109,7 @@ void ComputePipelineStateProxy::Link()
 D3D12_COMPUTE_PIPELINE_STATE_DESC ComputePipelineStateProxy::BuildD3DDesc()
 {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
-	desc.pRootSignature = pRootSignature->GetD3DRootSignature();
+	desc.pRootSignature = pRootSignature->GetApiHandle();
 	desc.CS = pCS->GetD3DShaderBytecode();
 	desc.NodeMask = 0;
 	desc.CachedPSO = {};

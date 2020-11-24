@@ -276,41 +276,41 @@ CBSRUADescriptorHeap::CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptor
 {
 }
 
-UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, DeviceBuffer* pBuffer)
+UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Buffer* pBuffer)
 {
 	Descriptor DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = GetShaderResourceViewDesc(pBuffer);
-	if (EnumMaskBitSet(pBuffer->GetBindFlags(), DeviceResource::BindFlags::AccelerationStructure))
+	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::BindFlags::AccelerationStructure))
 	{
 		m_pDevice->GetD3DDevice()->CreateShaderResourceView(nullptr, &desc, DestDescriptor.CPUHandle);
 	}
 	else
 	{
-		m_pDevice->GetD3DDevice()->CreateShaderResourceView(pBuffer->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+		m_pDevice->GetD3DDevice()->CreateShaderResourceView(pBuffer->GetApiHandle(), &desc, DestDescriptor.CPUHandle);
 	}
 	return GetHashValue(desc);
 }
 
-UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, DeviceTexture* pTexture, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
+UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Texture* pTexture, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
 {
 	Descriptor DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = GetShaderResourceViewDesc(pTexture, MostDetailedMip, MipLevels);
-	m_pDevice->GetD3DDevice()->CreateShaderResourceView(pTexture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+	m_pDevice->GetD3DDevice()->CreateShaderResourceView(pTexture->GetApiHandle(), &desc, DestDescriptor.CPUHandle);
 	return GetHashValue(desc);
 }
 
-UINT64 CBSRUADescriptorHeap::AssignUADescriptor(UINT HeapIndex, DeviceTexture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
+UINT64 CBSRUADescriptorHeap::AssignUADescriptor(UINT HeapIndex, Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
 	Descriptor DestDescriptor = GetDescriptorAt(UnorderedAccess, HeapIndex);
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = GetUnorderedAccessViewDesc(pTexture, ArraySlice, MipSlice);
-	m_pDevice->GetD3DDevice()->CreateUnorderedAccessView(pTexture->GetD3DResource(), nullptr, &desc, DestDescriptor.CPUHandle);
+	m_pDevice->GetD3DDevice()->CreateUnorderedAccessView(pTexture->GetApiHandle(), nullptr, &desc, DestDescriptor.CPUHandle);
 	return GetHashValue(desc);
 }
 
-D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(DeviceBuffer* pBuffer)
+D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(Buffer* pBuffer)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-	if (EnumMaskBitSet(pBuffer->GetBindFlags(), DeviceResource::BindFlags::AccelerationStructure))
+	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::BindFlags::AccelerationStructure))
 	{
 		desc.Format = DXGI_FORMAT_UNKNOWN;
 		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -330,7 +330,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 	return desc;
 }
 
-D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(DeviceTexture* pTexture, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
+D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(Texture* pTexture, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	UINT mostDetailedMip = MostDetailedMip.value_or(0);
@@ -353,7 +353,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	switch (pTexture->GetType())
 	{
-	case DeviceResource::Type::Texture1D:
+	case Resource::Type::Texture1D:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
@@ -374,7 +374,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 	}
 	break;
 
-	case DeviceResource::Type::Texture2D:
+	case Resource::Type::Texture2D:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
@@ -396,7 +396,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 	}
 	break;
 
-	case DeviceResource::Type::Texture3D:
+	case Resource::Type::Texture3D:
 	{
 		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
 		desc.Texture3D.MostDetailedMip = mostDetailedMip;
@@ -405,7 +405,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 	}
 	break;
 
-	case DeviceResource::Type::TextureCube:
+	case Resource::Type::TextureCube:
 	{
 		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 		desc.TextureCube.MostDetailedMip = mostDetailedMip;
@@ -417,7 +417,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 	return desc;
 }
 
-D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDesc(DeviceTexture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
+D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
 	UINT arraySlice = ArraySlice.value_or(0);
@@ -427,7 +427,7 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDes
 	// TODO: Add buffer support
 	switch (pTexture->GetType())
 	{
-	case DeviceResource::Type::Texture1D:
+	case Resource::Type::Texture1D:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
@@ -444,8 +444,8 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDes
 	}
 	break;
 
-	case DeviceResource::Type::Texture2D: [[fallthrough]];
-	case DeviceResource::Type::TextureCube:
+	case Resource::Type::Texture2D: [[fallthrough]];
+	case Resource::Type::TextureCube:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
@@ -464,7 +464,7 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDes
 	}
 	break;
 
-	case DeviceResource::Type::Texture3D:
+	case Resource::Type::Texture3D:
 	{
 		desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 		desc.Texture3D.MipSlice = mipSlice;
@@ -498,7 +498,7 @@ RenderTargetDescriptorHeap::RenderTargetDescriptorHeap(Device* pDevice, UINT Num
 {
 }
 
-D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDesc(DeviceTexture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
 	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
 	UINT arraySlice = ArraySlice.value_or(0);
@@ -510,7 +510,7 @@ D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDes
 	// TODO: Add buffer support and MS support
 	switch (pTexture->GetType())
 	{
-	case DeviceResource::Type::Texture1D:
+	case Resource::Type::Texture1D:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
@@ -527,8 +527,8 @@ D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDes
 	}
 	break;
 
-	case DeviceResource::Type::Texture2D: [[fallthrough]];
-	case DeviceResource::Type::TextureCube:
+	case Resource::Type::Texture2D: [[fallthrough]];
+	case Resource::Type::TextureCube:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
@@ -547,7 +547,7 @@ D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDes
 	}
 	break;
 
-	case DeviceResource::Type::Texture3D:
+	case Resource::Type::Texture3D:
 	{
 		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
 		desc.Texture3D.MipSlice = mipSlice;
@@ -564,10 +564,10 @@ UINT64 RenderTargetDescriptorHeap::GetHashValue(const D3D12_RENDER_TARGET_VIEW_D
 	return std::hash<D3D12_RENDER_TARGET_VIEW_DESC>{}(Desc);
 }
 
-void RenderTargetDescriptorHeap::Entry::operator=(DeviceTexture* pTexture)
+void RenderTargetDescriptorHeap::Entry::operator=(Texture* pTexture)
 {
 	D3D12_RENDER_TARGET_VIEW_DESC desc = RenderTargetDescriptorHeap::GetRenderTargetViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
-	pDevice->GetD3DDevice()->CreateRenderTargetView(pTexture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+	pDevice->GetD3DDevice()->CreateRenderTargetView(pTexture->GetApiHandle(), &desc, DestDescriptor.CPUHandle);
 	HashValue = RenderTargetDescriptorHeap::GetHashValue(desc);
 }
 
@@ -577,7 +577,7 @@ DepthStencilDescriptorHeap::DepthStencilDescriptorHeap(Device* pDevice, UINT Num
 {
 }
 
-D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDesc(DeviceTexture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
+D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
 	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
 	UINT arraySlice = ArraySlice.value_or(0);
@@ -601,7 +601,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	// TODO: Add support and MS support
 	switch (pTexture->GetType())
 	{
-	case DeviceResource::Type::Texture1D:
+	case Resource::Type::Texture1D:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
@@ -618,8 +618,8 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	}
 	break;
 
-	case DeviceResource::Type::Texture2D: [[fallthrough]];
-	case DeviceResource::Type::TextureCube:
+	case Resource::Type::Texture2D: [[fallthrough]];
+	case Resource::Type::TextureCube:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
@@ -636,7 +636,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	}
 	break;
 
-	case DeviceResource::Type::Texture3D:
+	case Resource::Type::Texture3D:
 	{
 		throw std::logic_error("Cannot create DSV for Texture3D resource type");
 	}
@@ -650,9 +650,9 @@ UINT64 DepthStencilDescriptorHeap::GetHashValue(const D3D12_DEPTH_STENCIL_VIEW_D
 	return std::hash<D3D12_DEPTH_STENCIL_VIEW_DESC>{}(Desc);
 }
 
-void DepthStencilDescriptorHeap::Entry::operator=(DeviceTexture* pTexture)
+void DepthStencilDescriptorHeap::Entry::operator=(Texture* pTexture)
 {
 	D3D12_DEPTH_STENCIL_VIEW_DESC desc = DepthStencilDescriptorHeap::GetDepthStencilViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
-	pDevice->GetD3DDevice()->CreateDepthStencilView(pTexture->GetD3DResource(), &desc, DestDescriptor.CPUHandle);
+	pDevice->GetD3DDevice()->CreateDepthStencilView(pTexture->GetApiHandle(), &desc, DestDescriptor.CPUHandle);
 	HashValue = DepthStencilDescriptorHeap::GetHashValue(desc);
 }

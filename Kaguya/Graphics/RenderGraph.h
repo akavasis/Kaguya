@@ -17,7 +17,7 @@ class RenderGraph;
 class ResourceScheduler
 {
 public:
-	void AllocateTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator);
+	void AllocateTexture(Resource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator);
 
 	void Read(RenderResourceHandle Resource);
 
@@ -59,8 +59,8 @@ private:
 		RenderPass*		pRenderPass;
 		RenderDevice*	pRenderDevice;
 		CommandContext* pCommandContext;
-		DeviceBuffer*	pSystemConstants;
-		DeviceBuffer*	pGpuData;
+		Buffer*	pSystemConstants;
+		Buffer*	pGpuData;
 	};
 
 	static DWORD WINAPI RenderPassThreadProc(_In_ PVOID pParameter);

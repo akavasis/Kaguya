@@ -21,6 +21,8 @@ protected:
 	void Link() override;
 
 	PipelineState::Type m_Type;				// Default value: set by ctor
+private:
+	D3D12_PIPELINE_STATE_STREAM_DESC BuildD3DDesc();
 };
 
 class GraphicsPipelineStateProxy : public PipelineStateProxy

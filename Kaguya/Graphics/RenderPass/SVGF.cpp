@@ -12,20 +12,32 @@
 //----------------------------------------------------------------------------------------------------
 SVGFReproject::SVGFReproject(UINT Width, UINT Height)
 	: RenderPass("Spatiotemporal Variance-Guided Filtering: Reproject",
-		{ Width, Height, RendererFormats::HDRBufferFormat })
+		{ Width, Height, DXGI_FORMAT_UNKNOWN },
+		NumResources)
 {
 
 }
 
 void SVGFReproject::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	RootSignatures::SVGF_Reproject = pRenderDevice->CreateRootSignature([&](RootSignatureProxy& proxy)
+	Resources[PrevRenderTarget0] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "PrevRenderTarget0");
+	Resources[PrevRenderTarget1] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "PrevRenderTarget1");
+	Resources[PrevMoments] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "PrevMoments");
+	Resources[PrevLinearZ] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "PrevLinearZ");
+	Resources[PrevHistoryLength] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "PrevHistoryLength");
+
+	Resources[RenderTarget0] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget0");
+	Resources[RenderTarget1] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget1");
+	Resources[Moments] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "Moments");
+	Resources[HistoryLength] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "HistoryLength");
+
+	pRenderDevice->CreateRootSignature(RootSignatures::SVGF_Reproject, [&](RootSignatureProxy& proxy)
 	{
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
-	ComputePSOs::SVGF_Reproject = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::SVGF_Reproject, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::SVGF_Reproject);
 		proxy.pCS = &Shaders::CS::SVGF_Reproject;
@@ -37,45 +49,45 @@ void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler, Rend
 	// PrevRenderTarget0, PrevRenderTarget1, PrevMoments, PrevLinearZ
 	for (size_t i = 0; i < 4; ++i)
 	{
-		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.InitialState = DeviceResource::State::CopyDest;
+			proxy.InitialState = Resource::State::CopyDest;
 		});
 	}
 
 	// PrevHistoryLength
-	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(DXGI_FORMAT_R16_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.InitialState = DeviceResource::State::CopyDest;
+		proxy.InitialState = Resource::State::CopyDest;
 	});
 
 	// RenderTarget0, RenderTarget1, Moments
 	for (size_t i = 0; i < 3; ++i)
 	{
-		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-			proxy.InitialState = DeviceResource::State::UnorderedAccess;
+			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
 
 	// HistoryLength
-	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(DXGI_FORMAT_R16_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-		proxy.InitialState = DeviceResource::State::UnorderedAccess;
+		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
 
@@ -93,11 +105,11 @@ void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGr
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"SVGF Reproject");
 
-	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget0], DeviceResource::State::NonPixelShaderResource);
-	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget1], DeviceResource::State::NonPixelShaderResource);
-	RenderContext.TransitionBarrier(Resources[EResources::PrevLinearZ], DeviceResource::State::NonPixelShaderResource);
-	RenderContext.TransitionBarrier(Resources[EResources::PrevMoments], DeviceResource::State::NonPixelShaderResource);
-	RenderContext.TransitionBarrier(Resources[EResources::PrevHistoryLength], DeviceResource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget0], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget1], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[EResources::PrevLinearZ], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[EResources::PrevMoments], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[EResources::PrevHistoryLength], Resource::State::NonPixelShaderResource);
 
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
@@ -171,20 +183,24 @@ void SVGFReproject::StateRefresh()
 //----------------------------------------------------------------------------------------------------
 SVGFFilterMoments::SVGFFilterMoments(UINT Width, UINT Height)
 	: RenderPass("Spatiotemporal Variance-Guided Filtering: Filter Moments",
-		{ Width, Height, RendererFormats::HDRBufferFormat })
+		{ Width, Height, DXGI_FORMAT_UNKNOWN },
+		NumResources)
 {
 
 }
 
 void SVGFFilterMoments::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	RootSignatures::SVGF_FilterMoments = pRenderDevice->CreateRootSignature([&](RootSignatureProxy& proxy)
+	Resources[RenderTarget0] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget0");
+	Resources[RenderTarget1] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget1");
+
+	pRenderDevice->CreateRootSignature(RootSignatures::SVGF_FilterMoments, [&](RootSignatureProxy& proxy)
 	{
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
-	ComputePSOs::SVGF_FilterMoments = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::SVGF_FilterMoments, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::SVGF_FilterMoments);
 		proxy.pCS = &Shaders::CS::SVGF_FilterMoments;
@@ -196,13 +212,13 @@ void SVGFFilterMoments::ScheduleResource(ResourceScheduler* pResourceScheduler, 
 	// RenderTarget0, RenderTarget1
 	for (size_t i = 0; i < 2; ++i)
 	{
-		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-			proxy.InitialState = DeviceResource::State::UnorderedAccess;
+			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
 }
@@ -271,20 +287,24 @@ void SVGFFilterMoments::StateRefresh()
 //----------------------------------------------------------------------------------------------------
 SVGFAtrous::SVGFAtrous(UINT Width, UINT Height)
 	: RenderPass("Spatiotemporal Variance-Guided Filtering: Atrous",
-		{ Width, Height, RendererFormats::HDRBufferFormat })
+		{ Width, Height, DXGI_FORMAT_UNKNOWN },
+		NumResources)
 {
 
 }
 
 void SVGFAtrous::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	RootSignatures::SVGF_Atrous = pRenderDevice->CreateRootSignature([&](RootSignatureProxy& proxy)
+	Resources[RenderTarget0] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget0");
+	Resources[RenderTarget1] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget1");
+
+	pRenderDevice->CreateRootSignature(RootSignatures::SVGF_Atrous, [&](RootSignatureProxy& proxy)
 	{
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
-	ComputePSOs::SVGF_Atrous = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::SVGF_Atrous, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::SVGF_Atrous);
 		proxy.pCS = &Shaders::CS::SVGF_Atrous;
@@ -296,13 +316,13 @@ void SVGFAtrous::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderG
 	// RenderTarget0, RenderTarget1
 	for (size_t i = 0; i < 2; ++i)
 	{
-		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-			proxy.InitialState = DeviceResource::State::UnorderedAccess;
+			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
 }

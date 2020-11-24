@@ -7,25 +7,25 @@ void RenderContext::CopyResource(RenderResourceHandle Dst, RenderResourceHandle 
 	assert(Dst.Type == Src.Type);
 	switch (Dst.Type)
 	{
-	case RenderResourceType::DeviceBuffer:
+	case RenderResourceType::Buffer:
 		SV_pCommandContext->CopyResource(SV_pRenderDevice->GetBuffer(Dst), SV_pRenderDevice->GetBuffer(Src));
 		break;
 
-	case RenderResourceType::DeviceTexture:
+	case RenderResourceType::Texture:
 		SV_pCommandContext->CopyResource(SV_pRenderDevice->GetTexture(Dst), SV_pRenderDevice->GetTexture(Src));
 		break;
 	}
 }
 
-void RenderContext::TransitionBarrier(RenderResourceHandle ResourceHandle, DeviceResource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
+void RenderContext::TransitionBarrier(RenderResourceHandle ResourceHandle, Resource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
 {
 	switch (ResourceHandle.Type)
 	{
-	case RenderResourceType::DeviceBuffer:
+	case RenderResourceType::Buffer:
 		SV_pCommandContext->TransitionBarrier(SV_pRenderDevice->GetBuffer(ResourceHandle), TransitionState, Subresource);
 		break;
 
-	case RenderResourceType::DeviceTexture:
+	case RenderResourceType::Texture:
 		SV_pCommandContext->TransitionBarrier(SV_pRenderDevice->GetTexture(ResourceHandle), TransitionState, Subresource);
 		break;
 	}
@@ -41,11 +41,11 @@ void RenderContext::UAVBarrier(RenderResourceHandle ResourceHandle)
 {
 	switch (ResourceHandle.Type)
 	{
-	case RenderResourceType::DeviceBuffer:
+	case RenderResourceType::Buffer:
 		SV_pCommandContext->UAVBarrier(SV_pRenderDevice->GetBuffer(ResourceHandle));
 		break;
 
-	case RenderResourceType::DeviceTexture:
+	case RenderResourceType::Texture:
 		SV_pCommandContext->UAVBarrier(SV_pRenderDevice->GetTexture(ResourceHandle));
 		break;
 	}
@@ -92,7 +92,7 @@ void RenderContext::SetRoot32BitConstants(UINT RootParameterIndex, UINT Num32Bit
 
 void RenderContext::SetRootShaderResourceView(UINT RootParameterIndex, RenderResourceHandle BufferHandle)
 {
-	assert(BufferHandle.Type == RenderResourceType::DeviceBuffer);
+	assert(BufferHandle.Type == RenderResourceType::Buffer);
 
 	auto pBuffer = SV_pRenderDevice->GetBuffer(BufferHandle);
 

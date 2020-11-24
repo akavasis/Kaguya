@@ -4,14 +4,14 @@
 class Device;
 class DeviceTextureProxy;
 
-class DeviceTexture : public DeviceResource
+class Texture : public Resource
 {
 public:
-	DeviceTexture() = default;
-	DeviceTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
-	DeviceTexture(const Device* pDevice, DeviceTextureProxy& Proxy);
-	DeviceTexture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceTextureProxy& Proxy);
-	~DeviceTexture() override;
+	Texture() = default;
+	Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
+	Texture(const Device* pDevice, DeviceTextureProxy& Proxy);
+	Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceTextureProxy& Proxy);
+	~Texture() override;
 
 	inline auto GetFormat() const { return m_Format; }
 	inline auto GetWidth() const { return m_Width; }

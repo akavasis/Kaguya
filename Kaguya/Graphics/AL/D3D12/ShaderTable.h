@@ -61,7 +61,7 @@ public:
 		*pShaderTableSizeInBytes = shaderTableSizeInBytes;
 	}
 
-	void Generate(DeviceBuffer* pShaderTableBuffer)
+	void Generate(Buffer* pShaderTableBuffer)
 	{
 		BYTE* pData = pShaderTableBuffer->Map();
 
@@ -124,7 +124,7 @@ public:
 		*pShaderTableSizeInBytes = shaderTableSizeInBytes;
 	}
 
-	void Generate(DeviceBuffer* pShaderTableBuffer)
+	void Generate(Buffer* pShaderTableBuffer)
 	{
 		BYTE* pData = pShaderTableBuffer->Map();
 

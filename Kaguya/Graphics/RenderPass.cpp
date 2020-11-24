@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "RenderPass.h"
 
-RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties)
+RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties, UINT NumResources)
 	: Enabled(true),
 	Refresh(false),
 	ExplicitResourceTransition(false),
 	UseRayTracing(false),
 	Name(std::move(Name)),
-	Properties(Properties)
+	Properties(Properties),
+	Resources(NumResources)
 {
 
 }

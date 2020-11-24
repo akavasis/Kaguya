@@ -5,7 +5,7 @@
 class RenderBuffer
 {
 public:
-	DeviceBuffer* pBuffer;
+	Buffer* pBuffer;
 	Descriptor ShaderResourceView;
 	Descriptor UnorderedAccessView;
 };

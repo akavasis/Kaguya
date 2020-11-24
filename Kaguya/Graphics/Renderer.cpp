@@ -43,6 +43,7 @@ bool Renderer::Initialize()
 		RootSignatures::Register(m_pRenderDevice);
 		GraphicsPSOs::Register(m_pRenderDevice);
 		ComputePSOs::Register(m_pRenderDevice);
+		RaytracingPSOs::Register(m_pRenderDevice);
 	}
 	catch (std::exception& e)
 	{
@@ -165,7 +166,7 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		// Release resources before resize swap chain
 		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
-			m_pRenderDevice->Destroy(&m_pRenderDevice->SwapChainTextures[i]);
+			m_pRenderDevice->Destroy(m_pRenderDevice->SwapChainTextures[i]);
 		}
 
 		// Resize backbuffer
@@ -184,7 +185,7 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-			m_pRenderDevice->SwapChainTextures[i] = m_pRenderDevice->CreateDeviceTexture(pBackBuffer, DeviceResource::State::Common);
+			m_pRenderDevice->CreateDeviceTexture(m_pRenderDevice->SwapChainTextures[i], pBackBuffer, Resource::State::Common);
 			m_pRenderDevice->CreateRenderTargetView(m_pRenderDevice->SwapChainTextures[i]);
 		}
 

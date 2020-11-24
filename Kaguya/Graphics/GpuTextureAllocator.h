@@ -24,7 +24,6 @@ public:
 	inline auto GetLTC_LUT_GGX_InverseMatrixTexture()			{ return m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]; }
 	inline auto GetLTC_LUT_GGX_TermsTexture()					{ return m_SystemReservedTextures[LTC_LUT_GGX_Terms]; }
 	inline auto GetBlueNoise()									{ return m_SystemReservedTextures[BlueNoise]; }
-	inline auto GetSkyboxTexture()								{ return m_SystemReservedTextures[SkyboxCubemap]; }
 
 	void StageSystemReservedTextures(RenderContext& RenderContext);
 	void Stage(Scene& Scene, RenderContext& RenderContext);
@@ -43,8 +42,6 @@ private:
 		LTC_LUT_GGX_InverseMatrix,
 		LTC_LUT_GGX_Terms,
 		BlueNoise,
-		SkyboxEquirectangularMap,
-		SkyboxCubemap,
 		NumSystemReservedTextures
 	};
 
@@ -56,7 +53,7 @@ private:
 	struct StagingTexture
 	{
 		std::string										Path;						// file path
-		DeviceTexture									Texture;					// gpu upload buffer
+		Texture									Texture;					// gpu upload buffer
 		std::size_t										NumSubresources;			// number of subresources
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts;	// footprint is synonymous to layout
 		std::size_t										MipLevels;					// indicates what mip levels this texture should have
@@ -67,10 +64,10 @@ private:
 	void LoadMaterial(Material& Material);
 	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext);
 	void GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
-	void GenerateMipsSRGB(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
-	void EquirectangularToCubemap(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
+	void GenerateMipsSRGB(const std::string& Name, RenderResourceHandle TextureHandle, RenderContext& RenderContext);
+	void EquirectangularToCubemap(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
 	void EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
-	void EquirectangularToCubemapSRGB(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
+	void EquirectangularToCubemapSRGB(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
 
 	bool IsUAVCompatable(DXGI_FORMAT Format);
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);

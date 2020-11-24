@@ -24,5 +24,5 @@ protected:
 	void Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph) override;
 	void StateRefresh() override;
 private:
-	Settings settings;
+	Settings Settings;
 };

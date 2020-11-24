@@ -5,8 +5,8 @@
 class DeviceTextureProxy : public DeviceResourceProxy
 {
 public:
-	friend class DeviceTexture;
-	DeviceTextureProxy(DeviceResource::Type Type);
+	friend class Texture;
+	DeviceTextureProxy(Resource::Type Type);
 
 	D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const override;
 	D3D12_RESOURCE_DESC BuildD3DDesc() const override;

@@ -11,20 +11,23 @@
 
 ShadingComposition::ShadingComposition(UINT Width, UINT Height)
 	: RenderPass("Shading Composition",
-		{ Width, Height, RendererFormats::HDRBufferFormat })
+		{ Width, Height, RendererFormats::HDRBufferFormat },
+		NumResources)
 {
 
 }
 
 void ShadingComposition::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	RootSignatures::ShadingComposition = pRenderDevice->CreateRootSignature([&](RootSignatureProxy& proxy)
+	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
+
+	pRenderDevice->CreateRootSignature(RootSignatures::ShadingComposition, [&](RootSignatureProxy& proxy)
 	{
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
-	ComputePSOs::ShadingComposition = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::ShadingComposition, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::ShadingComposition);
 		proxy.pCS = &Shaders::CS::ShadingComposition;
@@ -33,13 +36,13 @@ void ShadingComposition::InitializePipeline(RenderDevice* pRenderDevice)
 
 void ShadingComposition::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
-	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-		proxy.InitialState = DeviceResource::State::UnorderedAccess;
+		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
 

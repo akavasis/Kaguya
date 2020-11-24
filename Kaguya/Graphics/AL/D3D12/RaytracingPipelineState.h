@@ -46,7 +46,7 @@ public:
 	RaytracingPipelineState() = default;
 	RaytracingPipelineState(const Device* pDevice, RaytracingPipelineStateProxy& Proxy);
 
-	inline auto GetD3DPipelineState() const { return m_StateObject.Get(); }
+	inline auto GetApiHandle() const { return m_StateObject.Get(); }
 	inline auto GetD3DPipelineStateProperties() const { return m_StateObjectProperties.Get(); }
 
 	ShaderIdentifier GetShaderIdentifier(LPCWSTR pExportName);

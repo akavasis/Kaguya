@@ -32,7 +32,7 @@ public:
 	Heap() = default;
 	Heap(const Device* pDevice, HeapProxy& Proxy);
 
-	inline auto GetD3DHeap() const { return m_pHeap.Get(); }
+	inline auto GetApiHandle() const { return m_pHeap.Get(); }
 	inline auto GetSizeInBytes() const { return m_SizeInBytes; }
 	inline auto GetType() const { return m_Type; }
 	inline auto GetFlags() const { return m_Flags; }

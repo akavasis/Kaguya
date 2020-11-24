@@ -152,7 +152,7 @@ public:
 	RootSignature(const RootSignature&) = delete;
 	RootSignature& operator=(const RootSignature&) = delete;
 
-	inline auto GetD3DRootSignature() const { return m_RootSignature.Get(); }
+	inline auto GetApiHandle() const { return m_RootSignature.Get(); }
 	UINT NumParameters;
 	UINT NumStaticSamplers;
 private:

@@ -29,7 +29,7 @@ public:
 	inline auto GetMeshTable()					const { return m_MeshTable; }
 	inline auto GetVertexBufferHandle()			const { return m_VertexBuffer; }
 	inline auto GetIndexBufferHandle()			const { return m_IndexBuffer; }
-	inline auto GetRTTLASResourceHandle()		const { return m_TopLevelAccelerationStructure.Result; }
+	inline auto GetRTTLASResourceHandle()		const { return m_RaytracingTopLevelAccelerationStructure.Result; }
 
 	HLSL::Camera GetHLSLCamera() const;
 	HLSL::Camera GetHLSLPreviousCamera() const;
@@ -39,13 +39,21 @@ public:
 private:
 	void CreateBottomLevelAS(RenderContext& RenderContext);
 
+	struct RTTLAS
+	{
+		RenderResourceHandle Scratch;
+		RenderResourceHandle Result;
+		RenderResourceHandle InstanceDescs;
+	};
+
 	struct RTBLAS
 	{
-		RaytracingAccelerationStructureHandles Handles;
+		RenderResourceHandle Scratch;
+		RenderResourceHandle Result;
 		BottomLevelAccelerationStructure BLAS;
 	};
 
-	RenderDevice*			SV_pRenderDevice;
+	RenderDevice*			pRenderDevice;
 
 	RenderResourceHandle	m_LightTable;
 	RenderResourceHandle	m_MaterialTable;
@@ -58,5 +66,5 @@ private:
 	VariableSizedAllocator	m_IndexBufferAllocator;
 
 	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
-	RaytracingAccelerationStructureHandles m_TopLevelAccelerationStructure;
+	RTTLAS					m_RaytracingTopLevelAccelerationStructure;
 };

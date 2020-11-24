@@ -5,7 +5,7 @@
 class Device;
 class DeviceBufferProxy;
 
-class DeviceBuffer : public DeviceResource
+class Buffer : public Resource
 {
 public:
 	enum class CpuAccess
@@ -15,10 +15,10 @@ public:
 		Read	// The buffer can be mapped for CPU reads
 	};
 
-	DeviceBuffer() = default;
-	DeviceBuffer(const Device* pDevice, DeviceBufferProxy& Proxy);
-	DeviceBuffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceBufferProxy& Proxy);
-	~DeviceBuffer() override;
+	Buffer() = default;
+	Buffer(const Device* pDevice, DeviceBufferProxy& Proxy);
+	Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceBufferProxy& Proxy);
+	~Buffer() override;
 
 	inline auto GetStride() const { return m_Stride; }
 	inline auto GetCpuAccess() const { return m_CpuAccess; }

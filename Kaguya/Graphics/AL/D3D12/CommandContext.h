@@ -29,14 +29,14 @@ public:
 	void SetPipelineState(const PipelineState* pPipelineState);
 	void SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorHeap, SamplerDescriptorHeap* pSamplerDescriptorHeap);
 
-	void TransitionBarrier(DeviceResource* pResource, DeviceResource::State TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
-	void AliasingBarrier(DeviceResource* pBeforeResource, DeviceResource* pAfterResource);
-	void UAVBarrier(DeviceResource* pResource);
+	void TransitionBarrier(Resource* pResource, Resource::State TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	void AliasingBarrier(Resource* pBeforeResource, Resource* pAfterResource);
+	void UAVBarrier(Resource* pResource);
 	void FlushResourceBarriers();
 
-	void CopyBufferRegion(DeviceBuffer* pDstBuffer, UINT64 DstOffset, DeviceBuffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes);
+	void CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset, Buffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes);
 	void CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION* pDst, UINT DstX, UINT DstY, UINT DstZ, const D3D12_TEXTURE_COPY_LOCATION* pSrc, const D3D12_BOX* pSrcBox);
-	void CopyResource(DeviceResource* pDstResource, DeviceResource* pSrcResource);
+	void CopyResource(Resource* pDstResource, Resource* pSrcResource);
 
 	// Graphics operations
 	inline void SetGraphicsRootSignature(const RootSignature* pRootSignature);
@@ -80,7 +80,7 @@ public:
 
 	void SetRaytracingPipelineState(RaytracingPipelineState* pPipelineState)
 	{
-		m_pCommandList->SetPipelineState1(pPipelineState->GetD3DPipelineState());
+		m_pCommandList->SetPipelineState1(pPipelineState->GetApiHandle());
 	}
 
 	void DispatchRays(const D3D12_DISPATCH_RAYS_DESC* pDesc)

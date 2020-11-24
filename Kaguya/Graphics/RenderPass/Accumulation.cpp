@@ -12,20 +12,23 @@
 
 Accumulation::Accumulation(UINT Width, UINT Height)
 	: RenderPass("Accumulation",
-		{ Width, Height, RendererFormats::HDRBufferFormat })
+		{ Width, Height, RendererFormats::HDRBufferFormat },
+		NumResources)
 {
-
+	
 }
 
 void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	RootSignatures::Raytracing::Accumulation = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
+
+	pRenderDevice->CreateRootSignature(RootSignatures::Raytracing::Accumulation, [](RootSignatureProxy& proxy)
 	{
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
 	});
 
-	ComputePSOs::Accumulation = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::Accumulation, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Accumulation);
 		proxy.pCS = &Shaders::CS::Accumulation;
@@ -34,13 +37,13 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 
 void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
-	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-		proxy.InitialState = DeviceResource::State::UnorderedAccess;
+		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
 
@@ -75,7 +78,7 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 		uint RenderTarget;
 	} Data;
 
-	Data.AccumulationCount = settings.AccumulationCount++;
+	Data.AccumulationCount = Settings.AccumulationCount++;
 
 	Data.Input = InputSRV.HeapIndex;
 	Data.RenderTarget = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
@@ -87,5 +90,5 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 
 void Accumulation::StateRefresh()
 {
-	settings.AccumulationCount = 0;
+	Settings.AccumulationCount = 0;
 }

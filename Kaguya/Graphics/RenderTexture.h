@@ -6,7 +6,7 @@
 class RenderTexture
 {
 public:
-	DeviceTexture* pTexture;
+	Texture* pTexture;
 	std::unordered_map<UINT64, Descriptor> ShaderResourceViews;
 	std::unordered_map<UINT64, Descriptor> UnorderedAccessViews;
 	std::unordered_map<UINT64, Descriptor> RenderTargetViews;

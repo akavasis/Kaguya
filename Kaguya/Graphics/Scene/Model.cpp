@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Model.h"
+#include <string>
 using namespace DirectX;
 
 struct MeshData
@@ -91,13 +92,13 @@ void Subdivide(MeshData& meshData)
 
 Model CreateFromMeshData(MeshData& meshData)
 {
-	Model model{};
+	Model model = {};
 	DirectX::BoundingBox::CreateFromPoints(model.BoundingBox, meshData.Vertices.size(), &meshData.Vertices[0].Position, sizeof(Vertex));
 	model.Vertices = std::move(meshData.Vertices);
 	model.Indices = std::move(meshData.Indices);
 
 	// Create mesh
-	Mesh mesh{};
+	Mesh mesh = {};
 	mesh.BoundingBox = model.BoundingBox;
 	mesh.IndexCount = model.Indices.size();
 	mesh.StartIndexLocation = 0;
@@ -106,29 +107,6 @@ Model CreateFromMeshData(MeshData& meshData)
 
 	model.Meshes.push_back(std::move(mesh));
 	return model;
-}
-
-Model CreateTriangle()
-{
-	MeshData meshData;
-
-	Vertex v[3];
-	v[0].Position = XMFLOAT3(0.0f, 0.25f, 0.0f);
-	v[1].Position = XMFLOAT3(0.25f, -0.25f, 0.0f);
-	v[2].Position = XMFLOAT3(-0.25f, -0.25f, 0.0f);
-
-	v[0].Texture = XMFLOAT2(0.0f, 0.5f);
-	v[1].Texture = XMFLOAT2(1.0f, 1.0f);
-	v[2].Texture = XMFLOAT2(1.0f, 0.0f);
-
-	v[0].Normal = v[1].Normal = v[2].Normal = XMFLOAT3(0.0f, 0.0f, -1.0f);
-
-	meshData.Vertices.assign(&v[0], &v[2]);
-
-	uint32_t i[3] = { 0, 1, 2 };
-	meshData.Indices.assign(&i[0], &i[2]);
-
-	return CreateFromMeshData(meshData);
 }
 
 Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions)
@@ -211,7 +189,11 @@ Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions
 	for (uint32_t i = 0; i < NumSubdivisions; ++i)
 		Subdivide(meshData);
 
-	return CreateFromMeshData(meshData);
+	auto model = CreateFromMeshData(meshData);
+	static uint32_t BOX_ID = 0;
+	model.Path = "Box " + std::to_string(BOX_ID);
+	BOX_ID++;
+	return model;
 }
 
 Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
@@ -269,5 +251,9 @@ Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 		}
 	}
 
-	return CreateFromMeshData(meshData);
+	auto model = CreateFromMeshData(meshData);
+	static uint32_t GRID_ID = 0;
+	model.Path = "Grid " + std::to_string(GRID_ID);
+	GRID_ID++;
+	return model;
 }

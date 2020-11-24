@@ -1,16 +1,12 @@
 #pragma once
-#include "Core/Handle.h"
+#include <compare>
 #include "Core/Utility.h"
 
-#define RENDER_RESOURCE_HANDLE_TYPE_BIT_FIELD (size_t(4))
-#define RENDER_RESOURCE_HANDLE_FLAGS_BIT_FIELD (size_t(8))
-#define RENDER_RESOURCE_HANDLE_DATA_BIT_FIELD (size_t(52))
-
-enum class RenderResourceType : size_t
+enum class RenderResourceType : UINT64
 {
 	Unknown,
-	DeviceBuffer,
-	DeviceTexture,
+	Buffer,
+	Texture,
 	Heap,
 	RootSignature,
 	GraphicsPSO,
@@ -18,26 +14,30 @@ enum class RenderResourceType : size_t
 	RaytracingPSO
 };
 
-enum class RenderResourceFlags : size_t
+struct RenderResourceHandle
 {
-	Inactive	= 0,
-	Active		= 1 << 0,
-	Destroyed	= 1 << 1
+	RenderResourceHandle();
+
+	auto operator<=>(const RenderResourceHandle&) const = default;
+
+	operator bool() const;
+
+	RenderResourceType	Type	: 4ull;
+	UINT64				Data	: 60ull;
 };
 
-DECL_HANDLE(RenderResourceHandle, RenderResourceType, RENDER_RESOURCE_HANDLE_TYPE_BIT_FIELD, RenderResourceFlags, RENDER_RESOURCE_HANDLE_FLAGS_BIT_FIELD)
+static_assert(sizeof(RenderResourceHandle) == sizeof(UINT64));
 
 namespace std
 {
 	template<>
 	struct hash<RenderResourceHandle>
 	{
-		size_t operator()(const RenderResourceHandle& renderResourceHandle) const noexcept
+		size_t operator()(const RenderResourceHandle& RenderResourceHandle) const noexcept
 		{
 			std::size_t seed = 0;
-			hash_combine(seed, size_t(renderResourceHandle.Type));
-			hash_combine(seed, size_t(renderResourceHandle.Flags));
-			hash_combine(seed, size_t(renderResourceHandle.Data));
+			hash_combine(seed, size_t(RenderResourceHandle.Type));
+			hash_combine(seed, size_t(RenderResourceHandle.Data));
 			return seed;
 		}
 	};

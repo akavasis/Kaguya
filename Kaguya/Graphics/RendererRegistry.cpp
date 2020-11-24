@@ -2,6 +2,11 @@
 #include "RendererRegistry.h"
 #include <Core/Application.h>
 
+#define InitRootSignature(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::RootSignature, "Root Signature["#Handle"]")
+#define InitGraphicsPSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::GraphicsPSO, "Graphics PSO["#Handle"]")
+#define InitComputePSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::ComputePSO, "Compute PSO["#Handle"]")
+#define InitRaytracingPSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::RaytracingPSO, "Raytracing PSO["#Handle"]")
+
 void Shaders::Register(RenderDevice* pRenderDevice)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
@@ -56,10 +61,43 @@ void Libraries::Register(RenderDevice* pRenderDevice)
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
+	InitRootSignature(ConvolutionIrradiace);
+	InitRootSignature(ConvolutionPrefilter);
+	InitRootSignature(GenerateMips);
+	InitRootSignature(EquirectangularToCubemap);
+
+	InitRootSignature(Skybox);
+	InitRootSignature(GBufferMeshes);
+	InitRootSignature(GBufferLights);
+
+	InitRootSignature(SVGF_Reproject);
+	InitRootSignature(SVGF_FilterMoments);
+	InitRootSignature(SVGF_Atrous);
+
+	InitRootSignature(ShadingComposition);
+
+	InitRootSignature(PostProcess_Tonemapping);
+	InitRootSignature(PostProcess_BloomMask);
+	InitRootSignature(PostProcess_BloomDownsample);
+	InitRootSignature(PostProcess_BloomBlur);
+	InitRootSignature(PostProcess_BloomUpsampleBlurAccumulation);
+	InitRootSignature(PostProcess_BloomComposition);
+
+	InitRootSignature(Raytracing::Accumulation);
+	InitRootSignature(Raytracing::EmptyLocal);
+	InitRootSignature(Raytracing::Global);
+
 	// Cubemap convolutions RS
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
-		RenderResourceHandle rootSignatureHandle = pRenderDevice->CreateRootSignature([i](RootSignatureProxy& proxy)
+		RenderResourceHandle RootSignatureHandle;
+		switch (i)
+		{
+		case Irradiance: RootSignatureHandle = ConvolutionIrradiace; break;
+		case Prefilter:  RootSignatureHandle = ConvolutionPrefilter; break;
+		}
+
+		pRenderDevice->CreateRootSignature(RootSignatureHandle, [i](RootSignatureProxy& proxy)
 		{
 			UINT Num32BitValues = i == Irradiance ? sizeof(ConvolutionIrradianceSettings) / 4 : sizeof(ConvolutionPrefilterSettings) / 4;
 
@@ -74,16 +112,10 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 			proxy.DenyTessellationShaderAccess();
 			proxy.DenyGSAccess();
 		});
-
-		switch (i)
-		{
-		case Irradiance: ConvolutionIrradiace = rootSignatureHandle; break;
-		case Prefilter: ConvolutionPrefilter = rootSignatureHandle; break;
-		}
 	}
 
 	// Generate mips RS
-	GenerateMips = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(GenerateMips, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<GenerateMipsData>(0, 0));
 
@@ -95,7 +127,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	});
 
 	// Equirectangular to cubemap RS
-	EquirectangularToCubemap = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(EquirectangularToCubemap, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<EquirectangularToCubemapData>(0, 0));
 
@@ -106,7 +138,7 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	Skybox = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(Skybox, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(1, 0, 1));				// RootConstants			b1 | space0
 		proxy.AddRootSRVParameter(RootSRV(0, 0));									// Vertex Buffer			t1 | space0
@@ -118,14 +150,14 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	});
 
 	// Empty Local RS
-	Raytracing::EmptyLocal = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(Raytracing::EmptyLocal, [](RootSignatureProxy& proxy)
 	{
 		proxy.SetAsLocalRootSignature();
 	},
 		false);
 
 	// Global RS
-	Raytracing::Global = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(Raytracing::Global, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootSRVParameter(RootSRV(0, 0));	// BVH,						t0 | space0
 		proxy.AddRootSRVParameter(RootSRV(1, 0));	// Vertex Buffer,			t1 | space0
@@ -141,6 +173,14 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 {
+	InitGraphicsPSO(ConvolutionIrradiace);
+	InitGraphicsPSO(ConvolutionPrefilter);
+
+	InitGraphicsPSO(GBufferMeshes);
+	InitGraphicsPSO(GBufferLights);
+
+	InitGraphicsPSO(PostProcess_Tonemapping);
+
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{
 		const RootSignature* pRS = i == CubemapConvolution::Irradiance ? pRenderDevice->GetRootSignature(RootSignatures::ConvolutionIrradiace)
@@ -149,7 +189,14 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 		const Shader* pPS = i == CubemapConvolution::Irradiance ? &Shaders::PS::ConvolutionIrradiance : &Shaders::PS::ConvolutionPrefilter;
 		DXGI_FORMAT rtvFormat = i == CubemapConvolution::Irradiance ? RendererFormats::IrradianceFormat : RendererFormats::PrefilterFormat;
 
-		RenderResourceHandle handle = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
+		RenderResourceHandle RootSignatureHandle;
+		switch (i)
+		{
+		case Irradiance: RootSignatureHandle = ConvolutionIrradiace; break;
+		case Prefilter:  RootSignatureHandle = ConvolutionPrefilter; break;
+		}
+
+		pRenderDevice->CreateGraphicsPipelineState(RootSignatureHandle, [=](GraphicsPipelineStateProxy& proxy)
 		{
 			proxy.pRootSignature = pRS;
 			proxy.pVS = pVS;
@@ -160,26 +207,44 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 			proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 			proxy.AddRenderTargetFormat(rtvFormat);
 		});
-
-		switch (i)
-		{
-		case Irradiance: ConvolutionIrradiace = handle; break;
-		case Prefilter: ConvolutionPrefilter = handle; break;
-		}
 	}
 }
 
 void ComputePSOs::Register(RenderDevice* pRenderDevice)
 {
-	GenerateMips = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	InitComputePSO(GenerateMips);
+	InitComputePSO(EquirectangularToCubemap);
+
+	InitComputePSO(SVGF_Reproject);
+	InitComputePSO(SVGF_FilterMoments);
+	InitComputePSO(SVGF_Atrous);
+
+	InitComputePSO(ShadingComposition);
+
+	InitComputePSO(Accumulation);
+
+	InitComputePSO(PostProcess_BloomMask);
+	InitComputePSO(PostProcess_BloomDownsample);
+	InitComputePSO(PostProcess_BloomBlur);
+	InitComputePSO(PostProcess_BloomUpsampleBlurAccumulation);
+	InitComputePSO(PostProcess_BloomComposition);
+
+	pRenderDevice->CreateComputePipelineState(GenerateMips, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GenerateMips);
 		proxy.pCS = &Shaders::CS::GenerateMips;
 	});
 
-	EquirectangularToCubemap = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(EquirectangularToCubemap, [=](ComputePipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap);
 		proxy.pCS = &Shaders::CS::EquirectangularToCubemap;
 	});
+}
+
+void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
+{
+	InitRaytracingPSO(Pathtracing);
+	InitRaytracingPSO(AmbientOcclusion);
+	InitRaytracingPSO(Shading);
 }

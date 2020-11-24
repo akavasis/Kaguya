@@ -1,6 +1,6 @@
 inline void CommandContext::SetGraphicsRootSignature(const RootSignature* pRootSignature)
 {
-	m_pCommandList->SetGraphicsRootSignature(pRootSignature->GetD3DRootSignature());
+	m_pCommandList->SetGraphicsRootSignature(pRootSignature->GetApiHandle());
 }
 
 inline void CommandContext::SetGraphicsRootDescriptorTable(UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
@@ -83,7 +83,7 @@ inline void CommandContext::ClearDepthStencil(Descriptor DepthStencilDescriptor,
 
 inline void CommandContext::SetComputeRootSignature(const RootSignature* pRootSignature)
 {
-	m_pCommandList->SetComputeRootSignature(pRootSignature->GetD3DRootSignature());
+	m_pCommandList->SetComputeRootSignature(pRootSignature->GetApiHandle());
 }
 
 inline void CommandContext::SetComputeRootDescriptorTable(UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)

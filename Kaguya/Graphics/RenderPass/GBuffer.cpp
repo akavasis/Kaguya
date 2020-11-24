@@ -8,14 +8,23 @@
 
 GBuffer::GBuffer(UINT Width, UINT Height)
 	: RenderPass("GBuffer",
-		{ Width, Height, DXGI_FORMAT_R32G32B32A32_FLOAT })
+		{ Width, Height, DXGI_FORMAT_R32G32B32A32_FLOAT },
+		NumResources)
 {
 
 }
 
 void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	RootSignatures::GBufferMeshes = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	Resources[Albedo]				= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "Albedo");
+	Resources[Normal]				= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "Normal");
+	Resources[TypeAndIndex]			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "TypeAndIndex");
+	Resources[SVGF_LinearZ]			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "SVGF_LinearZ");
+	Resources[SVGF_MotionVector]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "SVGF_MotionVector");
+	Resources[SVGF_Compact]			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "SVGF_Compact");
+	Resources[Depth]				= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "Depth");
+
+	pRenderDevice->CreateRootSignature(RootSignatures::GBufferMeshes, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 1));	// RootConstants
 		proxy.AddRootSRVParameter(RootSRV(0, 0));						// Vertex Buffer,			t0 | space0
@@ -29,7 +38,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	GraphicsPSOs::GBufferMeshes = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
+	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferMeshes, [=](GraphicsPipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GBufferMeshes);
 		proxy.pVS = &Shaders::VS::GBufferMeshes;
@@ -49,7 +58,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
 	});
 
-	RootSignatures::GBufferLights = pRenderDevice->CreateRootSignature([](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::GBufferLights, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 1));	// RootConstants
 		proxy.AddRootSRVParameter(RootSRV(0, 0));						// Light Buffer, t0 | space0
@@ -58,7 +67,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.DenyGSAccess();
 	});
 
-	GraphicsPSOs::GBufferLights = pRenderDevice->CreateGraphicsPipelineState([=](GraphicsPipelineStateProxy& proxy)
+	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferLights, [=](GraphicsPipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GBufferLights);
 		proxy.pVS = &Shaders::VS::GBufferLights;
@@ -92,25 +101,25 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 	};
 	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
 	{
-		pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 		{
 			proxy.SetFormat(Formats[i]);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
 			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(Formats[i], DirectX::Colors::Black));
-			proxy.BindFlags = DeviceResource::BindFlags::RenderTarget;
-			proxy.InitialState = DeviceResource::State::RenderTarget;
+			proxy.BindFlags = Resource::BindFlags::RenderTarget;
+			proxy.InitialState = Resource::State::RenderTarget;
 		});
 	}
 
-	pResourceScheduler->AllocateTexture(DeviceResource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](DeviceTextureProxy& proxy)
 	{
 		proxy.SetFormat(RenderDevice::DepthStencilFormat);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
 		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0));
-		proxy.BindFlags = DeviceResource::BindFlags::DepthStencil;
-		proxy.InitialState = DeviceResource::State::DepthWrite;
+		proxy.BindFlags = Resource::BindFlags::DepthStencil;
+		proxy.InitialState = Resource::State::DepthWrite;
 	});
 }
 
@@ -130,9 +139,9 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
 	{
-		RenderContext.TransitionBarrier(Resources[i], DeviceResource::State::RenderTarget);
+		RenderContext.TransitionBarrier(Resources[i], Resource::State::RenderTarget);
 	}
-	RenderContext.TransitionBarrier(Resources[EResources::Depth], DeviceResource::State::DepthWrite);
+	RenderContext.TransitionBarrier(Resources[EResources::Depth], Resource::State::DepthWrite);
 
 	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
 	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
@@ -166,7 +175,7 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	for (size_t i = 0; i < EResources::NumResources; ++i)
 	{
-		RenderContext.TransitionBarrier(Resources[i], DeviceResource::State::NonPixelShaderResource | DeviceResource::State::PixelShaderResource);
+		RenderContext.TransitionBarrier(Resources[i], Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
 	}
 }
 

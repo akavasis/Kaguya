@@ -3,8 +3,8 @@
 #include "Device.h"
 #include "../Proxy/DeviceBufferProxy.h"
 
-DeviceBuffer::DeviceBuffer(const Device* pDevice, DeviceBufferProxy& Proxy)
-	: DeviceResource(pDevice, Proxy),
+Buffer::Buffer(const Device* pDevice, DeviceBufferProxy& Proxy)
+	: Resource(pDevice, Proxy),
 	m_Stride(Proxy.m_Stride),
 	m_CpuAccess(Proxy.m_CpuAccess),
 	m_pMappedData(nullptr)
@@ -17,8 +17,8 @@ DeviceBuffer::DeviceBuffer(const Device* pDevice, DeviceBufferProxy& Proxy)
 	}
 }
 
-DeviceBuffer::DeviceBuffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceBufferProxy& Proxy)
-	: DeviceResource(pDevice, pHeap, HeapOffset, Proxy),
+Buffer::Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, DeviceBufferProxy& Proxy)
+	: Resource(pDevice, pHeap, HeapOffset, Proxy),
 	m_Stride(Proxy.m_Stride),
 	m_CpuAccess(Proxy.m_CpuAccess),
 	m_pMappedData(nullptr)
@@ -31,12 +31,12 @@ DeviceBuffer::DeviceBuffer(const Device* pDevice, const Heap* pHeap, UINT64 Heap
 	}
 }
 
-DeviceBuffer::~DeviceBuffer()
+Buffer::~Buffer()
 {
 	Unmap();
 }
 
-BYTE* DeviceBuffer::Map()
+BYTE* Buffer::Map()
 {
 	if (!m_pMappedData)
 	{
@@ -46,7 +46,7 @@ BYTE* DeviceBuffer::Map()
 	return m_pMappedData;
 }
 
-void DeviceBuffer::Unmap()
+void Buffer::Unmap()
 {
 	if (!m_pMappedData) 
 		return;
@@ -55,12 +55,12 @@ void DeviceBuffer::Unmap()
 	m_pMappedData = nullptr;
 }
 
-D3D12_GPU_VIRTUAL_ADDRESS DeviceBuffer::GetGpuVirtualAddress() const
+D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetGpuVirtualAddress() const
 {
 	return m_pResource->GetGPUVirtualAddress();
 }
 
-D3D12_GPU_VIRTUAL_ADDRESS DeviceBuffer::GetGpuVirtualAddressAt(INT Index) const
+D3D12_GPU_VIRTUAL_ADDRESS Buffer::GetGpuVirtualAddressAt(INT Index) const
 {
 	assert(m_Stride != 0 && "Stride should not be 0");
 	assert(Index >= 0 && Index < (GetSizeInBytes() / m_Stride) && "Index is out of range in Buffer");

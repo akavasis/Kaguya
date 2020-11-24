@@ -2,6 +2,8 @@
 #include <functional>
 #include <Template/Pool.h>
 #include "DXGIManager.h"
+#include "RenderResourceHandle.h"
+#include "RenderResourceHandleRegistry.h"
 #include "RenderBuffer.h"
 #include "RenderTexture.h"
 #include "RenderResourceContainer.h"
@@ -20,13 +22,6 @@
 #include "AL/Proxy/RootSignatureProxy.h"
 #include "AL/Proxy/PipelineStateProxy.h"
 #include "AL/Proxy/RaytracingPipelineStateProxy.h"
-
-struct RaytracingAccelerationStructureHandles
-{
-	RenderResourceHandle Scratch;
-	RenderResourceHandle Result;
-	RenderResourceHandle InstanceDescs; // Only used by TLAS
-};
 
 struct RootParameters
 {
@@ -87,22 +82,26 @@ public:
 
 	DeviceResourceAllocationInfo GetDeviceResourceAllocationInfo(UINT NumDescs, DeviceBufferProxy* pDescs);
 
+	RenderResourceHandle InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name);
+	std::string GetRenderResourceHandleName(RenderResourceHandle RenderResourceHandle);
+
 	// Resource creation
-	[[nodiscard]] RenderResourceHandle CreateDeviceBuffer(std::function<void(DeviceBufferProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateDeviceBuffer(RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceBufferProxy&)> Configurator);
+	void CreateDeviceBuffer(RenderResourceHandle Handle, std::function<void(DeviceBufferProxy&)> Configurator);
+	void CreateDeviceBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceBufferProxy&)> Configurator);
 
-	[[nodiscard]] RenderResourceHandle CreateDeviceTexture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, DeviceResource::State InitialState);
-	[[nodiscard]] RenderResourceHandle CreateDeviceTexture(DeviceResource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateDeviceTexture(DeviceResource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceTextureProxy&)> Configurator);
+	void CreateDeviceTexture(RenderResourceHandle Handle, Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
+	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(DeviceTextureProxy&)> Configurator);
+	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(DeviceTextureProxy&)> Configurator);
 
-	[[nodiscard]] RenderResourceHandle CreateHeap(std::function<void(HeapProxy&)> Configurator);
+	void CreateHeap(RenderResourceHandle Handle, std::function<void(HeapProxy&)> Configurator);
 
-	[[nodiscard]] RenderResourceHandle CreateRootSignature(std::function<void(RootSignatureProxy&)> Configurator, bool AddShaderLayoutRootParameters = true);
-	[[nodiscard]] RenderResourceHandle CreateGraphicsPipelineState(std::function<void(GraphicsPipelineStateProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateComputePipelineState(std::function<void(ComputePipelineStateProxy&)> Configurator);
-	[[nodiscard]] RenderResourceHandle CreateRaytracingPipelineState(std::function<void(RaytracingPipelineStateProxy&)> Configurator);
+	void CreateRootSignature(RenderResourceHandle Handle, std::function<void(RootSignatureProxy&)> Configurator, bool AddShaderLayoutRootParameters = true);
+	
+	void CreateGraphicsPipelineState(RenderResourceHandle Handle, std::function<void(GraphicsPipelineStateProxy&)> Configurator);
+	void CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateProxy&)> Configurator);
+	void CreateRaytracingPipelineState(RenderResourceHandle Handle, std::function<void(RaytracingPipelineStateProxy&)> Configurator);
 
-	void Destroy(RenderResourceHandle* pRenderResourceHandle);
+	void Destroy(RenderResourceHandle RenderResourceHandle);
 
 	// Resource view creation
 	void CreateShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
@@ -111,8 +110,8 @@ public:
 	void CreateDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 
 	// Returns nullptr if a resource is not found
-	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle)			{ return m_DeviceBuffers.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle)			{ return m_DeviceTextures.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle)			{ return m_Buffers.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle)			{ return m_Textures.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle)			{ return m_Heaps.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle)	{ return m_RootSignatures.GetResource(RenderResourceHandle); }
 	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle)		{ return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
@@ -136,9 +135,16 @@ private:
 
 	std::vector<std::unique_ptr<CommandContext>>											m_CommandContexts[CommandContext::NumTypes];
 
-	RenderResourceContainer<RenderResourceType::DeviceBuffer, DeviceBuffer>					m_DeviceBuffers;
-	RenderResourceContainer<RenderResourceType::DeviceTexture, DeviceTexture>				m_DeviceTextures;
+	RenderResourceHandleRegistry															m_BufferHandleRegistry;
+	RenderResourceHandleRegistry															m_TextureHandleRegistry;
+	RenderResourceHandleRegistry															m_HeapHandleRegistry;
+	RenderResourceHandleRegistry															m_RootSignatureHandleRegistry;
+	RenderResourceHandleRegistry															m_GraphicsPipelineStateHandleRegistry;
+	RenderResourceHandleRegistry															m_ComputePipelineStateHandleRegistry;
+	RenderResourceHandleRegistry															m_RaytracingPipelineStateHandleRegistry;
 
+	RenderResourceContainer<RenderResourceType::Buffer, Buffer>								m_Buffers;
+	RenderResourceContainer<RenderResourceType::Texture, Texture>							m_Textures;
 	RenderResourceContainer<RenderResourceType::Heap, Heap>									m_Heaps;
 	RenderResourceContainer<RenderResourceType::RootSignature, RootSignature>				m_RootSignatures;
 	RenderResourceContainer<RenderResourceType::GraphicsPSO, GraphicsPipelineState>			m_GraphicsPipelineStates;

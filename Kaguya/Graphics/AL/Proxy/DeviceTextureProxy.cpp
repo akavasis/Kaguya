@@ -2,7 +2,7 @@
 #include "DeviceTextureProxy.h"
 #include "../D3D12/d3dx12.h"
 
-DeviceTextureProxy::DeviceTextureProxy(DeviceResource::Type Type)
+DeviceTextureProxy::DeviceTextureProxy(Resource::Type Type)
 	: DeviceResourceProxy(Type)
 {
 	m_Format			= DXGI_FORMAT_UNKNOWN;
@@ -22,10 +22,10 @@ D3D12_RESOURCE_DESC DeviceTextureProxy::BuildD3DDesc() const
 	const D3D12_RESOURCE_FLAGS ResourceFlags = GetD3DResourceFlags(BindFlags);
 	switch (m_Type)
 	{
-	case DeviceResource::Type::Texture1D:	return CD3DX12_RESOURCE_DESC::Tex1D(m_Format, m_Width, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
-	case DeviceResource::Type::Texture2D:	return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
-	case DeviceResource::Type::Texture3D:	return CD3DX12_RESOURCE_DESC::Tex3D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
-	case DeviceResource::Type::TextureCube: return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
+	case Resource::Type::Texture1D:	return CD3DX12_RESOURCE_DESC::Tex1D(m_Format, m_Width, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
+	case Resource::Type::Texture2D:	return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
+	case Resource::Type::Texture3D:	return CD3DX12_RESOURCE_DESC::Tex3D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
+	case Resource::Type::TextureCube: return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
 	default:								assert(false && __FUNCTION__); return D3D12_RESOURCE_DESC();
 	}
 }
@@ -64,16 +64,16 @@ void DeviceTextureProxy::Link()
 {
 	assert
 	(
-		m_Type == DeviceResource::Type::Texture1D ||
-		m_Type == DeviceResource::Type::Texture2D ||
-		m_Type == DeviceResource::Type::Texture3D ||
-		m_Type == DeviceResource::Type::TextureCube
+		m_Type == Resource::Type::Texture1D ||
+		m_Type == Resource::Type::Texture2D ||
+		m_Type == Resource::Type::Texture3D ||
+		m_Type == Resource::Type::TextureCube
 	);
 
-	if (m_Type == DeviceResource::Type::TextureCube)
+	if (m_Type == Resource::Type::TextureCube)
 		m_DepthOrArraySize = 6;
 
-	const bool IsArray = (m_Type == DeviceResource::Type::Texture1D || m_Type == DeviceResource::Type::Texture2D || m_Type == DeviceResource::Type::TextureCube) && m_DepthOrArraySize > 1;
+	const bool IsArray = (m_Type == Resource::Type::Texture1D || m_Type == Resource::Type::Texture2D || m_Type == Resource::Type::TextureCube) && m_DepthOrArraySize > 1;
 	m_NumSubresources = IsArray ? m_DepthOrArraySize * m_MipLevels : m_MipLevels;
 
 	DeviceResourceProxy::Link();

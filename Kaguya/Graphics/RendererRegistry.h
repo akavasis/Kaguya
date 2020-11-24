@@ -200,4 +200,6 @@ struct RaytracingPSOs
 	inline static RenderResourceHandle Pathtracing;
 	inline static RenderResourceHandle AmbientOcclusion;
 	inline static RenderResourceHandle Shading;
+
+	static void Register(RenderDevice* pRenderDevice);
 };
