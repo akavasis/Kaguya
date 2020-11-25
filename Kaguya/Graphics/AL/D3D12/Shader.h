@@ -20,7 +20,8 @@ public:
 		Domain,
 		Geometry,
 		Pixel,
-		Compute
+		Compute,
+		Mesh
 	};
 
 	Shader() = default;

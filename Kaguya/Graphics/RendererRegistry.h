@@ -113,6 +113,11 @@ struct Shaders
 		inline static Shader PostProcess_BloomComposition;
 	};
 
+	struct MS
+	{
+		inline static Shader Meshlet;
+	};
+
 	static void Register(RenderDevice* pRenderDevice);
 };
 
@@ -127,6 +132,8 @@ struct Libraries
 
 struct RootSignatures
 {
+	inline static RenderResourceHandle Default;
+
 	inline static RenderResourceHandle ConvolutionIrradiace;
 	inline static RenderResourceHandle ConvolutionPrefilter;
 	inline static RenderResourceHandle GenerateMips;
@@ -149,6 +156,8 @@ struct RootSignatures
 	inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
 	inline static RenderResourceHandle PostProcess_BloomComposition;
 
+	inline static RenderResourceHandle MeshShader;
+
 	struct Raytracing
 	{
 		inline static RenderResourceHandle Accumulation;
@@ -169,6 +178,8 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle GBufferLights;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
+
+	inline static RenderResourceHandle MeshShader;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

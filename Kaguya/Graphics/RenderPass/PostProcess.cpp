@@ -8,6 +8,8 @@
 
 #include "Accumulation.h"
 
+#include "MeshShader.h"
+
 constexpr size_t NumTonemapRootConstants = 1 + sizeof(PostProcess::GranTurismoOperator) / 4;
 
 PostProcess::PostProcess(UINT Width, UINT Height)
@@ -195,8 +197,11 @@ void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 {
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Post Process");
 
-	auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
-	Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
+	auto pMeshShaderRenderPass = pRenderGraph->GetRenderPass<MeshShaderRenderPass>();
+	Descriptor InputSRV = RenderContext.GetShaderResourceView(pMeshShaderRenderPass->Resources[MeshShaderRenderPass::RenderTarget]);
+
+	//auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
+	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
 
 	if (settings.ApplyBloom)
 		ApplyBloom(InputSRV, RenderContext, pRenderGraph);

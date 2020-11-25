@@ -20,7 +20,6 @@ public:
 
 	PipelineState() = default;
 	PipelineState(PipelineStateProxy& Proxy);
-	PipelineState(const Device* pDevice, PipelineStateProxy& Proxy);
 
 	inline auto GetApiHandle() const { return m_PipelineState.Get(); }
 	inline auto GetType() const { return m_Type; }

@@ -12,12 +12,14 @@ std::wstring ShaderProfileString(Shader::Type Type, ShaderCompiler::Profile Prof
 	case Shader::Type::Geometry:				profileString = L"gs_"; break;
 	case Shader::Type::Pixel:					profileString = L"ps_"; break;
 	case Shader::Type::Compute:					profileString = L"cs_"; break;
+	case Shader::Type::Mesh:					profileString = L"ms_"; break;
 	}
 
 	switch (Profile)
 	{
 	case ShaderCompiler::Profile::Profile_6_3:	profileString += L"6_3"; break;
 	case ShaderCompiler::Profile::Profile_6_4:	profileString += L"6_4"; break;
+	case ShaderCompiler::Profile::Profile_6_5:	profileString += L"6_5"; break;
 	}
 
 	return profileString;
@@ -30,6 +32,7 @@ std::wstring LibraryProfileString(ShaderCompiler::Profile Profile)
 	{
 	case ShaderCompiler::Profile::Profile_6_3:	profileString += L"6_3"; break;
 	case ShaderCompiler::Profile::Profile_6_4:	profileString += L"6_4"; break;
+	case ShaderCompiler::Profile::Profile_6_5:	profileString += L"6_5"; break;
 	}
 
 	return profileString;
@@ -49,7 +52,7 @@ void ShaderCompiler::SetIncludeDirectory(const std::filesystem::path& pPath)
 
 Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
-	auto profileString	= ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_4);
+	auto profileString	= ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_5);
 	auto pDxcBlob		= Compile(pPath, pEntryPoint, profileString.data(), ShaderDefines);
 
 	DxcBuffer dxcBuffer = {};
@@ -64,7 +67,7 @@ Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR p
 
 Library ShaderCompiler::CompileLibrary(LPCWSTR pPath)
 {
-	auto profileString	= LibraryProfileString(ShaderCompiler::Profile::Profile_6_4);
+	auto profileString	= LibraryProfileString(ShaderCompiler::Profile::Profile_6_5);
 	auto pDxcBlob		= Compile(pPath, L"", profileString.data(), {});
 
 	DxcBuffer dxcBuffer = {};

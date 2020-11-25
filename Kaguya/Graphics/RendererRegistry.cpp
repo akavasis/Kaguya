@@ -48,6 +48,11 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 		CS::PostProcess_BloomUpsampleBlurAccumulation	= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl", L"CSMain", {});
 		CS::PostProcess_BloomComposition				= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl",				L"CSMain", {});
 	}
+
+	// Load MS
+	{
+		MS::Meshlet = pRenderDevice->CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/MeshShader/Meshlet.hlsl", L"MSMain", {});
+	}
 }
 
 void Libraries::Register(RenderDevice* pRenderDevice)
@@ -61,6 +66,8 @@ void Libraries::Register(RenderDevice* pRenderDevice)
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
+	InitRootSignature(Default);
+
 	InitRootSignature(ConvolutionIrradiace);
 	InitRootSignature(ConvolutionPrefilter);
 	InitRootSignature(GenerateMips);
@@ -83,9 +90,17 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	InitRootSignature(PostProcess_BloomUpsampleBlurAccumulation);
 	InitRootSignature(PostProcess_BloomComposition);
 
+	InitRootSignature(MeshShader);
+
 	InitRootSignature(Raytracing::Accumulation);
 	InitRootSignature(Raytracing::EmptyLocal);
 	InitRootSignature(Raytracing::Global);
+
+	pRenderDevice->CreateRootSignature(Default, [](RootSignatureProxy& proxy)
+	{
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
 
 	// Cubemap convolutions RS
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
@@ -180,6 +195,8 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 	InitGraphicsPSO(GBufferLights);
 
 	InitGraphicsPSO(PostProcess_Tonemapping);
+
+	InitGraphicsPSO(MeshShader);
 
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{

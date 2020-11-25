@@ -12,7 +12,7 @@ StructuredBuffer<uint> IndexBuffer		: register(t1, space0);
 StructuredBuffer<Mesh> Meshes			: register(t2, space0);
 StructuredBuffer<Material> Materials	: register(t3, space0);
 
-#include "ShaderLayout.hlsli"
+#include <ShaderLayout.hlsli>
 
 SamplerState AnisotropicClamp			: register(s0, space0);
 

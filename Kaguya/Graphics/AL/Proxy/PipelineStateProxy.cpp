@@ -6,7 +6,7 @@
 PipelineStateProxy::PipelineStateProxy(PipelineState::Type Type)
 	: m_Type(Type)
 {
-	pRootSignature = nullptr;
+
 }
 
 void PipelineStateProxy::Link()
@@ -14,21 +14,9 @@ void PipelineStateProxy::Link()
 	assert(pRootSignature != nullptr);
 }
 
-D3D12_PIPELINE_STATE_STREAM_DESC PipelineStateProxy::BuildD3DDesc()
-{
-	return D3D12_PIPELINE_STATE_STREAM_DESC();
-}
-
 GraphicsPipelineStateProxy::GraphicsPipelineStateProxy()
 	: PipelineStateProxy(PipelineState::Type::Graphics)
 {
-	pVS = nullptr;
-	pPS = nullptr;
-	pDS = nullptr;
-	pHS = nullptr;
-	pGS = nullptr;
-	PrimitiveTopology = PrimitiveTopology::Undefined;
-
 	m_NumRenderTargets = 0;
 	memset(m_RTVFormats, 0, sizeof(m_RTVFormats));
 	m_DSVFormat = DXGI_FORMAT_UNKNOWN;
@@ -67,36 +55,58 @@ void GraphicsPipelineStateProxy::Link()
 
 D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateProxy::BuildD3DDesc()
 {
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-	desc.pRootSignature = pRootSignature->GetApiHandle();
-	if (pVS) desc.VS = pVS->GetD3DShaderBytecode();
-	if (pPS) desc.PS = pPS->GetD3DShaderBytecode();
-	if (pDS) desc.DS = pDS->GetD3DShaderBytecode();
-	if (pHS) desc.HS = pHS->GetD3DShaderBytecode();
-	if (pGS) desc.GS = pGS->GetD3DShaderBytecode();
-	desc.StreamOutput = {};
-	desc.BlendState = BlendState;
-	desc.SampleMask = UINT_MAX;
-	desc.RasterizerState = RasterizerState;
-	desc.DepthStencilState = DepthStencilState;
-	desc.InputLayout = InputLayout;
-	desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-	desc.PrimitiveTopologyType = GetD3DPrimitiveTopologyType(PrimitiveTopology);
-	desc.NumRenderTargets = m_NumRenderTargets;
-	memcpy(desc.RTVFormats, m_RTVFormats, sizeof(desc.RTVFormats));
-	desc.DSVFormat = m_DSVFormat;
-	desc.SampleDesc = m_SampleDesc;
-	desc.NodeMask = 0;
-	desc.CachedPSO = {};
-	desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc = {};
+	Desc.pRootSignature						= pRootSignature->GetApiHandle();
+	if (pVS) Desc.VS						= pVS->GetD3DShaderBytecode();
+	if (pPS) Desc.PS						= pPS->GetD3DShaderBytecode();
+	if (pDS) Desc.DS						= pDS->GetD3DShaderBytecode();
+	if (pHS) Desc.HS						= pHS->GetD3DShaderBytecode();
+	if (pGS) Desc.GS						= pGS->GetD3DShaderBytecode();
+	Desc.StreamOutput						= {};
+	Desc.BlendState							= BlendState;
+	Desc.SampleMask							= UINT_MAX;
+	Desc.RasterizerState					= RasterizerState;
+	Desc.DepthStencilState					= DepthStencilState;
+	Desc.InputLayout						= InputLayout;
+	Desc.IBStripCutValue					= D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+	Desc.PrimitiveTopologyType				= GetD3DPrimitiveTopologyType(PrimitiveTopology);
+	Desc.NumRenderTargets					= m_NumRenderTargets;
+	memcpy(Desc.RTVFormats, m_RTVFormats, sizeof(Desc.RTVFormats));
+	Desc.DSVFormat							= m_DSVFormat;
+	Desc.SampleDesc							= m_SampleDesc;
+	Desc.NodeMask							= 0;
+	Desc.CachedPSO							= {};
+	Desc.Flags								= D3D12_PIPELINE_STATE_FLAG_NONE;
 
-	return desc;
+	return Desc;
+}
+
+D3DX12_MESH_SHADER_PIPELINE_STATE_DESC GraphicsPipelineStateProxy::BuildMSPSODesc()
+{
+	D3DX12_MESH_SHADER_PIPELINE_STATE_DESC Desc = {};
+	Desc.pRootSignature							= pRootSignature->GetApiHandle();
+	Desc.MS										= pMS->GetD3DShaderBytecode();
+	Desc.PS										= pPS->GetD3DShaderBytecode();
+	Desc.BlendState								= BlendState;
+	Desc.SampleMask								= UINT_MAX;
+	Desc.RasterizerState						= RasterizerState;
+	Desc.DepthStencilState						= DepthStencilState;
+	Desc.PrimitiveTopologyType					= GetD3DPrimitiveTopologyType(PrimitiveTopology);
+	Desc.NumRenderTargets						= m_NumRenderTargets;
+	memcpy(Desc.RTVFormats, m_RTVFormats, sizeof(Desc.RTVFormats));
+	Desc.DSVFormat								= m_DSVFormat;
+	Desc.SampleDesc								= m_SampleDesc;
+	Desc.NodeMask								= 0;
+	Desc.CachedPSO								= {};
+	Desc.Flags									= D3D12_PIPELINE_STATE_FLAG_NONE;
+
+	return Desc;
 }
 
 ComputePipelineStateProxy::ComputePipelineStateProxy()
 	: PipelineStateProxy(PipelineState::Type::Compute)
 {
-	pCS = nullptr;
+
 }
 
 void ComputePipelineStateProxy::Link()
@@ -108,12 +118,12 @@ void ComputePipelineStateProxy::Link()
 
 D3D12_COMPUTE_PIPELINE_STATE_DESC ComputePipelineStateProxy::BuildD3DDesc()
 {
-	D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
-	desc.pRootSignature = pRootSignature->GetApiHandle();
-	desc.CS = pCS->GetD3DShaderBytecode();
-	desc.NodeMask = 0;
-	desc.CachedPSO = {};
-	desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	D3D12_COMPUTE_PIPELINE_STATE_DESC Desc	= {};
+	Desc.pRootSignature						= pRootSignature->GetApiHandle();
+	Desc.CS									= pCS->GetD3DShaderBytecode();
+	Desc.NodeMask							= 0;
+	Desc.CachedPSO							= {};
+	Desc.Flags								= D3D12_PIPELINE_STATE_FLAG_NONE;
 
-	return desc;
+	return Desc;
 }

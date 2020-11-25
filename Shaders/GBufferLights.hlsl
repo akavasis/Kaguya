@@ -9,7 +9,7 @@ cbuffer RootConstants
 
 StructuredBuffer<PolygonalLight> Lights : register(t0, space0);
 
-#include "ShaderLayout.hlsli"
+#include <ShaderLayout.hlsli>
 
 struct VSOutput
 {

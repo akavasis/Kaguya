@@ -88,6 +88,11 @@ public:
 		FlushResourceBarriers();
 		m_pCommandList->DispatchRays(pDesc);
 	}
+
+	void DispatchMesh(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ)
+	{
+		m_pCommandList->DispatchMesh(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+	}
 private:
 	friend class RenderDevice;
 
@@ -100,8 +105,8 @@ private:
 	ID3D12CommandAllocator*								SV_pAllocator;
 	ID3D12CommandAllocator*								SV_pPendingAllocator;
 
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4>	m_pCommandList;
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4>	m_pPendingCommandList;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pCommandList;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pPendingCommandList;
 	Type												m_Type;
 
 	// Resource state tracker for this command list

@@ -15,6 +15,8 @@
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 
+#include "RenderPass/MeshShader.h"
+
 #include "Scene/SampleScene.h"
 
 #define SHOW_IMGUI_DEMO_WINDOW 0
@@ -70,15 +72,16 @@ bool Renderer::Initialize()
 
 	SetScene(GenerateScene(SampleScene::PlaneWithLights));
 
-	m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
-	m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
-	m_pRenderGraph->AddRenderPass(new SVGFReproject(Width, Height));
-	m_pRenderGraph->AddRenderPass(new SVGFFilterMoments(Width, Height));
-	m_pRenderGraph->AddRenderPass(new SVGFAtrous(Width, Height));
-	m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
-	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
-	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
-	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
+	m_pRenderGraph->AddRenderPass(new MeshShaderRenderPass(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new SVGFReproject(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new SVGFFilterMoments(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new SVGFAtrous(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
+	////m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
+	////m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
 	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
 	m_pRenderGraph->Initialize(AccelerationStructureCompleteSignal);
 

@@ -181,7 +181,7 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 
-	struct ShadingData
+	struct RenderPassData
 	{
 		int Albedo;
 		int Normal;
@@ -214,7 +214,7 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	Data.StochasticUnshadowed					= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticUnshadowed]).HeapIndex;
 	Data.StochasticShadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticShadowed]).HeapIndex;
 	
-	RenderContext.UpdateRenderPassData<ShadingData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Shading);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());

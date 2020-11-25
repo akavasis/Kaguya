@@ -7,6 +7,8 @@
 #include "../InputLayout.h"
 #include "../D3D12/PipelineState.h"
 
+#include "../D3D12/d3dx12.h"
+
 class RootSignature;
 class Shader;
 
@@ -16,13 +18,11 @@ public:
 	friend class PipelineState;
 	PipelineStateProxy(PipelineState::Type Type);
 
-	const RootSignature* pRootSignature;	// Default value: nullptr, must be set
+	const RootSignature* pRootSignature = nullptr;	// Default value: nullptr, must be set
 protected:
 	void Link() override;
 
 	PipelineState::Type m_Type;				// Default value: set by ctor
-private:
-	D3D12_PIPELINE_STATE_STREAM_DESC BuildD3DDesc();
 };
 
 class GraphicsPipelineStateProxy : public PipelineStateProxy
@@ -31,16 +31,19 @@ public:
 	friend class GraphicsPipelineState;
 	GraphicsPipelineStateProxy();
 
-	const Shader* pVS;						// Default value: nullptr, optional set
-	const Shader* pPS;						// Default value: nullptr, optional set
-	const Shader* pDS;						// Default value: nullptr, optional set
-	const Shader* pHS;						// Default value: nullptr, optional set
-	const Shader* pGS;						// Default value: nullptr, optional set
+	const Shader* pAS = nullptr;			// Default value: nullptr, optional set
+	const Shader* pMS = nullptr;			// Default value: nullptr, optional set
+
+	const Shader* pVS = nullptr;			// Default value: nullptr, optional set
+	const Shader* pPS = nullptr;			// Default value: nullptr, optional set
+	const Shader* pDS = nullptr;			// Default value: nullptr, optional set
+	const Shader* pHS = nullptr;			// Default value: nullptr, optional set
+	const Shader* pGS = nullptr;			// Default value: nullptr, optional set
 	BlendState BlendState;					// Default value: Default, optional set
 	RasterizerState RasterizerState;		// Default value: Default, optional set
 	DepthStencilState DepthStencilState;	// Default value: Default, optional set
 	InputLayout InputLayout;				// Default value: Default, optional set
-	PrimitiveTopology PrimitiveTopology;	// Default value: Undefined, must be set
+	PrimitiveTopology PrimitiveTopology = PrimitiveTopology::Undefined;	// Default value: Undefined, must be set
 
 	void AddRenderTargetFormat(DXGI_FORMAT Format);
 	void SetDepthStencilFormat(DXGI_FORMAT Format);
@@ -49,6 +52,7 @@ protected:
 	void Link() override;
 private:
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildD3DDesc();
+	D3DX12_MESH_SHADER_PIPELINE_STATE_DESC BuildMSPSODesc();
 
 	UINT m_NumRenderTargets;		// Default value: 0, optional set
 	DXGI_FORMAT m_RTVFormats[8];	// Default value: DXGI_FORMAT_UNKNOWN, optional set
@@ -62,7 +66,7 @@ public:
 	friend class ComputePipelineState;
 	ComputePipelineStateProxy();
 
-	const Shader* pCS;	// Default value: nullptr, must be set
+	const Shader* pCS = nullptr;	// Default value: nullptr, must be set
 protected:
 	void Link() override;
 private:

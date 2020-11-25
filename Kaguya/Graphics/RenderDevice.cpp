@@ -86,16 +86,6 @@ void RenderDevice::ExecuteCommandContexts(CommandContext::Type Type, UINT NumCom
 	pCommandQueue->Flush();
 }
 
-void RenderDevice::ResetDescriptor()
-{
-	m_ConstantBufferDescriptorIndexPool.Reset();
-	m_ShaderResourceDescriptorIndexPool.Reset();
-	m_UnorderedAccessDescriptorIndexPool.Reset();
-	m_SamplerDescriptorIndexPool.Reset();
-	m_RenderTargetDescriptorIndexPool.Reset();
-	m_DepthStencilDescriptorIndexPool.Reset();
-}
-
 Shader RenderDevice::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
 	return ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines);
