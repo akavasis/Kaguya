@@ -13,7 +13,7 @@ static Assimp::Importer Importer;
 ModelLoader::ModelLoader(std::filesystem::path ExecutableFolderPath)
 	: m_ExecutableFolderPath(ExecutableFolderPath)
 {
-	
+
 }
 
 Model ModelLoader::LoadFromFile(const char* pPath) const
@@ -78,6 +78,17 @@ Model ModelLoader::LoadFromFile(const char* pPath) const
 			indices.push_back(aiFace.mIndices[1]);
 			indices.push_back(aiFace.mIndices[2]);
 		}
+
+		// TODO: Generate meshlet data here (however, i will export models into a custom binary format with meshlet generated)
+		// Refer to this video for why: https://www.youtube.com/watch?v=CFXKTXtil34&t=1452s
+		std::vector<DirectX::Meshlet> meshlets;
+		std::vector<uint8_t> uniqueVertexIB;
+		std::vector<DirectX::MeshletTriangle> primitiveIndices;
+
+		DirectX::ComputeMeshlets(indices.data(), paiMesh->mNumFaces,
+			reinterpret_cast<const XMFLOAT3*>(paiMesh->mVertices), paiMesh->mNumVertices,
+			nullptr,
+			meshlets, uniqueVertexIB, primitiveIndices);
 
 		// Parse aabb data for mesh
 		// center = 0.5 * (min + max)

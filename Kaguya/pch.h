@@ -42,6 +42,7 @@
 #include <compare>
 
 // External
+#include <DirectXMesh.h>
 #include <DirectXTex.h>
 #include <imgui.h>
 #include <imgui_impl_win32.h>

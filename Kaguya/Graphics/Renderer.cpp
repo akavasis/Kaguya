@@ -167,9 +167,9 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 	m_pRenderDevice->GraphicsQueue.WaitForIdle();
 	{
 		// Release resources before resize swap chain
-		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+		for (auto SwapChainTexture : m_pRenderDevice->SwapChainTextures)
 		{
-			m_pRenderDevice->Destroy(m_pRenderDevice->SwapChainTextures[i]);
+			m_pRenderDevice->Destroy(SwapChainTexture);
 		}
 
 		// Resize backbuffer

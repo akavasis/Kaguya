@@ -39,8 +39,8 @@ void BufferProxy::Link()
 
 	switch (m_CpuAccess)
 	{
-	case Buffer::CpuAccess::Write:	InitialState = Resource::State::GenericRead; break;
-	case Buffer::CpuAccess::Read:	InitialState = Resource::State::CopyDest; break;
+	case Buffer::CpuAccess::Write:	InitialState = Resource::State::GenericRead;	break;
+	case Buffer::CpuAccess::Read:	InitialState = Resource::State::CopyDest;		break;
 	}
 
 	ResourceProxy::Link();

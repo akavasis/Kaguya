@@ -5,6 +5,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 # Features
 - __Path tracing__
 - __Deferred rendering__
+- __Hybrid renderer (Utilize both rasterization and ray tracing)__
 - __Bindless resource__
 - __Multi-threaded commandlist recording__
 - __Utilization of multiple queues on the GPU__

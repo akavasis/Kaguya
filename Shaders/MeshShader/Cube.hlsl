@@ -5,6 +5,10 @@ struct RenderPassData
 #define RenderPassDataType RenderPassData
 #include <ShaderLayout.hlsli>
 
+#define MESH_SHADER_NUM_THREADS 128
+#define MESH_SHADER_MAX_OUTPUT_VERTICES 256
+#define MESH_SHADER_MAX_OUTPUT_PRIMITIVES 256
+
 struct Vertex
 {
     float4 PositionHS   : SV_Position;
@@ -57,7 +61,7 @@ static uint3 cubeIndices[] =
 	uint3(1, 7, 5)
 };
 
-[numthreads(12, 1, 1)]
+[numthreads(128, 1, 1)]
 [outputtopology("triangle")]
 void MSMain(uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
     out vertices Vertex outVerts[8],
@@ -76,7 +80,8 @@ void MSMain(uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
 		outVerts[gtid].Color = cubeColors[gtid];
 	}
 
-	outIndices[gtid] = cubeIndices[gtid];
+	if (gtid < numPrimitives)
+		outIndices[gtid] = cubeIndices[gtid];
 }
 
 float4 PSMain(Vertex input) : SV_TARGET

@@ -84,7 +84,7 @@ void MeshShaderRenderPass::Execute(RenderContext& RenderContext, RenderGraph* pR
 	PIXMarker(RenderContext->GetD3DCommandList(), L"GBuffer");
 
 	RenderContext.TransitionBarrier(Resources[RenderTarget], Resource::State::RenderTarget);
-	RenderContext.TransitionBarrier(Resources[EResources::Depth], Resource::State::DepthWrite);
+	RenderContext.TransitionBarrier(Resources[Depth], Resource::State::DepthWrite);
 
 	struct RenderPassData
 	{
@@ -115,7 +115,7 @@ void MeshShaderRenderPass::Execute(RenderContext& RenderContext, RenderGraph* pR
 	RenderContext->DispatchMesh(1, 1, 1);
 
 	RenderContext.TransitionBarrier(Resources[RenderTarget], Resource::State::NonPixelShaderResource);
-	RenderContext.TransitionBarrier(Resources[EResources::Depth], Resource::State::NonPixelShaderResource);
+	RenderContext.TransitionBarrier(Resources[Depth], Resource::State::NonPixelShaderResource);
 }
 
 void MeshShaderRenderPass::StateRefresh()
