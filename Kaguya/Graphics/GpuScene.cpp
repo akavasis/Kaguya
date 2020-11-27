@@ -110,17 +110,20 @@ HLSL::Camera GetHLSLCameraDesc(const PerspectiveCamera& Camera)
 	};
 }
 
-HLSL::Mesh GetShaderMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
+HLSL::Mesh GetHLSLMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
 {
 	matrix World;			XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
 	matrix PreviousWorld;	XMStoreFloat4x4(&PreviousWorld, XMMatrixTranspose(MeshInstance.PreviousTransform.Matrix()));
 	return
 	{
-		.VertexOffset	= MeshInstance.pMesh->BaseVertexLocation,
-		.IndexOffset	= MeshInstance.pMesh->StartIndexLocation,
-		.MaterialIndex	= (uint)MaterialIndex,
-		.World			= World,
-		.PreviousWorld	= PreviousWorld
+		.VertexOffset				= MeshInstance.pMesh->BaseVertexLocation,
+		.IndexOffset				= MeshInstance.pMesh->StartIndexLocation,
+		.MeshletOffset				= MeshInstance.pMesh->MeshletOffset,
+		.UniqueVertexIndexOffset	= MeshInstance.pMesh->UniqueVertexIndexOffset,
+		.PrimitiveIndexOffset		= MeshInstance.pMesh->PrimitiveIndexOffset,
+		.MaterialIndex				= (uint32_t)MaterialIndex,
+		.World						= World,
+		.PreviousWorld				= PreviousWorld
 	};
 }
 
@@ -146,21 +149,21 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure (InstanceDescs)")
 	};
 
-	pRenderDevice->CreateDeviceBuffer(m_LightTable, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_LightTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(LightBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::PolygonalLight));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_MaterialTable, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_MaterialTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(MaterialBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::Material));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_MeshTable, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_MeshTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(MeshBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::Mesh));
@@ -168,14 +171,14 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	});
 	
 	// Vertex Buffer
-	pRenderDevice->CreateDeviceBuffer(m_VertexBuffer, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_VertexBuffer, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(VertexBufferByteSize);
 		proxy.SetStride(sizeof(Vertex));
 		proxy.InitialState = Resource::State::NonPixelShaderResource;
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_UploadVertexBuffer, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_UploadVertexBuffer, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(VertexBufferByteSize);
 		proxy.SetStride(sizeof(Vertex));
@@ -185,14 +188,14 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	m_VertexBufferAllocator.Reset(VertexBufferByteSize);
 
 	// Index Buffer
-	pRenderDevice->CreateDeviceBuffer(m_IndexBuffer, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_IndexBuffer, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(IndexBufferByteSize);
 		proxy.SetStride(sizeof(unsigned int));
 		proxy.InitialState = Resource::State::NonPixelShaderResource;
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_UploadIndexBuffer, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_UploadIndexBuffer, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(IndexBufferByteSize);
 		proxy.SetStride(sizeof(unsigned int));
@@ -248,7 +251,8 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 			indexByteOffset = offset;
 		}
 
-		for (auto& mesh : model.Meshes)
+		// Recalculate vertex and index offsets because all vertices and indices are in a single gpu buffer
+		for (auto& mesh : model)
 		{
 			assert(vertexByteOffset % sizeof(Vertex) == 0 && "Vertex offset mismatch");
 			assert(indexByteOffset % sizeof(UINT) == 0 && "Index offset mismatch");
@@ -256,16 +260,129 @@ void GpuScene::UploadModels(RenderContext& RenderContext)
 			mesh.StartIndexLocation += (indexByteOffset / sizeof(UINT));
 		}
 
-		if (!model.Path.empty())
+		size_t NumMeshlets = 0;
+		size_t NumUniqueVertexIndices = 0;
+		size_t NumPrimitiveIndices = 0;
+		for (auto& mesh : model)
 		{
-			LOG_INFO("{} Loaded", model.Path);
+			NumMeshlets += mesh.Meshlets.size();
+			NumUniqueVertexIndices += mesh.UniqueVertexIndices.size();
+			NumPrimitiveIndices += mesh.PrimitiveIndices.size();
 		}
+
+		model.MeshletResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " [Meshlet Resource]");
+		model.UploadMeshletResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " [Meshlet Resource] (Upload)");
+		model.UniqueVertexIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " [Unique Vertex Index Resource]");
+		model.UploadUniqueVertexIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " [Unique Vertex Index Resource] (Upload)");
+		model.PrimitiveIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " [Primitive Index Resource]");
+		model.UploadPrimitiveIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " [Primitive Index Resource] (Upload)");
+
+		// Meshlet resource
+		pRenderDevice->CreateBuffer(model.MeshletResource, [=](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(NumMeshlets * sizeof(Meshlet));
+			proxy.SetStride(sizeof(Meshlet));
+			proxy.InitialState = Resource::State::CopyDest;
+		});
+
+		pRenderDevice->CreateBuffer(model.UploadMeshletResource, [=](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(NumMeshlets * sizeof(Meshlet));
+			proxy.SetStride(sizeof(Meshlet));
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		// Unique vertex index resource
+		pRenderDevice->CreateBuffer(model.UniqueVertexIndexResource, [=](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(NumUniqueVertexIndices * sizeof(uint32_t));
+			proxy.SetStride(sizeof(uint32_t));
+			proxy.InitialState = Resource::State::CopyDest;
+		});
+
+		pRenderDevice->CreateBuffer(model.UploadUniqueVertexIndexResource, [=](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(NumUniqueVertexIndices * sizeof(uint32_t));
+			proxy.SetStride(sizeof(uint32_t));
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		// Primitive index resource
+		pRenderDevice->CreateBuffer(model.PrimitiveIndexResource, [=](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(NumPrimitiveIndices * sizeof(MeshletPrimitive));
+			proxy.SetStride(sizeof(MeshletPrimitive));
+			proxy.InitialState = Resource::State::CopyDest;
+		});
+
+		pRenderDevice->CreateBuffer(model.UploadPrimitiveIndexResource, [=](BufferProxy& proxy)
+		{
+			proxy.SetSizeInBytes(NumPrimitiveIndices * sizeof(MeshletPrimitive));
+			proxy.SetStride(sizeof(MeshletPrimitive));
+			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
+		});
+
+		size_t MeshletOffset = 0;
+		size_t UniqueVertexIndexOffset = 0;
+		size_t PrimitiveIndexOffset = 0;
+		for (auto& mesh : model)
+		{
+			mesh.MeshletOffset = MeshletOffset;
+			mesh.UniqueVertexIndexOffset = UniqueVertexIndexOffset;
+			mesh.PrimitiveIndexOffset = PrimitiveIndexOffset;
+
+			// Stage meshlets
+			{
+				auto pResource = pRenderDevice->GetBuffer(model.MeshletResource);
+				auto pUploadResource = pRenderDevice->GetBuffer(model.UploadMeshletResource);
+
+				auto pGPU = pUploadResource->Map();
+				auto pCPU = mesh.Meshlets.data();
+				memcpy(&pGPU[MeshletOffset], pCPU, mesh.Meshlets.size() * sizeof(Meshlet));
+
+				MeshletOffset += mesh.Meshlets.size();
+			}
+
+			// Stage unique vertex indices;
+			{
+				auto pResource = pRenderDevice->GetBuffer(model.UniqueVertexIndexResource);
+				auto pUploadResource = pRenderDevice->GetBuffer(model.UploadUniqueVertexIndexResource);
+
+				auto pGPU = pUploadResource->Map();
+				auto pCPU = mesh.UniqueVertexIndices.data();
+				memcpy(&pGPU[UniqueVertexIndexOffset], pCPU, mesh.UniqueVertexIndices.size() * sizeof(uint32_t));
+
+				UniqueVertexIndexOffset += mesh.UniqueVertexIndices.size();
+			}
+
+			// Stage unique vertex indices;
+			{
+				auto pResource = pRenderDevice->GetBuffer(model.PrimitiveIndexResource);
+				auto pUploadResource = pRenderDevice->GetBuffer(model.UploadPrimitiveIndexResource);
+
+				auto pGPU = pUploadResource->Map();
+				auto pCPU = mesh.PrimitiveIndices.data();
+				memcpy(&pGPU[PrimitiveIndexOffset], pCPU, mesh.PrimitiveIndices.size() * sizeof(MeshletPrimitive));
+
+				PrimitiveIndexOffset += mesh.PrimitiveIndices.size();
+			}
+		}
+
+		RenderContext.CopyResource(model.MeshletResource, model.UploadMeshletResource);
+		RenderContext.CopyResource(model.UniqueVertexIndexResource, model.UploadUniqueVertexIndexResource);
+		RenderContext.CopyResource(model.PrimitiveIndexResource, model.UploadPrimitiveIndexResource);
+
+		RenderContext.TransitionBarrier(model.MeshletResource, Resource::State::NonPixelShaderResource);
+		RenderContext.TransitionBarrier(model.UniqueVertexIndexResource, Resource::State::NonPixelShaderResource);
+		RenderContext.TransitionBarrier(model.PrimitiveIndexResource, Resource::State::NonPixelShaderResource);
+
+		LOG_INFO("{} Loaded", model.Path);
 
 		// Add model's meshes into RTBLAS
 		RTBLAS rtblas;
 		rtblas.Scratch	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " (Scratch)");
 		rtblas.Result	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " (Result)");
-		for (auto& mesh : model.Meshes)
+		for (auto& mesh : model)
 		{
 			// Update mesh's BLAS Index
 			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
@@ -350,15 +467,10 @@ void GpuScene::UploadMeshes()
 	{
 		for (auto& meshInstance : modelInstance.MeshInstances)
 		{
+			// InstanceID will be used to find the data for this instance in shader
 			meshInstance.InstanceID = hlslMeshes.size();
 
-			HLSL::Mesh hlslMesh		= {};
-			hlslMesh.VertexOffset	= meshInstance.pMesh->BaseVertexLocation;
-			hlslMesh.IndexOffset	= meshInstance.pMesh->StartIndexLocation;
-			hlslMesh.MaterialIndex	= modelInstance.pMaterial->GpuMaterialIndex;
-			XMStoreFloat4x4(&hlslMesh.World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
-
-			hlslMeshes.push_back(hlslMesh);
+			hlslMeshes.push_back(GetHLSLMeshDesc(modelInstance.pMaterial->GpuMaterialIndex, meshInstance));
 		}
 	}
 
@@ -466,7 +578,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.Scratch);
 
 		// TLAS Scratch
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(scratchSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
@@ -480,7 +592,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.Result);
 
 		// TLAS Result
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.Result, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RaytracingTopLevelAccelerationStructure.Result, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(resultSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
@@ -494,7 +606,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
 
 		// TLAS Instance Desc
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(instanceDescsSizeInBytes);
 			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
@@ -527,7 +639,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		rtblas.BLAS.ComputeMemoryRequirements(&pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
 
 		// BLAS Scratch
-		pRenderDevice->CreateDeviceBuffer(rtblas.Scratch, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(rtblas.Scratch, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(scratchSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
@@ -535,7 +647,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		});
 
 		// BLAS Result
-		pRenderDevice->CreateDeviceBuffer(rtblas.Result, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(rtblas.Result, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(resultSizeInBytes);
 			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;

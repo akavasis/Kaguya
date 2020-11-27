@@ -27,11 +27,67 @@ Vertex MidPoint(const Vertex& v0, const Vertex& v1)
 
 	XMVECTOR tex = XMVectorReplicate(0.5f) * (tex0 + tex1); // 0.5f * (tex0 + tex1) 
 
-	Vertex v;
+	Vertex v = {};
 	XMStoreFloat3(&v.Position, pos);
 	XMStoreFloat3(&v.Normal, normal);
 	XMStoreFloat2(&v.Texture, tex);
 	return v;
+}
+
+void GenerateMeshletData(const MeshData& MeshData, Mesh* pMesh)
+{
+	std::vector<DirectX::Meshlet> meshlets;
+	std::vector<uint8_t> uniqueVertexIB;
+	std::vector<DirectX::MeshletTriangle> primitiveIndices;
+
+	assert(MeshData.Indices.size() % 3 == 0); // Ensure this is evenly divisible
+	size_t nFaces = MeshData.Indices.size() / 3;
+	size_t nVerts = MeshData.Vertices.size();
+
+	std::unique_ptr<XMFLOAT3[]> pos(new XMFLOAT3[nVerts]);
+	for (size_t j = 0; j < nVerts; ++j)
+		pos[j] = MeshData.Vertices[j].Position;
+
+	HRESULT hr = DirectX::ComputeMeshlets(MeshData.Indices.data(), nFaces,
+		pos.get(), nVerts,
+		nullptr,
+		meshlets, uniqueVertexIB, primitiveIndices);
+
+	// Copy meshlet data
+	pMesh->Meshlets.reserve(meshlets.size());
+	for (const auto& meshlet : meshlets)
+	{
+		::Meshlet m = {};
+		m.VertexCount = meshlet.VertCount;
+		m.VertexOffset = meshlet.VertOffset;
+		m.PrimitiveCount = meshlet.PrimCount;
+		m.PrimitiveOffset = meshlet.PrimOffset;
+
+		pMesh->Meshlets.push_back(m);
+	}
+
+	// Copy unique vertex indices data
+	assert(uniqueVertexIB.size() % sizeof(uint32_t) == 0); // Ensure this is evenly divisible
+	auto pUniqueVertexIndices = reinterpret_cast<const uint32_t*>(uniqueVertexIB.data());
+	size_t NumUniqueVertexIndices = uniqueVertexIB.size() / sizeof(uint32_t);
+
+	pMesh->UniqueVertexIndices.reserve(NumUniqueVertexIndices);
+	for (size_t i = 0; i < NumUniqueVertexIndices; ++i)
+	{
+		pMesh->UniqueVertexIndices.push_back(pUniqueVertexIndices[i]);
+	}
+
+	// Copy primitive indices
+	pMesh->PrimitiveIndices.reserve(primitiveIndices.size());
+	for (const auto& primitive : primitiveIndices)
+	{
+		MeshletPrimitive p = {};
+		p.i0 = primitive.i0;
+		p.i1 = primitive.i1;
+		p.i2 = primitive.i2;
+
+		pMesh->PrimitiveIndices.push_back(p);
+	}
 }
 
 void Subdivide(MeshData& meshData)
@@ -94,8 +150,8 @@ Model CreateFromMeshData(MeshData& meshData)
 {
 	Model model = {};
 	DirectX::BoundingBox::CreateFromPoints(model.BoundingBox, meshData.Vertices.size(), &meshData.Vertices[0].Position, sizeof(Vertex));
-	model.Vertices = std::move(meshData.Vertices);
-	model.Indices = std::move(meshData.Indices);
+	model.Vertices = meshData.Vertices;
+	model.Indices = meshData.Indices;
 
 	// Create mesh
 	Mesh mesh = {};
@@ -104,6 +160,7 @@ Model CreateFromMeshData(MeshData& meshData)
 	mesh.StartIndexLocation = 0;
 	mesh.VertexCount = model.Vertices.size();
 	mesh.BaseVertexLocation = 0;
+	GenerateMeshletData(meshData, &mesh);
 
 	model.Meshes.push_back(std::move(mesh));
 	return model;
@@ -111,13 +168,13 @@ Model CreateFromMeshData(MeshData& meshData)
 
 Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions)
 {
-	MeshData meshData;
+	MeshData meshData = {};
 
 	float w2 = 0.5f * Width;
 	float h2 = 0.5f * Height;
 	float d2 = 0.5f * Depth;
 
-	Vertex v[24];
+	Vertex v[24] = {};
 	// Fill in the front face vertex data. 
 	v[0] = Vertex{ { -w2, -h2, -d2 }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } };
 	v[1] = Vertex{ { -w2, +h2, -d2 }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
@@ -156,7 +213,7 @@ Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions
 
 	meshData.Vertices.assign(&v[0], &v[24]);
 
-	uint32_t i[36];
+	uint32_t i[36] = {};
 	// Fill in the front face index data 
 	i[0] = 0; i[1] = 1; i[2] = 2;
 	i[3] = 0; i[4] = 2; i[5] = 3;

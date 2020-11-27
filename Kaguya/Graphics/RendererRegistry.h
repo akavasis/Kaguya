@@ -116,6 +116,7 @@ struct Shaders
 	struct MS
 	{
 		inline static Shader Meshlet;
+		inline static Shader Pixel;
 	};
 
 	static void Register(RenderDevice* pRenderDevice);

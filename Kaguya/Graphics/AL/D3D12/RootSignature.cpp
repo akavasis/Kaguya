@@ -67,6 +67,6 @@ RootSignature::RootSignature(const Device* pDevice, RootSignatureProxy& Proxy)
 	}
 
 	// Create the root signature.
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateRootSignature(0, pSerializedRootSignatureBlob->GetBufferPointer(),
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateRootSignature(0, pSerializedRootSignatureBlob->GetBufferPointer(),
 		pSerializedRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
 }

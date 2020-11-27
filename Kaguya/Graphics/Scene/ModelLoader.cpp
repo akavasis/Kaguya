@@ -6,8 +6,6 @@
 #include <assimp/postprocess.h>
 #include <assimp/pbrmaterial.h>
 
-using namespace DirectX;
-
 static Assimp::Importer Importer;
 
 ModelLoader::ModelLoader(std::filesystem::path ExecutableFolderPath)
@@ -54,14 +52,14 @@ Model ModelLoader::LoadFromFile(const char* pPath) const
 		{
 			Vertex v{};
 			// Position
-			v.Position = XMFLOAT3(paiMesh->mVertices[vertexIndex].x, paiMesh->mVertices[vertexIndex].y, paiMesh->mVertices[vertexIndex].z);
+			v.Position = DirectX::XMFLOAT3(paiMesh->mVertices[vertexIndex].x, paiMesh->mVertices[vertexIndex].y, paiMesh->mVertices[vertexIndex].z);
 
 			// Texture coords
 			if (paiMesh->HasTextureCoords(0))
-				v.Texture = XMFLOAT2(paiMesh->mTextureCoords[0][vertexIndex].x, paiMesh->mTextureCoords[0][vertexIndex].y);
+				v.Texture = DirectX::XMFLOAT2(paiMesh->mTextureCoords[0][vertexIndex].x, paiMesh->mTextureCoords[0][vertexIndex].y);
 
 			// Normal
-			v.Normal = XMFLOAT3(paiMesh->mNormals[vertexIndex].x, paiMesh->mNormals[vertexIndex].y, paiMesh->mNormals[vertexIndex].z);
+			v.Normal = DirectX::XMFLOAT3(paiMesh->mNormals[vertexIndex].x, paiMesh->mNormals[vertexIndex].y, paiMesh->mNormals[vertexIndex].z);
 
 			vertices.push_back(v);
 		}
@@ -85,18 +83,62 @@ Model ModelLoader::LoadFromFile(const char* pPath) const
 		std::vector<uint8_t> uniqueVertexIB;
 		std::vector<DirectX::MeshletTriangle> primitiveIndices;
 
-		DirectX::ComputeMeshlets(indices.data(), paiMesh->mNumFaces,
-			reinterpret_cast<const XMFLOAT3*>(paiMesh->mVertices), paiMesh->mNumVertices,
+		assert(indices.size() % 3 == 0); // Ensure this is evenly divisible
+		size_t nFaces = indices.size() / 3;
+		size_t nVerts = vertices.size();
+
+		std::unique_ptr<DirectX::XMFLOAT3[]> pos(new DirectX::XMFLOAT3[nVerts]);
+		for (size_t j = 0; j < nVerts; ++j)
+			pos[j] = vertices[j].Position;
+
+		HRESULT hr = DirectX::ComputeMeshlets(indices.data(), nFaces,
+			pos.get(), nVerts,
 			nullptr,
 			meshlets, uniqueVertexIB, primitiveIndices);
 
+		// Copy meshlet data
+		mesh.Meshlets.reserve(meshlets.size());
+		for (const auto& meshlet : meshlets)
+		{
+			::Meshlet m = {};
+			m.VertexCount = meshlet.VertCount;
+			m.VertexOffset = meshlet.VertOffset;
+			m.PrimitiveCount = meshlet.PrimCount;
+			m.PrimitiveOffset = meshlet.PrimOffset;
+
+			mesh.Meshlets.push_back(m);
+		}
+
+		// Copy unique vertex indices data
+		assert(uniqueVertexIB.size() % sizeof(uint32_t) == 0); // Ensure this is evenly divisible
+		auto pUniqueVertexIndices = reinterpret_cast<const uint32_t*>(uniqueVertexIB.data());
+		size_t NumUniqueVertexIndices = uniqueVertexIB.size() / sizeof(uint32_t);
+
+		mesh.UniqueVertexIndices.reserve(NumUniqueVertexIndices);
+		for (size_t i = 0; i < NumUniqueVertexIndices; ++i)
+		{
+			mesh.UniqueVertexIndices.push_back(pUniqueVertexIndices[i]);
+		}
+
+		// Copy primitive indices
+		mesh.PrimitiveIndices.reserve(primitiveIndices.size());
+		for (const auto& primitive : primitiveIndices)
+		{
+			MeshletPrimitive p = {};
+			p.i0 = primitive.i0;
+			p.i1 = primitive.i1;
+			p.i2 = primitive.i2;
+
+			mesh.PrimitiveIndices.push_back(p);
+		}
+
 		// Parse aabb data for mesh
 		// center = 0.5 * (min + max)
-		XMVECTOR min = XMVectorSet(paiMesh->mAABB.mMin.x, paiMesh->mAABB.mMin.y, paiMesh->mAABB.mMin.z, 0.0f);
-		XMVECTOR max = XMVectorSet(paiMesh->mAABB.mMax.x, paiMesh->mAABB.mMax.y, paiMesh->mAABB.mMax.z, 0.0f);
-		XMStoreFloat3(&mesh.BoundingBox.Center, XMVectorMultiply(XMVectorReplicate(0.5f), XMVectorAdd(min, max)));
+		DirectX::XMVECTOR min = DirectX::XMVectorSet(paiMesh->mAABB.mMin.x, paiMesh->mAABB.mMin.y, paiMesh->mAABB.mMin.z, 0.0f);
+		DirectX::XMVECTOR max = DirectX::XMVectorSet(paiMesh->mAABB.mMax.x, paiMesh->mAABB.mMax.y, paiMesh->mAABB.mMax.z, 0.0f);
+		XMStoreFloat3(&mesh.BoundingBox.Center, DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorAdd(min, max)));
 		// extents = 0.5f (max - min)
-		XMStoreFloat3(&mesh.BoundingBox.Extents, XMVectorMultiply(XMVectorReplicate(0.5f), XMVectorSubtract(max, min)));
+		XMStoreFloat3(&mesh.BoundingBox.Extents, DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorSubtract(max, min)));
 
 		// Parse mesh indices
 		mesh.VertexCount = vertices.size();

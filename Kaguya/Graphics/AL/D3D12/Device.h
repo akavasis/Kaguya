@@ -10,7 +10,7 @@ public:
 	Device(IDXGIAdapter4* pAdapter);
 	~Device();
 
-	inline auto GetD3DDevice() const { return m_pDevice5.Get(); }
+	inline auto GetApiHandle() const { return m_pDevice5.Get(); }
 	inline auto GetDescriptorIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE Type) const { return m_DescriptorHandleIncrementSizeCache[UINT(Type)]; }
 private:
 	void CheckRS_1_1Support();

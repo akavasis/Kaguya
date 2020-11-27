@@ -36,6 +36,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 
 # Acknowledgements
 - assimp (https://github.com/assimp/assimp)
+- DirectXMesh (https://github.com/microsoft/DirectXMesh)
 - DirectXTex (https://github.com/microsoft/DirectXTex)
 - DirectX Shader Compiler (https://github.com/microsoft/DirectXShaderCompiler)
 - imgui (https://github.com/ocornut/imgui)

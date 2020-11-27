@@ -39,7 +39,7 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(UINT64 CompletedF
 	// If no allocator's were ready to be reused, create a new one
 	if (pAllocator == nullptr)
 	{
-		ThrowCOMIfFailed(m_Device->GetD3DDevice()->CreateCommandAllocator(m_Type, IID_PPV_ARGS(&pAllocator)));
+		ThrowCOMIfFailed(m_Device->GetApiHandle()->CreateCommandAllocator(m_Type, IID_PPV_ARGS(&pAllocator)));
 		wchar_t AllocatorName[32];
 		swprintf(AllocatorName, 32, L"CommandAllocator %zu", m_AllocatorPool.size());
 		pAllocator->SetName(AllocatorName);

@@ -17,7 +17,7 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	m_DepthStencilDescriptorHeap(&Device, NumDepthStencilDescriptors)
 {
 	// Initialize ImGui for d3d12
-	ImGui_ImplDX12_Init(Device.GetD3DDevice(), 1,
+	ImGui_ImplDX12_Init(Device.GetApiHandle(), 1,
 		RenderDevice::SwapChainBufferFormat, m_ImGuiDescriptorHeap.GetD3DDescriptorHeap(),
 		m_ImGuiDescriptorHeap.GetD3DDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
 		m_ImGuiDescriptorHeap.GetD3DDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
@@ -130,7 +130,7 @@ std::string RenderDevice::GetRenderResourceHandleName(RenderResourceHandle Rende
 	return std::string();
 }
 
-void RenderDevice::CreateDeviceBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator)
+void RenderDevice::CreateBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator)
 {
 	BufferProxy proxy;
 	Configurator(proxy);
@@ -144,7 +144,7 @@ void RenderDevice::CreateDeviceBuffer(RenderResourceHandle Handle, std::function
 		GlobalResourceStateTracker.AddResourceState(pBuffer->GetApiHandle(), GetD3DResourceStates(proxy.InitialState));
 }
 
-void RenderDevice::CreateDeviceBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator)
+void RenderDevice::CreateBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator)
 {
 	BufferProxy proxy;
 	Configurator(proxy);

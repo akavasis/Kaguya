@@ -39,7 +39,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* SV_pRenderDevice)
 		D3D12_FEATURE_DATA_FORMAT_SUPPORT FeatureDataFormatSupport	= {};
 		FeatureDataFormatSupport.Format								= OptionalFormats[i];
 
-		ThrowCOMIfFailed(SV_pRenderDevice->Device.GetD3DDevice()->CheckFeatureSupport(
+		ThrowCOMIfFailed(SV_pRenderDevice->Device.GetApiHandle()->CheckFeatureSupport(
 			D3D12_FEATURE_FORMAT_SUPPORT,
 			&FeatureDataFormatSupport,
 			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
@@ -243,7 +243,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	std::vector<UINT64>								RowSizeInBytes						(NumSubresources);
 	UINT64											TotalBytes							= 0;
 
-	auto pD3DDevice = SV_pRenderDevice->Device.GetD3DDevice();
+	auto pD3DDevice = SV_pRenderDevice->Device.GetApiHandle();
 	auto Desc = pTexture->GetApiHandle()->GetDesc();
 	pD3DDevice->GetCopyableFootprints(&Desc, 0, NumSubresources, 0,
 		PlacedSubresourceLayouts.data(), NumRows.data(), RowSizeInBytes.data(), &TotalBytes);

@@ -17,7 +17,7 @@ GraphicsPipelineState::GraphicsPipelineState(const Device* pDevice, GraphicsPipe
 	if (!Proxy.pMS)
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc = Proxy.BuildD3DDesc();
-		ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+		ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 	}
 	else
 	{
@@ -27,7 +27,7 @@ GraphicsPipelineState::GraphicsPipelineState(const Device* pDevice, GraphicsPipe
 		Desc.pPipelineStateSubobjectStream = &PSOStream;
 		Desc.SizeInBytes = sizeof(PSOStream);
 
-		ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreatePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+		ThrowCOMIfFailed(pDevice->GetApiHandle()->CreatePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 	}
 }
 
@@ -35,5 +35,5 @@ ComputePipelineState::ComputePipelineState(const Device* pDevice, ComputePipelin
 	: PipelineState(Proxy)
 {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC Desc = Proxy.BuildD3DDesc();
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateComputePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateComputePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 }

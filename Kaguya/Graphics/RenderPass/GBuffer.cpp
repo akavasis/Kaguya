@@ -189,10 +189,10 @@ void GBuffer::RenderMeshes(RenderContext& RenderContext)
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Meshes");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferMeshes);
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
+	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
+	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTable());
 
 	const Scene& Scene = *pGpuScene->pScene;
 	std::vector<const ModelInstance*> visibleModelInstanceIndices;
@@ -236,7 +236,7 @@ void GBuffer::RenderLights(RenderContext& RenderContext)
 	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Lights");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferLights);
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetLightTableHandle());
+	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetLightTable());
 
 	const Scene& Scene = *pGpuScene->pScene;
 	for (const auto& light : Scene.Lights)

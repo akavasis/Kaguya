@@ -38,7 +38,7 @@ Heap::Heap(const Device* pDevice, HeapProxy& Proxy)
 	Proxy.Link();
 
 	D3D12_HEAP_DESC desc = Proxy.BuildD3DDesc();
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateHeap(&desc, IID_PPV_ARGS(&m_pHeap)));
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateHeap(&desc, IID_PPV_ARGS(&m_pHeap)));
 }
 
 D3D12_HEAP_FLAGS GetD3DHeapFlags(Heap::Flags Flags)

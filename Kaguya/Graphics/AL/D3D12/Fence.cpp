@@ -4,7 +4,7 @@
 
 Fence::Fence(Device* pDevice)
 {
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_pFence.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_pFence.ReleaseAndGetAddressOf())));
 	m_EventHandle	= ::CreateEvent(nullptr, false, false, nullptr);
 	m_ExpectedValue = 0;
 }

@@ -8,51 +8,36 @@
 // PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
 //
 //*********************************************************
+#include <HLSLCommon.hlsli>
+#include <Vertex.hlsli>
 
-struct RenderPassData
+struct Meshlet
 {
-    float4x4 World;
-    float4x4 WorldView;
-    float4x4 WorldViewProj;
-    uint     DrawMeshlets;
-};
-#define RenderPassDataType RenderPassData
-#include <ShaderLayout.hlsli>
-
-struct MeshInfo
-{
-    uint IndexBytes;
-    uint MeshletOffset;
-};
-
-struct Vertex
-{
-    float3 Position;
-    float3 Normal;
+	uint VertexCount;
+	uint VertexOffset;
+	uint PrimitiveCount;
+	uint PrimitiveOffset;
 };
 
 struct VertexOut
 {
     float4 PositionHS   : SV_Position;
-    float3 PositionVS   : POSITION0;
-    float3 Normal       : NORMAL0;
-    uint   MeshletIndex : COLOR0;
+    float3 Normal       : NORMAL;
+    uint   MeshletIndex : MESHLET_INDEX;
 };
 
-struct Meshlet
+cbuffer RootConstants
 {
-    uint VertCount;
-    uint VertOffset;
-    uint PrimCount;
-    uint PrimOffset;
+	uint InstanceID;
 };
 
-ConstantBuffer<MeshInfo>  MeshInfo            : register(b1);
+StructuredBuffer<Vertex>  Vertices            : register(t0, space0);
+StructuredBuffer<Mesh>    Meshes			  : register(t1, space0);
+StructuredBuffer<Meshlet> Meshlets            : register(t2, space0);
+ByteAddressBuffer         UniqueVertexIndices : register(t3, space0);
+StructuredBuffer<uint>    PrimitiveIndices    : register(t4, space0);
 
-StructuredBuffer<Vertex>  Vertices            : register(t0);
-StructuredBuffer<Meshlet> Meshlets            : register(t1);
-ByteAddressBuffer         UniqueVertexIndices : register(t2);
-StructuredBuffer<uint>    PrimitiveIndices    : register(t3);
+#include <ShaderLayout.hlsli>
 
 /////
 // Data Loaders
@@ -63,41 +48,26 @@ uint3 UnpackPrimitive(uint primitive)
     return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
 }
 
-uint3 GetPrimitive(Meshlet m, uint index)
+uint3 GetPrimitive(Meshlet m, uint index, uint offset)
 {
-    return UnpackPrimitive(PrimitiveIndices[m.PrimOffset + index]);
+    return UnpackPrimitive(PrimitiveIndices[m.PrimitiveOffset + index + offset]);
 }
 
-uint GetVertexIndex(Meshlet m, uint localIndex)
+uint GetVertexIndex(Meshlet m, uint localIndex, uint offset)
 {
-    localIndex = m.VertOffset + localIndex;
-
-    if (MeshInfo.IndexBytes == 4) // 32-bit Vertex Indices
-    {
-        return UniqueVertexIndices.Load(localIndex * 4);
-    }
-    else // 16-bit Vertex Indices
-    {
-        // Byte address must be 4-byte aligned.
-        uint wordOffset = (localIndex & 0x1);
-        uint byteOffset = (localIndex / 2) * 4;
-
-        // Grab the pair of 16-bit indices, shift & mask off proper 16-bits.
-        uint indexPair = UniqueVertexIndices.Load(byteOffset);
-        uint index = (indexPair >> (wordOffset * 16)) & 0xffff;
-
-        return index;
-    }
+    localIndex = m.VertexOffset + localIndex + offset;
+    return UniqueVertexIndices.Load(localIndex * 4);
 }
 
-VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
+VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex, Mesh mesh)
 {
     Vertex v = Vertices[vertexIndex];
 
+    float3 worldPos		= mul(float4(v.Position, 1.0f), mesh.World).xyz;
+
     VertexOut vout;
-    vout.PositionVS = mul(float4(v.Position, 1), g_RenderPassData.WorldView).xyz;
-	vout.PositionHS = mul(float4(v.Position, 1), g_RenderPassData.WorldViewProj);
-	vout.Normal = mul(float4(v.Normal, 0), g_RenderPassData.World).xyz;
+	vout.PositionHS = mul(float4(worldPos, 1), g_SystemConstants.Camera.ViewProjection);
+	vout.Normal = mul(float4(v.Normal, 0), mesh.World).xyz;
     vout.MeshletIndex = meshletIndex;
 
     return vout;
@@ -110,59 +80,29 @@ void MSMain(uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
     out vertices VertexOut verts[64]
 )
 {
-    Meshlet m = Meshlets[MeshInfo.MeshletOffset + gid];
+    Mesh mesh = Meshes[InstanceID];
+    Meshlet meshlet = Meshlets[gid + mesh.MeshletOffset];
 
-    SetMeshOutputCounts(m.VertCount, m.PrimCount);
+    SetMeshOutputCounts(meshlet.VertexCount, meshlet.PrimitiveCount);
 
-    if (gtid < m.PrimCount)
+    if (gtid < meshlet.PrimitiveCount)
     {
-        tris[gtid] = GetPrimitive(m, gtid);
+        tris[gtid] = GetPrimitive(meshlet, gtid, mesh.PrimitiveIndexOffset);
     }
 
-    if (gtid < m.VertCount)
+    if (gtid < meshlet.VertexCount)
     {
-        uint vertexIndex = GetVertexIndex(m, gtid);
-        verts[gtid] = GetVertexAttributes(gid, vertexIndex);
+        uint vertexIndex = GetVertexIndex(meshlet, gtid, mesh.UniqueVertexIndexOffset);
+        verts[gtid] = GetVertexAttributes(gid, vertexIndex, mesh);
     }
 }
 
 float4 PSMain(VertexOut input) : SV_TARGET
 {
-    const bool DrawMeshlets = true;
-
-	float ambientIntensity = 0.1;
-	float3 lightColor = float3(1, 1, 1);
-	float3 lightDir = -normalize(float3(1, -1, 1));
-
-	float3 diffuseColor;
-	float shininess;
-	if (DrawMeshlets)
-	{
-		uint meshletIndex = input.MeshletIndex;
-		diffuseColor = float3(
-            float(meshletIndex & 1),
-            float(meshletIndex & 3) / 4,
-            float(meshletIndex & 7) / 8);
-		shininess = 16.0;
-	}
-	else
-	{
-		diffuseColor = 0.8;
-		shininess = 64.0;
-	}
-
-	float3 normal = normalize(input.Normal);
-
-    // Do some fancy Blinn-Phong shading!
-	float cosAngle = saturate(dot(normal, lightDir));
-	float3 viewDir = -normalize(input.PositionVS);
-	float3 halfAngle = normalize(lightDir + viewDir);
-
-	float blinnTerm = saturate(dot(normal, halfAngle));
-	blinnTerm = cosAngle != 0.0 ? blinnTerm : 0.0;
-	blinnTerm = pow(blinnTerm, shininess);
-
-	float3 finalColor = (cosAngle + blinnTerm + ambientIntensity) * diffuseColor;
-
-	return float4(finalColor, 1);
+	uint meshletIndex = input.MeshletIndex;
+	return float4(
+        float(meshletIndex & 1),
+        float(meshletIndex & 3) / 4,
+        float(meshletIndex & 7) / 8,
+        1);
 }

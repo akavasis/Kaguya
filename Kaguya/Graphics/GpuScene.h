@@ -24,12 +24,12 @@ public:
 	bool Update(float AspectRatio);
 	void CreateTopLevelAS(RenderContext& RenderContext);
 
-	inline auto GetLightTableHandle()			const { return m_LightTable; }
-	inline auto GetMaterialTableHandle()		const { return m_MaterialTable; }
-	inline auto GetMeshTable()					const { return m_MeshTable; }
-	inline auto GetVertexBufferHandle()			const { return m_VertexBuffer; }
-	inline auto GetIndexBufferHandle()			const { return m_IndexBuffer; }
-	inline auto GetRTTLASResourceHandle()		const { return m_RaytracingTopLevelAccelerationStructure.Result; }
+	inline auto GetLightTable()						const { return m_LightTable; }
+	inline auto GetMaterialTable()					const { return m_MaterialTable; }
+	inline auto GetMeshTable()						const { return m_MeshTable; }
+	inline auto GetVertexBuffer()					const { return m_VertexBuffer; }
+	inline auto GetIndexBuffer()					const { return m_IndexBuffer; }
+	inline auto GetTopLevelAccelerationStructure()	const { return m_RaytracingTopLevelAccelerationStructure.Result; }
 
 	HLSL::Camera GetHLSLCamera() const;
 	HLSL::Camera GetHLSLPreviousCamera() const;

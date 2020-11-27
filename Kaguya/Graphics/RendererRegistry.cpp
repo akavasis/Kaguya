@@ -52,6 +52,7 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 	// Load MS
 	{
 		MS::Meshlet = pRenderDevice->CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/MeshShader/Meshlet.hlsl", L"MSMain", {});
+		MS::Pixel	= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/MeshShader/Meshlet.hlsl", L"PSMain", {});
 	}
 }
 

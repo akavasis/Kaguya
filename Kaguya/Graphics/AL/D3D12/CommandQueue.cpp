@@ -5,7 +5,7 @@
 CommandQueue::CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 	: m_CommandAllocatorPool(pDevice, Type)
 {
-	auto pD3DDevice = pDevice->GetD3DDevice();
+	auto pD3DDevice = pDevice->GetApiHandle();
 
 	D3D12_COMMAND_QUEUE_DESC Desc	= {};
 	Desc.Type						= Type;

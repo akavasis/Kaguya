@@ -109,7 +109,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -129,7 +129,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -158,7 +158,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -214,11 +214,11 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::AmbientOcclusion);
-	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
+	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
+	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
+	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTable());
 
 	RenderContext.DispatchRays(
 		m_RayGenerationShaderTable,

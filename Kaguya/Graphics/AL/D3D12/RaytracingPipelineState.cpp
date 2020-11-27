@@ -107,7 +107,7 @@ RaytracingPipelineState::RaytracingPipelineState(const Device* pDevice, Raytraci
 	auto pPipelineConfigSubobject = desc.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
 	pPipelineConfigSubobject->Config(Proxy.m_PipelineConfig.MaxTraceRecursionDepth);
 
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateStateObject(desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateStateObject(desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
 	// Query the state object properties
 	ThrowCOMIfFailed(m_StateObject->QueryInterface(IID_PPV_ARGS(m_StateObjectProperties.ReleaseAndGetAddressOf())));
 }

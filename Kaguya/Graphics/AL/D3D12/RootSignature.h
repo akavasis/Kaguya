@@ -146,13 +146,8 @@ public:
 	RootSignature() = default;
 	RootSignature(const Device* pDevice, RootSignatureProxy& Proxy);
 
-	RootSignature(RootSignature&&) noexcept = default;
-	RootSignature& operator=(RootSignature&&) = default;
-
-	RootSignature(const RootSignature&) = delete;
-	RootSignature& operator=(const RootSignature&) = delete;
-
 	inline auto GetApiHandle() const { return m_RootSignature.Get(); }
+
 	UINT NumParameters;
 	UINT NumStaticSamplers;
 private:

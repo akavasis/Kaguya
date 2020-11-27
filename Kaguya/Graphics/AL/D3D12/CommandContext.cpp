@@ -10,8 +10,8 @@ CommandContext::CommandContext(const Device* pDevice, CommandQueue* pCommandQueu
 	SV_pPendingAllocator		= SV_pCommandQueue->RequestAllocator();
 
 	D3D12_COMMAND_LIST_TYPE CommandListType = GetD3DCommandListType(Type);
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, CommandListType, SV_pAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommandList(1, CommandListType, SV_pPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateCommandList(1, CommandListType, SV_pAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateCommandList(1, CommandListType, SV_pPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
 }
 
 bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)

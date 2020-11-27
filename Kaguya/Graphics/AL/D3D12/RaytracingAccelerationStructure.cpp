@@ -40,7 +40,7 @@ void BottomLevelAccelerationStructure::ComputeMemoryRequirements(const Device* p
 	Desc.pGeometryDescs											= RaytracingGeometryDescs.data();
 
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO PrebuildInfo = {};
-	pDevice->GetD3DDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
+	pDevice->GetApiHandle()->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
 
 	// Buffer sizes need to be 256-byte-aligned
 	ScratchSizeInBytes		= Math::AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
@@ -123,7 +123,7 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDev
 	// well as space to store the resulting structure This function computes a
 	// conservative estimate of the memory requirements for both, based on the
 	// number of bottom-level instances.
-	pDevice->GetD3DDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
+	pDevice->GetApiHandle()->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
 
 	// Buffer sizes need to be 256-byte-aligned
 	ScratchSizeInBytes			= Math::AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);

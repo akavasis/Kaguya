@@ -238,7 +238,7 @@ DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool S
 	desc.Flags = m_ShaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	desc.NodeMask = 0;
 
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pDescriptorHeap)));
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pDescriptorHeap)));
 	m_DescriptorIncrementSize = pDevice->GetDescriptorIncrementSize(Type);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle = m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -278,61 +278,61 @@ CBSRUADescriptorHeap::CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptor
 
 UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Buffer* pBuffer)
 {
-	Descriptor DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = GetShaderResourceViewDesc(pBuffer);
+	auto DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
+	auto Desc			= GetShaderResourceViewDesc(pBuffer);
 	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::BindFlags::AccelerationStructure))
 	{
-		m_pDevice->GetD3DDevice()->CreateShaderResourceView(nullptr, &desc, DestDescriptor.CPUHandle);
+		m_pDevice->GetApiHandle()->CreateShaderResourceView(nullptr, &Desc, DestDescriptor.CPUHandle);
 	}
 	else
 	{
-		m_pDevice->GetD3DDevice()->CreateShaderResourceView(pBuffer->GetApiHandle(), &desc, DestDescriptor.CPUHandle);
+		m_pDevice->GetApiHandle()->CreateShaderResourceView(pBuffer->GetApiHandle(), &Desc, DestDescriptor.CPUHandle);
 	}
-	return GetHashValue(desc);
+	return GetHashValue(Desc);
 }
 
 UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Texture* pTexture, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
 {
-	Descriptor DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = GetShaderResourceViewDesc(pTexture, MostDetailedMip, MipLevels);
-	m_pDevice->GetD3DDevice()->CreateShaderResourceView(pTexture->GetApiHandle(), &desc, DestDescriptor.CPUHandle);
-	return GetHashValue(desc);
+	auto DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
+	auto Desc			= GetShaderResourceViewDesc(pTexture, MostDetailedMip, MipLevels);
+	m_pDevice->GetApiHandle()->CreateShaderResourceView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CPUHandle);
+	return GetHashValue(Desc);
 }
 
 UINT64 CBSRUADescriptorHeap::AssignUADescriptor(UINT HeapIndex, Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
-	Descriptor DestDescriptor = GetDescriptorAt(UnorderedAccess, HeapIndex);
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = GetUnorderedAccessViewDesc(pTexture, ArraySlice, MipSlice);
-	m_pDevice->GetD3DDevice()->CreateUnorderedAccessView(pTexture->GetApiHandle(), nullptr, &desc, DestDescriptor.CPUHandle);
-	return GetHashValue(desc);
+	auto DestDescriptor = GetDescriptorAt(UnorderedAccess, HeapIndex);
+	auto Desc			= GetUnorderedAccessViewDesc(pTexture, ArraySlice, MipSlice);
+	m_pDevice->GetApiHandle()->CreateUnorderedAccessView(pTexture->GetApiHandle(), nullptr, &Desc, DestDescriptor.CPUHandle);
+	return GetHashValue(Desc);
 }
 
 D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(Buffer* pBuffer)
 {
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+	D3D12_SHADER_RESOURCE_VIEW_DESC Desc				= {};
 	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::BindFlags::AccelerationStructure))
 	{
-		desc.Format = DXGI_FORMAT_UNKNOWN;
-		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
-		desc.RaytracingAccelerationStructure.Location = pBuffer->GetGpuVirtualAddress();
+		Desc.Format										= DXGI_FORMAT_UNKNOWN;
+		Desc.Shader4ComponentMapping					= D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		Desc.ViewDimension								= D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+		Desc.RaytracingAccelerationStructure.Location	= pBuffer->GetGpuVirtualAddress();
 	}
 	else
 	{
-		desc.Format = DXGI_FORMAT_UNKNOWN;
-		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		desc.Buffer.FirstElement = 0;
-		desc.Buffer.NumElements = pBuffer->GetMemoryRequested() / pBuffer->GetStride();
-		desc.Buffer.StructureByteStride = pBuffer->GetStride();
-		desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+		Desc.Format										= DXGI_FORMAT_UNKNOWN;
+		Desc.Shader4ComponentMapping					= D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		Desc.ViewDimension								= D3D12_SRV_DIMENSION_BUFFER;
+		Desc.Buffer.FirstElement						= 0;
+		Desc.Buffer.NumElements							= pBuffer->GetMemoryRequested() / pBuffer->GetStride();
+		Desc.Buffer.StructureByteStride					= pBuffer->GetStride();
+		Desc.Buffer.Flags								= D3D12_BUFFER_SRV_FLAG_NONE;
 	}
-	return desc;
+	return Desc;
 }
 
 D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(Texture* pTexture, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
 {
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+	D3D12_SHADER_RESOURCE_VIEW_DESC Desc = {};
 	UINT mostDetailedMip = MostDetailedMip.value_or(0);
 	UINT mipLevels = MipLevels.value_or(pTexture->GetMipLevels());
 
@@ -343,33 +343,32 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 		case DXGI_FORMAT_R32_TYPELESS:		return DXGI_FORMAT_R32_FLOAT;
 		case DXGI_FORMAT_D24_UNORM_S8_UINT: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 		case DXGI_FORMAT_D32_FLOAT:			return DXGI_FORMAT_R32_FLOAT;
-
-		default:
-			return Format;
+		default:							return Format;
 		}
 	};
 
-	desc.Format = GetValidSRVFormat(pTexture->GetFormat());
-	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	Desc.Format = GetValidSRVFormat(pTexture->GetFormat());
+	Desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
 	switch (pTexture->GetType())
 	{
 	case Resource::Type::Texture1D:
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-			desc.Texture1DArray.MostDetailedMip = mostDetailedMip;
-			desc.Texture1DArray.MipLevels = mipLevels;
-			desc.Texture1DArray.FirstArraySlice = 0;
-			desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
-			desc.Texture1DArray.ResourceMinLODClamp = 0.0f;
+			Desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+			Desc.Texture1DArray.MostDetailedMip = mostDetailedMip;
+			Desc.Texture1DArray.MipLevels = mipLevels;
+			Desc.Texture1DArray.FirstArraySlice = 0;
+			Desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			Desc.Texture1DArray.ResourceMinLODClamp = 0.0f;
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-			desc.Texture1D.MostDetailedMip = mostDetailedMip;
-			desc.Texture1D.MipLevels = mipLevels;
-			desc.Texture1D.ResourceMinLODClamp = 0.0f;
+			Desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+			Desc.Texture1D.MostDetailedMip = mostDetailedMip;
+			Desc.Texture1D.MipLevels = mipLevels;
+			Desc.Texture1D.ResourceMinLODClamp = 0.0f;
 		}
 	}
 	break;
@@ -378,51 +377,52 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MostDetailedMip = mostDetailedMip;
-			desc.Texture2DArray.MipLevels = mipLevels;
-			desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
-			desc.Texture2DArray.PlaneSlice = 0;
-			desc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+			Desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+			Desc.Texture2DArray.MostDetailedMip = mostDetailedMip;
+			Desc.Texture2DArray.MipLevels = mipLevels;
+			Desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			Desc.Texture2DArray.PlaneSlice = 0;
+			Desc.Texture2DArray.ResourceMinLODClamp = 0.0f;
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MostDetailedMip = mostDetailedMip;
-			desc.Texture2D.MipLevels = mipLevels;
-			desc.Texture2D.PlaneSlice = 0;
-			desc.Texture2D.ResourceMinLODClamp = 0.0f;
+			Desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			Desc.Texture2D.MostDetailedMip = mostDetailedMip;
+			Desc.Texture2D.MipLevels = mipLevels;
+			Desc.Texture2D.PlaneSlice = 0;
+			Desc.Texture2D.ResourceMinLODClamp = 0.0f;
 		}
 	}
 	break;
 
 	case Resource::Type::Texture3D:
 	{
-		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-		desc.Texture3D.MostDetailedMip = mostDetailedMip;
-		desc.Texture3D.MipLevels = mipLevels;
-		desc.Texture3D.ResourceMinLODClamp = 0.0f;
+		Desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+		Desc.Texture3D.MostDetailedMip = mostDetailedMip;
+		Desc.Texture3D.MipLevels = mipLevels;
+		Desc.Texture3D.ResourceMinLODClamp = 0.0f;
 	}
 	break;
 
 	case Resource::Type::TextureCube:
 	{
-		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-		desc.TextureCube.MostDetailedMip = mostDetailedMip;
-		desc.TextureCube.MipLevels = mipLevels;
-		desc.TextureCube.ResourceMinLODClamp = 0.0f;
+		Desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+		Desc.TextureCube.MostDetailedMip = mostDetailedMip;
+		Desc.TextureCube.MipLevels = mipLevels;
+		Desc.TextureCube.ResourceMinLODClamp = 0.0f;
 	}
 	break;
 	}
-	return desc;
+	return Desc;
 }
 
 D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
 {
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
+	D3D12_UNORDERED_ACCESS_VIEW_DESC Desc = {};
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
-	desc.Format = pTexture->GetFormat();
+
+	Desc.Format = pTexture->GetFormat();
 
 	// TODO: Add buffer support
 	switch (pTexture->GetType())
@@ -431,15 +431,15 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDes
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
-			desc.Texture1DArray.MipSlice = mipSlice;
-			desc.Texture1DArray.FirstArraySlice = arraySlice;
-			desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			Desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+			Desc.Texture1DArray.MipSlice = mipSlice;
+			Desc.Texture1DArray.FirstArraySlice = arraySlice;
+			Desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
-			desc.Texture1D.MipSlice = mipSlice;
+			Desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+			Desc.Texture1D.MipSlice = mipSlice;
 		}
 	}
 	break;
@@ -449,31 +449,31 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDes
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipSlice = mipSlice;
-			desc.Texture2DArray.FirstArraySlice = arraySlice;
-			desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
-			desc.Texture2DArray.PlaneSlice = 0;
+			Desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			Desc.Texture2DArray.MipSlice = mipSlice;
+			Desc.Texture2DArray.FirstArraySlice = arraySlice;
+			Desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			Desc.Texture2DArray.PlaneSlice = 0;
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipSlice = mipSlice;
-			desc.Texture2D.PlaneSlice = 0;
+			Desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			Desc.Texture2D.MipSlice = mipSlice;
+			Desc.Texture2D.PlaneSlice = 0;
 		}
 	}
 	break;
 
 	case Resource::Type::Texture3D:
 	{
-		desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
-		desc.Texture3D.MipSlice = mipSlice;
-		desc.Texture3D.FirstWSlice = 0;
-		desc.Texture3D.WSize = 0;
+		Desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+		Desc.Texture3D.MipSlice = mipSlice;
+		Desc.Texture3D.FirstWSlice = 0;
+		Desc.Texture3D.WSize = 0;
 	}
 	break;
 	}
-	return desc;
+	return Desc;
 }
 
 UINT64 CBSRUADescriptorHeap::GetHashValue(const D3D12_SHADER_RESOURCE_VIEW_DESC& Desc)
@@ -500,12 +500,12 @@ RenderTargetDescriptorHeap::RenderTargetDescriptorHeap(Device* pDevice, UINT Num
 
 D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
-	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
+	D3D12_RENDER_TARGET_VIEW_DESC Desc = {};
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
 	UINT arraySize = ArraySize.value_or(pTexture->GetDepthOrArraySize());
 
-	desc.Format = pTexture->GetFormat();
+	Desc.Format = pTexture->GetFormat();
 
 	// TODO: Add buffer support and MS support
 	switch (pTexture->GetType())
@@ -514,15 +514,15 @@ D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDes
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
-			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
-			desc.Texture1DArray.MipSlice = mipSlice;
-			desc.Texture1DArray.FirstArraySlice = arraySlice;
-			desc.Texture1DArray.ArraySize = arraySize;
+			Desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+			Desc.Texture1DArray.MipSlice = mipSlice;
+			Desc.Texture1DArray.FirstArraySlice = arraySlice;
+			Desc.Texture1DArray.ArraySize = arraySize;
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
-			desc.Texture1D.MipSlice = mipSlice;
+			Desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+			Desc.Texture1D.MipSlice = mipSlice;
 		}
 	}
 	break;
@@ -532,31 +532,31 @@ D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDes
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
-			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipSlice = mipSlice;
-			desc.Texture2DArray.FirstArraySlice = arraySlice;
-			desc.Texture2DArray.ArraySize = arraySize;
-			desc.Texture2DArray.PlaneSlice = 0;
+			Desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			Desc.Texture2DArray.MipSlice = mipSlice;
+			Desc.Texture2DArray.FirstArraySlice = arraySlice;
+			Desc.Texture2DArray.ArraySize = arraySize;
+			Desc.Texture2DArray.PlaneSlice = 0;
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipSlice = mipSlice;
-			desc.Texture2D.PlaneSlice = 0;
+			Desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+			Desc.Texture2D.MipSlice = mipSlice;
+			Desc.Texture2D.PlaneSlice = 0;
 		}
 	}
 	break;
 
 	case Resource::Type::Texture3D:
 	{
-		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
-		desc.Texture3D.MipSlice = mipSlice;
-		desc.Texture3D.FirstWSlice = 0;
-		desc.Texture3D.WSize = 0;
+		Desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+		Desc.Texture3D.MipSlice = mipSlice;
+		Desc.Texture3D.FirstWSlice = 0;
+		Desc.Texture3D.WSize = 0;
 	}
 	break;
 	}
-	return desc;
+	return Desc;
 }
 
 UINT64 RenderTargetDescriptorHeap::GetHashValue(const D3D12_RENDER_TARGET_VIEW_DESC& Desc)
@@ -566,9 +566,9 @@ UINT64 RenderTargetDescriptorHeap::GetHashValue(const D3D12_RENDER_TARGET_VIEW_D
 
 void RenderTargetDescriptorHeap::Entry::operator=(Texture* pTexture)
 {
-	D3D12_RENDER_TARGET_VIEW_DESC desc = RenderTargetDescriptorHeap::GetRenderTargetViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
-	pDevice->GetD3DDevice()->CreateRenderTargetView(pTexture->GetApiHandle(), &desc, DestDescriptor.CPUHandle);
-	HashValue = RenderTargetDescriptorHeap::GetHashValue(desc);
+	auto Desc = RenderTargetDescriptorHeap::GetRenderTargetViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
+	HashValue = RenderTargetDescriptorHeap::GetHashValue(Desc);
+	pDevice->GetApiHandle()->CreateRenderTargetView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CPUHandle);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -579,12 +579,12 @@ DepthStencilDescriptorHeap::DepthStencilDescriptorHeap(Device* pDevice, UINT Num
 
 D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
 {
-	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
+	D3D12_DEPTH_STENCIL_VIEW_DESC Desc = {};
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
 	UINT arraySize = ArraySize.value_or(pTexture->GetDepthOrArraySize());
 
-	auto getValidDSVFormat = [](DXGI_FORMAT Format)
+	auto GetValidDSVFormat = [](DXGI_FORMAT Format)
 	{
 		// TODO: Add more
 		switch (Format)
@@ -595,8 +595,8 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 		}
 	};
 
-	desc.Format = getValidDSVFormat(pTexture->GetFormat());
-	desc.Flags = D3D12_DSV_FLAG_NONE;
+	Desc.Format = GetValidDSVFormat(pTexture->GetFormat());
+	Desc.Flags = D3D12_DSV_FLAG_NONE;
 
 	// TODO: Add support and MS support
 	switch (pTexture->GetType())
@@ -605,15 +605,15 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
-			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
-			desc.Texture1DArray.MipSlice = mipSlice;
-			desc.Texture1DArray.FirstArraySlice = arraySlice;
-			desc.Texture1DArray.ArraySize = arraySize;
+			Desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+			Desc.Texture1DArray.MipSlice = mipSlice;
+			Desc.Texture1DArray.FirstArraySlice = arraySlice;
+			Desc.Texture1DArray.ArraySize = arraySize;
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
-			desc.Texture1D.MipSlice = mipSlice;
+			Desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+			Desc.Texture1D.MipSlice = mipSlice;
 		}
 	}
 	break;
@@ -623,15 +623,15 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	{
 		if (pTexture->GetDepthOrArraySize() > 1)
 		{
-			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipSlice = mipSlice;
-			desc.Texture2DArray.FirstArraySlice = arraySlice;
-			desc.Texture2DArray.ArraySize = arraySize;
+			Desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+			Desc.Texture2DArray.MipSlice = mipSlice;
+			Desc.Texture2DArray.FirstArraySlice = arraySlice;
+			Desc.Texture2DArray.ArraySize = arraySize;
 		}
 		else
 		{
-			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipSlice = mipSlice;
+			Desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			Desc.Texture2D.MipSlice = mipSlice;
 		}
 	}
 	break;
@@ -642,7 +642,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	}
 	break;
 	}
-	return desc;
+	return Desc;
 }
 
 UINT64 DepthStencilDescriptorHeap::GetHashValue(const D3D12_DEPTH_STENCIL_VIEW_DESC& Desc)
@@ -652,7 +652,7 @@ UINT64 DepthStencilDescriptorHeap::GetHashValue(const D3D12_DEPTH_STENCIL_VIEW_D
 
 void DepthStencilDescriptorHeap::Entry::operator=(Texture* pTexture)
 {
-	D3D12_DEPTH_STENCIL_VIEW_DESC desc = DepthStencilDescriptorHeap::GetDepthStencilViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
-	pDevice->GetD3DDevice()->CreateDepthStencilView(pTexture->GetApiHandle(), &desc, DestDescriptor.CPUHandle);
-	HashValue = DepthStencilDescriptorHeap::GetHashValue(desc);
+	auto Desc = DepthStencilDescriptorHeap::GetDepthStencilViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
+	HashValue = DepthStencilDescriptorHeap::GetHashValue(Desc);
+	pDevice->GetApiHandle()->CreateDepthStencilView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CPUHandle);
 }

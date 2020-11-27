@@ -40,7 +40,7 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 	const D3D12_RESOURCE_DESC				ResourceDesc			= Proxy.BuildD3DDesc();
 	const D3D12_RESOURCE_STATES				ResourceStates			= GetD3DResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE*				pClearValue				= Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
-	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetApiHandle()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
 	m_Type				= Proxy.m_Type;
 	m_BindFlags			= Proxy.BindFlags;
@@ -49,7 +49,7 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 	m_SizeInBytes		= ResourceAllocationInfo.SizeInBytes;
 	m_Alignment			= ResourceAllocationInfo.Alignment;
 	m_HeapOffset		= 0;
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreateCommittedResource(
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateCommittedResource(
 		&HeapProperties,
 		HeapFlags,
 		&ResourceDesc,
@@ -65,7 +65,7 @@ Resource::Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, 
 	const D3D12_RESOURCE_DESC				ResourceDesc			= Proxy.BuildD3DDesc();
 	D3D12_RESOURCE_STATES					ResourceStates			= GetD3DResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE*				pClearValue				= Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
-	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetD3DDevice()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetApiHandle()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
 	m_Type				= Proxy.m_Type;
 	m_BindFlags			= Proxy.BindFlags;
@@ -80,7 +80,7 @@ Resource::Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, 
 	case Heap::Type::Readback:	ResourceStates = D3D12_RESOURCE_STATE_COPY_DEST;	break;
 	}
 
-	ThrowCOMIfFailed(pDevice->GetD3DDevice()->CreatePlacedResource(
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreatePlacedResource(
 		pHeap->GetApiHandle(),
 		HeapOffset,
 		&ResourceDesc,

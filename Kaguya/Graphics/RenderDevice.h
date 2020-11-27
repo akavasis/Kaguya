@@ -82,8 +82,8 @@ public:
 	std::string GetRenderResourceHandleName(RenderResourceHandle RenderResourceHandle);
 
 	// Resource creation
-	void CreateDeviceBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator);
-	void CreateDeviceBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator);
+	void CreateBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator);
+	void CreateBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator);
 
 	void CreateDeviceTexture(RenderResourceHandle Handle, Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
 	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
