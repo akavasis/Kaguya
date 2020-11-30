@@ -32,12 +32,12 @@ public:
 	Heap() = default;
 	Heap(const Device* pDevice, HeapProxy& Proxy);
 
-	inline auto GetApiHandle() const { return m_pHeap.Get(); }
+	inline auto GetApiHandle() const { return m_ApiHandle.Get(); }
 	inline auto GetSizeInBytes() const { return m_SizeInBytes; }
 	inline auto GetType() const { return m_Type; }
 	inline auto GetFlags() const { return m_Flags; }
 private:
-	Microsoft::WRL::ComPtr<ID3D12Heap>	m_pHeap;
+	Microsoft::WRL::ComPtr<ID3D12Heap>	m_ApiHandle;
 	UINT64								m_SizeInBytes;
 	Type								m_Type;
 	Flags								m_Flags;

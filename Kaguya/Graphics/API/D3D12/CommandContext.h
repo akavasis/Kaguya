@@ -23,7 +23,7 @@ public:
 
 	CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, Type Type);
 
-	inline auto GetD3DCommandList() const { return m_pCommandList.Get(); }
+	inline auto GetApiHandle() const { return m_pCommandList.Get(); }
 	inline auto GetType() const { return m_Type; }
 
 	void SetPipelineState(const PipelineState* pPipelineState);

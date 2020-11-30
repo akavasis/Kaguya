@@ -41,7 +41,7 @@ void ShadingComposition::ScheduleResource(ResourceScheduler* pResourceScheduler,
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -58,7 +58,7 @@ void ShadingComposition::RenderGui()
 
 void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Shading Composition");
+	PIXEvent(RenderContext->GetApiHandle(), L"Shading Composition");
 
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
 	auto pSVGFAtrousRenderPass = pRenderGraph->GetRenderPass<SVGFAtrous>();

@@ -18,16 +18,6 @@ bool RenderSystem::OnInitialize()
 	return Initialize();
 }
 
-void RenderSystem::OnHandleMouse(int32_t X, int32_t Y, float DeltaTime)
-{
-	return HandleMouse(X, Y, DeltaTime);
-}
-
-void RenderSystem::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
-{
-	return HandleKeyboard(Keyboard, DeltaTime);
-}
-
 void RenderSystem::OnUpdate(const Time& Time)
 {
 	Statistics::TotalFrameCount++;
@@ -40,6 +30,16 @@ void RenderSystem::OnUpdate(const Time& Time)
 		Statistics::TimeElapsed += 1.0;
 	}
 	return Update(Time);
+}
+
+void RenderSystem::OnHandleMouse(int32_t X, int32_t Y, float DeltaTime)
+{
+	return HandleMouse(X, Y, DeltaTime);
+}
+
+void RenderSystem::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
+{
+	return HandleKeyboard(Keyboard, DeltaTime);
 }
 
 void RenderSystem::OnRender()

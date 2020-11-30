@@ -16,6 +16,7 @@ public:
 	};
 
 	Buffer() = default;
+	Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
 	Buffer(const Device* pDevice, BufferProxy& Proxy);
 	Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy);
 	~Buffer() override;
@@ -41,7 +42,7 @@ public:
 		memcpy(&m_pMappedData[ElementIndex * m_Stride], &Data, sizeof(T));
 	}
 private:
-	UINT		m_Stride;
-	CpuAccess	m_CpuAccess;
-	BYTE*		m_pMappedData;
+	UINT		m_Stride		= 0;
+	CpuAccess	m_CpuAccess		= CpuAccess::None;
+	BYTE*		m_pMappedData	= nullptr;
 };

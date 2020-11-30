@@ -89,7 +89,7 @@ void AmbientOcclusion::ScheduleResource(ResourceScheduler* pResourceScheduler, R
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -190,7 +190,7 @@ void AmbientOcclusion::RenderGui()
 
 void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Ambient Occlusion");
+	PIXEvent(RenderContext->GetApiHandle(), L"Ambient Occlusion");
 
 	struct AmbientOcclusionData
 	{
@@ -215,8 +215,8 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 
 	RenderContext.SetPipelineState(RaytracingPSOs::AmbientOcclusion);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
+	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTable());
 

@@ -3,6 +3,11 @@
 #include "Device.h"
 #include "../Proxy/BufferProxy.h"
 
+Buffer::Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
+	: Resource(ExistingID3D12Resource)
+{
+}
+
 Buffer::Buffer(const Device* pDevice, BufferProxy& Proxy)
 	: Resource(pDevice, Proxy),
 	m_Stride(Proxy.m_Stride),

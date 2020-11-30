@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
-#include "AL/D3D12/Texture.h"
-#include "AL/D3D12/DescriptorHeap.h"
+#include "API/D3D12/Texture.h"
+#include "API/D3D12/DescriptorHeap.h"
 
 class RenderTexture
 {

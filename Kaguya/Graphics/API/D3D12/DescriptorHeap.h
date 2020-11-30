@@ -30,7 +30,7 @@ public:
 	DescriptorHeap() = default;
 	DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type);
 
-	inline auto GetD3DDescriptorHeap() const { return m_pDescriptorHeap.Get(); }
+	inline auto GetApiHandle() const { return m_pDescriptorHeap.Get(); }
 	inline auto GetDescriptorFromStart() const { return m_StartDescriptor; }
 protected:
 	auto& GetDescriptorPartitionAt(INT PartitionIndex) { return m_DescriptorPartitions[PartitionIndex]; }

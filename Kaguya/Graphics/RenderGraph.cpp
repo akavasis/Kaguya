@@ -190,7 +190,7 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 				auto pTexture = pRenderDevice->GetTexture(resource);
 
 				// Transition any UAVs to UnorderedAccess state
-				if (pTexture->GetBindFlags() == Resource::BindFlags::UnorderedAccess)
+				if (pTexture->GetBindFlags() == Resource::Flags::UnorderedAccess)
 				{
 					RenderContext.TransitionBarrier(resource, Resource::State::UnorderedAccess);
 				}
@@ -212,7 +212,7 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 				auto pTexture = pRenderDevice->GetTexture(resource);
 
 				// Ensure UAV writes are complete
-				if (pTexture->GetBindFlags() == Resource::BindFlags::UnorderedAccess)
+				if (pTexture->GetBindFlags() == Resource::Flags::UnorderedAccess)
 				{
 					RenderContext.UAVBarrier(resource);
 				}
@@ -232,7 +232,7 @@ void RenderGraph::CreaterResources()
 	{
 		for (size_t i = 0; i < textureRequest.second.size(); ++i)
 		{
-			SV_pRenderDevice->CreateDeviceTexture(textureRequest.first->Resources[i], Resource::Type::Unknown, [&](TextureProxy& proxy)
+			SV_pRenderDevice->CreateTexture(textureRequest.first->Resources[i], Resource::Type::Unknown, [&](TextureProxy& proxy)
 			{
 				proxy = textureRequest.second[i];
 			});
@@ -249,17 +249,17 @@ void RenderGraph::CreateResourceViews()
 			SV_pRenderDevice->CreateShaderResourceView(handle);
 
 			auto texture = SV_pRenderDevice->GetTexture(handle);
-			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::UnorderedAccess))
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::Flags::UnorderedAccess))
 			{
 				SV_pRenderDevice->CreateUnorderedAccessView(handle);
 			}
 
-			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::RenderTarget))
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::Flags::RenderTarget))
 			{
 				SV_pRenderDevice->CreateRenderTargetView(handle);
 			}
 
-			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::BindFlags::DepthStencil))
+			if (EnumMaskBitSet(texture->GetBindFlags(), Resource::Flags::DepthStencil))
 			{
 				SV_pRenderDevice->CreateDepthStencilView(handle);
 			}

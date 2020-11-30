@@ -8,20 +8,20 @@
 #include "RenderTexture.h"
 #include "RenderResourceContainer.h"
 
-#include "AL/D3D12/Device.h"
-#include "AL/D3D12/ShaderCompiler.h"
-#include "AL/D3D12/ResourceStateTracker.h"
-#include "AL/D3D12/DescriptorHeap.h"
-#include "AL/D3D12/CommandQueue.h"
-#include "AL/D3D12/CommandContext.h"
-#include "AL/D3D12/RaytracingAccelerationStructure.h"
+#include "API/D3D12/Device.h"
+#include "API/D3D12/ShaderCompiler.h"
+#include "API/D3D12/ResourceStateTracker.h"
+#include "API/D3D12/DescriptorHeap.h"
+#include "API/D3D12/CommandQueue.h"
+#include "API/D3D12/CommandContext.h"
+#include "API/D3D12/RaytracingAccelerationStructure.h"
 
-#include "AL/Proxy/BufferProxy.h"
-#include "AL/Proxy/TextureProxy.h"
-#include "AL/Proxy/HeapProxy.h"
-#include "AL/Proxy/RootSignatureProxy.h"
-#include "AL/Proxy/PipelineStateProxy.h"
-#include "AL/Proxy/RaytracingPipelineStateProxy.h"
+#include "API/Proxy/BufferProxy.h"
+#include "API/Proxy/TextureProxy.h"
+#include "API/Proxy/HeapProxy.h"
+#include "API/Proxy/RootSignatureProxy.h"
+#include "API/Proxy/PipelineStateProxy.h"
+#include "API/Proxy/RaytracingPipelineStateProxy.h"
 
 struct RootParameters
 {
@@ -85,9 +85,9 @@ public:
 	void CreateBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator);
 	void CreateBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator);
 
-	void CreateDeviceTexture(RenderResourceHandle Handle, Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
-	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
-	void CreateDeviceTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator);
+	void CreateTexture(RenderResourceHandle Handle, Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
+	void CreateTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
+	void CreateTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator);
 
 	void CreateHeap(RenderResourceHandle Handle, std::function<void(HeapProxy&)> Configurator);
 
@@ -97,70 +97,71 @@ public:
 	void CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateProxy&)> Configurator);
 	void CreateRaytracingPipelineState(RenderResourceHandle Handle, std::function<void(RaytracingPipelineStateProxy&)> Configurator);
 
-	void Destroy(RenderResourceHandle RenderResourceHandle);
+	void Destroy(RenderResourceHandle Handle);
 
 	// Resource view creation
-	void CreateShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
-	void CreateUnorderedAccessView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
-	void CreateRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
-	void CreateDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	void CreateShaderResourceView(RenderResourceHandle Handle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
+	void CreateUnorderedAccessView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
+	void CreateRenderTargetView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	void CreateDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
 
 	// Returns nullptr if a resource is not found
-	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle RenderResourceHandle)			{ return m_Buffers.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetTexture(RenderResourceHandle RenderResourceHandle)			{ return m_Textures.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetHeap(RenderResourceHandle RenderResourceHandle)			{ return m_Heaps.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle RenderResourceHandle)	{ return m_RootSignatures.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle RenderResourceHandle)		{ return m_GraphicsPipelineStates.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle RenderResourceHandle)		{ return m_ComputePipelineStates.GetResource(RenderResourceHandle); }
-	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle RenderResourceHandle)	{ return m_RaytracingPipelineStates.GetResource(RenderResourceHandle); }
+	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle)		{ return m_Buffers.GetResource(Handle); }
+	[[nodiscard]] inline auto GetTexture(RenderResourceHandle Handle)		{ return m_Textures.GetResource(Handle); }
+	[[nodiscard]] inline auto GetHeap(RenderResourceHandle Handle)			{ return m_Heaps.GetResource(Handle); }
+	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle Handle)	{ return m_RootSignatures.GetResource(Handle); }
+	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle Handle)	{ return m_GraphicsPipelineStates.GetResource(Handle); }
+	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle Handle)	{ return m_ComputePipelineStates.GetResource(Handle); }
+	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle Handle)	{ return m_RaytracingPipelineStates.GetResource(Handle); }
 
-	Descriptor GetShaderResourceView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const;
-	Descriptor GetUnorderedAccessView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;
-	Descriptor GetRenderTargetView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
-	Descriptor GetDepthStencilView(RenderResourceHandle RenderResourceHandle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
+	Descriptor GetShaderResourceView(RenderResourceHandle Handle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const;
+	Descriptor GetUnorderedAccessView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;
+	Descriptor GetRenderTargetView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
+	Descriptor GetDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 
-	Device																					Device;
-	CommandQueue																			GraphicsQueue, ComputeQueue, CopyQueue;
-	ResourceStateTracker																	GlobalResourceStateTracker;
-	ShaderCompiler																			ShaderCompiler;
+	Device														Device;
+	CommandQueue												GraphicsQueue, ComputeQueue, CopyQueue;
+	ResourceStateTracker										GlobalResourceStateTracker;
+	ShaderCompiler												ShaderCompiler;
 
-	UINT																					FrameIndex;
-	RenderResourceHandle																	SwapChainTextures[NumSwapChainBuffers];
+	UINT														FrameIndex;
+	RenderResourceHandle										SwapChainTextures[NumSwapChainBuffers];
 private:
+	CommandQueue* GetApiCommandQueue(CommandContext::Type Type);
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 
-	std::vector<std::unique_ptr<CommandContext>>											m_CommandContexts[CommandContext::NumTypes];
+	std::vector<std::unique_ptr<CommandContext>>				m_CommandContexts[CommandContext::NumTypes];
 
-	RenderResourceHandleRegistry															m_BufferHandleRegistry;
-	RenderResourceHandleRegistry															m_TextureHandleRegistry;
-	RenderResourceHandleRegistry															m_HeapHandleRegistry;
-	RenderResourceHandleRegistry															m_RootSignatureHandleRegistry;
-	RenderResourceHandleRegistry															m_GraphicsPipelineStateHandleRegistry;
-	RenderResourceHandleRegistry															m_ComputePipelineStateHandleRegistry;
-	RenderResourceHandleRegistry															m_RaytracingPipelineStateHandleRegistry;
+	RenderResourceHandleRegistry								m_BufferHandleRegistry;
+	RenderResourceHandleRegistry								m_TextureHandleRegistry;
+	RenderResourceHandleRegistry								m_HeapHandleRegistry;
+	RenderResourceHandleRegistry								m_RootSignatureHandleRegistry;
+	RenderResourceHandleRegistry								m_GraphicsPipelineStateHandleRegistry;
+	RenderResourceHandleRegistry								m_ComputePipelineStateHandleRegistry;
+	RenderResourceHandleRegistry								m_RaytracingPipelineStateHandleRegistry;
 
-	RenderResourceContainer<RenderResourceType::Buffer, Buffer>								m_Buffers;
-	RenderResourceContainer<RenderResourceType::Texture, Texture>							m_Textures;
-	RenderResourceContainer<RenderResourceType::Heap, Heap>									m_Heaps;
-	RenderResourceContainer<RenderResourceType::RootSignature, RootSignature>				m_RootSignatures;
-	RenderResourceContainer<RenderResourceType::GraphicsPSO, GraphicsPipelineState>			m_GraphicsPipelineStates;
-	RenderResourceContainer<RenderResourceType::ComputePSO, ComputePipelineState>			m_ComputePipelineStates;
-	RenderResourceContainer<RenderResourceType::RaytracingPSO, RaytracingPipelineState>		m_RaytracingPipelineStates;
+	RenderResourceContainer<Buffer>								m_Buffers;
+	RenderResourceContainer<Texture>							m_Textures;
+	RenderResourceContainer<Heap>								m_Heaps;
+	RenderResourceContainer<RootSignature>						m_RootSignatures;
+	RenderResourceContainer<GraphicsPipelineState>				m_GraphicsPipelineStates;
+	RenderResourceContainer<ComputePipelineState>				m_ComputePipelineStates;
+	RenderResourceContainer<RaytracingPipelineState>			m_RaytracingPipelineStates;
 
-	CBSRUADescriptorHeap																	m_ImGuiDescriptorHeap;
-	CBSRUADescriptorHeap																	m_NonShaderVisibleCBSRUADescriptorHeap;
-	CBSRUADescriptorHeap																	m_ShaderVisibleCBSRUADescriptorHeap;
-	SamplerDescriptorHeap																	m_SamplerDescriptorHeap;
-	RenderTargetDescriptorHeap																m_RenderTargetDescriptorHeap;
-	DepthStencilDescriptorHeap																m_DepthStencilDescriptorHeap;
+	CBSRUADescriptorHeap										m_ImGuiDescriptorHeap;
+	CBSRUADescriptorHeap										m_NonShaderVisibleCBSRUADescriptorHeap;
+	CBSRUADescriptorHeap										m_ShaderVisibleCBSRUADescriptorHeap;
+	SamplerDescriptorHeap										m_SamplerDescriptorHeap;
+	RenderTargetDescriptorHeap									m_RenderTargetDescriptorHeap;
+	DepthStencilDescriptorHeap									m_DepthStencilDescriptorHeap;
 
-	Pool<void, NumConstantBufferDescriptors>												m_ConstantBufferDescriptorIndexPool;
-	Pool<void, NumShaderResourceDescriptors>												m_ShaderResourceDescriptorIndexPool;
-	Pool<void, NumUnorderedAccessDescriptors>												m_UnorderedAccessDescriptorIndexPool;
-	Pool<void, NumSamplerDescriptors>														m_SamplerDescriptorIndexPool;
-	Pool<void, NumRenderTargetDescriptors>													m_RenderTargetDescriptorIndexPool;
-	Pool<void, NumDepthStencilDescriptors>													m_DepthStencilDescriptorIndexPool;
+	Pool<void, NumConstantBufferDescriptors>					m_ConstantBufferDescriptorIndexPool;
+	Pool<void, NumShaderResourceDescriptors>					m_ShaderResourceDescriptorIndexPool;
+	Pool<void, NumUnorderedAccessDescriptors>					m_UnorderedAccessDescriptorIndexPool;
+	Pool<void, NumSamplerDescriptors>							m_SamplerDescriptorIndexPool;
+	Pool<void, NumRenderTargetDescriptors>						m_RenderTargetDescriptorIndexPool;
+	Pool<void, NumDepthStencilDescriptors>						m_DepthStencilDescriptorIndexPool;
 
-	std::unordered_map<RenderResourceHandle, RenderBuffer>									m_RenderBuffers;
-	std::unordered_map<RenderResourceHandle, RenderTexture>									m_RenderTextures;
+	std::unordered_map<RenderResourceHandle, RenderBuffer>		m_RenderBuffers;
+	std::unordered_map<RenderResourceHandle, RenderTexture>		m_RenderTextures;
 };

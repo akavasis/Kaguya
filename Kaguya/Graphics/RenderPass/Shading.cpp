@@ -97,7 +97,7 @@ void Shading::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 			proxy.SetFormat(Properties.Format);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = Resource::Flags::UnorderedAccess;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
@@ -177,7 +177,7 @@ void Shading::RenderGui()
 
 void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Shading");
+	PIXEvent(RenderContext->GetApiHandle(), L"Shading");
 
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 
@@ -204,11 +204,11 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	Data.TypeAndIndex							= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
 	Data.Depth									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Depth]).HeapIndex;
 
-	Data.LTC_LUT_DisneyDiffuse_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture()).HeapIndex;
-	Data.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;
-	Data.LTC_LUT_GGX_InverseMatrix				= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
-	Data.LTC_LUT_GGX_Terms						= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
-	Data.BlueNoise								= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetBlueNoise()).HeapIndex;
+	Data.LTC_LUT_DisneyDiffuse_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture()).HeapIndex;
+	Data.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;
+	Data.LTC_LUT_GGX_InverseMatrix				= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
+	Data.LTC_LUT_GGX_Terms						= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
+	Data.BlueNoise								= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetBlueNoise()).HeapIndex;
 	
 	Data.AnalyticUnshadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::AnalyticUnshadowed]).HeapIndex;
 	Data.StochasticUnshadowed					= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticUnshadowed]).HeapIndex;
@@ -218,8 +218,8 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Shading);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
+	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTable());
 	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTable());

@@ -105,15 +105,15 @@ D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type)
 	}
 }
 
-D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::BindFlags Flags)
+D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::Flags Flags)
 {
 	D3D12_RESOURCE_FLAGS ResourceFlags = D3D12_RESOURCE_FLAG_NONE;
 
-	if (EnumMaskBitSet(Flags, Resource::BindFlags::RenderTarget)) ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	if (EnumMaskBitSet(Flags, Resource::BindFlags::DepthStencil)) ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-	if (EnumMaskBitSet(Flags, Resource::BindFlags::UnorderedAccess) ||
-		EnumMaskBitSet(Flags, Resource::BindFlags::AccelerationStructure)) // Acceleration structure must have UAV access
-		ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	if (EnumMaskBitSet(Flags, Resource::Flags::RenderTarget))	ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	if (EnumMaskBitSet(Flags, Resource::Flags::DepthStencil))	ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	if (EnumMaskBitSet(Flags, Resource::Flags::UnorderedAccess) ||
+		EnumMaskBitSet(Flags, Resource::Flags::AccelerationStructure)) // Acceleration structure must have UAV access
+																ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
 	return ResourceFlags;
 }

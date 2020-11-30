@@ -9,7 +9,7 @@ public:
 	CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type);
 	~CommandQueue();
 
-	inline auto GetD3DCommandQueue() const { return m_pCommandQueue.Get(); }
+	inline auto GetApiHandle() const { return m_pCommandQueue.Get(); }
 
 	UINT64 Signal();
 	void Flush();

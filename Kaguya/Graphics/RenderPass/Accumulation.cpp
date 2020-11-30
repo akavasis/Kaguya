@@ -42,7 +42,7 @@ void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler, Rende
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -59,7 +59,7 @@ void Accumulation::RenderGui()
 
 void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Accumulation");
+	PIXEvent(RenderContext->GetApiHandle(), L"Accumulation");
 
 	//auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);

@@ -1,11 +1,9 @@
 #pragma once
 #include <Core/Synchronization/RWLock.h>
-#include <atomic>
 #include <unordered_map>
-#include <queue>
 #include "RenderResourceHandle.h"
 
-template <RenderResourceType Type, typename T>
+template <typename T>
 class RenderResourceContainer
 {
 public:

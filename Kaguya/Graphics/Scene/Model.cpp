@@ -3,52 +3,21 @@
 #include <string>
 using namespace DirectX;
 
-struct MeshData
-{
-	std::vector<Vertex> Vertices;
-	std::vector<uint32_t> Indices;
-};
-
-Vertex MidPoint(const Vertex& v0, const Vertex& v1)
-{
-	XMVECTOR p0 = XMLoadFloat3(&v0.Position);
-	XMVECTOR p1 = XMLoadFloat3(&v1.Position);
-
-	XMVECTOR n0 = XMLoadFloat3(&v0.Normal);
-	XMVECTOR n1 = XMLoadFloat3(&v1.Normal);
-
-	XMVECTOR tex0 = XMLoadFloat2(&v0.Texture);
-	XMVECTOR tex1 = XMLoadFloat2(&v1.Texture);
-
-	// Compute the midpoints of all the attributes.  Vectors need to be normalized 
-	// since linear interpolating can make them not unit length.   
-	XMVECTOR pos = XMVectorReplicate(0.5f) * (p0 + p1); // 0.5f * (p0 + p1) 
-	XMVECTOR normal = XMVector3Normalize(XMVectorReplicate(0.5f) * (n0 + n1)); // 0.5f * (n0 + n1) 
-
-	XMVECTOR tex = XMVectorReplicate(0.5f) * (tex0 + tex1); // 0.5f * (tex0 + tex1) 
-
-	Vertex v = {};
-	XMStoreFloat3(&v.Position, pos);
-	XMStoreFloat3(&v.Normal, normal);
-	XMStoreFloat2(&v.Texture, tex);
-	return v;
-}
-
-void GenerateMeshletData(const MeshData& MeshData, Mesh* pMesh)
+void GenerateMeshletData(const std::vector<Vertex>& Vertices, const std::vector<uint32_t>& Indices, Mesh* pMesh)
 {
 	std::vector<DirectX::Meshlet> meshlets;
 	std::vector<uint8_t> uniqueVertexIB;
 	std::vector<DirectX::MeshletTriangle> primitiveIndices;
 
-	assert(MeshData.Indices.size() % 3 == 0); // Ensure this is evenly divisible
-	size_t nFaces = MeshData.Indices.size() / 3;
-	size_t nVerts = MeshData.Vertices.size();
+	assert(Indices.size() % 3 == 0); // Ensure this is evenly divisible
+	size_t nFaces = Indices.size() / 3;
+	size_t nVerts = Vertices.size();
 
 	std::unique_ptr<XMFLOAT3[]> pos(new XMFLOAT3[nVerts]);
 	for (size_t j = 0; j < nVerts; ++j)
-		pos[j] = MeshData.Vertices[j].Position;
+		pos[j] = Vertices[j].Position;
 
-	HRESULT hr = DirectX::ComputeMeshlets(MeshData.Indices.data(), nFaces,
+	HRESULT hr = DirectX::ComputeMeshlets(Indices.data(), nFaces,
 		pos.get(), nVerts,
 		nullptr,
 		meshlets, uniqueVertexIB, primitiveIndices);
@@ -71,10 +40,10 @@ void GenerateMeshletData(const MeshData& MeshData, Mesh* pMesh)
 	auto pUniqueVertexIndices = reinterpret_cast<const uint32_t*>(uniqueVertexIB.data());
 	size_t NumUniqueVertexIndices = uniqueVertexIB.size() / sizeof(uint32_t);
 
-	pMesh->UniqueVertexIndices.reserve(NumUniqueVertexIndices);
+	pMesh->VertexIndices.reserve(NumUniqueVertexIndices);
 	for (size_t i = 0; i < NumUniqueVertexIndices; ++i)
 	{
-		pMesh->UniqueVertexIndices.push_back(pUniqueVertexIndices[i]);
+		pMesh->VertexIndices.push_back(pUniqueVertexIndices[i]);
 	}
 
 	// Copy primitive indices
@@ -90,68 +59,13 @@ void GenerateMeshletData(const MeshData& MeshData, Mesh* pMesh)
 	}
 }
 
-void Subdivide(MeshData& meshData)
-{
-	// Save a copy of the input geometry. 
-	MeshData inputCopy = meshData;
-
-	meshData.Vertices.resize(0);
-	meshData.Indices.resize(0);
-
-	//       v1 
-	//       * 
-	//      / \ 
-	//     /   \ 
-	//  m0*-----*m1 
-	//   / \   / \ 
-	//  /   \ /   \ 
-	// *-----*-----* 
-	// v0    m2     v2 
-
-	uint32_t NumTriangles = (uint32_t)inputCopy.Indices.size() / 3;
-	for (UINT i = 0; i < NumTriangles; ++i)
-	{
-		Vertex v0 = inputCopy.Vertices[inputCopy.Indices[size_t(i) * 3 + 0]];
-		Vertex v1 = inputCopy.Vertices[inputCopy.Indices[size_t(i) * 3 + 1]];
-		Vertex v2 = inputCopy.Vertices[inputCopy.Indices[size_t(i) * 3 + 2]];
-
-		// Generate the midpoints. 
-		Vertex m0 = MidPoint(v0, v1);
-		Vertex m1 = MidPoint(v1, v2);
-		Vertex m2 = MidPoint(v0, v2);
-
-		// Add new geometry. 
-		meshData.Vertices.push_back(v0); // 0 
-		meshData.Vertices.push_back(v1); // 1 
-		meshData.Vertices.push_back(v2); // 2 
-		meshData.Vertices.push_back(m0); // 3 
-		meshData.Vertices.push_back(m1); // 4 
-		meshData.Vertices.push_back(m2); // 5 
-
-		meshData.Indices.push_back(i * 6 + 0);
-		meshData.Indices.push_back(i * 6 + 3);
-		meshData.Indices.push_back(i * 6 + 5);
-
-		meshData.Indices.push_back(i * 6 + 3);
-		meshData.Indices.push_back(i * 6 + 4);
-		meshData.Indices.push_back(i * 6 + 5);
-
-		meshData.Indices.push_back(i * 6 + 5);
-		meshData.Indices.push_back(i * 6 + 4);
-		meshData.Indices.push_back(i * 6 + 2);
-
-		meshData.Indices.push_back(i * 6 + 3);
-		meshData.Indices.push_back(i * 6 + 1);
-		meshData.Indices.push_back(i * 6 + 4);
-	}
-}
-
-Model CreateFromMeshData(MeshData& meshData)
+Model CreateFromProceduralGeometryData(std::string Name, std::vector<Vertex> Vertices, std::vector<uint32_t> Indices)
 {
 	Model model = {};
-	DirectX::BoundingBox::CreateFromPoints(model.BoundingBox, meshData.Vertices.size(), &meshData.Vertices[0].Position, sizeof(Vertex));
-	model.Vertices = meshData.Vertices;
-	model.Indices = meshData.Indices;
+	model.Name = std::move(Name);
+	DirectX::BoundingBox::CreateFromPoints(model.BoundingBox, Vertices.size(), &Vertices[0].Position, sizeof(Vertex));
+	model.Vertices = std::move(Vertices);
+	model.Indices = std::move(Indices);
 
 	// Create mesh
 	Mesh mesh = {};
@@ -160,15 +74,17 @@ Model CreateFromMeshData(MeshData& meshData)
 	mesh.StartIndexLocation = 0;
 	mesh.VertexCount = model.Vertices.size();
 	mesh.BaseVertexLocation = 0;
-	GenerateMeshletData(meshData, &mesh);
+
+	GenerateMeshletData(model.Vertices, model.Indices, &mesh);
 
 	model.Meshes.push_back(std::move(mesh));
 	return model;
 }
 
-Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions)
+Model CreateBox(float Width, float Height, float Depth)
 {
-	MeshData meshData = {};
+	std::vector<Vertex> Vertices;
+	std::vector<uint32_t> Indices;
 
 	float w2 = 0.5f * Width;
 	float h2 = 0.5f * Height;
@@ -211,7 +127,7 @@ Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions
 	v[22] = Vertex{ { +w2, +h2, +d2 }, { 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } };
 	v[23] = Vertex{ { +w2, -h2, +d2 }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } };
 
-	meshData.Vertices.assign(&v[0], &v[24]);
+	Vertices.assign(&v[0], &v[24]);
 
 	uint32_t i[36] = {};
 	// Fill in the front face index data 
@@ -238,24 +154,19 @@ Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions
 	i[30] = 20; i[31] = 21; i[32] = 22;
 	i[33] = 20; i[34] = 22; i[35] = 23;
 
-	meshData.Indices.assign(&i[0], &i[36]);
+	Indices.assign(&i[0], &i[36]);
 
-	// Put a cap on the number of subdivisions. 
-	NumSubdivisions = std::min<uint32_t>(NumSubdivisions, 6u);
-
-	for (uint32_t i = 0; i < NumSubdivisions; ++i)
-		Subdivide(meshData);
-
-	auto model = CreateFromMeshData(meshData);
 	static uint32_t BOX_ID = 0;
-	model.Path = "Box " + std::to_string(BOX_ID);
-	BOX_ID++;
-	return model;
+	return CreateFromProceduralGeometryData("Box " + std::to_string(BOX_ID++), Vertices, Indices);
 }
 
 Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 {
-	MeshData meshData;
+	assert(M != 1);
+	assert(N != 1);
+
+	std::vector<Vertex> Vertices;
+	std::vector<uint32_t> Indices;
 
 	uint32_t vertexCount = M * N;
 	uint32_t faceCount = (M - 1) * (N - 1) * 2;
@@ -270,7 +181,7 @@ Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 	float du = 1.0f / (N - 1);
 	float dv = 1.0f / (M - 1);
 
-	meshData.Vertices.resize(vertexCount);
+	Vertices.resize(vertexCount);
 	for (uint32_t i = 0; i < M; ++i)
 	{
 		float z = halfDepth - i * dz;
@@ -278,17 +189,17 @@ Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 		{
 			float x = -halfWidth + j * dx;
 
-			meshData.Vertices[size_t(i) * N + size_t(j)].Position = DirectX::XMFLOAT3(x, 0.0f, z);
-			meshData.Vertices[size_t(i) * N + size_t(j)].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+			Vertices[size_t(i) * N + size_t(j)].Position = DirectX::XMFLOAT3(x, 0.0f, z);
+			Vertices[size_t(i) * N + size_t(j)].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
 
 			// Stretch texture over grid.
-			meshData.Vertices[size_t(i) * M + size_t(j)].Texture.x = j * du;
-			meshData.Vertices[size_t(i) * M + size_t(j)].Texture.y = i * dv;
+			Vertices[size_t(i) * M + size_t(j)].Texture.x = j * du;
+			Vertices[size_t(i) * M + size_t(j)].Texture.y = i * dv;
 		}
 	}
 
 	// Create the indices.
-	meshData.Indices.resize(size_t(faceCount) * 3); // 3 indices per face
+	Indices.resize(size_t(faceCount) * 3); // 3 indices per face
 
 	// Iterate over each quad and compute indices.
 	uint32_t k = 0;
@@ -296,21 +207,18 @@ Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 	{
 		for (uint32_t j = 0; j < N - 1; ++j)
 		{
-			meshData.Indices[k] = i * N + j;
-			meshData.Indices[size_t(k) + 1] = i * N + j + 1;
-			meshData.Indices[size_t(k) + 2] = (i + 1) * N + j;
+			Indices[k] = i * N + j;
+			Indices[size_t(k) + 1] = i * N + j + 1;
+			Indices[size_t(k) + 2] = (i + 1) * N + j;
 
-			meshData.Indices[size_t(k) + 3] = (i + 1) * N + j;
-			meshData.Indices[size_t(k) + 4] = i * N + j + 1;
-			meshData.Indices[size_t(k) + 5] = (i + 1) * N + j + 1;
+			Indices[size_t(k) + 3] = (i + 1) * N + j;
+			Indices[size_t(k) + 4] = i * N + j + 1;
+			Indices[size_t(k) + 5] = (i + 1) * N + j + 1;
 
 			k += 6; // next quad
 		}
 	}
 
-	auto model = CreateFromMeshData(meshData);
 	static uint32_t GRID_ID = 0;
-	model.Path = "Grid " + std::to_string(GRID_ID);
-	GRID_ID++;
-	return model;
+	return CreateFromProceduralGeometryData("Grid " + std::to_string(GRID_ID++), Vertices, Indices);
 }

@@ -89,7 +89,7 @@ void Pathtracing::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 		proxy.SetFormat(Properties.Format);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -191,7 +191,7 @@ void Pathtracing::RenderGui()
 
 void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Path tracing");
+	PIXEvent(RenderContext->GetApiHandle(), L"Path tracing");
 
 	struct RenderPassData
 	{
@@ -203,8 +203,8 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Pathtracing);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
+	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTable());
 	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTable());

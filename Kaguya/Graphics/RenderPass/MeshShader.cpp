@@ -22,8 +22,9 @@ void MeshShaderRenderPass::InitializePipeline(RenderDevice* pRenderDevice)
 	pRenderDevice->CreateRootSignature(RootSignatures::MeshShader, [](RootSignatureProxy& proxy)
 	{
 		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 1));
-		proxy.AddRootSRVParameter(RootSRV(0, 0)); // Vertices
-		proxy.AddRootSRVParameter(RootSRV(1, 0)); // Meshes
+		proxy.AddRootSRVParameter(RootSRV(0, 0)); // Meshes
+
+		proxy.AddRootSRVParameter(RootSRV(1, 0)); // Vertices
 		proxy.AddRootSRVParameter(RootSRV(2, 0)); // Meshlets
 		proxy.AddRootSRVParameter(RootSRV(3, 0)); // UniqueVertexIndices
 		proxy.AddRootSRVParameter(RootSRV(4, 0)); // PrimitiveIndices
@@ -40,8 +41,6 @@ void MeshShaderRenderPass::InitializePipeline(RenderDevice* pRenderDevice)
 
 		proxy.DepthStencilState.SetDepthEnable(true);
 
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);
 		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
 	});
@@ -54,8 +53,8 @@ void MeshShaderRenderPass::ScheduleResource(ResourceScheduler* pResourceSchedule
 		proxy.SetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::Colors::Black));
-		proxy.BindFlags = Resource::BindFlags::RenderTarget;
+		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::Colors::BlueViolet));
+		proxy.BindFlags = Resource::Flags::RenderTarget;
 		proxy.InitialState = Resource::State::RenderTarget;
 	});
 
@@ -65,7 +64,7 @@ void MeshShaderRenderPass::ScheduleResource(ResourceScheduler* pResourceSchedule
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
 		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0));
-		proxy.BindFlags = Resource::BindFlags::DepthStencil;
+		proxy.BindFlags = Resource::Flags::DepthStencil;
 		proxy.InitialState = Resource::State::DepthWrite;
 	});
 }
@@ -82,7 +81,7 @@ void MeshShaderRenderPass::RenderGui()
 
 void MeshShaderRenderPass::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Mesh Shader");
+	PIXEvent(RenderContext->GetApiHandle(), L"Mesh Shader");
 
 	RenderContext.TransitionBarrier(Resources[RenderTarget], Resource::State::RenderTarget);
 	RenderContext.TransitionBarrier(Resources[Depth], Resource::State::DepthWrite);
@@ -100,21 +99,23 @@ void MeshShaderRenderPass::Execute(RenderContext& RenderContext, RenderGraph* pR
 
 	RenderContext->SetRenderTargets(1, &RenderTargetViews, TRUE, DepthStencilView);
 
-	RenderContext->ClearRenderTarget(RenderTargetViews, DirectX::Colors::Black, 0, nullptr);
+	RenderContext->ClearRenderTarget(RenderTargetViews, DirectX::Colors::BlueViolet, 0, nullptr);
 	RenderContext->ClearDepthStencil(DepthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetMeshTable());
+	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetMeshTable());
+
 	for (auto& modelInstance : pGpuScene->pScene->ModelInstances)
 	{
+		RenderContext.SetRootShaderResourceView(2, modelInstance.pModel->VertexResource);
+
 		for (auto& meshInstance : modelInstance)
 		{
 			RenderContext.SetRoot32BitConstants(0, 1, &meshInstance.InstanceID, 0);
-
-			RenderContext.SetRootShaderResourceView(3, modelInstance.pModel->MeshletResource);
-			RenderContext.SetRootShaderResourceView(4, modelInstance.pModel->UniqueVertexIndexResource);
-			RenderContext.SetRootShaderResourceView(5, modelInstance.pModel->PrimitiveIndexResource);
 		
+			RenderContext.SetRootShaderResourceView(3, meshInstance.pMesh->MeshletResource);
+			RenderContext.SetRootShaderResourceView(4, meshInstance.pMesh->VertexIndexResource);
+			RenderContext.SetRootShaderResourceView(5, meshInstance.pMesh->PrimitiveIndexResource);
+
 			RenderContext->DispatchMesh(meshInstance.pMesh->Meshlets.size(), 1, 1);
 		}
 	}

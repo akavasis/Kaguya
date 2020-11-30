@@ -12,7 +12,7 @@ class Resource
 public:
 	enum class Type
 	{
-		Unknown,		// Unknown resource state
+		Unknown,		// Unknown resource
 		Buffer,			// Buffer. Can be bound to all shader-stages
 		Texture1D,		// 1D texture. Can be bound as render-target, shader-resource and UAV
 		Texture2D,		// 2D texture. Can be bound as render-target, shader-resource and UAV
@@ -20,7 +20,7 @@ public:
 		TextureCube,	// Cube texture. Can be bound as render-target, shader-resource and UAV
 	};
 
-	enum class BindFlags
+	enum class Flags
 	{
 		None					= 0,		// The resource wont be bound to the pipeline
 		RenderTarget			= 1 << 0,	// The resource will be bound as a render-target
@@ -70,15 +70,10 @@ public:
 	inline auto GetAlignment() const { return m_Alignment; }
 	inline auto GetHeapOffset() const { return m_HeapOffset; }
 	inline auto GetNumSubresources() const { return m_NumSubresources; }
-
-	void SetDebugName(LPCWSTR Name)
-	{
-		m_pResource->SetName(Name);
-	}
 protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource>	m_pResource;
 	Type									m_Type;
-	BindFlags								m_BindFlags;
+	Flags									m_BindFlags;
 	UINT									m_NumSubresources;
 	UINT64									m_MemoryRequested;
 	UINT64									m_SizeInBytes;
@@ -86,9 +81,9 @@ protected:
 	UINT64									m_HeapOffset;
 };
 
-ENABLE_BITMASK_OPERATORS(Resource::BindFlags);
+ENABLE_BITMASK_OPERATORS(Resource::Flags);
 ENABLE_BITMASK_OPERATORS(Resource::State);
 
 D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type);
-D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::BindFlags Flags);
+D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::Flags Flags);
 D3D12_RESOURCE_STATES GetD3DResourceStates(Resource::State State);

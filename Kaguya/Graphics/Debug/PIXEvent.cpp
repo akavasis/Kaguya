@@ -1,19 +1,19 @@
 #include "pch.h"
-#include "PIXMarker.h"
+#include "PIXEvent.h"
 
-#undef PIXMarker
+#undef PIXEvent
 
 namespace Kaguya
 {
 	namespace Internal
 	{
-		PIXMarker::PIXMarker(ID3D12GraphicsCommandList* pCommandList, LPCWSTR pMsg)
+		PIXEvent::PIXEvent(ID3D12GraphicsCommandList* pCommandList, LPCWSTR pMsg)
 			: pCommandList(pCommandList)
 		{
 			PIXBeginEvent(pCommandList, 0, pMsg);
 		}
 
-		PIXMarker::~PIXMarker()
+		PIXEvent::~PIXEvent()
 		{
 			PIXEndEvent(pCommandList);
 		}

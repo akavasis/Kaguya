@@ -47,7 +47,6 @@ void GraphicsPipelineStateProxy::Link()
 	if (pDS) assert(pDS->GetType() == Shader::Type::Domain);
 	if (pHS) assert(pHS->GetType() == Shader::Type::Hull);
 	if (pGS) assert(pGS->GetType() == Shader::Type::Geometry);
-	assert(PrimitiveTopology != PrimitiveTopology::Undefined);
 	assert(m_NumRenderTargets <= 8);
 
 	PipelineStateProxy::Link();

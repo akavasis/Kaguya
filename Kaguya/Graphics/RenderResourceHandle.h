@@ -1,6 +1,7 @@
 #pragma once
-#include <compare>
-#include "Core/Utility.h"
+#include <basetsd.h>		// UINT64
+#include <compare>			// operator<=>
+#include "Core/Utility.h"	// hash_combine
 
 enum class RenderResourceType : UINT64
 {
@@ -14,16 +15,28 @@ enum class RenderResourceType : UINT64
 	RaytracingPSO
 };
 
+#define MAX_UID (1ull << 28ull)
+#define MAX_PTR (1ull << 32ull)
+
 struct RenderResourceHandle
 {
-	RenderResourceHandle();
+	RenderResourceType	Type : 4ull;
+	UINT64				UID : 28ull;
+	UINT64				Ptr : 32ull;
+
+	RenderResourceHandle()
+	{
+		Type = RenderResourceType::Unknown;
+		UID = MAX_UID;
+		Ptr = MAX_PTR;
+	}
 
 	auto operator<=>(const RenderResourceHandle&) const = default;
 
-	operator bool() const;
-
-	RenderResourceType	Type	: 4ull;
-	UINT64				Data	: 60ull;
+	operator bool() const
+	{
+		return Type != RenderResourceType::Unknown && UID != MAX_UID && Ptr != MAX_PTR;
+	}
 };
 
 static_assert(sizeof(RenderResourceHandle) == sizeof(UINT64));
@@ -35,9 +48,10 @@ namespace std
 	{
 		size_t operator()(const RenderResourceHandle& RenderResourceHandle) const noexcept
 		{
-			std::size_t seed = 0;
+			size_t seed = 0;
 			hash_combine(seed, size_t(RenderResourceHandle.Type));
-			hash_combine(seed, size_t(RenderResourceHandle.Data));
+			hash_combine(seed, size_t(RenderResourceHandle.UID));
+			hash_combine(seed, size_t(RenderResourceHandle.Ptr));
 			return seed;
 		}
 	};

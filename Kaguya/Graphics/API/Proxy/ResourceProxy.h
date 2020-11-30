@@ -10,7 +10,7 @@ public:
 	friend class Resource;
 	ResourceProxy(Resource::Type Type);
 
-	Resource::BindFlags					BindFlags;			//< Default value: None
+	Resource::Flags					BindFlags;			//< Default value: None
 	Resource::State						InitialState;		//< Default value: Unknown
 protected:
 	void Link() override;

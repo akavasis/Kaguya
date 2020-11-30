@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 
 //----------------------------------------------------------------------------------------------------
 class Keyboard;
@@ -27,17 +27,17 @@ public:
 	virtual ~RenderSystem();
 
 	bool OnInitialize();
+	void OnUpdate(const Time& Time);
 	void OnHandleMouse(int32_t X, int32_t Y, float DeltaTime);
 	void OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime);
-	void OnUpdate(const Time& Time);
 	void OnRender();
 	bool OnResize(uint32_t Width, uint32_t Height);
 	void OnDestroy();
 protected:
 	virtual bool Initialize() = 0;
+	virtual void Update(const Time& Time) = 0;
 	virtual void HandleMouse(int32_t X, int32_t Y, float DeltaTime) = 0;
 	virtual void HandleKeyboard(const Keyboard& Keyboard, float DeltaTime) = 0;
-	virtual void Update(const Time& Time) = 0;
 	virtual void Render() = 0;
 	virtual bool Resize(uint32_t Width, uint32_t Height) = 0;
 	virtual void Destroy() = 0;

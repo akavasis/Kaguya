@@ -6,7 +6,7 @@ ResourceProxy::ResourceProxy(Resource::Type Type)
 	m_NumSubresources(0),
 	m_ClearValue(std::nullopt)
 {
-	BindFlags = Resource::BindFlags::None;
+	BindFlags = Resource::Flags::None;
 	InitialState = Resource::State::Unknown;
 }
 

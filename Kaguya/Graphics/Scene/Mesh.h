@@ -1,5 +1,7 @@
 #pragma once
 #include "Math/Transform.h"
+#include "Vertex.h"
+#include "Graphics/RenderResourceHandle.h"
 
 struct Meshlet
 {
@@ -19,19 +21,22 @@ struct MeshletPrimitive
 struct Mesh
 {
 	DirectX::BoundingBox			BoundingBox;
+
 	uint32_t						IndexCount;
 	uint32_t						StartIndexLocation;
 	uint32_t						VertexCount;
 	uint32_t						BaseVertexLocation;
+
+	// Resolved when loaded into GPU
 	size_t							BottomLevelAccelerationStructureIndex;
 
-	uint32_t						MeshletOffset;
-	uint32_t						UniqueVertexIndexOffset;
-	uint32_t						PrimitiveIndexOffset;
-
 	std::vector<Meshlet>			Meshlets;
-	std::vector<uint32_t>			UniqueVertexIndices;
+	std::vector<uint32_t>			VertexIndices;
 	std::vector<MeshletPrimitive>	PrimitiveIndices;
+
+	RenderResourceHandle			MeshletResource;
+	RenderResourceHandle			VertexIndexResource;
+	RenderResourceHandle			PrimitiveIndexResource;
 
 	auto begin() { return Meshlets.begin(); }
 	auto end() { return Meshlets.end(); }

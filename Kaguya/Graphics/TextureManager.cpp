@@ -1,68 +1,10 @@
 #include "pch.h"
-#include "GpuTextureAllocator.h"
+#include "TextureManager.h"
 #include "RendererRegistry.h"
 
-GpuTextureAllocator::GpuTextureAllocator(RenderDevice* SV_pRenderDevice)
-	: SV_pRenderDevice(SV_pRenderDevice)
+TextureManager::TextureManager(RenderDevice* pRenderDevice)
+	: pRenderDevice(pRenderDevice)
 {
-	DXGI_FORMAT OptionalFormats[] =
-	{
-		DXGI_FORMAT_R16G16B16A16_UNORM,
-		DXGI_FORMAT_R16G16B16A16_SNORM,
-		DXGI_FORMAT_R32G32_FLOAT,
-		DXGI_FORMAT_R32G32_UINT,
-		DXGI_FORMAT_R32G32_SINT,
-		DXGI_FORMAT_R10G10B10A2_UNORM,
-		DXGI_FORMAT_R10G10B10A2_UINT,
-		DXGI_FORMAT_R11G11B10_FLOAT,
-		DXGI_FORMAT_R8G8B8A8_SNORM,
-		DXGI_FORMAT_R16G16_FLOAT,
-		DXGI_FORMAT_R16G16_UNORM,
-		DXGI_FORMAT_R16G16_UINT,
-		DXGI_FORMAT_R16G16_SNORM,
-		DXGI_FORMAT_R16G16_SINT,
-		DXGI_FORMAT_R8G8_UNORM,
-		DXGI_FORMAT_R8G8_UINT,
-		DXGI_FORMAT_R8G8_SNORM,
-		DXGI_FORMAT_R8G8_SINT,
-		DXGI_FORMAT_R16_UNORM,
-		DXGI_FORMAT_R16_SNORM,
-		DXGI_FORMAT_R8_SNORM,
-		DXGI_FORMAT_A8_UNORM,
-		DXGI_FORMAT_B5G6R5_UNORM,
-		DXGI_FORMAT_B5G5R5A1_UNORM,
-		DXGI_FORMAT_B4G4R4A4_UNORM
-	};
-	const int NumOptionalFormats = ARRAYSIZE(OptionalFormats);
-	for (int i = 0; i < NumOptionalFormats; ++i)
-	{
-		D3D12_FEATURE_DATA_FORMAT_SUPPORT FeatureDataFormatSupport	= {};
-		FeatureDataFormatSupport.Format								= OptionalFormats[i];
-
-		ThrowCOMIfFailed(SV_pRenderDevice->Device.GetApiHandle()->CheckFeatureSupport(
-			D3D12_FEATURE_FORMAT_SUPPORT,
-			&FeatureDataFormatSupport,
-			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
-
-		auto CheckFormatSupport1 = [&](D3D12_FORMAT_SUPPORT1 FormatSupport)
-		{
-			return (FeatureDataFormatSupport.Support1 & FormatSupport) != 0;
-		};
-		auto CheckFormatSupport2 = [&](D3D12_FORMAT_SUPPORT2 FormatSupport)
-		{
-			return (FeatureDataFormatSupport.Support2 & FormatSupport) != 0;
-		};
-
-		bool SupportUAV = CheckFormatSupport1(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) &&
-			CheckFormatSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) &&
-			CheckFormatSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
-
-		if (SupportUAV)
-		{
-			m_UAVSupportedFormat.insert(OptionalFormats[i]);
-		}
-	}
-
 	m_SystemReservedTextures[DefaultWhite]							= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultWhite.dds", false, false);
 	m_SystemReservedTextures[DefaultBlack]							= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultBlack.dds", false, false);
 	m_SystemReservedTextures[DefaultAlbedo]							= LoadFromFile(Application::ExecutableFolderPath / "Assets/Textures/DefaultAlbedoMap.dds", true, false);
@@ -76,7 +18,7 @@ GpuTextureAllocator::GpuTextureAllocator(RenderDevice* SV_pRenderDevice)
 	m_SystemReservedTextures[BlueNoise]								= LoadFromFile(Application::ExecutableFolderPath / "Assets/LUT/Blue_Noise_RGBA_0.dds", false, false);
 }
 
-void GpuTextureAllocator::StageSystemReservedTextures(RenderContext& RenderContext)
+void TextureManager::StageSystemReservedTextures(RenderContext& RenderContext)
 {
 	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
 	{
@@ -84,7 +26,7 @@ void GpuTextureAllocator::StageSystemReservedTextures(RenderContext& RenderConte
 	}
 }
 
-void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
+void TextureManager::Stage(Scene& Scene, RenderContext& RenderContext)
 {
 	if (!Status::SkyboxGenerated && !Scene.Skybox.Path.empty())
 	{
@@ -120,39 +62,43 @@ void GpuTextureAllocator::Stage(Scene& Scene, RenderContext& RenderContext)
 	{
 		StageTexture(handle, stagingTexture, RenderContext);
 	}
+	RenderContext->FlushResourceBarriers();
 }
 
-void GpuTextureAllocator::DisposeResources()
+void TextureManager::DisposeResources()
 {
 	m_UnstagedTextures.clear();
 
 	for (auto& handle : m_TemporaryResources)
 	{
-		SV_pRenderDevice->Destroy(handle);
+		pRenderDevice->Destroy(handle);
 	}
 }
 
-RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips)
+RenderResourceHandle TextureManager::LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips)
 {
 	assert(std::filesystem::exists(Path) && "File not found");
 
-	if (auto iter = m_Textures.find(Path.generic_string());
-		iter != m_Textures.end())
+	std::string Name = Path.string();
+	std::string Extension = Path.extension().string();
+
+	if (auto iter = m_TextureCache.find(Name);
+		iter != m_TextureCache.end())
 	{
 		return iter->second;
 	}
 
 	DirectX::ScratchImage	ScratchImage;
 	DirectX::TexMetadata	TexMetadata;
-	if (Path.extension() == ".dds")
+	if (Extension == ".dds")
 	{
 		ThrowCOMIfFailed(DirectX::LoadFromDDSFile(Path.c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
 	}
-	else if (Path.extension() == ".tga")
+	else if (Extension == ".tga")
 	{
 		ThrowCOMIfFailed(DirectX::LoadFromTGAFile(Path.c_str(), &TexMetadata, ScratchImage));
 	}
-	else if (Path.extension() == ".hdr")
+	else if (Extension == ".hdr")
 	{
 		ThrowCOMIfFailed(DirectX::LoadFromHDRFile(Path.c_str(), &TexMetadata, ScratchImage));
 	}
@@ -170,14 +116,14 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	}
 
 	// Create actual texture
-	RenderResourceHandle		TextureHandle = SV_pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Path.string());
-	Resource::BindFlags	BindFlags = GenerateMips ? Resource::BindFlags::UnorderedAccess : Resource::BindFlags::None;
+	RenderResourceHandle		TextureHandle	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name);
+	Resource::Flags				BindFlags		= GenerateMips ? Resource::Flags::UnorderedAccess : Resource::Flags::None;
 
 	switch (TexMetadata.dimension)
 	{
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
 	{
-		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture1D, [&](TextureProxy& proxy)
+		pRenderDevice->CreateTexture(TextureHandle, Resource::Type::Texture1D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(TexMetadata.format);
 			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
@@ -191,7 +137,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
 	{
-		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture2D, [&](TextureProxy& proxy)
+		pRenderDevice->CreateTexture(TextureHandle, Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(TexMetadata.format);
 			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
@@ -206,7 +152,7 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 
 	case DirectX::TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
 	{
-		SV_pRenderDevice->CreateDeviceTexture(TextureHandle, Resource::Type::Texture3D, [&](TextureProxy& proxy)
+		pRenderDevice->CreateTexture(TextureHandle, Resource::Type::Texture3D, [&](TextureProxy& proxy)
 		{
 			proxy.SetFormat(TexMetadata.format);
 			proxy.SetWidth(static_cast<UINT64>(TexMetadata.width));
@@ -222,9 +168,9 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	default: assert(false && "Unknown DirectX::TEX_DIMENSION");
 	}
 
-	Texture* pTexture = SV_pRenderDevice->GetTexture(TextureHandle);
+	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 #ifdef _DEBUG
-	pTexture->GetApiHandle()->SetName(Path.generic_wstring().data());
+	pTexture->GetApiHandle()->SetName(Path.c_str());
 #endif
 
 	std::vector<D3D12_SUBRESOURCE_DATA> subresources(ScratchImage.GetImageCount());
@@ -243,8 +189,8 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	std::vector<UINT64>								RowSizeInBytes						(NumSubresources);
 	UINT64											TotalBytes							= 0;
 
-	auto pD3DDevice = SV_pRenderDevice->Device.GetApiHandle();
-	auto Desc = pTexture->GetApiHandle()->GetDesc();
+	auto pD3DDevice = pRenderDevice->Device.GetApiHandle();
+	auto Desc		= pTexture->GetApiHandle()->GetDesc();
 	pD3DDevice->GetCopyableFootprints(&Desc, 0, NumSubresources, 0,
 		PlacedSubresourceLayouts.data(), NumRows.data(), RowSizeInBytes.data(), &TotalBytes);
 
@@ -253,13 +199,13 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 		&Desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(StagingResource.ReleaseAndGetAddressOf()));
 
 	// CPU Upload
-	BYTE* pHostMemory = nullptr;
-	if (StagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory)) == S_OK)
+	BYTE* pMemory = nullptr;
+	if (StagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pMemory)) == S_OK)
 	{
 		for (UINT subresourceIndex = 0; subresourceIndex < NumSubresources; ++subresourceIndex)
 		{
 			D3D12_MEMCPY_DEST MemCpyDest = {};
-			MemCpyDest.pData		= pHostMemory + PlacedSubresourceLayouts[subresourceIndex].Offset;
+			MemCpyDest.pData		= pMemory + PlacedSubresourceLayouts[subresourceIndex].Offset;
 			MemCpyDest.RowPitch		= static_cast<SIZE_T>(PlacedSubresourceLayouts[subresourceIndex].Footprint.RowPitch);
 			MemCpyDest.SlicePitch	= static_cast<SIZE_T>(PlacedSubresourceLayouts[subresourceIndex].Footprint.RowPitch) * static_cast<SIZE_T>(NumRows[subresourceIndex]);
 
@@ -283,23 +229,23 @@ RenderResourceHandle GpuTextureAllocator::LoadFromFile(const std::filesystem::pa
 	StagingTexture.PlacedSubresourceLayouts = std::move(PlacedSubresourceLayouts);
 	StagingTexture.MipLevels				= MipLevels;
 	StagingTexture.GenerateMips				= GenerateMips;
-	m_Textures[StagingTexture.Path]			= TextureHandle;
+	m_TextureCache[StagingTexture.Path]		= TextureHandle;
 	m_UnstagedTextures[TextureHandle]		= std::move(StagingTexture);
-	SV_pRenderDevice->CreateShaderResourceView(TextureHandle); // Create SRV
+	pRenderDevice->CreateShaderResourceView(TextureHandle); // Create SRV
 	return TextureHandle;
 }
 
-void GpuTextureAllocator::LoadMaterial(Material& Material)
+void TextureManager::LoadMaterial(Material& Material)
 {
-	auto GetDefaultTextureHandleIfNoFilePathIsProvided = [&](TextureTypes Type)
+	auto GetDefaultTextureHandleIfNoFilePathIsProvided = [this](TextureTypes Type)
 	{
 		switch (Type)
 		{
-		case AlbedoIdx:		return m_SystemReservedTextures[DefaultAlbedo];
-		case NormalIdx:		return m_SystemReservedTextures[DefaultNormal];
-		case RoughnessIdx:	return m_SystemReservedTextures[DefaultWhite];
-		case MetallicIdx:	return m_SystemReservedTextures[DefaultBlack];
-		case EmissiveIdx:	return m_SystemReservedTextures[DefaultBlack];
+		case AlbedoIdx:		return GetDefaultAlbedoTexture();
+		case NormalIdx:		return GetDefaultNormalTexture();
+		case RoughnessIdx:	return GetDefaultRoughnessTexture();
+		case MetallicIdx:	return GetDefaultBlackTexture();
+		case EmissiveIdx:	return GetDefaultBlackTexture();
 		default:			assert(false && "Unknown Type"); return RenderResourceHandle();
 		}
 	};
@@ -317,7 +263,7 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 				GetDefaultTextureHandleIfNoFilePathIsProvided(TextureTypes(i)) :
 				LoadFromFile(Material.Textures[i].Path, SRGB, true);
 
-			Material.TextureIndices[i] = SV_pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
+			Material.TextureIndices[i] = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
 		}
 		break;
 
@@ -330,12 +276,14 @@ void GpuTextureAllocator::LoadMaterial(Material& Material)
 	}
 }
 
-void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
+void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
 {
+#ifdef _DEBUG
 	std::wstring Path = UTF8ToUTF16(StagingTexture.Path);
-	PIXMarker(RenderContext->GetD3DCommandList(), Path.data());
+	PIXEvent(RenderContext->GetApiHandle(), Path.data());
+#endif
 
-	Texture* pTexture = SV_pRenderDevice->GetTexture(TextureHandle);
+	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 	Texture* pStagingResourceTexture = &StagingTexture.Texture;
 
 	// Stage texture
@@ -356,7 +304,7 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 
 	if (StagingTexture.GenerateMips)
 	{
-		if (IsUAVCompatable(pTexture->GetFormat()))
+		if (pRenderDevice->Device.IsUAVCompatable(pTexture->GetFormat()))
 		{
 			GenerateMipsUAV(TextureHandle, RenderContext);
 		}
@@ -370,10 +318,10 @@ void GpuTextureAllocator::StageTexture(RenderResourceHandle TextureHandle, Stagi
 	LOG_INFO("{} Loaded", StagingTexture.Path);
 }
 
-void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
+void TextureManager::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
 	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
-	Texture* pTexture = SV_pRenderDevice->GetTexture(TextureHandle);
+	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
 	RenderContext.SetPipelineState(ComputePSOs::GenerateMips);
 
@@ -420,15 +368,15 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			SV_pRenderDevice->CreateUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1);
+			pRenderDevice->CreateUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1);
 		}
 
-		GenerateMipsData.InputIndex = SV_pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
+		GenerateMipsData.InputIndex = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
 
 		int32_t outputIndices[4] = { -1, -1, -1, -1 };
 		for (uint32_t mip = 0; mip < mipCount; ++mip)
 		{
-			outputIndices[mip] = SV_pRenderDevice->GetUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1).HeapIndex;
+			outputIndices[mip] = pRenderDevice->GetUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1).HeapIndex;
 		}
 
 		GenerateMipsData.Output1Index = outputIndices[0];
@@ -453,23 +401,23 @@ void GpuTextureAllocator::GenerateMipsUAV(RenderResourceHandle TextureHandle, Re
 	}
 }
 
-void GpuTextureAllocator::GenerateMipsSRGB(const std::string& Name, RenderResourceHandle TextureHandle, RenderContext& RenderContext)
+void TextureManager::GenerateMipsSRGB(const std::string& Name, RenderResourceHandle TextureHandle, RenderContext& RenderContext)
 {
-	Texture* pTexture = SV_pRenderDevice->GetTexture(TextureHandle);
+	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 
-	RenderResourceHandle textureCopyHandle = SV_pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
-	SV_pRenderDevice->CreateDeviceTexture(textureCopyHandle, pTexture->GetType(), [&](TextureProxy& proxy)
+	RenderResourceHandle textureCopyHandle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
+	pRenderDevice->CreateTexture(textureCopyHandle, pTexture->GetType(), [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(pTexture->GetFormat());
 		proxy.SetWidth(pTexture->GetWidth());
 		proxy.SetHeight(pTexture->GetHeight());
 		proxy.SetDepthOrArraySize(pTexture->GetDepthOrArraySize());
 		proxy.SetMipLevels(pTexture->GetMipLevels());
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::CopyDest;
 	});
 
-	Texture* pDstTexture = SV_pRenderDevice->GetTexture(textureCopyHandle);
+	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
 
 	RenderContext->CopyResource(pDstTexture, pTexture);
 
@@ -480,10 +428,10 @@ void GpuTextureAllocator::GenerateMipsSRGB(const std::string& Name, RenderResour
 	m_TemporaryResources.push_back(textureCopyHandle);
 }
 
-void GpuTextureAllocator::EquirectangularToCubemap(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
+void TextureManager::EquirectangularToCubemap(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
-	Texture* pCubemap = SV_pRenderDevice->GetTexture(Cubemap);
-	if (IsUAVCompatable(pCubemap->GetFormat()))
+	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
+	if (pRenderDevice->Device.IsUAVCompatable(pCubemap->GetFormat()))
 	{
 		EquirectangularToCubemapUAV(EquirectangularMap, Cubemap, RenderContext);
 	}
@@ -493,12 +441,12 @@ void GpuTextureAllocator::EquirectangularToCubemap(const std::string& Name, Rend
 	}
 }
 
-void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
+void TextureManager::EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
-	SV_pRenderDevice->CreateShaderResourceView(EquirectangularMap);
+	pRenderDevice->CreateShaderResourceView(EquirectangularMap);
 
-	Texture* pEquirectangularMap = SV_pRenderDevice->GetTexture(EquirectangularMap);
-	Texture* pCubemap = SV_pRenderDevice->GetTexture(Cubemap);
+	Texture* pEquirectangularMap = pRenderDevice->GetTexture(EquirectangularMap);
+	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 	auto resourceDesc = pCubemap->GetApiHandle()->GetDesc();
 
 	RenderContext.SetPipelineState(ComputePSOs::EquirectangularToCubemap);
@@ -516,16 +464,16 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
-			SV_pRenderDevice->CreateUnorderedAccessView(Cubemap, {}, mipSlice + mip);
+			pRenderDevice->CreateUnorderedAccessView(Cubemap, {}, mipSlice + mip);
 		}
 
 		int outputIndices[5] = { -1, -1, -1, -1, -1 };
 		for (uint32_t mip = 0; mip < numMips; ++mip)
 		{
-			outputIndices[mip] = SV_pRenderDevice->GetUnorderedAccessView(Cubemap, {}, mipSlice + mip).HeapIndex;
+			outputIndices[mip] = pRenderDevice->GetUnorderedAccessView(Cubemap, {}, mipSlice + mip).HeapIndex;
 		}
 
-		EquirectangularToCubemapData.InputIndex = SV_pRenderDevice->GetShaderResourceView(EquirectangularMap).HeapIndex;
+		EquirectangularToCubemapData.InputIndex = pRenderDevice->GetShaderResourceView(EquirectangularMap).HeapIndex;
 
 		EquirectangularToCubemapData.Output1Index = outputIndices[0];
 		EquirectangularToCubemapData.Output2Index = outputIndices[1];
@@ -550,23 +498,23 @@ void GpuTextureAllocator::EquirectangularToCubemapUAV(RenderResourceHandle Equir
 	}
 }
 
-void GpuTextureAllocator::EquirectangularToCubemapSRGB(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
+void TextureManager::EquirectangularToCubemapSRGB(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
 {
-	Texture* pCubemap = SV_pRenderDevice->GetTexture(Cubemap);
+	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
 
-	RenderResourceHandle textureCopyHandle = SV_pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
-	SV_pRenderDevice->CreateDeviceTexture(textureCopyHandle, pCubemap->GetType(), [&](TextureProxy& proxy)
+	RenderResourceHandle textureCopyHandle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
+	pRenderDevice->CreateTexture(textureCopyHandle, pCubemap->GetType(), [&](TextureProxy& proxy)
 	{
 		proxy.SetFormat(pCubemap->GetFormat());
 		proxy.SetWidth(pCubemap->GetWidth());
 		proxy.SetHeight(pCubemap->GetHeight());
 		proxy.SetDepthOrArraySize(pCubemap->GetDepthOrArraySize());
 		proxy.SetMipLevels(pCubemap->GetMipLevels());
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::CopyDest;
 	});
 
-	Texture* pDstTexture = SV_pRenderDevice->GetTexture(textureCopyHandle);
+	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
 
 	RenderContext->CopyResource(pDstTexture, pCubemap);
 
@@ -577,36 +525,7 @@ void GpuTextureAllocator::EquirectangularToCubemapSRGB(const std::string& Name, 
 	m_TemporaryResources.push_back(textureCopyHandle);
 }
 
-bool GpuTextureAllocator::IsUAVCompatable(DXGI_FORMAT Format)
-{
-	switch (Format)
-	{
-	case DXGI_FORMAT_R32G32B32A32_FLOAT:
-	case DXGI_FORMAT_R32G32B32A32_UINT:
-	case DXGI_FORMAT_R32G32B32A32_SINT:
-	case DXGI_FORMAT_R16G16B16A16_FLOAT:
-	case DXGI_FORMAT_R16G16B16A16_UINT:
-	case DXGI_FORMAT_R16G16B16A16_SINT:
-	case DXGI_FORMAT_R8G8B8A8_UNORM:
-	case DXGI_FORMAT_R8G8B8A8_UINT:
-	case DXGI_FORMAT_R8G8B8A8_SINT:
-	case DXGI_FORMAT_R32_FLOAT:
-	case DXGI_FORMAT_R32_UINT:
-	case DXGI_FORMAT_R32_SINT:
-	case DXGI_FORMAT_R16_FLOAT:
-	case DXGI_FORMAT_R16_UINT:
-	case DXGI_FORMAT_R16_SINT:
-	case DXGI_FORMAT_R8_UNORM:
-	case DXGI_FORMAT_R8_UINT:
-	case DXGI_FORMAT_R8_SINT:
-		return true;
-	}
-	if (m_UAVSupportedFormat.find(Format) != m_UAVSupportedFormat.end())
-		return true;
-	return false;
-}
-
-DXGI_FORMAT GpuTextureAllocator::GetUAVCompatableFormat(DXGI_FORMAT Format)
+DXGI_FORMAT TextureManager::GetUAVCompatableFormat(DXGI_FORMAT Format)
 {
 	DXGI_FORMAT uavFormat = Format;
 

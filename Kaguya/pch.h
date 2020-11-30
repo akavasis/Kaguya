@@ -66,5 +66,5 @@
 
 #include <Math/MathLibrary.h>
 
-#include <Graphics/Debug/PIXMarker.h>
+#include <Graphics/Debug/PIXEvent.h>
 #include <Graphics/Debug/PIXCapture.h>

@@ -107,7 +107,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
 			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(Formats[i], DirectX::Colors::Black));
-			proxy.BindFlags = Resource::BindFlags::RenderTarget;
+			proxy.BindFlags = Resource::Flags::RenderTarget;
 			proxy.InitialState = Resource::State::RenderTarget;
 		});
 	}
@@ -118,7 +118,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
 		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0));
-		proxy.BindFlags = Resource::BindFlags::DepthStencil;
+		proxy.BindFlags = Resource::Flags::DepthStencil;
 		proxy.InitialState = Resource::State::DepthWrite;
 	});
 }
@@ -135,7 +135,7 @@ void GBuffer::RenderGui()
 
 void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"GBuffer");
+	PIXEvent(RenderContext->GetApiHandle(), L"GBuffer");
 
 	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
 	{
@@ -186,11 +186,11 @@ void GBuffer::StateRefresh()
 
 void GBuffer::RenderMeshes(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Meshes");
+	PIXEvent(RenderContext->GetApiHandle(), L"Render Meshes");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferMeshes);
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
+	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTable());
 
@@ -233,7 +233,7 @@ void GBuffer::RenderMeshes(RenderContext& RenderContext)
 
 void GBuffer::RenderLights(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Lights");
+	PIXEvent(RenderContext->GetApiHandle(), L"Render Lights");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferLights);
 	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetLightTable());

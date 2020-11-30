@@ -1,5 +1,5 @@
-#ifndef __VERTEX_HLSLI__
-#define __VERTEX_HLSLI__
+#ifndef VERTEX_HLSLI
+#define VERTEX_HLSLI
 
 struct Vertex
 {

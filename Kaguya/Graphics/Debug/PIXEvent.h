@@ -6,11 +6,11 @@ namespace Kaguya
 {
 	namespace Internal
 	{
-		class PIXMarker
+		class PIXEvent
 		{
 		public:
-			PIXMarker(ID3D12GraphicsCommandList* pCommandList, LPCWSTR pMsg);
-			~PIXMarker();
+			PIXEvent(ID3D12GraphicsCommandList* pCommandList, LPCWSTR pMsg);
+			~PIXEvent();
 		private:
 			ID3D12GraphicsCommandList* pCommandList;
 		};
@@ -18,7 +18,7 @@ namespace Kaguya
 }
 
 #ifdef _DEBUG
-#define PIXMarker(pCommandList, pMsg) Kaguya::Internal::PIXMarker pixmarker(pCommandList, pMsg)
+#define PIXEvent(pCommandList, pMsg) Kaguya::Internal::PIXEvent __PIXEVENT(pCommandList, pMsg)
 #else
 #define PIXMarker(pCommandList, pMsg) 
 #endif

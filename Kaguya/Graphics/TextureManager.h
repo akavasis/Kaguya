@@ -8,10 +8,10 @@
 #include "RenderContext.h"
 #include "Scene/Scene.h"
 
-class GpuTextureAllocator
+class TextureManager
 {
 public:
-	GpuTextureAllocator(RenderDevice* SV_pRenderDevice);
+	TextureManager(RenderDevice* pRenderDevice);
 
 	inline auto GetDefaultWhiteTexture()						{ return m_SystemReservedTextures[DefaultWhite]; }
 	inline auto GetDefaultBlackTexture()						{ return m_SystemReservedTextures[DefaultBlack]; }
@@ -52,12 +52,12 @@ private:
 
 	struct StagingTexture
 	{
-		std::string										Path;						// file path
-		Texture									Texture;					// gpu upload buffer
-		std::size_t										NumSubresources;			// number of subresources
-		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts;	// footprint is synonymous to layout
-		std::size_t										MipLevels;					// indicates what mip levels this texture should have
-		bool											GenerateMips;				// indicates whether or not we should generate mips for the staged texture
+		std::string										Path;						// File path
+		Texture											Texture;					// Gpu upload buffer
+		std::size_t										NumSubresources;			// Number of subresources
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts;	// Footprint is synonymous to layout
+		std::size_t										MipLevels;					// Indicates what mip levels this texture should have
+		bool											GenerateMips;				// Indicates whether or not we should generate mips for the staged texture
 	};
 
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
@@ -69,15 +69,13 @@ private:
 	void EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
 	void EquirectangularToCubemapSRGB(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
 
-	bool IsUAVCompatable(DXGI_FORMAT Format);
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
 
-	RenderDevice*												SV_pRenderDevice;
+	RenderDevice*												pRenderDevice;
 
 	RenderResourceHandle										m_SystemReservedTextures[NumSystemReservedTextures];
-	std::unordered_map<std::string, RenderResourceHandle>		m_Textures;
+	std::unordered_map<std::string, RenderResourceHandle>		m_TextureCache;
 
-	std::unordered_set<DXGI_FORMAT>								m_UAVSupportedFormat;
 	std::unordered_map<RenderResourceHandle, StagingTexture>	m_UnstagedTextures;
 	std::vector<RenderResourceHandle>							m_TemporaryResources;
 };

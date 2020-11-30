@@ -2,25 +2,29 @@
 #include "Vertex.h"
 #include "Mesh.h"
 
-#include "../RenderResourceHandle.h"
-
 struct Model
 {
-	std::string					Path;
+	std::string					Name;
 	DirectX::BoundingBox		BoundingBox;
+
 	std::vector<Vertex>			Vertices;
 	std::vector<uint32_t>		Indices;
-
 	std::vector<Mesh>			Meshes;
 
-	RenderResourceHandle		MeshletResource, UploadMeshletResource;
-	RenderResourceHandle		UniqueVertexIndexResource, UploadUniqueVertexIndexResource;
-	RenderResourceHandle		PrimitiveIndexResource, UploadPrimitiveIndexResource;
+	// Comitted resource
+	RenderResourceHandle		VertexResource;
+	RenderResourceHandle		IndexResource;
+
+	// Heap
+	RenderResourceHandle		MeshletHeap;
+	RenderResourceHandle		VertexIndexHeap;
+	RenderResourceHandle		PrimitiveIndexHeap;
 
 	// Iterator interface
 	auto begin() { return Meshes.begin(); }
 	auto end() { return Meshes.end(); }
 };
 
-Model CreateBox(float Width, float Height, float Depth, uint32_t NumSubdivisions);
+void GenerateMeshletData(const std::vector<Vertex>& Vertices, const std::vector<uint32_t>& Indices, Mesh* pMesh);
+Model CreateBox(float Width, float Height, float Depth);
 Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N);

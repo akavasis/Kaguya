@@ -1,4 +1,4 @@
-struct AmbientOcclusionData
+struct RenderPassData
 {
 	float AORadius;
 	int NumAORaysPerPixel;
@@ -7,7 +7,7 @@ struct AmbientOcclusionData
 	int InputWorldNormalIndex;
 	int RenderTarget;
 };
-#define RenderPassDataType AmbientOcclusionData
+#define RenderPassDataType RenderPassData
 #include "Global.hlsli"
 
 struct RayPayload

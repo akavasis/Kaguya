@@ -280,7 +280,7 @@ UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Buffer* pBuffer)
 {
 	auto DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
 	auto Desc			= GetShaderResourceViewDesc(pBuffer);
-	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::BindFlags::AccelerationStructure))
+	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::Flags::AccelerationStructure))
 	{
 		m_pDevice->GetApiHandle()->CreateShaderResourceView(nullptr, &Desc, DestDescriptor.CPUHandle);
 	}
@@ -310,7 +310,7 @@ UINT64 CBSRUADescriptorHeap::AssignUADescriptor(UINT HeapIndex, Texture* pTextur
 D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(Buffer* pBuffer)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC Desc				= {};
-	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::BindFlags::AccelerationStructure))
+	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::Flags::AccelerationStructure))
 	{
 		Desc.Format										= DXGI_FORMAT_UNKNOWN;
 		Desc.Shader4ComponentMapping					= D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

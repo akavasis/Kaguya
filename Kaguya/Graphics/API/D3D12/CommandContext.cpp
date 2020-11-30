@@ -52,10 +52,19 @@ void CommandContext::SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorH
 {
 	UINT					NumDescriptorHeaps												= 0;
 	ID3D12DescriptorHeap*	pDescriptorHeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES]	= {};
-	if (pCBSRUADescriptorHeap)	pDescriptorHeapsToBind[NumDescriptorHeaps++] = pCBSRUADescriptorHeap->GetD3DDescriptorHeap();
-	if (pSamplerDescriptorHeap) pDescriptorHeapsToBind[NumDescriptorHeaps++] = pSamplerDescriptorHeap->GetD3DDescriptorHeap();
+	if (pCBSRUADescriptorHeap)	
+	{
+		pDescriptorHeapsToBind[NumDescriptorHeaps++] = pCBSRUADescriptorHeap->GetApiHandle();
+	}
+	if (pSamplerDescriptorHeap) 
+	{
+		pDescriptorHeapsToBind[NumDescriptorHeaps++] = pSamplerDescriptorHeap->GetApiHandle();
+	}
+
 	if (NumDescriptorHeaps > 0)
+	{
 		m_pCommandList->SetDescriptorHeaps(NumDescriptorHeaps, pDescriptorHeapsToBind);
+	}
 }
 
 void CommandContext::TransitionBarrier(Resource* pResource, Resource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)

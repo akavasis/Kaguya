@@ -1,33 +1,44 @@
 #pragma once
-#include <basetsd.h>
 #include <Core/Synchronization/RWLock.h>
-#include <unordered_map>
-#include <vector>
+#include <Template/Pool.h>
+#include "RenderResourceHandle.h"
 
 class RenderResourceHandleRegistry
 {
 public:
-	static const UINT64 INVALID_HANDLE_DATA = 1ull << 60ull;
+	enum
+	{
+		NumResources = 1024
+	};
 
-	UINT64 AddNewHandle(const std::string& Name)
+	RenderResourceHandle Allocate(RenderResourceType Type, const std::string& Name)
 	{
 		ScopedWriteLock SWL(RWLock);
-		auto iter = NameToData.find(Name);
-		if (iter != NameToData.end())
-			return iter->second;
 
-		DataToName.push_back(Name);
-		NameToData[Name] = DataToName.size() - 1;
-		return DataToName.size() - 1;
+		RenderResourceHandle Handle = {};
+
+		Handle.Type = Type;
+		Handle.UID = m_UIDCounter.fetch_add(1);
+		Handle.Ptr = m_ResourcePool.Allocate();
+		m_ResourcePool[Handle.Ptr].Value = Name;
+
+		return Handle;
 	}
 
-	std::string GetName(UINT64 Index)
+	void Free(RenderResourceHandle Handle)
+	{
+		ScopedWriteLock SWL(RWLock);
+
+		m_ResourcePool.Free(Handle.Ptr);
+	}
+
+	std::string GetName(RenderResourceHandle Handle)
 	{
 		ScopedReadLock SRL(RWLock);
-		return DataToName[Index];
+		return m_ResourcePool[Handle.Ptr].Value;
 	}
 private:
 	RWLock RWLock;
-	std::unordered_map<std::string, UINT64> NameToData;
-	std::vector<std::string> DataToName;
+	std::atomic<UINT64> m_UIDCounter;
+	Pool<std::string, NumResources> m_ResourcePool;
 };

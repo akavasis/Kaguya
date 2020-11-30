@@ -14,15 +14,14 @@ ModelLoader::ModelLoader(std::filesystem::path ExecutableFolderPath)
 
 }
 
-Model ModelLoader::LoadFromFile(const char* pPath) const
+Model ModelLoader::LoadFromFile(const std::filesystem::path& Path) const
 {
-	std::filesystem::path filePath = m_ExecutableFolderPath / pPath;
+	std::filesystem::path filePath = m_ExecutableFolderPath / Path;
 	assert(std::filesystem::exists(filePath) && "File does not exist");
 
 	const aiScene* paiScene = Importer.ReadFile(filePath.generic_string().data(),
 		aiProcess_ConvertToLeftHanded |
 		aiProcessPreset_TargetRealtime_MaxQuality |
-		aiProcess_GenBoundingBoxes |
 		aiProcess_OptimizeMeshes |
 		aiProcess_OptimizeGraph);
 
@@ -32,8 +31,8 @@ Model ModelLoader::LoadFromFile(const char* pPath) const
 		assert(false && "Assimp::Importer::ReadFile failed, check Assimp::Importer::GetErrorString for more info");
 	}
 
-	Model model;
-	model.Path = filePath.generic_string();
+	Model model = {};
+	model.Name = filePath.string();
 
 	// Load meshes
 	model.Meshes.reserve(paiScene->mNumMeshes);
@@ -50,7 +49,7 @@ Model ModelLoader::LoadFromFile(const char* pPath) const
 		// Parse vertex data
 		for (unsigned int vertexIndex = 0; vertexIndex < paiMesh->mNumVertices; ++vertexIndex)
 		{
-			Vertex v{};
+			Vertex v = {};
 			// Position
 			v.Position = DirectX::XMFLOAT3(paiMesh->mVertices[vertexIndex].x, paiMesh->mVertices[vertexIndex].y, paiMesh->mVertices[vertexIndex].z);
 
@@ -114,10 +113,10 @@ Model ModelLoader::LoadFromFile(const char* pPath) const
 		auto pUniqueVertexIndices = reinterpret_cast<const uint32_t*>(uniqueVertexIB.data());
 		size_t NumUniqueVertexIndices = uniqueVertexIB.size() / sizeof(uint32_t);
 
-		mesh.UniqueVertexIndices.reserve(NumUniqueVertexIndices);
+		mesh.VertexIndices.reserve(NumUniqueVertexIndices);
 		for (size_t i = 0; i < NumUniqueVertexIndices; ++i)
 		{
-			mesh.UniqueVertexIndices.push_back(pUniqueVertexIndices[i]);
+			mesh.VertexIndices.push_back(pUniqueVertexIndices[i]);
 		}
 
 		// Copy primitive indices
@@ -133,12 +132,7 @@ Model ModelLoader::LoadFromFile(const char* pPath) const
 		}
 
 		// Parse aabb data for mesh
-		// center = 0.5 * (min + max)
-		DirectX::XMVECTOR min = DirectX::XMVectorSet(paiMesh->mAABB.mMin.x, paiMesh->mAABB.mMin.y, paiMesh->mAABB.mMin.z, 0.0f);
-		DirectX::XMVECTOR max = DirectX::XMVectorSet(paiMesh->mAABB.mMax.x, paiMesh->mAABB.mMax.y, paiMesh->mAABB.mMax.z, 0.0f);
-		XMStoreFloat3(&mesh.BoundingBox.Center, DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorAdd(min, max)));
-		// extents = 0.5f (max - min)
-		XMStoreFloat3(&mesh.BoundingBox.Extents, DirectX::XMVectorMultiply(DirectX::XMVectorReplicate(0.5f), DirectX::XMVectorSubtract(max, min)));
+		DirectX::BoundingBox::CreateFromPoints(mesh.BoundingBox, vertices.size(), &vertices[0].Position, sizeof(Vertex));
 
 		// Parse mesh indices
 		mesh.VertexCount = vertices.size();

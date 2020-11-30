@@ -31,10 +31,11 @@ cbuffer RootConstants
 	uint InstanceID;
 };
 
-StructuredBuffer<Vertex>  Vertices            : register(t0, space0);
-StructuredBuffer<Mesh>    Meshes			  : register(t1, space0);
+StructuredBuffer<Mesh>    Meshes			  : register(t0, space0);
+
+StructuredBuffer<Vertex>  Vertices            : register(t1, space0);
 StructuredBuffer<Meshlet> Meshlets            : register(t2, space0);
-ByteAddressBuffer         UniqueVertexIndices : register(t3, space0);
+ByteAddressBuffer         VertexIndices       : register(t3, space0);
 StructuredBuffer<uint>    PrimitiveIndices    : register(t4, space0);
 
 #include <ShaderLayout.hlsli>
@@ -48,22 +49,22 @@ uint3 UnpackPrimitive(uint primitive)
     return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
 }
 
-uint3 GetPrimitive(Meshlet m, uint index, uint offset)
+uint3 GetPrimitive(Meshlet m, uint index)
 {
-    return UnpackPrimitive(PrimitiveIndices[m.PrimitiveOffset + index + offset]);
+    return UnpackPrimitive(PrimitiveIndices[m.PrimitiveOffset + index]);
 }
 
-uint GetVertexIndex(Meshlet m, uint localIndex, uint offset)
+uint GetVertexIndex(Meshlet m, uint localIndex)
 {
-    localIndex = m.VertexOffset + localIndex + offset;
-    return UniqueVertexIndices.Load(localIndex * 4);
+    localIndex = m.VertexOffset + localIndex;
+    return VertexIndices.Load(localIndex * 4);
 }
 
 VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex, Mesh mesh)
 {
     Vertex v = Vertices[vertexIndex];
 
-    float3 worldPos		= mul(float4(v.Position, 1.0f), mesh.World).xyz;
+    float3 worldPos = mul(float4(v.Position, 1.0f), mesh.World).xyz;
 
     VertexOut vout;
 	vout.PositionHS = mul(float4(worldPos, 1), g_SystemConstants.Camera.ViewProjection);
@@ -76,23 +77,23 @@ VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex, Mesh mesh)
 [numthreads(128, 1, 1)]
 [outputtopology("triangle")]
 void MSMain(uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
-    out indices uint3 tris[126],
-    out vertices VertexOut verts[64]
+    out indices uint3 tris[128],
+    out vertices VertexOut verts[128]
 )
 {
     Mesh mesh = Meshes[InstanceID];
-    Meshlet meshlet = Meshlets[gid + mesh.MeshletOffset];
+    Meshlet meshlet = Meshlets[gid];
 
     SetMeshOutputCounts(meshlet.VertexCount, meshlet.PrimitiveCount);
 
     if (gtid < meshlet.PrimitiveCount)
     {
-        tris[gtid] = GetPrimitive(meshlet, gtid, mesh.PrimitiveIndexOffset);
+        tris[gtid] = GetPrimitive(meshlet, gtid);
     }
 
     if (gtid < meshlet.VertexCount)
     {
-        uint vertexIndex = GetVertexIndex(meshlet, gtid, mesh.UniqueVertexIndexOffset);
+        uint vertexIndex = GetVertexIndex(meshlet, gtid);
         verts[gtid] = GetVertexAttributes(gid, vertexIndex, mesh);
     }
 }

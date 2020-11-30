@@ -32,6 +32,15 @@ namespace HLSL
 		int		TextureChannel[NumTextureTypes];
 	};
 
+	struct Mesh
+	{
+		uint	VertexOffset;
+		uint	IndexOffset;
+		uint	MaterialIndex;
+		matrix	World;
+		matrix	PreviousWorld;
+	};
+
 	struct Camera
 	{
 		float	NearZ;
@@ -55,18 +64,6 @@ namespace HLSL
 		matrix	InvView;
 		matrix	InvProjection;
 		matrix	InvViewProjection;
-	};
-
-	struct Mesh
-	{
-		uint	VertexOffset;
-		uint	IndexOffset;
-		uint	MeshletOffset;
-		uint 	UniqueVertexIndexOffset;
-		uint 	PrimitiveIndexOffset;
-		uint	MaterialIndex;
-		matrix	World;
-		matrix	PreviousWorld;
 	};
 
 	struct SystemConstants
