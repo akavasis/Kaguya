@@ -404,8 +404,8 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 			RaytracingGeometryDesc Desc = {};
 			Desc.pVertexBuffer			= pVertexBuffer;
 			Desc.VertexStride			= sizeof(Vertex);
-			Desc.pIndexBuffer			= 0;
-			Desc.IndexStride			= 0;
+			Desc.pIndexBuffer			= pIndexBuffer;
+			Desc.IndexStride			= sizeof(unsigned int);
 			Desc.IsOpaque				= true;
 			Desc.NumVertices			= mesh.VertexCount;
 			Desc.VertexOffset			= mesh.BaseVertexLocation;

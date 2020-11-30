@@ -223,13 +223,13 @@ RenderResourceHandle TextureManager::LoadFromFile(const std::filesystem::path& P
 	}
 
 	StagingTexture StagingTexture			= {};
-	StagingTexture.Path						= Path.generic_string();
+	StagingTexture.Name						= Name;
 	StagingTexture.Texture					= Texture(StagingResource);
 	StagingTexture.NumSubresources			= NumSubresources;
 	StagingTexture.PlacedSubresourceLayouts = std::move(PlacedSubresourceLayouts);
 	StagingTexture.MipLevels				= MipLevels;
 	StagingTexture.GenerateMips				= GenerateMips;
-	m_TextureCache[StagingTexture.Path]		= TextureHandle;
+	m_TextureCache[StagingTexture.Name]		= TextureHandle;
 	m_UnstagedTextures[TextureHandle]		= std::move(StagingTexture);
 	pRenderDevice->CreateShaderResourceView(TextureHandle); // Create SRV
 	return TextureHandle;
@@ -279,7 +279,7 @@ void TextureManager::LoadMaterial(Material& Material)
 void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
 {
 #ifdef _DEBUG
-	std::wstring Path = UTF8ToUTF16(StagingTexture.Path);
+	std::wstring Path = UTF8ToUTF16(StagingTexture.Name);
 	PIXEvent(RenderContext->GetApiHandle(), Path.data());
 #endif
 
@@ -310,12 +310,12 @@ void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTex
 		}
 		else if (DirectX::IsSRGB(pTexture->GetFormat()))
 		{
-			GenerateMipsSRGB(StagingTexture.Path, TextureHandle, RenderContext);
+			GenerateMipsSRGB(StagingTexture.Name, TextureHandle, RenderContext);
 		}
 	}
 
 	RenderContext->TransitionBarrier(pTexture, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
-	LOG_INFO("{} Loaded", StagingTexture.Path);
+	LOG_INFO("{} Loaded", StagingTexture.Name);
 }
 
 void TextureManager::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)

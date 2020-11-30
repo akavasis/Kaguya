@@ -52,7 +52,7 @@ private:
 
 	struct StagingTexture
 	{
-		std::string										Path;						// File path
+		std::string										Name;						// File path
 		Texture											Texture;					// Gpu upload buffer
 		std::size_t										NumSubresources;			// Number of subresources
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts;	// Footprint is synonymous to layout
