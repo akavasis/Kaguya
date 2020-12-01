@@ -3,6 +3,9 @@
 #include "Core/Window.h"
 #include "Core/Time.h"
 
+#include <wincodec.h>
+#include <ScreenGrab.h>
+
 #include "RendererRegistry.h"
 
 // Render passes
@@ -160,6 +163,22 @@ void Renderer::Render()
 	{
 		LOG_ERROR("DXGI_ERROR_DEVICE_REMOVED");
 	}
+
+	if (Screenshot)
+	{
+		Screenshot = false;
+
+		auto pTexture = m_pRenderDevice->GetTexture(m_pRenderDevice->SwapChainTextures[m_pRenderDevice->FrameIndex]);
+
+		auto FileName = Application::ExecutableFolderPath / L"Screenshot.jpg";
+		HRESULT hr = DirectX::SaveWICTextureToFile(m_pRenderDevice->GraphicsQueue.GetApiHandle(), pTexture->GetApiHandle(),
+			GUID_ContainerFormatJpeg, FileName.c_str(),
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_PRESENT);
+		if (FAILED(hr))
+		{
+			LOG_WARN("Failed to save screenshot");
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -285,6 +304,11 @@ void Renderer::RenderGui()
 		ImGui::Text("Total Frame Count: %d", Statistics::TotalFrameCount);
 		ImGui::Text("FPS: %f", Statistics::FPS);
 		ImGui::Text("FPMS: %f", Statistics::FPMS);
+
+		if (ImGui::Button("Screenshot"))
+		{
+			Screenshot = true;
+		}
 
 		if (ImGui::TreeNode("Settings"))
 		{

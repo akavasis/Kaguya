@@ -119,6 +119,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 {
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
 
+	ThrowCOMIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
 	auto pRenderSystem = reinterpret_cast<RenderSystem*>(pParameter);
 	
 	Time Time;
@@ -186,6 +187,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 
 Error:
 	pRenderSystem->OnDestroy();
+	CoUninitialize();
 
 	return EXIT_SUCCESS;
 }

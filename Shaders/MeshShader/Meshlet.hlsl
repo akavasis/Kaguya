@@ -1,13 +1,3 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
 #include <HLSLCommon.hlsli>
 #include <Vertex.hlsli>
 
@@ -23,6 +13,7 @@ struct VertexOut
 {
     float4 PositionHS   : SV_Position;
     float3 Normal       : NORMAL;
+    float2 TextureCoord	: TEXCOORD;
     uint   MeshletIndex : MESHLET_INDEX;
 };
 
@@ -69,6 +60,7 @@ VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex, Mesh mesh)
     VertexOut vout;
 	vout.PositionHS = mul(float4(worldPos, 1), g_SystemConstants.Camera.ViewProjection);
 	vout.Normal = mul(float4(v.Normal, 0), mesh.World).xyz;
+    vout.TextureCoord = v.Texture;
     vout.MeshletIndex = meshletIndex;
 
     return vout;
@@ -100,6 +92,7 @@ void MSMain(uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
 
 float4 PSMain(VertexOut input) : SV_TARGET
 {
+    return float4(input.Normal, 0);
 	uint meshletIndex = input.MeshletIndex;
 	return float4(
         float(meshletIndex & 1),

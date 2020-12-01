@@ -5,12 +5,15 @@
 
 RenderSystem::RenderSystem(uint32_t Width, uint32_t Height)
 	: Width(Width), Height(Height),
-	AspectRatio(static_cast<float>(Width) / static_cast<float>(Height))
+	AspectRatio(static_cast<float>(Width) / static_cast<float>(Height)),
+	Screenshot(false)
 {
+
 }
 
 RenderSystem::~RenderSystem()
 {
+
 }
 
 bool RenderSystem::OnInitialize()
