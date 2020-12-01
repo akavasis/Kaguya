@@ -17,5 +17,12 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 	float4 current = Input[DTid.xy]; // Current result
 	float4 prev = Output[DTid.xy]; // Previous result, UAV is not cleared so the UAV contains result of the previous frame
 	
-	Output[DTid.xy] = lerp(prev, current, 1.0f / float(g_RenderPassData.AccumulationCount + 1)); // accumulate
+	if (g_RenderPassData.AccumulationCount > 0)
+	{
+		Output[DTid.xy] = lerp(prev, current, 1.0f / float(g_RenderPassData.AccumulationCount)); // accumulate
+	}
+	else
+	{
+		Output[DTid.xy] = current;
+	}
 }

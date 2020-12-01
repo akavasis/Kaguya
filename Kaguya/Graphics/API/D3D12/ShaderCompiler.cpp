@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "ShaderCompiler.h"
 
+using Microsoft::WRL::ComPtr;
+
 std::wstring ShaderProfileString(Shader::Type Type, ShaderCompiler::Profile Profile)
 {
 	std::wstring profileString;
@@ -52,30 +54,30 @@ void ShaderCompiler::SetIncludeDirectory(const std::filesystem::path& pPath)
 
 Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
-	auto profileString	= ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_5);
-	auto pDxcBlob		= Compile(pPath, pEntryPoint, profileString.data(), ShaderDefines);
+	auto ProfileString	= ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_5);
+	auto pDxcBlob		= Compile(pPath, pEntryPoint, ProfileString.data(), ShaderDefines);
 
-	DxcBuffer dxcBuffer = {};
-	dxcBuffer.Ptr		= pDxcBlob->GetBufferPointer();
-	dxcBuffer.Size		= pDxcBlob->GetBufferSize();
-	dxcBuffer.Encoding	= CP_ACP;
-	Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pShaderReflection;
-	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&dxcBuffer, IID_PPV_ARGS(pShaderReflection.ReleaseAndGetAddressOf())));
+	DxcBuffer DxcBuffer = {};
+	DxcBuffer.Ptr		= pDxcBlob->GetBufferPointer();
+	DxcBuffer.Size		= pDxcBlob->GetBufferSize();
+	DxcBuffer.Encoding	= CP_ACP;
+	ComPtr<ID3D12ShaderReflection> pShaderReflection;
+	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&DxcBuffer, IID_PPV_ARGS(pShaderReflection.ReleaseAndGetAddressOf())));
 
 	return Shader(Type, pDxcBlob, pShaderReflection);
 }
 
 Library ShaderCompiler::CompileLibrary(LPCWSTR pPath)
 {
-	auto profileString	= LibraryProfileString(ShaderCompiler::Profile::Profile_6_5);
-	auto pDxcBlob		= Compile(pPath, L"", profileString.data(), {});
+	auto ProfileString	= LibraryProfileString(ShaderCompiler::Profile::Profile_6_5);
+	auto pDxcBlob		= Compile(pPath, L"", ProfileString.data(), {});
 
-	DxcBuffer dxcBuffer = {};
-	dxcBuffer.Ptr		= pDxcBlob->GetBufferPointer();
-	dxcBuffer.Size		= pDxcBlob->GetBufferSize();
-	dxcBuffer.Encoding	= CP_ACP;
-	Microsoft::WRL::ComPtr<ID3D12LibraryReflection> pLibraryReflection;
-	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&dxcBuffer, IID_PPV_ARGS(pLibraryReflection.ReleaseAndGetAddressOf())));
+	DxcBuffer DxcBuffer = {};
+	DxcBuffer.Ptr		= pDxcBlob->GetBufferPointer();
+	DxcBuffer.Size		= pDxcBlob->GetBufferSize();
+	DxcBuffer.Encoding	= CP_ACP;
+	ComPtr<ID3D12LibraryReflection> pLibraryReflection;
+	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&DxcBuffer, IID_PPV_ARGS(pLibraryReflection.ReleaseAndGetAddressOf())));
 
 	return Library(pDxcBlob, pLibraryReflection);
 }
@@ -100,18 +102,17 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 		L"-O3",				// Optimization level 3
 #endif
 		// Add include directory
-		L"-I",
-		m_IncludeDirectory.data()
+		L"-I", m_IncludeDirectory.data()
 	};
 
-	Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSource;
-	Microsoft::WRL::ComPtr<IDxcIncludeHandler> pDxcIncludeHandler;
+	ComPtr<IDxcBlobEncoding>	pSource;
+	ComPtr<IDxcIncludeHandler>	pDxcIncludeHandler;
+	UINT32						CodePage = CP_ACP;
 
-	UINT32 CodePage = CP_ACP;
 	ThrowCOMIfFailed(m_DxcLibrary->CreateBlobFromFile(filePath.c_str(), &CodePage, pSource.ReleaseAndGetAddressOf()));
 	ThrowCOMIfFailed(m_DxcLibrary->CreateIncludeHandler(pDxcIncludeHandler.ReleaseAndGetAddressOf()));
 
-	Microsoft::WRL::ComPtr<IDxcOperationResult> pDxcOperationResult;
+	ComPtr<IDxcOperationResult> pDxcOperationResult;
 	ThrowCOMIfFailed(m_DxcCompiler->Compile(
 		pSource.Get(),
 		filePath.c_str(),
@@ -126,18 +127,18 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 	pDxcOperationResult->GetStatus(&hr);
 	if (SUCCEEDED(hr))
 	{
-		Microsoft::WRL::ComPtr<IDxcBlob> pDxcBlob;
+		ComPtr<IDxcBlob> pDxcBlob;
 		pDxcOperationResult->GetResult(pDxcBlob.ReleaseAndGetAddressOf());
 		return pDxcBlob;
 	}
 	else
 	{
-		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pError;
-		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pError16;
+		ComPtr<IDxcBlobEncoding> pError;
+		ComPtr<IDxcBlobEncoding> pError16;
 
 		pDxcOperationResult->GetErrorBuffer(pError.ReleaseAndGetAddressOf());
 		m_DxcLibrary->GetBlobAsUtf16(pError.Get(), pError16.ReleaseAndGetAddressOf());
 		OutputDebugString((LPCWSTR)pError16->GetBufferPointer());
-		throw std::exception("Failed to compile shader");
+		throw std::exception("Failed to compile shader, check output window");
 	}
 }

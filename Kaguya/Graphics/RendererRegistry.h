@@ -79,6 +79,10 @@ struct Shaders
 	{
 		inline static Shader Quad;
 		inline static Shader Skybox;
+	};
+
+	struct MS
+	{
 		inline static Shader GBufferMeshes;
 		inline static Shader GBufferLights;
 	};
@@ -87,6 +91,7 @@ struct Shaders
 	{
 		inline static Shader ConvolutionIrradiance;
 		inline static Shader ConvolutionPrefilter;
+
 		inline static Shader GBufferMeshes;
 		inline static Shader GBufferLights;
 
@@ -111,12 +116,6 @@ struct Shaders
 		inline static Shader PostProcess_BloomBlur;
 		inline static Shader PostProcess_BloomUpsampleBlurAccumulation;
 		inline static Shader PostProcess_BloomComposition;
-	};
-
-	struct MS
-	{
-		inline static Shader Meshlet;
-		inline static Shader Pixel;
 	};
 
 	static void Register(RenderDevice* pRenderDevice);

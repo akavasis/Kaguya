@@ -15,14 +15,19 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 	{
 		VS::Quad										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",			L"VSMain", {});
 		VS::Skybox										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Skybox.hlsli",		L"VSMain", {});
-		VS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",	L"VSMain", {});
-		VS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",	L"VSMain", {});
+	}
+
+	// Load MS
+	{
+		MS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl", L"MSMain", {});
+		MS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl", L"MSMain", {});
 	}
 
 	// Load PS
 	{
 		PS::ConvolutionIrradiance						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionIrradiance.hlsl",	L"PSMain", {});
 		PS::ConvolutionPrefilter						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",	L"PSMain", {});
+
 		PS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			L"PSMain", {});
 		PS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",			L"PSMain", {});
 
@@ -47,12 +52,6 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 		CS::PostProcess_BloomBlur						= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl",						L"CSMain", {});
 		CS::PostProcess_BloomUpsampleBlurAccumulation	= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl", L"CSMain", {});
 		CS::PostProcess_BloomComposition				= pRenderDevice->CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl",				L"CSMain", {});
-	}
-
-	// Load MS
-	{
-		MS::Meshlet = pRenderDevice->CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/MeshShader/Meshlet.hlsl", L"MSMain", {});
-		MS::Pixel	= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/MeshShader/Meshlet.hlsl", L"PSMain", {});
 	}
 }
 

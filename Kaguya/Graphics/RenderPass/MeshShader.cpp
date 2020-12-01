@@ -36,13 +36,13 @@ void MeshShaderRenderPass::InitializePipeline(RenderDevice* pRenderDevice)
 	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::MeshShader, [=](GraphicsPipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::MeshShader);
-		proxy.pMS = &Shaders::MS::Meshlet;
-		proxy.pPS = &Shaders::MS::Pixel;
+		proxy.pMS = &Shaders::MS::GBufferMeshes;
+		//proxy.pPS = &Shaders::MS::Pixel;
 
 		proxy.DepthStencilState.SetDepthEnable(true);
 
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);
-		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
+		proxy.SetDepthStencilFormat(RenderDevice::DepthFormat);
 	});
 }
 
@@ -60,7 +60,7 @@ void MeshShaderRenderPass::ScheduleResource(ResourceScheduler* pResourceSchedule
 
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(RenderDevice::DepthStencilFormat);
+		proxy.SetFormat(RenderDevice::DepthFormat);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
 		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0));

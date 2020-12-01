@@ -421,14 +421,13 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		keybladeMat.TextureChannel[MetallicIdx] = TEXTURE_CHANNEL_BLUE;
 
 		// Models
-		//auto& box = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Cube.obj"));
-		//auto& rect = Scene.AddModel(CreateGrid(10.0f, 10.0f, 2, 2));
+		auto& rect = Scene.AddModel(CreateGrid(10.0f, 10.0f, 2, 2));
 		//auto& box = Scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f));
 		auto& keyblade = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/keyblade/keyblade_pbr.fbx"));
-		auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/Hexgate.obj"));
+		//auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/Hexgate.obj"));
 
 		// Model instances
-		/*auto& floorInstance = Scene.AddModelInstance({ &rect, &defaultMat });
+		auto& floorInstance = Scene.AddModelInstance({ &rect, &defaultMat });
 		auto& backwallInstance = Scene.AddModelInstance({ &rect, &defaultMat });
 		backwallInstance.Translate(0.0f, 5.0f, 5.0f);
 		backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
@@ -437,14 +436,14 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
 		auto& rightwallInstance = Scene.AddModelInstance({ &rect, &rightWallMat });
 		rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
-		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);*/
+		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
 
 		auto& keybladeInstance = Scene.AddModelInstance({ &keyblade, &keybladeMat });
-		keybladeInstance.Translate(4.5f, -2.0f, -1.0f);
+		keybladeInstance.Translate(4.5f, -2.0f, 0.0f);
 		keybladeInstance.Rotate(0, 90.0_Deg, 0);
 
-		auto& hexgateInstance = Scene.AddModelInstance({ &hexgate, &defaultMat });
-		hexgateInstance.SetScale(0.025, 0.025, 0.025);
+		//auto& hexgateInstance = Scene.AddModelInstance({ &hexgate, &defaultMat });
+		//hexgateInstance.SetScale(0.025, 0.025, 0.025);
 
 		/*auto& leftboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
 		leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
