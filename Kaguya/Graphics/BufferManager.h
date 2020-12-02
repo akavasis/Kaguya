@@ -1,7 +1,6 @@
 #pragma once
 #include <d3d12.h>
 #include <vector>
-#include <unordered_set>
 #include <unordered_map>
 
 #include "RenderDevice.h"

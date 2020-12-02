@@ -1,6 +1,5 @@
 #pragma once
 #include "Math/Transform.h"
-#include "Vertex.h"
 #include "Graphics/RenderResourceHandle.h"
 
 struct Meshlet

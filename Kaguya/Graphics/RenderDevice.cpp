@@ -3,6 +3,7 @@
 
 RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	: Device(pAdapter),
+	PresentQueue(&Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	GraphicsQueue(&Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	ComputeQueue(&Device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
 	CopyQueue(&Device, D3D12_COMMAND_LIST_TYPE_COPY),

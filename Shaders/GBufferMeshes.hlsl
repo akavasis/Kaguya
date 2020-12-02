@@ -58,7 +58,7 @@ uint GetVertexIndex(Meshlet m, uint localIndex)
 
 VertexAttributes GetVertexAttributes(uint meshletIndex, uint vertexIndex, Mesh mesh)
 {
-    Vertex vertex = Vertices[vertexIndex];
+    Vertex vertex = Vertices[vertexIndex + mesh.VertexOffset];
 
     VertexAttributes OUT;
 

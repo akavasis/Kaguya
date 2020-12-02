@@ -31,7 +31,6 @@ void RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 
 	m_RenderPasses.emplace_back(std::move(renderPass));
 	m_CommandContexts.emplace_back(SV_pRenderDevice->AllocateContext(CommandContext::Direct));
-	m_RenderPassIDs.emplace_back(typeid(*pRenderPass));
 }
 
 void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)

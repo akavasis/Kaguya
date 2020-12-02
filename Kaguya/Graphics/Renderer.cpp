@@ -18,8 +18,6 @@
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 
-#include "RenderPass/MeshShader.h"
-
 #include "Scene/SampleScene.h"
 
 #define SHOW_IMGUI_DEMO_WINDOW 0
@@ -41,7 +39,7 @@ bool Renderer::Initialize()
 
 		m_pRenderGraph	= new RenderGraph(m_pRenderDevice);
 		m_pGpuScene		= new GpuScene(m_pRenderDevice);
-		m_pSwapChain	= m_DXGIManager.CreateSwapChain(m_pRenderDevice->GraphicsQueue.GetApiHandle(), Application::pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
+		m_pSwapChain	= m_DXGIManager.CreateSwapChain(m_pRenderDevice->PresentQueue.GetApiHandle(), Application::pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 
 		Shaders::Register(m_pRenderDevice);
 		Libraries::Register(m_pRenderDevice);
@@ -196,8 +194,14 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		uint32_t			Nodes[RenderDevice::NumSwapChainBuffers]			= {};
 		IUnknown*			CommandQueues[RenderDevice::NumSwapChainBuffers]	= {};
 
-		for (auto& node : Nodes)					{ node = NodeMask; }
-		for (auto& commandQueue : CommandQueues)	{ commandQueue = m_pRenderDevice->GraphicsQueue.GetApiHandle(); }
+		for (auto& node : Nodes)
+		{ 
+			node = NodeMask;
+		}
+		for (auto& commandQueue : CommandQueues)
+		{ 
+			commandQueue = m_pRenderDevice->GraphicsQueue.GetApiHandle();
+		}
 
 		uint32_t SwapChainFlags	= m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags, Nodes, CommandQueues));

@@ -12,6 +12,17 @@ StructuredBuffer<PolygonalLight> Lights : register(t0, space0);
 
 #include <ShaderLayout.hlsli>
 
+uint3 GetPrimitive(uint index)
+{
+	uint3 primitives[] =
+	{
+		uint3(0, 1, 2),
+		uint3(0, 2, 3)
+	};
+
+    return primitives[index];
+}
+
 VertexAttributes GetVertexAttributes(uint LightIndex, uint VertexIndex, PolygonalLight Light)
 {
     VertexAttributes VertexAttributes;
@@ -57,17 +68,11 @@ void MSMain(uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
 
 	PolygonalLight Light = Lights[gid];
 
-	uint3 primitives[PrimitiveCount] =
-	{
-		uint3(0, 1, 2),
-		uint3(0, 2, 3)
-	};
-
     // SV_GroupThreadID is always relative to numthreads attribute, so we can use that to
     // identify our primitives and vertices
     if (gtid < PrimitiveCount)
     {
-        tris[gtid] = primitives[gtid];
+        tris[gtid] = GetPrimitive(gtid);
     }
 
     if (gtid < VertexCount)

@@ -423,6 +423,7 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		// Models
 		auto& rect = Scene.AddModel(CreateGrid(10.0f, 10.0f, 2, 2));
 		//auto& box = Scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f));
+		auto& Griffin = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/BlackOpsGriffin/BlackOpsGriffin.obj"));
 		auto& keyblade = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/keyblade/keyblade_pbr.fbx"));
 		//auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/Hexgate.obj"));
 
@@ -437,6 +438,9 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		auto& rightwallInstance = Scene.AddModelInstance({ &rect, &rightWallMat });
 		rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
 		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
+
+		auto& GriffinInstance = Scene.AddModelInstance({ &Griffin, &defaultMat });
+		GriffinInstance.Translate(0, 5, 0);
 
 		auto& keybladeInstance = Scene.AddModelInstance({ &keyblade, &keybladeMat });
 		keybladeInstance.Translate(4.5f, -2.0f, 0.0f);

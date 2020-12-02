@@ -80,7 +80,6 @@ private:
 
 	ResourceScheduler											m_ResourceScheduler;
 	std::vector<std::unique_ptr<RenderPass>>					m_RenderPasses;
-	std::vector<std::reference_wrapper<const std::type_info>>	m_RenderPassIDs;
 	std::vector<CommandContext*>								m_CommandContexts;
 	RenderResourceHandle										m_SystemConstants;
 	RenderResourceHandle										m_GpuData;

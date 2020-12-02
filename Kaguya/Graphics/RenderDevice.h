@@ -121,7 +121,7 @@ public:
 	Descriptor GetDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 
 	Device														Device;
-	CommandQueue												GraphicsQueue, ComputeQueue, CopyQueue;
+	CommandQueue												PresentQueue, GraphicsQueue, ComputeQueue, CopyQueue;
 	ResourceStateTracker										GlobalResourceStateTracker;
 	ShaderCompiler												ShaderCompiler;
 
