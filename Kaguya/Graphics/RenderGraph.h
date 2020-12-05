@@ -73,8 +73,8 @@ private:
 	RenderDevice*												SV_pRenderDevice;
 
 	HANDLE														m_AccelerationStructureCompleteSignal;
-	std::vector<HANDLE>											m_WorkerExecuteEvents;
-	std::vector<HANDLE>											m_WorkerCompleteEvents;
+	std::vector<wil::unique_event>								m_WorkerExecuteEvents;
+	std::vector<wil::unique_event>								m_WorkerCompleteEvents;
 	std::vector<RenderPassThreadProcParameter>					m_ThreadParameters;
 	std::vector<wil::unique_handle>								m_Threads;
 

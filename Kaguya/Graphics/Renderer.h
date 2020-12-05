@@ -38,8 +38,8 @@ private:
 	Scene									m_Scene;
 	GpuScene*								m_pGpuScene							= nullptr;
 
-	wil::unique_event						BuildAccelerationStructureEvent	= nullptr;
-	wil::unique_event						AccelerationStructureCompleteEvent = nullptr;
+	wil::unique_event						BuildAccelerationStructureEvent		= nullptr;
+	wil::unique_event						AccelerationStructureCompleteEvent	= nullptr;
 	wil::unique_handle						AsyncComputeThread					= nullptr;
 	wil::unique_handle						AsyncCopyThread						= nullptr;
 	bool									ExitAsyncQueuesThread				= false;

@@ -14,17 +14,10 @@ RenderGraph::~RenderGraph()
 	ExitRenderPassThread = true;
 	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
 	{
-		::SetEvent(m_WorkerExecuteEvents[i]); // Tell each worker to exit.
+		// Tell each worker to exit.
+		m_WorkerExecuteEvents[i].SetEvent();
 	}
 	WaitForMultipleObjects(m_RenderPasses.size(), m_Threads.data()->addressof(), TRUE, INFINITE);
-	for (auto Handle : m_WorkerExecuteEvents)
-	{
-		::CloseHandle(Handle);
-	}
-	for (auto Handle : m_WorkerCompleteEvents)
-	{
-		::CloseHandle(Handle);
-	}
 }
 
 RenderPass* RenderGraph::AddRenderPass(RenderPass* pRenderPass)
@@ -75,14 +68,14 @@ void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
 	auto pGpuData					= SV_pRenderDevice->GetBuffer(m_GpuData);
 	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
 	{
-		m_WorkerExecuteEvents[i]	= ::CreateEvent(NULL, FALSE, FALSE, NULL);
-		m_WorkerCompleteEvents[i]	= ::CreateEvent(NULL, FALSE, FALSE, NULL);
+		m_WorkerExecuteEvents[i].create();
+		m_WorkerCompleteEvents[i].create();
 
 		RenderPassThreadProcParameter Parameter = {};
 		Parameter.pRenderGraph		= this;
 		Parameter.ThreadID			= i;
-		Parameter.ExecuteSignal		= m_WorkerExecuteEvents[i];
-		Parameter.CompleteSignal	= m_WorkerCompleteEvents[i];
+		Parameter.ExecuteSignal		= m_WorkerExecuteEvents[i].get();
+		Parameter.CompleteSignal	= m_WorkerCompleteEvents[i].get();
 		Parameter.pRenderPass		= m_RenderPasses[i].get();
 		Parameter.pRenderDevice		= SV_pRenderDevice;
 		Parameter.pCommandContext	= m_CommandContexts[i];
@@ -147,11 +140,12 @@ void RenderGraph::Execute(bool Refresh)
 
 	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
 	{
-		::SetEvent(m_WorkerExecuteEvents[i]); // Tell each worker to start executing.
+		// Tell each worker to start executing.
+		m_WorkerExecuteEvents[i].SetEvent(); 
 	}
 
 	// Fork-join all the events
-	WaitForMultipleObjects(m_WorkerCompleteEvents.size(), m_WorkerCompleteEvents.data(), TRUE, INFINITE);
+	WaitForMultipleObjects(m_WorkerCompleteEvents.size(), m_WorkerCompleteEvents.data()->addressof(), TRUE, INFINITE);
 }
 
 void RenderGraph::ExecuteCommandContexts(RenderContext& RendererRenderContext)
