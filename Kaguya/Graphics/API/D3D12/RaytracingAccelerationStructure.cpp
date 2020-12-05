@@ -12,19 +12,19 @@ BottomLevelAccelerationStructure::BottomLevelAccelerationStructure()
 
 void BottomLevelAccelerationStructure::AddGeometry(const RaytracingGeometryDesc& Desc)
 {
-	D3D12_RAYTRACING_GEOMETRY_DESC D3DDesc			= {};
-	D3DDesc.Type									= D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-	D3DDesc.Flags									= Desc.IsOpaque ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
-	D3DDesc.Triangles.Transform3x4					= NULL;
-	D3DDesc.Triangles.IndexFormat					= DXGI_FORMAT_R32_UINT;
-	D3DDesc.Triangles.VertexFormat					= DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
-	D3DDesc.Triangles.IndexCount					= Desc.NumIndices;
-	D3DDesc.Triangles.VertexCount					= Desc.NumVertices;
-	D3DDesc.Triangles.IndexBuffer					= Desc.pIndexBuffer->GetGpuVirtualAddress() + Desc.IndexOffset * Desc.IndexStride;
-	D3DDesc.Triangles.VertexBuffer.StartAddress		= Desc.pVertexBuffer->GetGpuVirtualAddress() + Desc.VertexOffset * Desc.VertexStride;
-	D3DDesc.Triangles.VertexBuffer.StrideInBytes	= Desc.VertexStride;
+	D3D12_RAYTRACING_GEOMETRY_DESC ApiDesc			= {};
+	ApiDesc.Type									= D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+	ApiDesc.Flags									= Desc.IsOpaque ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
+	ApiDesc.Triangles.Transform3x4					= NULL;
+	ApiDesc.Triangles.IndexFormat					= DXGI_FORMAT_R32_UINT;
+	ApiDesc.Triangles.VertexFormat					= DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
+	ApiDesc.Triangles.IndexCount					= Desc.NumIndices;
+	ApiDesc.Triangles.VertexCount					= Desc.NumVertices;
+	ApiDesc.Triangles.IndexBuffer					= Desc.pIndexBuffer->GetGpuVirtualAddress() + Desc.IndexOffset * Desc.IndexStride;
+	ApiDesc.Triangles.VertexBuffer.StartAddress		= Desc.pVertexBuffer->GetGpuVirtualAddress() + Desc.VertexOffset * Desc.VertexStride;
+	ApiDesc.Triangles.VertexBuffer.StrideInBytes	= Desc.VertexStride;
 
-	RaytracingGeometryDescs.push_back(D3DDesc);
+	RaytracingGeometryDescs.push_back(ApiDesc);
 }
 
 void BottomLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes)
@@ -93,16 +93,16 @@ TopLevelAccelerationStructure::TopLevelAccelerationStructure()
 
 void TopLevelAccelerationStructure::AddInstance(const RaytracingInstanceDesc& Desc)
 {
-	D3D12_RAYTRACING_INSTANCE_DESC D3DDesc		= {};
+	D3D12_RAYTRACING_INSTANCE_DESC ApiDesc		= {};
 	auto Transform = DirectX::XMMatrixTranspose(Desc.Transform);
-	memcpy(D3DDesc.Transform, &Transform, sizeof(D3DDesc.Transform));
-	D3DDesc.InstanceID							= Desc.InstanceID;
-	D3DDesc.InstanceMask						= Desc.InstanceMask;
-	D3DDesc.InstanceContributionToHitGroupIndex = Desc.InstanceContributionToHitGroupIndex;
-	D3DDesc.Flags								= D3D12_RAYTRACING_INSTANCE_FLAG_NONE; // TODO: should be accessible from outside
-	D3DDesc.AccelerationStructure				= Desc.AccelerationStructure;
+	memcpy(ApiDesc.Transform, &Transform, sizeof(ApiDesc.Transform));
+	ApiDesc.InstanceID							= Desc.InstanceID;
+	ApiDesc.InstanceMask						= Desc.InstanceMask;
+	ApiDesc.InstanceContributionToHitGroupIndex = Desc.InstanceContributionToHitGroupIndex;
+	ApiDesc.Flags								= D3D12_RAYTRACING_INSTANCE_FLAG_NONE; // TODO: should be accessible from outside
+	ApiDesc.AccelerationStructure				= Desc.AccelerationStructure;
 
-	RaytracingInstanceDescs.push_back(D3DDesc);
+	RaytracingInstanceDescs.push_back(ApiDesc);
 }
 
 void TopLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes)

@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d12.h>
+#include <wil/resource.h>
 #include <wrl/client.h>
 #include "CommandAllocatorPool.h"
 
@@ -9,7 +10,7 @@ public:
 	CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type);
 	~CommandQueue();
 
-	inline auto GetApiHandle() const { return m_pCommandQueue.Get(); }
+	inline auto GetApiHandle() const { return m_ApiHandle.Get(); }
 
 	UINT64 Signal();
 	void Flush();
@@ -21,9 +22,9 @@ public:
 	ID3D12CommandAllocator* RequestAllocator();
 	void MarkAllocatorAsActive(UINT64 FenceValue, ID3D12CommandAllocator* Allocator);
 private:
-	Microsoft::WRL::ComPtr<ID3D12CommandQueue>	m_pCommandQueue;
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue>	m_ApiHandle;
 	Microsoft::WRL::ComPtr<ID3D12Fence1>		m_pFence;
-	HANDLE										m_EventHandle;
+	wil::unique_event							m_FenceCompletionEvent;
 	UINT64										m_FenceValue;
 
 	CommandAllocatorPool						m_CommandAllocatorPool;

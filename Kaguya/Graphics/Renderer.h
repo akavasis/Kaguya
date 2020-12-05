@@ -1,5 +1,6 @@
 #pragma once
 #include <wrl/client.h>
+#include <wil/resource.h>
 #include "Core/RenderSystem.h"
 
 #include "RenderDevice.h"
@@ -37,9 +38,9 @@ private:
 	Scene									m_Scene;
 	GpuScene*								m_pGpuScene							= nullptr;
 
-	HANDLE									BuildAccelerationStructureSignal	= nullptr;
-	HANDLE									AccelerationStructureCompleteSignal = nullptr;
-	HANDLE									AsyncComputeThread					= nullptr;
-	HANDLE									AsyncCopyThread						= nullptr;
+	wil::unique_event						BuildAccelerationStructureEvent	= nullptr;
+	wil::unique_event						AccelerationStructureCompleteEvent = nullptr;
+	wil::unique_handle						AsyncComputeThread					= nullptr;
+	wil::unique_handle						AsyncCopyThread						= nullptr;
 	bool									ExitAsyncQueuesThread				= false;
 };

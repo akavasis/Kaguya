@@ -11,9 +11,7 @@
 
 //----------------------------------------------------------------------------------------------------
 SVGFReproject::SVGFReproject(UINT Width, UINT Height)
-	: RenderPass("Spatiotemporal Variance-Guided Filtering: Reproject",
-		{ Width, Height, DXGI_FORMAT_UNKNOWN },
-		NumResources)
+	: RenderPass("Spatiotemporal Variance-Guided Filtering: Reproject", { Width, Height }, NumResources)
 {
 
 }
@@ -182,9 +180,7 @@ void SVGFReproject::StateRefresh()
 
 //----------------------------------------------------------------------------------------------------
 SVGFFilterMoments::SVGFFilterMoments(UINT Width, UINT Height)
-	: RenderPass("Spatiotemporal Variance-Guided Filtering: Filter Moments",
-		{ Width, Height, DXGI_FORMAT_UNKNOWN },
-		NumResources)
+	: RenderPass("Spatiotemporal Variance-Guided Filtering: Filter Moments", { Width, Height }, NumResources)
 {
 
 }
@@ -286,9 +282,7 @@ void SVGFFilterMoments::StateRefresh()
 
 //----------------------------------------------------------------------------------------------------
 SVGFAtrous::SVGFAtrous(UINT Width, UINT Height)
-	: RenderPass("Spatiotemporal Variance-Guided Filtering: Atrous",
-		{ Width, Height, DXGI_FORMAT_UNKNOWN },
-		NumResources)
+	: RenderPass("Spatiotemporal Variance-Guided Filtering: Atrous", { Width, Height }, NumResources)
 {
 
 }

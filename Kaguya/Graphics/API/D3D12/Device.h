@@ -8,6 +8,7 @@
 class Device
 {
 public:
+	Device() = default;
 	Device(IDXGIAdapter4* pAdapter);
 	~Device();
 
@@ -16,8 +17,8 @@ public:
 
 	bool IsUAVCompatable(DXGI_FORMAT Format);
 private:
-	void CheckRS_1_1Support();
-	void CheckSM6PlusSupport();
+	void CheckRootSignature_1_1Support();
+	void CheckShaderModel6PlusSupport();
 	void CheckRaytracingSupport();
 	void CheckMeshShaderSupport();
 

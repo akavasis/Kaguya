@@ -3,29 +3,36 @@
 
 RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	: Device(pAdapter),
-	PresentQueue(&Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	GraphicsQueue(&Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	ComputeQueue(&Device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
 	CopyQueue(&Device, D3D12_COMMAND_LIST_TYPE_COPY),
-	FrameIndex(0),
-	SwapChainTextures{},
 
-	m_ImGuiDescriptorHeap(&Device, 0, 1, 0, true),
+	BackBufferIndex(0),
+	BackBufferHandle{},
+
 	m_NonShaderVisibleCBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false),
 	m_ShaderVisibleCBSRUADescriptorHeap(&Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true),
 	m_SamplerDescriptorHeap(&Device, NumSamplerDescriptors, true),
 	m_RenderTargetDescriptorHeap(&Device, NumRenderTargetDescriptors),
 	m_DepthStencilDescriptorHeap(&Device, NumDepthStencilDescriptors)
 {
+	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 0;
+	GraphicsFenceCompletionEvent.create();
+	ComputeFenceCompletionEvent.create();
+	CopyFenceCompletionEvent.create();
+
+	auto HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
+	Descriptor ImGuiDescriptor = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
+
 	// Initialize ImGui for d3d12
 	ImGui_ImplDX12_Init(Device.GetApiHandle(), 1,
-		RenderDevice::SwapChainBufferFormat, m_ImGuiDescriptorHeap.GetApiHandle(),
-		m_ImGuiDescriptorHeap.GetApiHandle()->GetCPUDescriptorHandleForHeapStart(),
-		m_ImGuiDescriptorHeap.GetApiHandle()->GetGPUDescriptorHandleForHeapStart());
+		RenderDevice::SwapChainBufferFormat, m_ShaderVisibleCBSRUADescriptorHeap.GetApiHandle(),
+		ImGuiDescriptor.CpuHandle,
+		ImGuiDescriptor.GpuHandle);
 
 	for (size_t i = 0; i < NumSwapChainBuffers; ++i)
 	{
-		SwapChainTextures[i] = InitializeRenderResourceHandle(RenderResourceType::Texture, "SwapChain Buffer[" + std::to_string(i) + "]");
+		BackBufferHandle[i] = InitializeRenderResourceHandle(RenderResourceType::Texture, "SwapChain Buffer[" + std::to_string(i) + "]");
 	}
 }
 

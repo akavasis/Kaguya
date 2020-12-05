@@ -5,23 +5,21 @@
 CommandQueue::CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 	: m_CommandAllocatorPool(pDevice, Type)
 {
-	auto pD3DDevice = pDevice->GetApiHandle();
-
 	D3D12_COMMAND_QUEUE_DESC Desc	= {};
 	Desc.Type						= Type;
 	Desc.Priority					= D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	Desc.Flags						= D3D12_COMMAND_QUEUE_FLAG_NONE;
 	Desc.NodeMask					= 0;
-	ThrowCOMIfFailed(pD3DDevice->CreateCommandQueue(&Desc, IID_PPV_ARGS(&m_pCommandQueue)));
-	ThrowCOMIfFailed(pD3DDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
-	m_EventHandle					= ::CreateEvent(nullptr, false, false, nullptr);
-	m_FenceValue					= 0;
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateCommandQueue(&Desc, IID_PPV_ARGS(&m_ApiHandle)));
+
+	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
+	m_FenceCompletionEvent.create();
+	m_FenceValue = 0;
 }
 
 CommandQueue::~CommandQueue()
 {
-	WaitForIdle();
-	::CloseHandle(m_EventHandle);
+
 }
 
 UINT64 CommandQueue::Signal()
@@ -29,7 +27,7 @@ UINT64 CommandQueue::Signal()
 	// Signals the command queue to update the pFence's internal value on the GPU side
 	// once commands have been finished for execution for that frame
 	UINT64 FenceToWaitFor = ++m_FenceValue;
-	m_pCommandQueue->Signal(m_pFence.Get(), FenceToWaitFor);
+	m_ApiHandle->Signal(m_pFence.Get(), FenceToWaitFor);
 	return FenceToWaitFor;
 }
 
@@ -53,13 +51,9 @@ void CommandQueue::WaitForFenceValue(UINT64 FenceValue)
 	// If the command queue's fence value has not reached argument FenceValue (e.g. is still processing its commands submitted by the CPU)
 	// then we create an event that will stall any CPU processing and once argument FenceValue have been reached
 	
-	// Fire an event that will be signaled to the m_EventHandle
-	// when the internal pFence value has reached current fence.
-	ThrowCOMIfFailed(m_pFence->SetEventOnCompletion(FenceValue, m_EventHandle));
-	// Wait until the GPU hits current fence event is fired.
-	// If dwMilliseconds is INFINITE, the function will return only when the handle object is signaled by the fence
-	// WaitForSingleObject essentially stalls CPU
-	::WaitForSingleObject(m_EventHandle, INFINITE);
+	// Signal the Completion event when the fence's internal value has reached the function argument value
+	ThrowCOMIfFailed(m_pFence->SetEventOnCompletion(FenceValue, m_FenceCompletionEvent.get()));
+	m_FenceCompletionEvent.wait();
 }
 
 void CommandQueue::WaitForIdle()
@@ -70,7 +64,7 @@ void CommandQueue::WaitForIdle()
 
 void CommandQueue::Wait(const CommandQueue& CommandQueue)
 {
-	m_pCommandQueue->Wait(CommandQueue.m_pFence.Get(), CommandQueue.m_FenceValue);
+	m_ApiHandle->Wait(CommandQueue.m_pFence.Get(), CommandQueue.m_FenceValue);
 }
 
 ID3D12CommandAllocator* CommandQueue::RequestAllocator()

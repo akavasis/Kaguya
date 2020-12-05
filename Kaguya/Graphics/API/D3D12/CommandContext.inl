@@ -64,21 +64,21 @@ inline void CommandContext::SetRenderTargets(UINT NumRenderTargetDescriptors, De
 
 	for (UINT i = 0; i < NumRenderTargetDescriptors; ++i)
 	{
-		RenderTargetDescriptors[i] = pRenderTargetDescriptors[i].CPUHandle;
+		RenderTargetDescriptors[i] = pRenderTargetDescriptors[i].CpuHandle;
 	}
 
 	m_pCommandList->OMSetRenderTargets(NumRenderTargetDescriptors, RenderTargetDescriptors, RTsSingleHandleToDescriptorRange,
-		DepthStencilDescriptor.IsValid() ? &DepthStencilDescriptor.CPUHandle : nullptr);
+		DepthStencilDescriptor.IsValid() ? &DepthStencilDescriptor.CpuHandle : nullptr);
 }
 
 inline void CommandContext::ClearRenderTarget(Descriptor RenderTargetDescriptor, const FLOAT Color[4], UINT NumRects, const D3D12_RECT* pRects)
 {
-	m_pCommandList->ClearRenderTargetView(RenderTargetDescriptor.CPUHandle, Color, NumRects, pRects);
+	m_pCommandList->ClearRenderTargetView(RenderTargetDescriptor.CpuHandle, Color, NumRects, pRects);
 }
 
 inline void CommandContext::ClearDepthStencil(Descriptor DepthStencilDescriptor, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT* pRects)
 {
-	m_pCommandList->ClearDepthStencilView(DepthStencilDescriptor.CPUHandle, ClearFlags, Depth, Stencil, NumRects, pRects);
+	m_pCommandList->ClearDepthStencilView(DepthStencilDescriptor.CpuHandle, ClearFlags, Depth, Stencil, NumRects, pRects);
 }
 
 inline void CommandContext::SetComputeRootSignature(const RootSignature* pRootSignature)

@@ -7,9 +7,7 @@
 #include "Graphics/RendererRegistry.h"
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
-	: RenderPass("Path tracing",
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		NumResources)
+	: RenderPass("Path tracing", { Width, Height }, NumResources)
 {
 	UseRayTracing = true;
 }
@@ -86,7 +84,7 @@ void Pathtracing::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(Properties.Format);
+		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
 		proxy.BindFlags = Resource::Flags::UnorderedAccess;

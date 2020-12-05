@@ -9,9 +9,7 @@
 #include "GBuffer.h"
 
 Shading::Shading(UINT Width, UINT Height)
-	: RenderPass("Shading", 
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		NumResources)
+	: RenderPass("Shading",  { Width, Height }, NumResources)
 {
 	UseRayTracing = true;
 
@@ -23,9 +21,9 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 	Resources[AnalyticUnshadowed]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "AnalyticUnshadowed");
 	Resources[StochasticUnshadowed] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "StochasticUnshadowed");
 	Resources[StochasticShadowed]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "StochasticShadowed");
-	m_RayGenerationShaderTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Ray Generation Shader Table");
-	m_MissShaderTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Miss Shader Table");
-	m_HitGroupShaderTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Hit Group Shader Table");
+	m_RayGenerationShaderTable		= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Ray Generation Shader Table");
+	m_MissShaderTable				= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Miss Shader Table");
+	m_HitGroupShaderTable			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Hit Group Shader Table");
 
 	pRenderDevice->CreateRaytracingPipelineState(RaytracingPSOs::Shading, [&](RaytracingPipelineStateProxy& proxy)
 	{
@@ -94,7 +92,7 @@ void Shading::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 	{
 		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
-			proxy.SetFormat(Properties.Format);
+			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
 			proxy.BindFlags = Resource::Flags::UnorderedAccess;

@@ -17,8 +17,31 @@ namespace
 
 HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
 {
-	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Light.Transform.Matrix()));
+	using namespace DirectX;
+
+	XMMATRIX Transform = Light.Transform.Matrix();
+
+	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Transform));
 	float4 Orientation; XMStoreFloat4(&Orientation, DirectX::XMVector3Normalize(Light.Transform.Forward()));
+	float3 Points[4];
+	float halfWidth = Light.GetWidth() * 0.5f;
+	float halfHeight = Light.GetHeight() * 0.5f;
+	// Get billboard points at the origin
+	XMVECTOR p0 = XMVectorSet(+halfWidth, -halfHeight, 0, 1);
+	XMVECTOR p1 = XMVectorSet(+halfWidth, +halfHeight, 0, 1);
+	XMVECTOR p2 = XMVectorSet(-halfWidth, +halfHeight, 0, 1);
+	XMVECTOR p3 = XMVectorSet(-halfWidth, -halfHeight, 0, 1);
+
+	// Precompute the light points here so ray generation shader doesnt have to do it
+	// for every ray
+	// Move points to light's location
+	// Clockwise to match LTC convention
+	float3 points[4];
+	XMStoreFloat3(&points[0], XMVector3TransformCoord(p3, Transform));
+	XMStoreFloat3(&points[1], XMVector3TransformCoord(p2, Transform));
+	XMStoreFloat3(&points[2], XMVector3TransformCoord(p1, Transform));
+	XMStoreFloat3(&points[3], XMVector3TransformCoord(p0, Transform));
+	
 	return
 	{
 		.Position		= Light.Transform.Position,
@@ -27,7 +50,14 @@ HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
 		.Color			= Light.Color,
 		.Luminance		= Light.GetLuminance(),
 		.Width			= Light.GetWidth(),
-		.Height			= Light.GetHeight()
+		.Height			= Light.GetHeight(),
+		.Points =
+		{
+			points[0],
+			points[1],
+			points[2],
+			points[3],
+		}
 	};
 }
 

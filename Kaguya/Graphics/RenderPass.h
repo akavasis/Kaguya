@@ -10,7 +10,6 @@ struct RenderTargetProperties
 {
 	UINT Width = 0;
 	UINT Height = 0;
-	DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 };
 
 class RenderPass
@@ -46,6 +45,6 @@ private:
 	friend class RenderGraph;
 	friend class ResourceScheduler;
 
-	std::vector<RenderResourceHandle> Reads;
-	std::vector<RenderResourceHandle> Writes;
+	std::unordered_set<RenderResourceHandle> Reads;
+	std::unordered_set<RenderResourceHandle> Writes;
 };

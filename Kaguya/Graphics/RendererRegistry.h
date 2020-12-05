@@ -68,7 +68,6 @@ struct EquirectangularToCubemapData
 
 struct RendererFormats
 {
-	static constexpr DXGI_FORMAT HDRBufferFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
 	static constexpr DXGI_FORMAT IrradianceFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
 	static constexpr DXGI_FORMAT PrefilterFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
 };

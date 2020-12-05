@@ -264,8 +264,8 @@ DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool S
 Descriptor DescriptorHeap::GetDescriptorAt(INT PartitionIndex, UINT HeapIndex) const
 {
 	const auto& partition = GetDescriptorPartitionAt(PartitionIndex);
-	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {}; CD3DX12_CPU_DESCRIPTOR_HANDLE::InitOffsetted(cpuHandle, partition.StartDescriptor.CPUHandle, HeapIndex, m_DescriptorIncrementSize);
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {}; CD3DX12_GPU_DESCRIPTOR_HANDLE::InitOffsetted(gpuHandle, partition.StartDescriptor.GPUHandle, HeapIndex, m_DescriptorIncrementSize);
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {}; CD3DX12_CPU_DESCRIPTOR_HANDLE::InitOffsetted(cpuHandle, partition.StartDescriptor.CpuHandle, HeapIndex, m_DescriptorIncrementSize);
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {}; CD3DX12_GPU_DESCRIPTOR_HANDLE::InitOffsetted(gpuHandle, partition.StartDescriptor.GpuHandle, HeapIndex, m_DescriptorIncrementSize);
 
 	return { cpuHandle, gpuHandle, HeapIndex };
 }
@@ -282,11 +282,11 @@ UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Buffer* pBuffer)
 	auto Desc			= GetShaderResourceViewDesc(pBuffer);
 	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::Flags::AccelerationStructure))
 	{
-		m_pDevice->GetApiHandle()->CreateShaderResourceView(nullptr, &Desc, DestDescriptor.CPUHandle);
+		m_pDevice->GetApiHandle()->CreateShaderResourceView(nullptr, &Desc, DestDescriptor.CpuHandle);
 	}
 	else
 	{
-		m_pDevice->GetApiHandle()->CreateShaderResourceView(pBuffer->GetApiHandle(), &Desc, DestDescriptor.CPUHandle);
+		m_pDevice->GetApiHandle()->CreateShaderResourceView(pBuffer->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
 	}
 	return GetHashValue(Desc);
 }
@@ -295,7 +295,7 @@ UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Texture* pTextur
 {
 	auto DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
 	auto Desc			= GetShaderResourceViewDesc(pTexture, MostDetailedMip, MipLevels);
-	m_pDevice->GetApiHandle()->CreateShaderResourceView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CPUHandle);
+	m_pDevice->GetApiHandle()->CreateShaderResourceView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
 	return GetHashValue(Desc);
 }
 
@@ -303,7 +303,7 @@ UINT64 CBSRUADescriptorHeap::AssignUADescriptor(UINT HeapIndex, Texture* pTextur
 {
 	auto DestDescriptor = GetDescriptorAt(UnorderedAccess, HeapIndex);
 	auto Desc			= GetUnorderedAccessViewDesc(pTexture, ArraySlice, MipSlice);
-	m_pDevice->GetApiHandle()->CreateUnorderedAccessView(pTexture->GetApiHandle(), nullptr, &Desc, DestDescriptor.CPUHandle);
+	m_pDevice->GetApiHandle()->CreateUnorderedAccessView(pTexture->GetApiHandle(), nullptr, &Desc, DestDescriptor.CpuHandle);
 	return GetHashValue(Desc);
 }
 
@@ -568,7 +568,7 @@ void RenderTargetDescriptorHeap::Entry::operator=(Texture* pTexture)
 {
 	auto Desc = RenderTargetDescriptorHeap::GetRenderTargetViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
 	HashValue = RenderTargetDescriptorHeap::GetHashValue(Desc);
-	pDevice->GetApiHandle()->CreateRenderTargetView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CPUHandle);
+	pDevice->GetApiHandle()->CreateRenderTargetView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -654,5 +654,5 @@ void DepthStencilDescriptorHeap::Entry::operator=(Texture* pTexture)
 {
 	auto Desc = DepthStencilDescriptorHeap::GetDepthStencilViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
 	HashValue = DepthStencilDescriptorHeap::GetHashValue(Desc);
-	pDevice->GetApiHandle()->CreateDepthStencilView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CPUHandle);
+	pDevice->GetApiHandle()->CreateDepthStencilView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
 }

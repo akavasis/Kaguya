@@ -39,7 +39,7 @@ bool Renderer::Initialize()
 
 		m_pRenderGraph	= new RenderGraph(m_pRenderDevice);
 		m_pGpuScene		= new GpuScene(m_pRenderDevice);
-		m_pSwapChain	= m_DXGIManager.CreateSwapChain(m_pRenderDevice->PresentQueue.GetApiHandle(), Application::pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
+		m_pSwapChain	= m_DXGIManager.CreateSwapChain(m_pRenderDevice->GraphicsQueue.GetApiHandle(), Application::pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 
 		Shaders::Register(m_pRenderDevice);
 		Libraries::Register(m_pRenderDevice);
@@ -61,10 +61,10 @@ bool Renderer::Initialize()
 
 	m_RenderContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice, m_pRenderDevice->AllocateContext(CommandContext::Direct));
 
-	BuildAccelerationStructureSignal = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-	AccelerationStructureCompleteSignal = ::CreateEvent(NULL, TRUE, FALSE, NULL); // This is a manual-reset event
-	AsyncComputeThread	= ::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr);
-	AsyncCopyThread		= ::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr);
+	BuildAccelerationStructureEvent.create();
+	AccelerationStructureCompleteEvent.create(wil::EventOptions::ManualReset);
+	AsyncComputeThread	= wil::unique_handle(::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr));
+	AsyncCopyThread		= wil::unique_handle(::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr));
 
 	m_pGpuScene->TextureManager.StageSystemReservedTextures(m_RenderContext);
 
@@ -80,11 +80,11 @@ bool Renderer::Initialize()
 	m_pRenderGraph->AddRenderPass(new SVGFFilterMoments(Width, Height));
 	m_pRenderGraph->AddRenderPass(new SVGFAtrous(Width, Height));
 	m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
-	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
 	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
+	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
 	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
-	m_pRenderGraph->Initialize(AccelerationStructureCompleteSignal);
+	m_pRenderGraph->Initialize(AccelerationStructureCompleteEvent.get());
 
 	m_pRenderGraph->InitializeScene(m_pGpuScene);
 
@@ -94,7 +94,7 @@ bool Renderer::Initialize()
 //----------------------------------------------------------------------------------------------------
 void Renderer::Update(const Time& Time)
 {
-	m_pRenderDevice->FrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
+	m_pRenderDevice->BackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 
 	m_Scene.PreviousCamera = m_Scene.Camera;
 }
@@ -147,7 +147,7 @@ void Renderer::Render()
 
 	m_pGpuScene->RenderGui();
 	bool Refresh = m_pGpuScene->Update(AspectRatio);
-	SetEvent(BuildAccelerationStructureSignal); // Tell the AsyncComputeThreadProc to build our TLAS after we have updated any scene objects
+	BuildAccelerationStructureEvent.SetEvent(); // Tell the AsyncComputeThreadProc to build our TLAS after we have updated any scene objects
 	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
 	m_pRenderGraph->Execute(Refresh);
 	m_pRenderGraph->ExecuteCommandContexts(m_RenderContext);
@@ -165,7 +165,7 @@ void Renderer::Render()
 	{
 		Screenshot = false;
 
-		auto pTexture = m_pRenderDevice->GetTexture(m_pRenderDevice->SwapChainTextures[m_pRenderDevice->FrameIndex]);
+		auto pTexture = m_pRenderDevice->GetTexture(m_pRenderDevice->BackBufferHandle[m_pRenderDevice->BackBufferIndex]);
 
 		auto FileName = Application::ExecutableFolderPath / L"Screenshot.jpg";
 		HRESULT hr = DirectX::SaveWICTextureToFile(m_pRenderDevice->GraphicsQueue.GetApiHandle(), pTexture->GetApiHandle(),
@@ -184,7 +184,7 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 	m_pRenderDevice->GraphicsQueue.WaitForIdle();
 	{
 		// Release resources before resize swap chain
-		for (auto SwapChainTexture : m_pRenderDevice->SwapChainTextures)
+		for (auto SwapChainTexture : m_pRenderDevice->BackBufferHandle)
 		{
 			m_pRenderDevice->Destroy(SwapChainTexture);
 		}
@@ -211,12 +211,12 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
-			m_pRenderDevice->CreateTexture(m_pRenderDevice->SwapChainTextures[i], pBackBuffer, Resource::State::Common);
-			m_pRenderDevice->CreateRenderTargetView(m_pRenderDevice->SwapChainTextures[i]);
+			m_pRenderDevice->CreateTexture(m_pRenderDevice->BackBufferHandle[i], pBackBuffer, Resource::State::Common);
+			m_pRenderDevice->CreateRenderTargetView(m_pRenderDevice->BackBufferHandle[i]);
 		}
 
 		// Reset back buffer index
-		m_pRenderDevice->FrameIndex = 0;
+		m_pRenderDevice->BackBufferIndex = 0;
 	}
 	m_pRenderDevice->GraphicsQueue.WaitForIdle();
 
@@ -227,26 +227,15 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 void Renderer::Destroy()
 {
 	ExitAsyncQueuesThread = true;
+	BuildAccelerationStructureEvent.SetEvent();
 
-	if (AsyncComputeThread)
+	HANDLE Handles[] = 
 	{
-		::CloseHandle(AsyncComputeThread);
-	}
+		AsyncComputeThread.get(),
+		AsyncCopyThread.get()
+	};
 
-	if (AsyncCopyThread)
-	{
-		::CloseHandle(AsyncCopyThread);
-	}
-
-	if (AccelerationStructureCompleteSignal)
-	{
-		::CloseHandle(AccelerationStructureCompleteSignal);
-	}
-
-	if (BuildAccelerationStructureSignal)
-	{
-		::CloseHandle(BuildAccelerationStructureSignal);
-	}
+	::WaitForMultipleObjects(ARRAYSIZE(Handles), Handles, TRUE, INFINITE);
 
 	if (m_pGpuScene)
 	{
@@ -340,19 +329,22 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 
 	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->AllocateContext(CommandContext::Compute));
 
-	while (!pRenderer->ExitAsyncQueuesThread)
+	while (true)
 	{
-		// We wait here so other render pass threads can get the signal that the AS building is done, then we can call ResetEvent.
-		 WaitForSingleObject(pRenderer->BuildAccelerationStructureSignal, INFINITE);
+		 // We wait here so other render pass threads can get the signal that the AS building is done, then we can call ResetEvent.
+		pRenderer->BuildAccelerationStructureEvent.wait();
 
-		 ResetEvent(pRenderer->AccelerationStructureCompleteSignal);
-		 {
-			 pRenderer->m_pGpuScene->CreateTopLevelAS(RenderContext);
+		if (pRenderer->ExitAsyncQueuesThread)
+			break;
 
-			 CommandContext* pCommandContexts[] = { RenderContext.GetCommandContext() };
-			 pRenderDevice->ExecuteCommandContexts(CommandContext::Compute, 1, pCommandContexts);
-		 }
-		 SetEvent(pRenderer->AccelerationStructureCompleteSignal); // Set the event after AS build is complete
+		pRenderer->AccelerationStructureCompleteEvent.ResetEvent();
+		{
+			pRenderer->m_pGpuScene->CreateTopLevelAS(RenderContext);
+
+			CommandContext* pCommandContexts[] = { RenderContext.GetCommandContext() };
+			pRenderDevice->ExecuteCommandContexts(CommandContext::Compute, 1, pCommandContexts);
+		}
+		pRenderer->AccelerationStructureCompleteEvent.SetEvent(); // Set the event after AS build is complete
 	}
 
 	return 0;
@@ -365,8 +357,11 @@ DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
 
 	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->AllocateContext(CommandContext::Copy));
 
-	while (!pRenderer->ExitAsyncQueuesThread)
+	while (true)
 	{
+		if (pRenderer->ExitAsyncQueuesThread)
+			break;
+
 		// TODO: Add async upload for resources
 	}
 

@@ -1,4 +1,8 @@
 #pragma once
+#include <wil/resource.h>
+#include <wrl/client.h>
+#include <d3d12.h>
+
 #include <functional>
 #include <Template/Pool.h>
 #include "DXGIManager.h"
@@ -12,6 +16,7 @@
 #include "API/D3D12/ShaderCompiler.h"
 #include "API/D3D12/ResourceStateTracker.h"
 #include "API/D3D12/DescriptorHeap.h"
+#include "API/D3D12/Fence.h"
 #include "API/D3D12/CommandQueue.h"
 #include "API/D3D12/CommandContext.h"
 #include "API/D3D12/RaytracingAccelerationStructure.h"
@@ -50,6 +55,7 @@ public:
 	enum
 	{
 		NumSwapChainBuffers				= 3,
+
 		NumConstantBufferDescriptors	= 1024,
 		NumShaderResourceDescriptors	= 1024,
 		NumUnorderedAccessDescriptors	= 1024,
@@ -68,7 +74,6 @@ public:
 	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
 	void BindGpuDescriptorHeap(CommandContext* pCommandContext);
-	inline auto GetImGuiDescriptorHeap() { return &m_ImGuiDescriptorHeap; }
 	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetCBDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
@@ -121,12 +126,15 @@ public:
 	Descriptor GetDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 
 	Device														Device;
-	CommandQueue												PresentQueue, GraphicsQueue, ComputeQueue, CopyQueue;
+	CommandQueue												GraphicsQueue, ComputeQueue, CopyQueue;
+	Microsoft::WRL::ComPtr<ID3D12Fence1>						GraphicsFence, ComputeFence, CopyFence;
+	UINT64														GraphicsFenceValue, ComputeFenceValue, CopyFenceValue;
+	wil::unique_event											GraphicsFenceCompletionEvent, ComputeFenceCompletionEvent, CopyFenceCompletionEvent;
 	ResourceStateTracker										GlobalResourceStateTracker;
 	ShaderCompiler												ShaderCompiler;
 
-	UINT														FrameIndex;
-	RenderResourceHandle										SwapChainTextures[NumSwapChainBuffers];
+	UINT														BackBufferIndex;
+	RenderResourceHandle										BackBufferHandle[NumSwapChainBuffers];
 private:
 	CommandQueue* GetApiCommandQueue(CommandContext::Type Type);
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
@@ -149,7 +157,6 @@ private:
 	RenderResourceContainer<ComputePipelineState>				m_ComputePipelineStates;
 	RenderResourceContainer<RaytracingPipelineState>			m_RaytracingPipelineStates;
 
-	CBSRUADescriptorHeap										m_ImGuiDescriptorHeap;
 	CBSRUADescriptorHeap										m_NonShaderVisibleCBSRUADescriptorHeap;
 	CBSRUADescriptorHeap										m_ShaderVisibleCBSRUADescriptorHeap;
 	SamplerDescriptorHeap										m_SamplerDescriptorHeap;

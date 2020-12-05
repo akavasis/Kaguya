@@ -385,7 +385,7 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 	Scene Scene;
 	{
 		auto& light1 = Scene.AddLight();
-		light1.Transform.Position = { 0, 9.9, 0 };
+		light1.Transform.Position = { 0, 10, 0 };
 		light1.Transform.Rotate(XM_PIDIV2, 0, 0);
 		light1.Color = { 201.0 / 255, 226.0 / 255.0, 255.0 / 255 };
 		light1.SetDimension(2, 2);
@@ -422,8 +422,8 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 
 		// Models
 		auto& rect = Scene.AddModel(CreateGrid(10.0f, 10.0f, 2, 2));
-		//auto& box = Scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f));
-		auto& Griffin = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/BlackOpsGriffin/BlackOpsGriffin.obj"));
+		auto& box = Scene.AddModel(CreateBox(1.0f, 1.0f, 1.0f));
+		//auto& Griffin = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/BlackOpsGriffin/BlackOpsGriffin.obj"));
 		auto& keyblade = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/keyblade/keyblade_pbr.fbx"));
 		//auto& hexgate = Scene.AddModel(ModelLoader.LoadFromFile("Assets/Models/Hexgate/Hexgate.obj"));
 
@@ -439,8 +439,8 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
 		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
 
-		auto& GriffinInstance = Scene.AddModelInstance({ &Griffin, &defaultMat });
-		GriffinInstance.Translate(0, 5, 0);
+		//auto& GriffinInstance = Scene.AddModelInstance({ &Griffin, &defaultMat });
+		//GriffinInstance.Translate(0, 5, 0);
 
 		auto& keybladeInstance = Scene.AddModelInstance({ &keyblade, &keybladeMat });
 		keybladeInstance.Translate(4.5f, -2.0f, 0.0f);
@@ -449,15 +449,15 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const ModelLoader& M
 		//auto& hexgateInstance = Scene.AddModelInstance({ &hexgate, &defaultMat });
 		//hexgateInstance.SetScale(0.025, 0.025, 0.025);
 
-		/*auto& leftboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
+		auto& leftboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
 		leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
-		leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
-		leftboxInstance.SetScale(1.75f, 5.0f, 1.75f);
+		leftboxInstance.Translate(-1.5f, 2.5f, 2.5f);
+		leftboxInstance.SetScale(2, 5, 2);
 
 		auto& rightboxInstance = Scene.AddModelInstance({ &box, &defaultMat });
 		rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
-		rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
-		rightboxInstance.SetScale(1.75f, 1.75f, 1.75f);*/
+		rightboxInstance.Translate(1.5f, 1, -1.5f);
+		rightboxInstance.SetScale(2, 2, 2);
 
 		//// Plane
 		//{

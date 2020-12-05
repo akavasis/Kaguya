@@ -8,7 +8,7 @@
 
 AmbientOcclusion::AmbientOcclusion(UINT Width, UINT Height)
 	: RenderPass("Ambient Occlusion",
-		{ Width, Height, RendererFormats::HDRBufferFormat },
+		{ Width, Height },
 		NumResources)
 {
 	UseRayTracing = true;
@@ -86,7 +86,7 @@ void AmbientOcclusion::ScheduleResource(ResourceScheduler* pResourceScheduler, R
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(Properties.Format);
+		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
 		proxy.BindFlags = Resource::Flags::UnorderedAccess;

@@ -7,9 +7,7 @@
 #include "Graphics/RendererRegistry.h"
 
 GBuffer::GBuffer(UINT Width, UINT Height)
-	: RenderPass("GBuffer",
-		{ Width, Height, DXGI_FORMAT_R32G32B32A32_FLOAT },
-		NumResources)
+	: RenderPass("GBuffer", { Width, Height }, NumResources)
 {
 
 }
@@ -136,12 +134,6 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
 	PIXEvent(RenderContext->GetApiHandle(), L"GBuffer");
 
-	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
-	{
-		RenderContext.TransitionBarrier(Resources[i], Resource::State::RenderTarget);
-	}
-	RenderContext.TransitionBarrier(Resources[EResources::Depth], Resource::State::DepthWrite);
-
 	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
 	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
 
@@ -167,15 +159,8 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	}
 	RenderContext->ClearDepthStencil(DepthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 	RenderMeshes(RenderContext);
 	RenderLights(RenderContext);
-
-	for (size_t i = 0; i < EResources::NumResources; ++i)
-	{
-		RenderContext.TransitionBarrier(Resources[i], Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
-	}
 }
 
 void GBuffer::StateRefresh()

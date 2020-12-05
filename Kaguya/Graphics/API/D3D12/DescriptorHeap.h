@@ -15,11 +15,11 @@ class DescriptorHeap;
 //----------------------------------------------------------------------------------------------------
 struct Descriptor
 {
-	inline bool IsValid() const { return CPUHandle.ptr != NULL; }
-	inline bool IsReferencedByShader() const { return GPUHandle.ptr != NULL; }
+	inline bool IsValid() const { return CpuHandle.ptr != NULL; }
+	inline bool IsReferencedByShader() const { return GpuHandle.ptr != NULL; }
 
-	D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle = { NULL };
-	D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle = { NULL };
+	D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle = { NULL };
+	D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle = { NULL };
 	UINT HeapIndex = 0;
 };
 

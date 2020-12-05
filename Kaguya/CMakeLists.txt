@@ -65,6 +65,7 @@ ${GLM_Submodule}
 
 # Submodules
 include_directories("../Submodules/glm")
+include_directories("../Submodules/wil/include")
 
 include_directories("../External/assimp/include")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/assimp/lib/Release/assimp-vc142-mt.lib)

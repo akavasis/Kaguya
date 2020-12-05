@@ -41,16 +41,19 @@
 // Operator <=>
 #include <compare>
 
+// Submodules
+#define GLM_FORCE_XYZW_ONLY
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <wil/resource.h>
+
 // External
 #include <DirectXMesh.h>
 #include <DirectXTex.h>
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx12.h>
-
-#define GLM_FORCE_XYZW_ONLY
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 // D3D12
 #include <d3d12.h>

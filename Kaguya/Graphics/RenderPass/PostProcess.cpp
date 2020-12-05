@@ -11,9 +11,7 @@
 constexpr size_t NumTonemapRootConstants = 1 + sizeof(PostProcess::GranTurismoOperator) / 4;
 
 PostProcess::PostProcess(UINT Width, UINT Height)
-	: RenderPass("Post Process",
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		NumResources)
+	: RenderPass("Post Process", { Width, Height }, NumResources)
 {
 	ExplicitResourceTransition = true;
 }
@@ -134,7 +132,7 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(Properties.Format);
+		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
 		proxy.BindFlags = Resource::Flags::UnorderedAccess;
@@ -147,7 +145,7 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 	{
 		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
-			proxy.SetFormat(Properties.Format);
+			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
 			proxy.SetHeight(Properties.Height / denominators[denominatorIndex]);
 			proxy.BindFlags = Resource::Flags::UnorderedAccess;
@@ -156,7 +154,7 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 
 		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
-			proxy.SetFormat(Properties.Format);
+			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
 			proxy.SetHeight(Properties.Height / denominators[denominatorIndex]);
 			proxy.BindFlags = Resource::Flags::UnorderedAccess;
@@ -374,7 +372,6 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 		{
 			PIXEvent(RenderContext->GetApiHandle(), L"ImGui Render");
 
-			RenderContext->SetDescriptorHeaps(RenderContext.GetImGuiDescriptorHeap(), nullptr);
 			ImGui::Render();
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), RenderContext->GetApiHandle());
 		}

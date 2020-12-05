@@ -38,7 +38,7 @@ public:
 	template<typename RenderPass>
 	RenderPass* GetRenderPass() const;
 
-	void AddRenderPass(RenderPass* pRenderPass);
+	RenderPass* AddRenderPass(RenderPass* pRenderPass);
 
 	// Only call once
 	void Initialize(HANDLE AccelerationStructureCompleteSignal);
@@ -73,10 +73,10 @@ private:
 	RenderDevice*												SV_pRenderDevice;
 
 	HANDLE														m_AccelerationStructureCompleteSignal;
-	std::vector<HANDLE>											m_WorkerExecuteSignals;
-	std::vector<HANDLE>											m_WorkerCompleteSignals;
+	std::vector<HANDLE>											m_WorkerExecuteEvents;
+	std::vector<HANDLE>											m_WorkerCompleteEvents;
 	std::vector<RenderPassThreadProcParameter>					m_ThreadParameters;
-	std::vector<HANDLE>											m_Threads;
+	std::vector<wil::unique_handle>								m_Threads;
 
 	ResourceScheduler											m_ResourceScheduler;
 	std::vector<std::unique_ptr<RenderPass>>					m_RenderPasses;

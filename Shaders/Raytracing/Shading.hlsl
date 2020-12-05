@@ -138,12 +138,6 @@ struct ShadowRayPayload
 	float Visibility; // 1.0f for fully lit, 0.0f for fully shadowed
 };
 
-enum RayType
-{
-	RayTypePrimary,
-    NumRayTypes
-};
-
 float TraceShadowRay(float3 Origin, float TMin, float3 Direction, float TMax)
 {
 	RayDesc ray = { Origin, TMin, Direction, TMax };
@@ -169,7 +163,6 @@ void RayGeneration()
 	const uint2 launchIndex = DispatchRaysIndex().xy;
 	const float2 pixelCenter = (launchIndex + 0.5f) / DispatchRaysDimensions().xy;
 	
-	HaltonState haltonState = InitHaltonState(launchIndex.x, launchIndex.y, 0, 16, g_SystemConstants.TotalFrameCount, 64, 16);
 	ShadingResult shadingResult = InitShadingResult();
 	
 	GBuffer GBuffer;
@@ -183,6 +176,8 @@ void RayGeneration()
 	
 	if (GBufferType == GBufferTypeMesh)
 	{
+		HaltonState haltonState = InitHaltonState(launchIndex.x, launchIndex.y, 0, 16, g_SystemConstants.TotalFrameCount, 64, 16);
+
 		GBufferMesh GBufferMesh = GetGBufferMesh(GBuffer, launchIndex);
 		
 		float3 position = NDCDepthToWorldPosition(Depth, pixelCenter, g_SystemConstants.Camera);
@@ -201,39 +196,17 @@ void RayGeneration()
 		{
 			PolygonalLight Light = Lights[i];
 			
-			float halfWidth = Light.Width * 0.5f;
-			float halfHeight = Light.Height * 0.5f;
-			// Get billboard points at the origin
-			float3 p0 = float3(+halfWidth, -halfHeight, 0.0);
-			float3 p1 = float3(+halfWidth, +halfHeight, 0.0);
-			float3 p2 = float3(-halfWidth, +halfHeight, 0.0);
-			float3 p3 = float3(-halfWidth, -halfHeight, 0.0);
-		
-			p0 = mul(p0, (float3x3) Light.World);
-			p1 = mul(p1, (float3x3) Light.World);
-			p2 = mul(p2, (float3x3) Light.World);
-			p3 = mul(p3, (float3x3) Light.World);
-		
-			// Move points to light's location
-			// Clockwise to match LTC convention
-			float3 points[4];
-			points[0] = p3 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
-			points[1] = p2 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
-			points[2] = p1 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
-			points[3] = p0 + float3(Light.World[3][0], Light.World[3][1], Light.World[3][2]);
-			
-			float3 ex = points[1] - points[0];
-			float3 ey = points[3] - points[0];
-			SphericalRectangle squad = SphericalRectangleInit(points[0], ex, ey, position);
+			float3 ex = Light.Points[1] - Light.Points[0];
+			float3 ey = Light.Points[3] - Light.Points[0];
+			SphericalRectangle squad = SphericalRectangleInit(Light.Points[0], ex, ey, position);
 			
 			float diffProb, brdfProb;
-			shadingResult.AnalyticUnshadowed += (Light.Color * Light.Luminance) * (ShadeWithAreaLight(position, diffuse, specular, ltcTerms, points, diffProb, brdfProb));
+			shadingResult.AnalyticUnshadowed += (Light.Color * Light.Luminance) * (ShadeWithAreaLight(position, diffuse, specular, ltcTerms, Light.Points, diffProb, brdfProb));
 		
 			static const uint RaysPerLight = 1;
 			[unroll]
 			for (uint rayIdx = 0; rayIdx < RaysPerLight; ++rayIdx)
 			{
-				uint I = i * RaysPerLight + rayIdx;
 				// Used for 2D position on light/BRDF
 				const float u1 = frac(HaltonNext(haltonState) + blueNoise.r);
 				const float u2 = frac(HaltonNext(haltonState) + blueNoise.g);

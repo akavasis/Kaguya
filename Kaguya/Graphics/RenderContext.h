@@ -25,11 +25,7 @@ public:
 
 	inline auto GetCurrentSwapChainResourceHandle() const
 	{
-		return SV_pRenderDevice->SwapChainTextures[SV_pRenderDevice->FrameIndex];
-	}
-	inline auto GetImGuiDescriptorHeap() const
-	{
-		return SV_pRenderDevice->GetImGuiDescriptorHeap();
+		return SV_pRenderDevice->BackBufferHandle[SV_pRenderDevice->BackBufferIndex];
 	}
 
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle) const { return SV_pRenderDevice->GetBuffer(Handle); }
@@ -92,8 +88,8 @@ private:
 
 	// SV have the same notion as Shader's SV, it is provided by the RenderGraph
 	size_t					SV_RenderPassIndex		= 0;
-	Buffer*			SV_pSystemConstants		= nullptr;
-	Buffer*			SV_pGpuData				= nullptr;
+	Buffer*					SV_pSystemConstants		= nullptr;
+	Buffer*					SV_pGpuData				= nullptr;
 	RenderDevice*			SV_pRenderDevice		= nullptr;
 	CommandContext*			SV_pCommandContext		= nullptr;
 

@@ -12,8 +12,8 @@ Window::Window(LPCWSTR WindowName,
 	m_WindowWidth(Width),
 	m_WindowHeight(Height)
 {
-	m_Icon = (HICON)::LoadImage(0, (Application::ExecutableFolderPath / "Assets/Kaguya.ico").generic_wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE);
-	m_Cursor = ::LoadCursor(nullptr, IDC_ARROW);
+	m_Icon.reset((HICON)::LoadImage(0, (Application::ExecutableFolderPath / "Assets/Kaguya.ico").generic_wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
+	m_Cursor.reset(::LoadCursor(nullptr, IDC_ARROW));
 
 	m_CursorEnabled = true;
 
@@ -36,28 +36,29 @@ Window::Window(LPCWSTR WindowName,
 	windowClass.cbClsExtra		= 0;
 	windowClass.cbWndExtra		= 0;
 	windowClass.hInstance		= GetModuleHandle(NULL);
-	windowClass.hIcon			= m_Icon;
-	windowClass.hCursor			= m_Cursor;
+	windowClass.hIcon			= m_Icon.get();
+	windowClass.hCursor			= m_Cursor.get();
 	windowClass.hbrBackground	= reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
 	windowClass.lpszMenuName	= NULL;
 	windowClass.lpszClassName	= WindowName;
-	windowClass.hIconSm			= m_Icon;
+	windowClass.hIconSm			= m_Icon.get();
 	if (!RegisterClassExW(&windowClass))
 	{
 		LOG_ERROR("RegisterClassExW Error: {}", ::GetLastError());
 	}
 
 	// Create window
-	m_WindowHandle = CreateWindowW(WindowName, WindowName,
+	m_WindowHandle = wil::unique_hwnd(::CreateWindowW(WindowName, WindowName,
 		WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU,
-		X, Y, Width, Height, NULL, NULL, GetModuleHandle(NULL), this);
+		X, Y, Width, Height, NULL, NULL, GetModuleHandle(NULL), NULL));
 	if (m_WindowHandle)
 	{
 		// Initialize ImGui for win32
-		ImGui_ImplWin32_Init(m_WindowHandle);
+		ImGui_ImplWin32_Init(m_WindowHandle.get());
+		::SetWindowLongPtr(m_WindowHandle.get(), GWLP_USERDATA, reinterpret_cast<LPARAM>(this));
 
-		::ShowWindow(m_WindowHandle, SW_SHOW);
-		::UpdateWindow(m_WindowHandle);
+		::ShowWindow(m_WindowHandle.get(), SW_SHOW);
+		::UpdateWindow(m_WindowHandle.get());
 	}
 	else
 	{
@@ -67,11 +68,7 @@ Window::Window(LPCWSTR WindowName,
 
 Window::~Window()
 {
-	::DestroyWindow(m_WindowHandle);
 	::UnregisterClass(m_WindowName.data(), GetModuleHandle(NULL));
-
-	DestroyCursor(m_Cursor);
-	DestroyIcon(m_Icon);
 }
 
 void Window::EnableCursor()
@@ -97,17 +94,17 @@ bool Window::CursorEnabled() const
 
 bool Window::IsFocused() const
 {
-	return GetForegroundWindow() == m_WindowHandle;
+	return GetForegroundWindow() == m_WindowHandle.get();
 }
 
 void Window::SetTitle(std::wstring Title)
 {
-	::SetWindowText(m_WindowHandle, Title.data());
+	::SetWindowText(m_WindowHandle.get(), Title.data());
 }
 
 void Window::AppendToTitle(std::wstring Message)
 {
-	::SetWindowText(m_WindowHandle, (m_WindowName + Message).data());
+	::SetWindowText(m_WindowHandle.get(), (m_WindowName + Message).data());
 }
 
 LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -116,7 +113,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (ImGui::GetCurrentContext() != nullptr)
 	{
 		pImGuiIO = &ImGui::GetIO();
-		if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle, uMsg, wParam, lParam))
+		if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle.get(), uMsg, wParam, lParam))
 			return true;
 	}
 
@@ -129,7 +126,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			if (!Mouse.IsInWindow())
 			{
-				::SetCapture(m_WindowHandle);
+				::SetCapture(m_WindowHandle.get());
 				Mouse.OnMouseEnter();
 				HideCursor();
 			}
@@ -145,7 +142,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Mouse.OnMouseMove(pt.x, pt.y);
 			if (!Mouse.IsInWindow())
 			{
-				::SetCapture(m_WindowHandle);
+				::SetCapture(m_WindowHandle.get());
 				Mouse.OnMouseEnter();
 			}
 		}
@@ -167,7 +164,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_LBUTTONDOWN:
 	{
-		::SetForegroundWindow(m_WindowHandle);
+		::SetForegroundWindow(m_WindowHandle.get());
 		if (!m_CursorEnabled)
 		{
 			ConfineCursor();
@@ -240,12 +237,12 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// First get the size of the input data
 		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, nullptr, &DataSize, sizeof(RAWINPUTHEADER)) == -1)
 			break;
-		BYTE* pData = (BYTE*)_malloca(DataSize);
+		auto pData = (BYTE*)_malloca(DataSize);
 		// Read in the input data
 		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, pData, &DataSize, sizeof(RAWINPUTHEADER)) != DataSize)
 			break;
 		// Process the raw input data
-		const RAWINPUT& RawInput = reinterpret_cast<const RAWINPUT&>(*pData);
+		const auto& RawInput = reinterpret_cast<const RAWINPUT&>(*pData);
 		if (RawInput.header.dwType == RIM_TYPEMOUSE &&
 			(RawInput.data.mouse.lLastX != 0 || RawInput.data.mouse.lLastY != 0))
 		{
@@ -304,14 +301,15 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_ENTERSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
 	case WM_EXITSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
 	{
-		RECT WindowRect = {}; ::GetWindowRect(m_WindowHandle, &WindowRect);
+		RECT WindowRect = {};
+		::GetWindowRect(m_WindowHandle.get(), &WindowRect);
 		m_WindowWidth	= Math::Max<unsigned int>(1u, WindowRect.right - WindowRect.left);
 		m_WindowHeight	= Math::Max<unsigned int>(1u, WindowRect.bottom - WindowRect.top);
 
-		Window::Message WindowMessage;
-		WindowMessage.type			= Message::Type::Resize;
-		WindowMessage.data.Width	= m_WindowWidth;
-		WindowMessage.data.Height	= m_WindowHeight;
+		Window::Message WindowMessage	= {};
+		WindowMessage.type				= Message::Type::Resize;
+		WindowMessage.data.Width		= m_WindowWidth;
+		WindowMessage.data.Height		= m_WindowHeight;
 		MessageQueue.push(WindowMessage);
 	}
 	break;
@@ -343,37 +341,24 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	break;
 	}
 
-	return ::DefWindowProc(m_WindowHandle, uMsg, wParam, lParam);
+	return ::DefWindowProc(m_WindowHandle.get(), uMsg, wParam, lParam);
 }
 
 LRESULT CALLBACK Window::WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	Window* pWindow = nullptr;
-	if (uMsg == WM_NCCREATE)
-	{
-		auto lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
-		pWindow = reinterpret_cast<Window*>(lpcs->lpCreateParams);
-		pWindow->m_WindowHandle = hwnd;
-		::SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LPARAM>(pWindow));
-	}
-	else
-	{
-		pWindow = reinterpret_cast<Window*>(::GetWindowLongPtr(hwnd, GWLP_USERDATA));
-	}
+	auto pWindow = reinterpret_cast<Window*>(::GetWindowLongPtr(hwnd, GWLP_USERDATA));
 	if (pWindow)
 	{
 		return pWindow->DispatchEvent(uMsg, wParam, lParam);
 	}
-	else
-	{
-		return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
-	}
+	return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 void Window::ConfineCursor()
 {
-	RECT ClientRect = {}; ::GetClientRect(m_WindowHandle, &ClientRect);
-	::MapWindowPoints(m_WindowHandle, nullptr, reinterpret_cast<POINT*>(&ClientRect), 2);
+	RECT ClientRect = {};
+	::GetClientRect(m_WindowHandle.get(), &ClientRect);
+	::MapWindowPoints(m_WindowHandle.get(), nullptr, reinterpret_cast<POINT*>(&ClientRect), 2);
 	::ClipCursor(&ClientRect);
 }
 

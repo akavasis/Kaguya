@@ -21,8 +21,8 @@ Device::Device(IDXGIAdapter4* pAdapter)
 	ThrowCOMIfFailed(::D3D12CreateDevice(pAdapter, MinimumFeatureLevel, IID_PPV_ARGS(m_ApiHandle.ReleaseAndGetAddressOf())));
 
 	// Check for different features
-	CheckRS_1_1Support();
-	CheckSM6PlusSupport();
+	CheckRootSignature_1_1Support();
+	CheckShaderModel6PlusSupport();
 	CheckRaytracingSupport();
 	CheckMeshShaderSupport();
 
@@ -132,7 +132,7 @@ bool Device::IsUAVCompatable(DXGI_FORMAT Format)
 	return false;
 }
 
-void Device::CheckRS_1_1Support()
+void Device::CheckRootSignature_1_1Support()
 {
 	D3D12_FEATURE_DATA_ROOT_SIGNATURE Feature_RootSignature = {};
 	Feature_RootSignature.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -141,7 +141,7 @@ void Device::CheckRS_1_1Support()
 		throw std::runtime_error("RS 1.1 not supported on device");
 }
 
-void Device::CheckSM6PlusSupport()
+void Device::CheckShaderModel6PlusSupport()
 {
 	D3D12_FEATURE_DATA_SHADER_MODEL Feature_ShaderModel = { D3D_SHADER_MODEL_6_5 };
 	ThrowCOMIfFailed(m_ApiHandle->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &Feature_ShaderModel, sizeof(Feature_ShaderModel)));
