@@ -48,7 +48,9 @@ public:
 	void RenderGui();
 	void UpdateSystemConstants(const HLSL::SystemConstants& HostSystemConstants);
 	void Execute(bool Refresh);
-	void ExecuteCommandContexts(RenderContext& RendererRenderContext);
+
+	// Returns the command contexts that needs to be executed
+	std::vector<CommandContext*>& GetCommandContexts();
 private:
 	struct RenderPassThreadProcParameter
 	{

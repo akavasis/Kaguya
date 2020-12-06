@@ -1,31 +1,22 @@
 #pragma once
 #include <d3d12.h>
-#include <wil/resource.h>
 #include <wrl/client.h>
 #include "CommandAllocatorPool.h"
 
 class CommandQueue
 {
 public:
-	CommandQueue(Device* pDevice, D3D12_COMMAND_LIST_TYPE Type);
-	~CommandQueue();
+	CommandQueue(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type);
 
 	inline auto GetApiHandle() const { return m_ApiHandle.Get(); }
+	inline auto operator->() { return m_ApiHandle.Get(); }
 
-	UINT64 Signal();
-	void Flush();
-	bool IsFenceValueReached(UINT64 FenceValue);
-	void WaitForFenceValue(UINT64 FenceValue);
-	void WaitForIdle();
-	void Wait(const CommandQueue& CommandQueue);
+	inline auto GetType() const { return m_Type; }
 
-	ID3D12CommandAllocator* RequestAllocator();
-	void MarkAllocatorAsActive(UINT64 FenceValue, ID3D12CommandAllocator* Allocator);
+	ID3D12CommandAllocator* RequestAllocator(UINT64 CompletedValue);
+	void DiscardCommandAllocator(UINT64 FenceValue, ID3D12CommandAllocator* Allocator);
 private:
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue>	m_ApiHandle;
-	Microsoft::WRL::ComPtr<ID3D12Fence1>		m_pFence;
-	wil::unique_event							m_FenceCompletionEvent;
-	UINT64										m_FenceValue;
-
+	D3D12_COMMAND_LIST_TYPE						m_Type;
 	CommandAllocatorPool						m_CommandAllocatorPool;
 };

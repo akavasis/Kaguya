@@ -1,57 +1,64 @@
 #include "pch.h"
 #include "CommandAllocatorPool.h"
-#include "Device.h"
 
-CommandAllocatorPool::CommandAllocatorPool(const Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
-	: m_Device(pDevice),
+CommandAllocatorPool::CommandAllocatorPool(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
+	: m_pDevice(pDevice),
 	m_Type(Type)
 {
+
 }
 
 CommandAllocatorPool::~CommandAllocatorPool()
 {
-	for (auto allocator : m_AllocatorPool)
-		allocator->Release();
-	m_AllocatorPool.clear();
+	for (auto Allocator : m_CommandAllocatorPool)
+	{
+		Allocator->Release();
+	}
+	m_CommandAllocatorPool.clear();
 }
 
-ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(UINT64 CompletedFenceValue)
+ID3D12CommandAllocator* CommandAllocatorPool::RequestCommandAllocator(UINT64 CompletedFenceValue)
 {
 	ScopedCriticalSection SCS(CriticalSection);
 
-	ID3D12CommandAllocator* pAllocator = nullptr;
+	ID3D12CommandAllocator* pCommandAllocator = nullptr;
 
-	if (!m_ReadyAllocators.empty())
+	if (!m_ReadyCommandAllocators.empty())
 	{
-		auto iter = m_ReadyAllocators.front();
+		auto iter = m_ReadyCommandAllocators.front();
 
 		// First indicates the fence value of the command allocator that was being used
 		// if that value is less than the CompletedFenceValue then that allocator is ready to
 		// be used again
 		if (iter.first <= CompletedFenceValue)
 		{
-			pAllocator = iter.second;
-			ThrowCOMIfFailed(pAllocator->Reset());
-			m_ReadyAllocators.pop();
+			pCommandAllocator = iter.second;
+			ThrowCOMIfFailed(pCommandAllocator->Reset());
+			m_ReadyCommandAllocators.pop();
 		}
 	}
 
 	// If no allocator's were ready to be reused, create a new one
-	if (pAllocator == nullptr)
+	if (!pCommandAllocator)
 	{
-		ThrowCOMIfFailed(m_Device->GetApiHandle()->CreateCommandAllocator(m_Type, IID_PPV_ARGS(&pAllocator)));
+		ThrowCOMIfFailed(m_pDevice->CreateCommandAllocator(m_Type, IID_PPV_ARGS(&pCommandAllocator)));
 		wchar_t AllocatorName[32];
-		swprintf(AllocatorName, 32, L"CommandAllocator %zu", m_AllocatorPool.size());
-		pAllocator->SetName(AllocatorName);
-		m_AllocatorPool.push_back(pAllocator);
+		swprintf(AllocatorName, 32, L"CommandAllocator %zu", m_CommandAllocatorPool.size());
+		pCommandAllocator->SetName(AllocatorName);
+		m_CommandAllocatorPool.push_back(pCommandAllocator);
 	}
 
-	return pAllocator;
+	return pCommandAllocator;
 }
 
-void CommandAllocatorPool::MarkAllocatorAsActive(UINT64 FenceValue, ID3D12CommandAllocator* Allocator)
+void CommandAllocatorPool::DiscardCommandAllocator(UINT64 FenceValue, ID3D12CommandAllocator* pCommandAllocator)
 {
+	if (!pCommandAllocator)
+	{
+		return;
+	}
+
 	ScopedCriticalSection SCS(CriticalSection);
 	// That fence value indicates we are free to reset the allocator
-	m_ReadyAllocators.push(std::make_pair(FenceValue, Allocator));
+	m_ReadyCommandAllocators.push(std::make_pair(FenceValue, pCommandAllocator));
 }

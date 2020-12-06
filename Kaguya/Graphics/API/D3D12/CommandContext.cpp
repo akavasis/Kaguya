@@ -1,17 +1,13 @@
 #include "pch.h"
 #include "CommandContext.h"
-#include "Device.h"
 
-CommandContext::CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, Type Type)
+CommandContext::CommandContext(ID3D12Device4* pDevice, Type Type)
 	: m_Type(Type)
 {
-	SV_pCommandQueue			= pCommandQueue;
-	SV_pAllocator				= SV_pCommandQueue->RequestAllocator();
-	SV_pPendingAllocator		= SV_pCommandQueue->RequestAllocator();
-
-	D3D12_COMMAND_LIST_TYPE CommandListType = GetD3DCommandListType(Type);
-	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateCommandList(1, CommandListType, SV_pAllocator, nullptr, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateCommandList(1, CommandListType, SV_pPendingAllocator, nullptr, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
+	auto CommandListType	= GetD3DCommandListType(Type);
+	auto CommandListFlags	= D3D12_COMMAND_LIST_FLAG_NONE;
+	ThrowCOMIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
 }
 
 bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
@@ -25,22 +21,21 @@ bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
 	return numPendingBarriers > 0;
 }
 
-void CommandContext::Reset()
+void CommandContext::Reset(UINT64 FenceValue, UINT64 CompletedValue, CommandQueue* pCommandQueue)
 {
-	m_pCommandList->Reset(SV_pAllocator, nullptr);
-	m_pPendingCommandList->Reset(SV_pPendingAllocator, nullptr);
+	assert(pCommandQueue->GetType() == GetD3DCommandListType(m_Type));
+
+	pCommandQueue->DiscardCommandAllocator(FenceValue, SV_pAllocator);
+	pCommandQueue->DiscardCommandAllocator(FenceValue, SV_pPendingAllocator);
+
+	SV_pAllocator			= pCommandQueue->RequestAllocator(CompletedValue);
+	SV_pPendingAllocator	= pCommandQueue->RequestAllocator(CompletedValue);
+
+	ThrowCOMIfFailed(m_pCommandList->Reset(SV_pAllocator, nullptr));
+	ThrowCOMIfFailed(m_pPendingCommandList->Reset(SV_pPendingAllocator, nullptr));
 
 	// Reset resource state tracking and resource barriers 
 	m_ResourceStateTracker.Reset();
-}
-
-void CommandContext::RequestNewAllocator(UINT64 FenceValue)
-{
-	SV_pCommandQueue->MarkAllocatorAsActive(FenceValue, SV_pAllocator);
-	SV_pCommandQueue->MarkAllocatorAsActive(FenceValue, SV_pPendingAllocator);
-
-	SV_pAllocator			= SV_pCommandQueue->RequestAllocator();
-	SV_pPendingAllocator	= SV_pCommandQueue->RequestAllocator();
 }
 
 void CommandContext::SetPipelineState(const PipelineState* pPipelineState)
@@ -180,9 +175,9 @@ D3D12_COMMAND_LIST_TYPE GetD3DCommandListType(CommandContext::Type Type)
 {
 	switch (Type)
 	{
-	case CommandContext::Type::Direct:	return D3D12_COMMAND_LIST_TYPE_DIRECT;
-	case CommandContext::Type::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-	case CommandContext::Type::Copy:	return D3D12_COMMAND_LIST_TYPE_COPY;
-	default:							return D3D12_COMMAND_LIST_TYPE(-1);
+	case CommandContext::Type::Graphics:	return D3D12_COMMAND_LIST_TYPE_DIRECT;
+	case CommandContext::Type::Compute:		return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+	case CommandContext::Type::Copy:		return D3D12_COMMAND_LIST_TYPE_COPY;
+	default:								return D3D12_COMMAND_LIST_TYPE(-1);
 	}
 }

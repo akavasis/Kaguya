@@ -3,9 +3,9 @@
 
 RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	: Device(pAdapter),
-	GraphicsQueue(&Device, D3D12_COMMAND_LIST_TYPE_DIRECT),
-	ComputeQueue(&Device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
-	CopyQueue(&Device, D3D12_COMMAND_LIST_TYPE_COPY),
+	GraphicsQueue(Device.GetApiHandle(), D3D12_COMMAND_LIST_TYPE_DIRECT),
+	ComputeQueue(Device.GetApiHandle(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
+	CopyQueue(Device.GetApiHandle(), D3D12_COMMAND_LIST_TYPE_COPY),
 
 	BackBufferIndex(0),
 	BackBufferHandle{},
@@ -17,6 +17,11 @@ RenderDevice::RenderDevice(IDXGIAdapter4* pAdapter)
 	m_DepthStencilDescriptorHeap(&Device, NumDepthStencilDescriptors)
 {
 	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 0;
+
+	ThrowCOMIfFailed(Device.GetApiHandle()->CreateFence(GraphicsFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(GraphicsFence.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(Device.GetApiHandle()->CreateFence(ComputeFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(ComputeFence.ReleaseAndGetAddressOf())));
+	ThrowCOMIfFailed(Device.GetApiHandle()->CreateFence(CopyFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(CopyFence.ReleaseAndGetAddressOf())));
+
 	GraphicsFenceCompletionEvent.create();
 	ComputeFenceCompletionEvent.create();
 	CopyFenceCompletionEvent.create();
@@ -43,8 +48,7 @@ RenderDevice::~RenderDevice()
 
 CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
 {
-	CommandQueue* pCommandQueue = GetApiCommandQueue(Type);
-	m_CommandContexts[Type].push_back(std::make_unique<CommandContext>(&Device, pCommandQueue, Type));
+	m_CommandContexts[Type].push_back(std::make_unique<CommandContext>(Device.GetApiHandle(), Type));
 	return m_CommandContexts[Type].back().get();
 }
 
@@ -62,21 +66,37 @@ void RenderDevice::ExecuteCommandContexts(CommandContext::Type Type, UINT NumCom
 		CommandContext* pCommandContext = ppCommandContexts[i];
 		if (pCommandContext->Close(GlobalResourceStateTracker))
 		{
-			commandlistsToBeExecuted.push_back(pCommandContext->m_pPendingCommandList.Get());
+			commandlistsToBeExecuted.push_back(pCommandContext->GetPendingCommandList());
 		}
-		commandlistsToBeExecuted.push_back(pCommandContext->m_pCommandList.Get());
+		commandlistsToBeExecuted.push_back(pCommandContext->GetApiHandle());
 	}
 
-	CommandQueue* pCommandQueue = GetApiCommandQueue(Type);
-	pCommandQueue->GetApiHandle()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
-	UINT64 fenceValue = pCommandQueue->Signal();
-	for (UINT i = 0; i < NumCommandContexts; ++i)
-	{
-		CommandContext* pCommandContext = ppCommandContexts[i];
-		pCommandContext->RequestNewAllocator(fenceValue);
-		pCommandContext->Reset();
-	}
-	pCommandQueue->Flush();
+	CommandQueue& pCommandQueue = GetApiCommandQueue(Type);
+	pCommandQueue->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
+}
+
+void RenderDevice::FlushGraphicsQueue()
+{
+	UINT64 Value = ++GraphicsFenceValue;
+	ThrowCOMIfFailed(GraphicsQueue->Signal(GraphicsFence.Get(), Value));
+	ThrowCOMIfFailed(GraphicsFence->SetEventOnCompletion(Value, GraphicsFenceCompletionEvent.get()));
+	GraphicsFenceCompletionEvent.wait();
+}
+
+void RenderDevice::FlushComputeQueue()
+{
+	UINT64 Value = ++ComputeFenceValue;
+	ThrowCOMIfFailed(ComputeQueue->Signal(ComputeFence.Get(), Value));
+	ThrowCOMIfFailed(ComputeFence->SetEventOnCompletion(Value, ComputeFenceCompletionEvent.get()));
+	ComputeFenceCompletionEvent.wait();
+}
+
+void RenderDevice::FlushCopyQueue()
+{
+	UINT64 Value = ++CopyFenceValue;
+	ThrowCOMIfFailed(CopyQueue->Signal(CopyFence.Get(), Value));
+	ThrowCOMIfFailed(CopyFence->SetEventOnCompletion(Value, CopyFenceCompletionEvent.get()));
+	CopyFenceCompletionEvent.wait();
 }
 
 Shader RenderDevice::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
@@ -705,17 +725,15 @@ Descriptor RenderDevice::GetDepthStencilView(RenderResourceHandle Handle, std::o
 	return Descriptor();
 }
 
-CommandQueue* RenderDevice::GetApiCommandQueue(CommandContext::Type Type)
+CommandQueue& RenderDevice::GetApiCommandQueue(CommandContext::Type Type)
 {
 	switch (Type)
 	{
-	case CommandContext::Type::Direct:	return &GraphicsQueue;								break;
-	case CommandContext::Type::Compute: return &ComputeQueue;								break;
-	case CommandContext::Type::Copy:	return &CopyQueue;									break;
-	default:							assert(false && "Unsupported command list type");	break;
+	case CommandContext::Type::Graphics:	return GraphicsQueue;
+	case CommandContext::Type::Compute:		return ComputeQueue;
+	case CommandContext::Type::Copy:		return CopyQueue;
+	default:								return GraphicsQueue;
 	}
-
-	return nullptr;
 }
 
 void RenderDevice::AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy)

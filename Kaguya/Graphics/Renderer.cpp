@@ -59,7 +59,8 @@ bool Renderer::Initialize()
 		return false;
 	}
 
-	m_RenderContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice, m_pRenderDevice->AllocateContext(CommandContext::Direct));
+	m_RenderContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice, m_pRenderDevice->AllocateContext(CommandContext::Graphics));
+	m_RenderContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
 
 	BuildAccelerationStructureEvent.create();
 	AccelerationStructureCompleteEvent.create(wil::EventOptions::ManualReset);
@@ -69,7 +70,8 @@ bool Renderer::Initialize()
 	m_pGpuScene->TextureManager.StageSystemReservedTextures(m_RenderContext);
 
 	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
-	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Direct, 1, pCommandContexts);
+	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, 1, pCommandContexts);
+	m_pRenderDevice->FlushGraphicsQueue();
 	m_pGpuScene->TextureManager.DisposeResources();
 
 	SetScene(GenerateScene(SampleScene::PlaneWithLights));
@@ -148,9 +150,17 @@ void Renderer::Render()
 	m_pGpuScene->RenderGui();
 	bool Refresh = m_pGpuScene->Update(AspectRatio);
 	BuildAccelerationStructureEvent.SetEvent(); // Tell the AsyncComputeThreadProc to build our TLAS after we have updated any scene objects
+
+	auto CommandContexts = m_pRenderGraph->GetCommandContexts();
+	for (auto CommandContext : CommandContexts)
+	{
+		CommandContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+	}
+	
 	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
 	m_pRenderGraph->Execute(Refresh);
-	m_pRenderGraph->ExecuteCommandContexts(m_RenderContext);
+
+	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, CommandContexts.size(), CommandContexts.data());
 
 	uint32_t				SyncInterval		= Settings::VSync ? 1u : 0u;
 	uint32_t				PresentFlags		= (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
@@ -160,6 +170,11 @@ void Renderer::Render()
 	{
 		LOG_ERROR("DXGI_ERROR_DEVICE_REMOVED");
 	}
+
+	UINT64 Value = ++m_pRenderDevice->GraphicsFenceValue;
+	ThrowCOMIfFailed(m_pRenderDevice->GraphicsQueue->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
+	ThrowCOMIfFailed(m_pRenderDevice->GraphicsFence->SetEventOnCompletion(Value, m_pRenderDevice->GraphicsFenceCompletionEvent.get()));
+	m_pRenderDevice->GraphicsFenceCompletionEvent.wait();
 
 	if (Screenshot)
 	{
@@ -181,7 +196,7 @@ void Renderer::Render()
 //----------------------------------------------------------------------------------------------------
 bool Renderer::Resize(uint32_t Width, uint32_t Height)
 {
-	m_pRenderDevice->GraphicsQueue.WaitForIdle();
+	m_pRenderDevice->FlushGraphicsQueue();
 	{
 		// Release resources before resize swap chain
 		for (auto SwapChainTexture : m_pRenderDevice->BackBufferHandle)
@@ -210,7 +225,7 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
-			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer)));
+			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
 			m_pRenderDevice->CreateTexture(m_pRenderDevice->BackBufferHandle[i], pBackBuffer, Resource::State::Common);
 			m_pRenderDevice->CreateRenderTargetView(m_pRenderDevice->BackBufferHandle[i]);
 		}
@@ -218,7 +233,7 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		// Reset back buffer index
 		m_pRenderDevice->BackBufferIndex = 0;
 	}
-	m_pRenderDevice->GraphicsQueue.WaitForIdle();
+	m_pRenderDevice->FlushGraphicsQueue();
 
 	return true;
 }
@@ -251,9 +266,9 @@ void Renderer::Destroy()
 
 	if (m_pRenderDevice)
 	{
-		m_pRenderDevice->GraphicsQueue.WaitForIdle();
-		m_pRenderDevice->CopyQueue.WaitForIdle();
-		m_pRenderDevice->ComputeQueue.WaitForIdle();
+		m_pRenderDevice->FlushGraphicsQueue();
+		m_pRenderDevice->FlushComputeQueue();
+		m_pRenderDevice->FlushCopyQueue();
 		delete m_pRenderDevice;
 		m_pRenderDevice = nullptr;
 	}
@@ -267,10 +282,12 @@ void Renderer::SetScene(Scene Scene)
 	//m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
 
 	m_Scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
+	m_Scene.Camera.SetAspectRatio(AspectRatio);
 	m_Scene.Camera.Transform.Position = { 0.0f, 5.0f, -20.0f };
 
 	m_pGpuScene->pScene = &m_Scene;
 
+	m_RenderContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
 	m_pRenderDevice->BindGpuDescriptorHeap(m_RenderContext.GetCommandContext());
 	m_pGpuScene->UploadTextures(m_RenderContext);
 	m_pGpuScene->UploadModels(m_RenderContext);
@@ -279,7 +296,8 @@ void Renderer::SetScene(Scene Scene)
 	m_pGpuScene->UploadMeshes();
 
 	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
-	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Direct, ARRAYSIZE(pCommandContexts), pCommandContexts);
+	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, ARRAYSIZE(pCommandContexts), pCommandContexts);
+	m_pRenderDevice->FlushGraphicsQueue();
 	m_pGpuScene->DisposeResources();
 }
 
@@ -339,10 +357,13 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 
 		pRenderer->AccelerationStructureCompleteEvent.ResetEvent();
 		{
+			RenderContext->Reset(pRenderDevice->ComputeFenceValue, pRenderDevice->ComputeFence->GetCompletedValue(), &pRenderDevice->ComputeQueue);
+
 			pRenderer->m_pGpuScene->CreateTopLevelAS(RenderContext);
 
 			CommandContext* pCommandContexts[] = { RenderContext.GetCommandContext() };
 			pRenderDevice->ExecuteCommandContexts(CommandContext::Compute, 1, pCommandContexts);
+			pRenderDevice->FlushComputeQueue();
 		}
 		pRenderer->AccelerationStructureCompleteEvent.SetEvent(); // Set the event after AS build is complete
 	}

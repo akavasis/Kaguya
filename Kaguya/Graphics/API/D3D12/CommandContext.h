@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d12.h>
+#include "d3dx12.h"
 #include "ResourceStateTracker.h"
 #include "DescriptorHeap.h"
 #include "CommandQueue.h"
@@ -15,16 +16,21 @@ class CommandContext
 public:
 	enum Type
 	{
-		Direct,
+		Graphics,
 		Compute,
 		Copy,
 		NumTypes
 	};
 
-	CommandContext(const Device* pDevice, CommandQueue* pCommandQueue, Type Type);
+	CommandContext(ID3D12Device4* pDevice, Type Type);
 
 	inline auto GetApiHandle() const { return m_pCommandList.Get(); }
+	inline auto GetPendingCommandList() const { return m_pPendingCommandList.Get(); }
 	inline auto GetType() const { return m_Type; }
+
+	// These methods is internally used by the renderer
+	bool Close(ResourceStateTracker& GlobalResourceStateTracker);
+	void Reset(UINT64 FenceValue, UINT64 CompletedValue, CommandQueue* pCommandQueue);
 
 	void SetPipelineState(const PipelineState* pPipelineState);
 	void SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorHeap, SamplerDescriptorHeap* pSamplerDescriptorHeap);
@@ -94,16 +100,8 @@ public:
 		m_pCommandList->DispatchMesh(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 	}
 private:
-	friend class RenderDevice;
-
-	bool Close(ResourceStateTracker& GlobalResourceStateTracker);
-	void Reset();
-	// Marks current allocator as active with the FenceValue and request a new one
-	void RequestNewAllocator(UINT64 FenceValue);
-
-	CommandQueue*										SV_pCommandQueue;
-	ID3D12CommandAllocator*								SV_pAllocator;
-	ID3D12CommandAllocator*								SV_pPendingAllocator;
+	ID3D12CommandAllocator*								SV_pAllocator			= nullptr;
+	ID3D12CommandAllocator*								SV_pPendingAllocator	= nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pCommandList;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pPendingCommandList;

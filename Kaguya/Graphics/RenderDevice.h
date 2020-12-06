@@ -56,12 +56,12 @@ public:
 	{
 		NumSwapChainBuffers				= 3,
 
-		NumConstantBufferDescriptors	= 1024,
-		NumShaderResourceDescriptors	= 1024,
-		NumUnorderedAccessDescriptors	= 1024,
-		NumSamplerDescriptors			= 1024,
-		NumRenderTargetDescriptors		= 1024,
-		NumDepthStencilDescriptors		= 1024
+		NumConstantBufferDescriptors	= 512,
+		NumShaderResourceDescriptors	= 512,
+		NumUnorderedAccessDescriptors	= 512,
+		NumSamplerDescriptors			= 512,
+		NumRenderTargetDescriptors		= 64,
+		NumDepthStencilDescriptors		= 64
 	};
 
 	static constexpr DXGI_FORMAT SwapChainBufferFormat	= DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -79,6 +79,10 @@ public:
 	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
 	inline auto GetSamplerDescriptorHeapDescriptorFromStart() const { return m_SamplerDescriptorHeap.GetDescriptorFromStart(); }
 	void ExecuteCommandContexts(CommandContext::Type Type, UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
+
+	void FlushGraphicsQueue();
+	void FlushComputeQueue();
+	void FlushCopyQueue();
 
 	// Shader compilation
 	[[nodiscard]] Shader CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
@@ -127,16 +131,17 @@ public:
 
 	Device														Device;
 	CommandQueue												GraphicsQueue, ComputeQueue, CopyQueue;
-	Microsoft::WRL::ComPtr<ID3D12Fence1>						GraphicsFence, ComputeFence, CopyFence;
 	UINT64														GraphicsFenceValue, ComputeFenceValue, CopyFenceValue;
+	Microsoft::WRL::ComPtr<ID3D12Fence1>						GraphicsFence, ComputeFence, CopyFence;
 	wil::unique_event											GraphicsFenceCompletionEvent, ComputeFenceCompletionEvent, CopyFenceCompletionEvent;
+
 	ResourceStateTracker										GlobalResourceStateTracker;
 	ShaderCompiler												ShaderCompiler;
 
 	UINT														BackBufferIndex;
 	RenderResourceHandle										BackBufferHandle[NumSwapChainBuffers];
 private:
-	CommandQueue* GetApiCommandQueue(CommandContext::Type Type);
+	CommandQueue& GetApiCommandQueue(CommandContext::Type Type);
 	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
 
 	std::vector<std::unique_ptr<CommandContext>>				m_CommandContexts[CommandContext::NumTypes];

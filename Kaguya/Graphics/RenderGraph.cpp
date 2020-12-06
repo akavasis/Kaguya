@@ -30,7 +30,7 @@ RenderPass* RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 	renderPass->OnScheduleResource(&m_ResourceScheduler, this);
 
 	m_RenderPasses.emplace_back(std::move(renderPass));
-	m_CommandContexts.emplace_back(SV_pRenderDevice->AllocateContext(CommandContext::Direct));
+	m_CommandContexts.emplace_back(SV_pRenderDevice->AllocateContext(CommandContext::Graphics));
 	return m_RenderPasses.back().get();
 }
 
@@ -148,16 +148,9 @@ void RenderGraph::Execute(bool Refresh)
 	WaitForMultipleObjects(m_WorkerCompleteEvents.size(), m_WorkerCompleteEvents.data()->addressof(), TRUE, INFINITE);
 }
 
-void RenderGraph::ExecuteCommandContexts(RenderContext& RendererRenderContext)
+std::vector<CommandContext*>& RenderGraph::GetCommandContexts()
 {
-	std::vector<CommandContext*> CommandContexts(m_CommandContexts.size() + 1);
-	CommandContexts[0] = RendererRenderContext.GetCommandContext();
-	for (size_t i = 1; i < CommandContexts.size(); ++i)
-	{
-		CommandContexts[i] = m_CommandContexts[i - 1];
-	}
-
-	SV_pRenderDevice->ExecuteCommandContexts(CommandContext::Direct, CommandContexts.size(), CommandContexts.data());
+	return m_CommandContexts;
 }
 
 DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
@@ -247,7 +240,6 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 
 		// Tell parent thread that we are done
 		SetEvent(CompleteSignal);
-		LOG_INFO("{} Executed.", pRenderPass->Name.data());
 	}
 
 	return EXIT_SUCCESS;
