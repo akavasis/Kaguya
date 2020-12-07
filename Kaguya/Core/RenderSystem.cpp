@@ -5,27 +5,20 @@
 
 RenderSystem::RenderSystem(uint32_t Width, uint32_t Height)
 	: Width(Width), Height(Height),
-	AspectRatio(static_cast<float>(Width) / static_cast<float>(Height))
+	AspectRatio(static_cast<float>(Width) / static_cast<float>(Height)),
+	Screenshot(false)
 {
+
 }
 
 RenderSystem::~RenderSystem()
 {
+
 }
 
 bool RenderSystem::OnInitialize()
 {
 	return Initialize();
-}
-
-void RenderSystem::OnHandleMouse(int32_t X, int32_t Y, float DeltaTime)
-{
-	return HandleMouse(X, Y, DeltaTime);
-}
-
-void RenderSystem::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
-{
-	return HandleKeyboard(Keyboard, DeltaTime);
 }
 
 void RenderSystem::OnUpdate(const Time& Time)
@@ -40,6 +33,16 @@ void RenderSystem::OnUpdate(const Time& Time)
 		Statistics::TimeElapsed += 1.0;
 	}
 	return Update(Time);
+}
+
+void RenderSystem::OnHandleMouse(int32_t X, int32_t Y, float DeltaTime)
+{
+	return HandleMouse(X, Y, DeltaTime);
+}
+
+void RenderSystem::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
+{
+	return HandleKeyboard(Keyboard, DeltaTime);
 }
 
 void RenderSystem::OnRender()

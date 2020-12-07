@@ -118,8 +118,6 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> DXGIManager::QueryAdapter(API API)
 
 	if (SUCCEEDED(m_pQueriedAdapter->GetDesc3(&Desc)))
 	{
-		m_QueriedAdapterDesc = Desc;
-
 		std::string desc = UTF16ToUTF8(Desc.Description);
 		LOG_INFO("Queried Adapter/GPU: {} \n\t\t\tVendor: {}", desc.data(), ((Desc.VendorId == 0x10DE) ? "Nvidia" : "Unknown"));
 	}

@@ -10,9 +10,7 @@
 #include "SVGF.h"
 
 ShadingComposition::ShadingComposition(UINT Width, UINT Height)
-	: RenderPass("Shading Composition",
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		NumResources)
+	: RenderPass("Shading Composition", { Width, Height }, NumResources)
 {
 
 }
@@ -38,10 +36,10 @@ void ShadingComposition::ScheduleResource(ResourceScheduler* pResourceScheduler,
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(Properties.Format);
+		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -58,7 +56,7 @@ void ShadingComposition::RenderGui()
 
 void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Shading Composition");
+	PIXEvent(RenderContext->GetApiHandle(), L"Shading Composition");
 
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
 	auto pSVGFAtrousRenderPass = pRenderGraph->GetRenderPass<SVGFAtrous>();

@@ -38,7 +38,7 @@ public:
 	template<typename RenderPass>
 	RenderPass* GetRenderPass() const;
 
-	void AddRenderPass(RenderPass* pRenderPass);
+	RenderPass* AddRenderPass(RenderPass* pRenderPass);
 
 	// Only call once
 	void Initialize(HANDLE AccelerationStructureCompleteSignal);
@@ -48,7 +48,9 @@ public:
 	void RenderGui();
 	void UpdateSystemConstants(const HLSL::SystemConstants& HostSystemConstants);
 	void Execute(bool Refresh);
-	void ExecuteCommandContexts(RenderContext& RendererRenderContext);
+
+	// Returns the command contexts that needs to be executed
+	std::vector<CommandContext*>& GetCommandContexts();
 private:
 	struct RenderPassThreadProcParameter
 	{
@@ -73,14 +75,13 @@ private:
 	RenderDevice*												SV_pRenderDevice;
 
 	HANDLE														m_AccelerationStructureCompleteSignal;
-	std::vector<HANDLE>											m_WorkerExecuteSignals;
-	std::vector<HANDLE>											m_WorkerCompleteSignals;
+	std::vector<wil::unique_event>								m_WorkerExecuteEvents;
+	std::vector<wil::unique_event>								m_WorkerCompleteEvents;
 	std::vector<RenderPassThreadProcParameter>					m_ThreadParameters;
-	std::vector<HANDLE>											m_Threads;
+	std::vector<wil::unique_handle>								m_Threads;
 
 	ResourceScheduler											m_ResourceScheduler;
 	std::vector<std::unique_ptr<RenderPass>>					m_RenderPasses;
-	std::vector<std::reference_wrapper<const std::type_info>>	m_RenderPassIDs;
 	std::vector<CommandContext*>								m_CommandContexts;
 	RenderResourceHandle										m_SystemConstants;
 	RenderResourceHandle										m_GpuData;

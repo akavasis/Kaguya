@@ -1,4 +1,5 @@
 #pragma once
+#include <wil/resource.h>
 #include <filesystem>
 #include "Window.h"
 #include "RenderSystem.h"
@@ -19,6 +20,6 @@ private:
 	static DWORD WINAPI RenderThreadProc(_In_ PVOID pParameter);
 	static bool HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message);
 
-	inline static HANDLE						RenderThread;
+	inline static wil::unique_handle			RenderThread;
 	inline static bool							ExitRenderThread		= false;
 };

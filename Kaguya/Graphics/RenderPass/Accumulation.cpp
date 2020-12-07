@@ -12,7 +12,7 @@
 
 Accumulation::Accumulation(UINT Width, UINT Height)
 	: RenderPass("Accumulation",
-		{ Width, Height, RendererFormats::HDRBufferFormat },
+		{ Width, Height },
 		NumResources)
 {
 	
@@ -39,10 +39,10 @@ void Accumulation::ScheduleResource(ResourceScheduler* pResourceScheduler, Rende
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(Properties.Format);
+		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -59,7 +59,7 @@ void Accumulation::RenderGui()
 
 void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Accumulation");
+	PIXEvent(RenderContext->GetApiHandle(), L"Accumulation");
 
 	//auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);

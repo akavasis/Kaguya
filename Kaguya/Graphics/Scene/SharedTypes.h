@@ -12,6 +12,7 @@ namespace HLSL
 		float	Luminance;
 		float	Width;
 		float	Height;
+		float3	Points[4]; // World-space points that are pre-computed on the Cpu so we don't have to compute them in shader for every ray
 	};
 
 	struct Material
@@ -30,6 +31,15 @@ namespace HLSL
 
 		int		TextureIndices[NumTextureTypes];
 		int		TextureChannel[NumTextureTypes];
+	};
+
+	struct Mesh
+	{
+		uint	VertexOffset;
+		uint	IndexOffset;
+		uint	MaterialIndex;
+		matrix	World;
+		matrix	PreviousWorld;
 	};
 
 	struct Camera
@@ -55,15 +65,6 @@ namespace HLSL
 		matrix	InvView;
 		matrix	InvProjection;
 		matrix	InvViewProjection;
-	};
-
-	struct Mesh
-	{
-		uint	VertexOffset;
-		uint	IndexOffset;
-		uint	MaterialIndex;
-		matrix	World;
-		matrix	PreviousWorld;
 	};
 
 	struct SystemConstants

@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <cassert>
 
 template<typename T, size_t Size>
 class Pool

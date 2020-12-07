@@ -13,14 +13,35 @@ namespace
 	static constexpr size_t LightBufferByteSize			= NumLights * sizeof(HLSL::PolygonalLight);
 	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSL::Material);
 	static constexpr size_t MeshBufferByteSize			= 30_MiB;
-	static constexpr size_t VertexBufferByteSize		= 30_MiB;
-	static constexpr size_t IndexBufferByteSize			= 30_MiB;
 }
 
 HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
 {
-	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Light.Transform.Matrix()));
+	using namespace DirectX;
+
+	XMMATRIX Transform = Light.Transform.Matrix();
+
+	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Transform));
 	float4 Orientation; XMStoreFloat4(&Orientation, DirectX::XMVector3Normalize(Light.Transform.Forward()));
+	float3 Points[4];
+	float halfWidth = Light.GetWidth() * 0.5f;
+	float halfHeight = Light.GetHeight() * 0.5f;
+	// Get billboard points at the origin
+	XMVECTOR p0 = XMVectorSet(+halfWidth, -halfHeight, 0, 1);
+	XMVECTOR p1 = XMVectorSet(+halfWidth, +halfHeight, 0, 1);
+	XMVECTOR p2 = XMVectorSet(-halfWidth, +halfHeight, 0, 1);
+	XMVECTOR p3 = XMVectorSet(-halfWidth, -halfHeight, 0, 1);
+
+	// Precompute the light points here so ray generation shader doesnt have to do it
+	// for every ray
+	// Move points to light's location
+	// Clockwise to match LTC convention
+	float3 points[4];
+	XMStoreFloat3(&points[0], XMVector3TransformCoord(p3, Transform));
+	XMStoreFloat3(&points[1], XMVector3TransformCoord(p2, Transform));
+	XMStoreFloat3(&points[2], XMVector3TransformCoord(p1, Transform));
+	XMStoreFloat3(&points[3], XMVector3TransformCoord(p0, Transform));
+	
 	return
 	{
 		.Position		= Light.Transform.Position,
@@ -29,7 +50,14 @@ HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
 		.Color			= Light.Color,
 		.Luminance		= Light.GetLuminance(),
 		.Width			= Light.GetWidth(),
-		.Height			= Light.GetHeight()
+		.Height			= Light.GetHeight(),
+		.Points =
+		{
+			points[0],
+			points[1],
+			points[2],
+			points[3],
+		}
 	};
 }
 
@@ -64,6 +92,20 @@ HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 			Material.TextureChannel[3],
 			Material.TextureChannel[4],
 		}
+	};
+}
+
+HLSL::Mesh GetHLSLMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
+{
+	matrix World;			XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
+	matrix PreviousWorld;	XMStoreFloat4x4(&PreviousWorld, XMMatrixTranspose(MeshInstance.PreviousTransform.Matrix()));
+	return
+	{
+		.VertexOffset = MeshInstance.pMesh->BaseVertexLocation,
+		.IndexOffset = MeshInstance.pMesh->StartIndexLocation,
+		.MaterialIndex = (uint32_t)MaterialIndex,
+		.World = World,
+		.PreviousWorld = PreviousWorld
 	};
 }
 
@@ -110,189 +152,53 @@ HLSL::Camera GetHLSLCameraDesc(const PerspectiveCamera& Camera)
 	};
 }
 
-HLSL::Mesh GetShaderMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
-{
-	matrix World;			XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
-	matrix PreviousWorld;	XMStoreFloat4x4(&PreviousWorld, XMMatrixTranspose(MeshInstance.PreviousTransform.Matrix()));
-	return
-	{
-		.VertexOffset	= MeshInstance.pMesh->BaseVertexLocation,
-		.IndexOffset	= MeshInstance.pMesh->StartIndexLocation,
-		.MaterialIndex	= (uint)MaterialIndex,
-		.World			= World,
-		.PreviousWorld	= PreviousWorld
-	};
-}
-
 GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice),
 	pScene(nullptr),
-	GpuTextureAllocator(pRenderDevice)
+	BufferManager(pRenderDevice),
+	TextureManager(pRenderDevice)
 {
 	m_LightTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Light Table");
 	m_MaterialTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Material Table");
 	m_MeshTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Mesh Table");
 
-	m_VertexBuffer = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Vertex Buffer");
-	m_UploadVertexBuffer = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Vertex Buffer (Upload)");
-
-	m_IndexBuffer = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Index Buffer");
-	m_UploadIndexBuffer = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Index Buffer (Upload)");
-
 	m_RaytracingTopLevelAccelerationStructure =
 	{
 		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure (Scratch)"),
-		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure (Result)"),
+		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure"),
 		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure (InstanceDescs)")
 	};
 
-	pRenderDevice->CreateDeviceBuffer(m_LightTable, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_LightTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(LightBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::PolygonalLight));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_MaterialTable, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_MaterialTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(MaterialBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::Material));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
 
-	pRenderDevice->CreateDeviceBuffer(m_MeshTable, [&](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(m_MeshTable, [&](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(MeshBufferByteSize);
 		proxy.SetStride(sizeof(HLSL::Mesh));
 		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 	});
-	
-	// Vertex Buffer
-	pRenderDevice->CreateDeviceBuffer(m_VertexBuffer, [&](BufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(VertexBufferByteSize);
-		proxy.SetStride(sizeof(Vertex));
-		proxy.InitialState = Resource::State::NonPixelShaderResource;
-	});
-
-	pRenderDevice->CreateDeviceBuffer(m_UploadVertexBuffer, [&](BufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(VertexBufferByteSize);
-		proxy.SetStride(sizeof(Vertex));
-		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-	});
-
-	m_VertexBufferAllocator.Reset(VertexBufferByteSize);
-
-	// Index Buffer
-	pRenderDevice->CreateDeviceBuffer(m_IndexBuffer, [&](BufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(IndexBufferByteSize);
-		proxy.SetStride(sizeof(unsigned int));
-		proxy.InitialState = Resource::State::NonPixelShaderResource;
-	});
-
-	pRenderDevice->CreateDeviceBuffer(m_UploadIndexBuffer, [&](BufferProxy& proxy)
-	{
-		proxy.SetSizeInBytes(IndexBufferByteSize);
-		proxy.SetStride(sizeof(unsigned int));
-		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-	});
-
-	m_IndexBufferAllocator.Reset(IndexBufferByteSize);
 }
 
 void GpuScene::UploadTextures(RenderContext& RenderContext)
 {
-	GpuTextureAllocator.Stage(*pScene, RenderContext);
+	TextureManager.Stage(*pScene, RenderContext);
 }
 
 void GpuScene::UploadModels(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Upload Models");
-
-	auto pVertexBuffer = pRenderDevice->GetBuffer(m_VertexBuffer);
-	auto pUploadVertexBuffer = pRenderDevice->GetBuffer(m_UploadVertexBuffer);
-
-	auto pIndexBuffer = pRenderDevice->GetBuffer(m_IndexBuffer);
-	auto pUploadIndexBuffer = pRenderDevice->GetBuffer(m_UploadIndexBuffer);
-
-	for (auto& model : pScene->Models)
-	{
-		UINT64 totalVertexBytes = model.Vertices.size() * sizeof(Vertex);
-		UINT64 totalIndexBytes = model.Indices.size() * sizeof(UINT);
-
-		size_t vertexByteOffset, indexByteOffset;
-
-		// Stage vertex
-		{
-			auto pair = m_VertexBufferAllocator.Allocate(totalVertexBytes);
-			assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
-			auto [offset, size] = pair.value();
-
-			auto pGPU = pUploadVertexBuffer->Map();
-			auto pCPU = model.Vertices.data();
-			memcpy(&pGPU[offset], pCPU, size);
-			vertexByteOffset = offset;
-		}
-
-		// Stage index
-		{
-			auto pair = m_IndexBufferAllocator.Allocate(totalIndexBytes);
-			assert(pair.has_value() && "Unable to allocate data, consider increasing memory");
-			auto [offset, size] = pair.value();
-
-			auto pGPU = pUploadIndexBuffer->Map();
-			auto pCPU = model.Indices.data();
-			memcpy(&pGPU[offset], pCPU, size);
-			indexByteOffset = offset;
-		}
-
-		for (auto& mesh : model.Meshes)
-		{
-			assert(vertexByteOffset % sizeof(Vertex) == 0 && "Vertex offset mismatch");
-			assert(indexByteOffset % sizeof(UINT) == 0 && "Index offset mismatch");
-			mesh.BaseVertexLocation += (vertexByteOffset / sizeof(Vertex));
-			mesh.StartIndexLocation += (indexByteOffset / sizeof(UINT));
-		}
-
-		if (!model.Path.empty())
-		{
-			LOG_INFO("{} Loaded", model.Path);
-		}
-
-		// Add model's meshes into RTBLAS
-		RTBLAS rtblas;
-		rtblas.Scratch	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " (Scratch)");
-		rtblas.Result	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, model.Path + " (Result)");
-		for (auto& mesh : model.Meshes)
-		{
-			// Update mesh's BLAS Index
-			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
-
-			RaytracingGeometryDesc Desc = {};
-			Desc.pVertexBuffer			= pVertexBuffer;
-			Desc.VertexStride			= sizeof(Vertex);
-			Desc.pIndexBuffer			= pIndexBuffer;
-			Desc.IndexStride			= sizeof(unsigned int);
-			Desc.IsOpaque				= true;
-			Desc.NumVertices			= mesh.VertexCount;
-			Desc.VertexOffset			= mesh.BaseVertexLocation;
-			Desc.NumIndices				= mesh.IndexCount;
-			Desc.IndexOffset			= mesh.StartIndexLocation;
-
-			rtblas.BLAS.AddGeometry(Desc);
-		}
-		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
-	}
-
-	RenderContext->CopyResource(pVertexBuffer, pUploadVertexBuffer);
-	RenderContext->TransitionBarrier(pVertexBuffer, Resource::State::VertexBuffer | Resource::State::NonPixelShaderResource);
-
-	RenderContext->CopyResource(pIndexBuffer, pUploadIndexBuffer);
-	RenderContext->TransitionBarrier(pIndexBuffer, Resource::State::IndexBuffer | Resource::State::NonPixelShaderResource);
-
-	RenderContext->FlushResourceBarriers();
+	BufferManager.Stage(*pScene, RenderContext);
 
 	CreateBottomLevelAS(RenderContext);
 }
@@ -304,7 +210,7 @@ void GpuScene::DisposeResources()
 		pRenderDevice->Destroy(rtblas.Scratch);
 	}
 
-	GpuTextureAllocator.DisposeResources();
+	TextureManager.DisposeResources();
 }
 
 void GpuScene::UploadLights()
@@ -350,15 +256,10 @@ void GpuScene::UploadMeshes()
 	{
 		for (auto& meshInstance : modelInstance.MeshInstances)
 		{
+			// InstanceID will be used to find the data for this instance in shader
 			meshInstance.InstanceID = hlslMeshes.size();
 
-			HLSL::Mesh hlslMesh		= {};
-			hlslMesh.VertexOffset	= meshInstance.pMesh->BaseVertexLocation;
-			hlslMesh.IndexOffset	= meshInstance.pMesh->StartIndexLocation;
-			hlslMesh.MaterialIndex	= modelInstance.pMaterial->GpuMaterialIndex;
-			XMStoreFloat4x4(&hlslMesh.World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
-
-			hlslMeshes.push_back(hlslMesh);
+			hlslMeshes.push_back(GetHLSLMeshDesc(modelInstance.pMaterial->GpuMaterialIndex, meshInstance));
 		}
 	}
 
@@ -428,11 +329,11 @@ bool GpuScene::Update(float AspectRatio)
 
 void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Top Level Acceleration Structure Generation");
+	PIXEvent(RenderContext->GetApiHandle(), L"Top Level Acceleration Structure Generation");
 
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
 
-	size_t hitGroupIndex = 0;
+	size_t HitGroupIndex = 0;
 	for (const auto& modelInstance : pScene->ModelInstances)
 	{
 		for (const auto& meshInstance : modelInstance.MeshInstances)
@@ -446,63 +347,61 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 			Desc.InstanceID								= meshInstance.InstanceID;
 			Desc.InstanceMask							= RAYTRACING_INSTANCEMASK_ALL;
 
-			Desc.InstanceContributionToHitGroupIndex	= hitGroupIndex;
+			Desc.InstanceContributionToHitGroupIndex	= HitGroupIndex;
 
 			TopLevelAccelerationStructure.AddInstance(Desc);
 
-			hitGroupIndex++;
+			HitGroupIndex++;
 		}
 	}
 
-	UINT64 scratchSizeInBytes, resultSizeInBytes, instanceDescsSizeInBytes;
-	TopLevelAccelerationStructure.ComputeMemoryRequirements(&pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSizeInBytes);
+	UINT64 ScratchSizeInBytes, ResultSizeInBytes, InstanceDescsSizeInBytes;
+	TopLevelAccelerationStructure.ComputeMemoryRequirements(&pRenderDevice->Device, &ScratchSizeInBytes, &ResultSizeInBytes, &InstanceDescsSizeInBytes);
 
 	Buffer* pScratch = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch);
 	Buffer* pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
 	Buffer* pInstanceDescs = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
 
-	if (!pScratch || pScratch->GetSizeInBytes() < scratchSizeInBytes)
+	if (!pScratch || pScratch->GetSizeInBytes() < ScratchSizeInBytes)
 	{
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.Scratch);
 
 		// TLAS Scratch
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch, [=](BufferProxy& proxy)
 		{
-			proxy.SetSizeInBytes(scratchSizeInBytes);
-			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+			proxy.SetSizeInBytes(ScratchSizeInBytes);
+			proxy.BindFlags = Resource::Flags::AccelerationStructure;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 		pScratch = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch);
 	}
 
-	if (!pResult || pResult->GetSizeInBytes() < resultSizeInBytes)
+	if (!pResult || pResult->GetSizeInBytes() < ResultSizeInBytes)
 	{
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.Result);
 
 		// TLAS Result
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.Result, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RaytracingTopLevelAccelerationStructure.Result, [=](BufferProxy& proxy)
 		{
-			proxy.SetSizeInBytes(resultSizeInBytes);
-			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+			proxy.SetSizeInBytes(ResultSizeInBytes);
+			proxy.BindFlags = Resource::Flags::AccelerationStructure;
 			proxy.InitialState = Resource::State::AccelerationStructure;
 		});
 		pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
 	}
 
-	if (!pInstanceDescs || pInstanceDescs->GetSizeInBytes() < instanceDescsSizeInBytes)
+	if (!pInstanceDescs || pInstanceDescs->GetSizeInBytes() < InstanceDescsSizeInBytes)
 	{
 		pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
 
 		// TLAS Instance Desc
-		pRenderDevice->CreateDeviceBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs, [=](BufferProxy& proxy)
 		{
-			proxy.SetSizeInBytes(instanceDescsSizeInBytes);
+			proxy.SetSizeInBytes(InstanceDescsSizeInBytes);
 			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
 		});
 		pInstanceDescs = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
 	}
-
-	pResult->SetDebugName(L"Top Level Acceleration Structure");
 
 	TopLevelAccelerationStructure.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
 }
@@ -519,7 +418,36 @@ HLSL::Camera GpuScene::GetHLSLPreviousCamera() const
 
 void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Bottom Level Acceleration Structure Generation");
+	for (auto& Model : pScene->Models)
+	{
+		auto pVertexBuffer = pRenderDevice->GetBuffer(Model.VertexResource);
+		auto pIndexBuffer = pRenderDevice->GetBuffer(Model.IndexResource);
+
+		RTBLAS rtblas;
+		rtblas.Scratch = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + " (Scratch)");
+		rtblas.Result = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + " (Result)");
+		for (auto& mesh : Model)
+		{
+			// Update mesh's BLAS Index
+			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
+
+			RaytracingGeometryDesc Desc = {};
+			Desc.pVertexBuffer			= pVertexBuffer;
+			Desc.VertexStride			= sizeof(Vertex);
+			Desc.pIndexBuffer			= pIndexBuffer;
+			Desc.IndexStride			= sizeof(unsigned int);
+			Desc.IsOpaque				= true;
+			Desc.NumVertices			= mesh.VertexCount;
+			Desc.VertexOffset			= mesh.BaseVertexLocation;
+			Desc.NumIndices				= mesh.IndexCount;
+			Desc.IndexOffset			= mesh.StartIndexLocation;
+
+			rtblas.BLAS.AddGeometry(Desc);
+		}
+		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
+	}
+
+	PIXEvent(RenderContext->GetApiHandle(), L"Bottom Level Acceleration Structure Generation");
 
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
@@ -527,18 +455,18 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		rtblas.BLAS.ComputeMemoryRequirements(&pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
 
 		// BLAS Scratch
-		pRenderDevice->CreateDeviceBuffer(rtblas.Scratch, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(rtblas.Scratch, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(scratchSizeInBytes);
-			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+			proxy.BindFlags = Resource::Flags::AccelerationStructure;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 
 		// BLAS Result
-		pRenderDevice->CreateDeviceBuffer(rtblas.Result, [=](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(rtblas.Result, [=](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(resultSizeInBytes);
-			proxy.BindFlags = Resource::BindFlags::AccelerationStructure;
+			proxy.BindFlags = Resource::Flags::AccelerationStructure;
 			proxy.InitialState = Resource::State::AccelerationStructure;
 		});
 

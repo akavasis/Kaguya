@@ -1,5 +1,6 @@
 #pragma once
 #include <wrl/client.h>
+#include <wil/resource.h>
 #include "Core/RenderSystem.h"
 
 #include "RenderDevice.h"
@@ -14,9 +15,9 @@ public:
 
 protected:
 	bool Initialize() override;
+	void Update(const Time& Time) override;
 	void HandleMouse(int32_t X, int32_t Y, float DeltaTime) override;
 	void HandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
-	void Update(const Time& Time) override;
 	void Render() override;
 	bool Resize(uint32_t Width, uint32_t Height) override;
 	void Destroy() override;
@@ -25,6 +26,7 @@ private:
 	void RenderGui();
 
 	static DWORD WINAPI AsyncComputeThreadProc(_In_ PVOID pParameter);
+	static DWORD WINAPI AsyncCopyThreadProc(_In_ PVOID pParameter);
 	
 	DXGIManager								m_DXGIManager;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
@@ -36,8 +38,9 @@ private:
 	Scene									m_Scene;
 	GpuScene*								m_pGpuScene							= nullptr;
 
-	HANDLE									BuildAccelerationStructureSignal	= nullptr;
-	HANDLE									AccelerationStructureCompleteSignal = nullptr;
-	HANDLE									AsyncComputeThread					= nullptr;
-	bool									ExitAsyncComputeThread				= false;
+	wil::unique_event						BuildAccelerationStructureEvent		= nullptr;
+	wil::unique_event						AccelerationStructureCompleteEvent	= nullptr;
+	wil::unique_handle						AsyncComputeThread					= nullptr;
+	wil::unique_handle						AsyncCopyThread						= nullptr;
+	bool									ExitAsyncQueuesThread				= false;
 };

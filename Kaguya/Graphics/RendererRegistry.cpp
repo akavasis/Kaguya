@@ -15,14 +15,19 @@ void Shaders::Register(RenderDevice* pRenderDevice)
 	{
 		VS::Quad										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",			L"VSMain", {});
 		VS::Skybox										= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Skybox.hlsli",		L"VSMain", {});
-		VS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",	L"VSMain", {});
-		VS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",	L"VSMain", {});
+	}
+
+	// Load MS
+	{
+		MS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl", L"MSMain", {});
+		MS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl", L"MSMain", {});
 	}
 
 	// Load PS
 	{
 		PS::ConvolutionIrradiance						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionIrradiance.hlsl",	L"PSMain", {});
 		PS::ConvolutionPrefilter						= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",	L"PSMain", {});
+
 		PS::GBufferMeshes								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			L"PSMain", {});
 		PS::GBufferLights								= pRenderDevice->CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",			L"PSMain", {});
 
@@ -61,6 +66,8 @@ void Libraries::Register(RenderDevice* pRenderDevice)
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
+	InitRootSignature(Default);
+
 	InitRootSignature(ConvolutionIrradiace);
 	InitRootSignature(ConvolutionPrefilter);
 	InitRootSignature(GenerateMips);
@@ -83,9 +90,17 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	InitRootSignature(PostProcess_BloomUpsampleBlurAccumulation);
 	InitRootSignature(PostProcess_BloomComposition);
 
+	InitRootSignature(MeshShader);
+
 	InitRootSignature(Raytracing::Accumulation);
 	InitRootSignature(Raytracing::EmptyLocal);
 	InitRootSignature(Raytracing::Global);
+
+	pRenderDevice->CreateRootSignature(Default, [](RootSignatureProxy& proxy)
+	{
+		proxy.DenyTessellationShaderAccess();
+		proxy.DenyGSAccess();
+	});
 
 	// Cubemap convolutions RS
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
@@ -180,6 +195,8 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 	InitGraphicsPSO(GBufferLights);
 
 	InitGraphicsPSO(PostProcess_Tonemapping);
+
+	InitGraphicsPSO(MeshShader);
 
 	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
 	{

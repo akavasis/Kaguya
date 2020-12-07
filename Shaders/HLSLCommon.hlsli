@@ -34,9 +34,9 @@ void CoordinateSystem(float3 V1, out float3 V2, out float3 V3)
 
 float3x3 GetTBNMatrix(float3 Normal)
 {
-	float3 tangent, bitangent;
-	CoordinateSystem(Normal, tangent, bitangent);
-	return float3x3(tangent, bitangent, Normal);
+	float3 Tangent, Bitangent;
+	CoordinateSystem(Normal, Tangent, Bitangent);
+	return float3x3(Tangent, Bitangent, Normal);
 }
 
 // Returns a relative luminance of an input linear RGB color in the ITU-R BT.709 color space

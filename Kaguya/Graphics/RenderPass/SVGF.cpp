@@ -11,9 +11,7 @@
 
 //----------------------------------------------------------------------------------------------------
 SVGFReproject::SVGFReproject(UINT Width, UINT Height)
-	: RenderPass("Spatiotemporal Variance-Guided Filtering: Reproject",
-		{ Width, Height, DXGI_FORMAT_UNKNOWN },
-		NumResources)
+	: RenderPass("Spatiotemporal Variance-Guided Filtering: Reproject", { Width, Height }, NumResources)
 {
 
 }
@@ -75,7 +73,7 @@ void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler, Rend
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = Resource::Flags::UnorderedAccess;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
@@ -86,7 +84,7 @@ void SVGFReproject::ScheduleResource(ResourceScheduler* pResourceScheduler, Rend
 		proxy.SetFormat(DXGI_FORMAT_R16_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -103,7 +101,7 @@ void SVGFReproject::RenderGui()
 
 void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"SVGF Reproject");
+	PIXEvent(RenderContext->GetApiHandle(), L"SVGF Reproject");
 
 	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget0], Resource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget1], Resource::State::NonPixelShaderResource);
@@ -182,9 +180,7 @@ void SVGFReproject::StateRefresh()
 
 //----------------------------------------------------------------------------------------------------
 SVGFFilterMoments::SVGFFilterMoments(UINT Width, UINT Height)
-	: RenderPass("Spatiotemporal Variance-Guided Filtering: Filter Moments",
-		{ Width, Height, DXGI_FORMAT_UNKNOWN },
-		NumResources)
+	: RenderPass("Spatiotemporal Variance-Guided Filtering: Filter Moments", { Width, Height }, NumResources)
 {
 
 }
@@ -217,7 +213,7 @@ void SVGFFilterMoments::ScheduleResource(ResourceScheduler* pResourceScheduler, 
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = Resource::Flags::UnorderedAccess;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
@@ -235,7 +231,7 @@ void SVGFFilterMoments::RenderGui()
 
 void SVGFFilterMoments::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"SVGF Filter Moments");
+	PIXEvent(RenderContext->GetApiHandle(), L"SVGF Filter Moments");
 
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 	auto pSVGFReprojectRenderPass = pRenderGraph->GetRenderPass<SVGFReproject>();
@@ -286,9 +282,7 @@ void SVGFFilterMoments::StateRefresh()
 
 //----------------------------------------------------------------------------------------------------
 SVGFAtrous::SVGFAtrous(UINT Width, UINT Height)
-	: RenderPass("Spatiotemporal Variance-Guided Filtering: Atrous",
-		{ Width, Height, DXGI_FORMAT_UNKNOWN },
-		NumResources)
+	: RenderPass("Spatiotemporal Variance-Guided Filtering: Atrous", { Width, Height }, NumResources)
 {
 
 }
@@ -321,7 +315,7 @@ void SVGFAtrous::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderG
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = Resource::Flags::UnorderedAccess;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
@@ -339,7 +333,7 @@ void SVGFAtrous::RenderGui()
 
 void SVGFAtrous::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"SVGF Atrous");
+	PIXEvent(RenderContext->GetApiHandle(), L"SVGF Atrous");
 
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 	auto pSVGFReprojectRenderPass = pRenderGraph->GetRenderPass<SVGFReproject>();

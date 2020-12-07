@@ -7,9 +7,7 @@
 #include "Graphics/RendererRegistry.h"
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
-	: RenderPass("Path tracing",
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		NumResources)
+	: RenderPass("Path tracing", { Width, Height }, NumResources)
 {
 	UseRayTracing = true;
 }
@@ -86,10 +84,10 @@ void Pathtracing::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(Properties.Format);
+		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -109,7 +107,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -129,7 +127,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -158,7 +156,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -191,7 +189,7 @@ void Pathtracing::RenderGui()
 
 void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Path tracing");
+	PIXEvent(RenderContext->GetApiHandle(), L"Path tracing");
 
 	struct RenderPassData
 	{
@@ -202,12 +200,12 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Pathtracing);
-	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
+	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
+	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTableHandle());
-	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTableHandle());
+	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTable());
+	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTable());
 
 	RenderContext.DispatchRays(
 		m_RayGenerationShaderTable,

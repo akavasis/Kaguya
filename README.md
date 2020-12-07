@@ -5,6 +5,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 # Features
 - __Path tracing__
 - __Deferred rendering__
+- __Hybrid renderer (Utilize both rasterization and ray tracing)__
 - __Bindless resource__
 - __Multi-threaded commandlist recording__
 - __Utilization of multiple queues on the GPU__
@@ -35,6 +36,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 
 # Acknowledgements
 - assimp (https://github.com/assimp/assimp)
+- DirectXMesh (https://github.com/microsoft/DirectXMesh)
 - DirectXTex (https://github.com/microsoft/DirectXTex)
 - DirectX Shader Compiler (https://github.com/microsoft/DirectXShaderCompiler)
 - imgui (https://github.com/ocornut/imgui)

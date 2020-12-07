@@ -68,7 +68,6 @@ struct EquirectangularToCubemapData
 
 struct RendererFormats
 {
-	static constexpr DXGI_FORMAT HDRBufferFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
 	static constexpr DXGI_FORMAT IrradianceFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
 	static constexpr DXGI_FORMAT PrefilterFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
 };
@@ -79,6 +78,10 @@ struct Shaders
 	{
 		inline static Shader Quad;
 		inline static Shader Skybox;
+	};
+
+	struct MS
+	{
 		inline static Shader GBufferMeshes;
 		inline static Shader GBufferLights;
 	};
@@ -87,6 +90,7 @@ struct Shaders
 	{
 		inline static Shader ConvolutionIrradiance;
 		inline static Shader ConvolutionPrefilter;
+
 		inline static Shader GBufferMeshes;
 		inline static Shader GBufferLights;
 
@@ -127,6 +131,8 @@ struct Libraries
 
 struct RootSignatures
 {
+	inline static RenderResourceHandle Default;
+
 	inline static RenderResourceHandle ConvolutionIrradiace;
 	inline static RenderResourceHandle ConvolutionPrefilter;
 	inline static RenderResourceHandle GenerateMips;
@@ -149,6 +155,8 @@ struct RootSignatures
 	inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
 	inline static RenderResourceHandle PostProcess_BloomComposition;
 
+	inline static RenderResourceHandle MeshShader;
+
 	struct Raytracing
 	{
 		inline static RenderResourceHandle Accumulation;
@@ -169,6 +177,8 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle GBufferLights;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
+
+	inline static RenderResourceHandle MeshShader;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

@@ -1,6 +1,6 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <wil/resource.h>
 #include <string>
 #include "Mouse.h"
 #include "Keyboard.h"
@@ -39,7 +39,7 @@ public:
 	bool CursorEnabled() const;
 	bool IsFocused() const;
 
-	inline auto GetWindowHandle() const { return m_WindowHandle; }
+	inline auto GetWindowHandle() const { return m_WindowHandle.get(); }
 	inline auto GetWindowName() const { return m_WindowName; }
 	inline auto GetWindowWidth() const { return m_WindowWidth; }
 	inline auto GetWindowHeight() const { return m_WindowHeight; }
@@ -66,13 +66,13 @@ private:
 		~ImGuiContextManager();
 	};
 
-	HICON						m_Icon;
-	HCURSOR						m_Cursor;
+	wil::unique_hicon			m_Icon;
+	wil::unique_hcursor			m_Cursor;
+	wil::unique_hwnd			m_WindowHandle;
 
 	std::wstring				m_WindowName;
 	unsigned int				m_WindowWidth;
 	unsigned int				m_WindowHeight;
-	HWND						m_WindowHandle;
 	bool						m_CursorEnabled;
 
 	ImGuiContextManager			m_ImGuiContextManager;

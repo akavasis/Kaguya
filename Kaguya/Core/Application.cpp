@@ -41,7 +41,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 
 		// Begin our render thread
 		ExitRenderThread			= false;
-		RenderThread				= ::CreateThread(NULL, 0, Application::RenderThreadProc, pRenderSystem, 0, nullptr);
+		RenderThread				= wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, pRenderSystem, 0, nullptr));
 		if (!RenderThread)
 		{
 			LOG_ERROR("Failed to create thread (error={})", ::GetLastError());
@@ -100,8 +100,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 	if (RenderThread)
 	{
 		ExitRenderThread = true;
-		::WaitForSingleObject(RenderThread, INFINITE);
-		::CloseHandle(RenderThread);
+		::WaitForSingleObject(RenderThread.get(), INFINITE);
 	}
 
 	if (pWindow)
@@ -119,6 +118,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 {
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
 
+	ThrowCOMIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
 	auto pRenderSystem = reinterpret_cast<RenderSystem*>(pParameter);
 	
 	Time Time;
@@ -133,7 +133,6 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 			continue;
 
 		Time.Signal();
-		pRenderSystem->OnUpdate(Time);
 
 		// Process window messages
 		{
@@ -161,6 +160,9 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 			}
 		}
 
+		// Update
+		pRenderSystem->OnUpdate(Time);
+
 		// Process mouse & keyboard events
 		{
 			// Handle render system mouse events
@@ -186,6 +188,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 
 Error:
 	pRenderSystem->OnDestroy();
+	CoUninitialize();
 
 	return EXIT_SUCCESS;
 }

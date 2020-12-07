@@ -4,14 +4,14 @@
 	https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html
 */
 
-struct PathtracingData
+struct RenderPassData
 {
 	uint NumSamplesPerPixel;
 	uint MaxDepth;
 	
 	uint RenderTarget;
 };
-#define RenderPassDataType PathtracingData
+#define RenderPassDataType RenderPassData
 #include "Global.hlsli"
 
 // Hit information, aka ray payload

@@ -10,6 +10,7 @@ struct PolygonalLight
 	float	Luminance;
 	float	Width;
 	float	Height;
+	float3	Points[4];
 };
 
 #endif

@@ -9,9 +9,7 @@
 #include "GBuffer.h"
 
 Shading::Shading(UINT Width, UINT Height)
-	: RenderPass("Shading", 
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		NumResources)
+	: RenderPass("Shading",  { Width, Height }, NumResources)
 {
 	UseRayTracing = true;
 
@@ -23,9 +21,9 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 	Resources[AnalyticUnshadowed]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "AnalyticUnshadowed");
 	Resources[StochasticUnshadowed] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "StochasticUnshadowed");
 	Resources[StochasticShadowed]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "StochasticShadowed");
-	m_RayGenerationShaderTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Ray Generation Shader Table");
-	m_MissShaderTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Miss Shader Table");
-	m_HitGroupShaderTable = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Hit Group Shader Table");
+	m_RayGenerationShaderTable		= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Ray Generation Shader Table");
+	m_MissShaderTable				= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Miss Shader Table");
+	m_HitGroupShaderTable			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Hit Group Shader Table");
 
 	pRenderDevice->CreateRaytracingPipelineState(RaytracingPSOs::Shading, [&](RaytracingPipelineStateProxy& proxy)
 	{
@@ -94,10 +92,10 @@ void Shading::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 	{
 		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
-			proxy.SetFormat(Properties.Format);
+			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = Resource::Flags::UnorderedAccess;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
@@ -118,7 +116,7 @@ void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -138,7 +136,7 @@ void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -158,7 +156,7 @@ void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -177,11 +175,11 @@ void Shading::RenderGui()
 
 void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Shading");
+	PIXEvent(RenderContext->GetApiHandle(), L"Shading");
 
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 
-	struct ShadingData
+	struct RenderPassData
 	{
 		int Albedo;
 		int Normal;
@@ -204,25 +202,25 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	Data.TypeAndIndex							= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
 	Data.Depth									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Depth]).HeapIndex;
 
-	Data.LTC_LUT_DisneyDiffuse_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture()).HeapIndex;
-	Data.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;
-	Data.LTC_LUT_GGX_InverseMatrix				= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
-	Data.LTC_LUT_GGX_Terms						= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
-	Data.BlueNoise								= RenderContext.GetShaderResourceView(pGpuScene->GpuTextureAllocator.GetBlueNoise()).HeapIndex;
+	Data.LTC_LUT_DisneyDiffuse_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture()).HeapIndex;
+	Data.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;
+	Data.LTC_LUT_GGX_InverseMatrix				= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
+	Data.LTC_LUT_GGX_Terms						= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
+	Data.BlueNoise								= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetBlueNoise()).HeapIndex;
 	
 	Data.AnalyticUnshadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::AnalyticUnshadowed]).HeapIndex;
 	Data.StochasticUnshadowed					= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticUnshadowed]).HeapIndex;
 	Data.StochasticShadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticShadowed]).HeapIndex;
 	
-	RenderContext.UpdateRenderPassData<ShadingData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Shading);
-	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
+	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
+	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTableHandle());
-	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTableHandle());
+	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTable());
+	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTable());
 
 	RenderContext.DispatchRays(
 		m_RayGenerationShaderTable,

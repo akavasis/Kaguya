@@ -7,9 +7,7 @@
 #include "Graphics/RendererRegistry.h"
 
 GBuffer::GBuffer(UINT Width, UINT Height)
-	: RenderPass("GBuffer",
-		{ Width, Height, DXGI_FORMAT_R32G32B32A32_FLOAT },
-		NumResources)
+	: RenderPass("GBuffer", { Width, Height }, NumResources)
 {
 
 }
@@ -26,11 +24,15 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 
 	pRenderDevice->CreateRootSignature(RootSignatures::GBufferMeshes, [](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 1));	// RootConstants
-		proxy.AddRootSRVParameter(RootSRV(0, 0));						// Vertex Buffer,			t0 | space0
-		proxy.AddRootSRVParameter(RootSRV(1, 0));						// Index Buffer,			t1 | space0
-		proxy.AddRootSRVParameter(RootSRV(2, 0));						// Geometry info Buffer,	t2 | space0
-		proxy.AddRootSRVParameter(RootSRV(3, 0));						// Material Buffer,			t3 | space0
+		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 1)); // InstanceID
+
+		proxy.AddRootSRVParameter(RootSRV(0, 0)); // Meshlets
+		proxy.AddRootSRVParameter(RootSRV(1, 0)); // UniqueVertexIndices
+		proxy.AddRootSRVParameter(RootSRV(2, 0)); // PrimitiveIndices
+		proxy.AddRootSRVParameter(RootSRV(3, 0)); // Vertices
+
+		proxy.AddRootSRVParameter(RootSRV(4, 0)); // Materials
+		proxy.AddRootSRVParameter(RootSRV(5, 0)); // Meshes
 
 		proxy.AddStaticSampler(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
 
@@ -41,12 +43,10 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferMeshes, [=](GraphicsPipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GBufferMeshes);
-		proxy.pVS = &Shaders::VS::GBufferMeshes;
+		proxy.pMS = &Shaders::MS::GBufferMeshes;
 		proxy.pPS = &Shaders::PS::GBufferMeshes;
 
 		proxy.DepthStencilState.SetDepthEnable(true);
-
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
@@ -55,13 +55,12 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_Compact
 
-		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
+		proxy.SetDepthStencilFormat(RenderDevice::DepthFormat);
 	});
 
 	pRenderDevice->CreateRootSignature(RootSignatures::GBufferLights, [](RootSignatureProxy& proxy)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 1));	// RootConstants
-		proxy.AddRootSRVParameter(RootSRV(0, 0));						// Light Buffer, t0 | space0
+		proxy.AddRootSRVParameter(RootSRV(0, 0)); // Light Buffer, t0 | space0
 
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
@@ -70,12 +69,10 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferLights, [=](GraphicsPipelineStateProxy& proxy)
 	{
 		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GBufferLights);
-		proxy.pVS = &Shaders::VS::GBufferLights;
+		proxy.pMS = &Shaders::MS::GBufferLights;
 		proxy.pPS = &Shaders::PS::GBufferLights;
 
 		proxy.DepthStencilState.SetDepthEnable(true);
-
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
 
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
@@ -84,7 +81,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
 		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_Compact
 
-		proxy.SetDepthStencilFormat(RenderDevice::DepthStencilFormat);
+		proxy.SetDepthStencilFormat(RenderDevice::DepthFormat);
 	});
 }
 
@@ -107,18 +104,18 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 			proxy.SetWidth(Properties.Width);
 			proxy.SetHeight(Properties.Height);
 			proxy.SetClearValue(CD3DX12_CLEAR_VALUE(Formats[i], DirectX::Colors::Black));
-			proxy.BindFlags = Resource::BindFlags::RenderTarget;
+			proxy.BindFlags = Resource::Flags::RenderTarget;
 			proxy.InitialState = Resource::State::RenderTarget;
 		});
 	}
 
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(RenderDevice::DepthStencilFormat);
+		proxy.SetFormat(RenderDevice::DepthFormat);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
 		proxy.SetClearValue(CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1.0f, 0));
-		proxy.BindFlags = Resource::BindFlags::DepthStencil;
+		proxy.BindFlags = Resource::Flags::DepthStencil;
 		proxy.InitialState = Resource::State::DepthWrite;
 	});
 }
@@ -135,13 +132,7 @@ void GBuffer::RenderGui()
 
 void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"GBuffer");
-
-	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
-	{
-		RenderContext.TransitionBarrier(Resources[i], Resource::State::RenderTarget);
-	}
-	RenderContext.TransitionBarrier(Resources[EResources::Depth], Resource::State::DepthWrite);
+	PIXEvent(RenderContext->GetApiHandle(), L"GBuffer");
 
 	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
 	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
@@ -168,15 +159,8 @@ void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 	}
 	RenderContext->ClearDepthStencil(DepthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 	RenderMeshes(RenderContext);
 	RenderLights(RenderContext);
-
-	for (size_t i = 0; i < EResources::NumResources; ++i)
-	{
-		RenderContext.TransitionBarrier(Resources[i], Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
-	}
 }
 
 void GBuffer::StateRefresh()
@@ -186,63 +170,36 @@ void GBuffer::StateRefresh()
 
 void GBuffer::RenderMeshes(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Meshes");
+	PIXEvent(RenderContext->GetApiHandle(), L"Render Meshes");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferMeshes);
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
-	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
 
-	const Scene& Scene = *pGpuScene->pScene;
-	std::vector<const ModelInstance*> visibleModelInstanceIndices;
-	std::unordered_map<const ModelInstance*, std::vector<UINT>> visibleMeshesIndices;
-	visibleModelInstanceIndices.resize(Scene.ModelInstances.size());
-	for (const auto& modelInstance : Scene.ModelInstances)
+	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTable());
+	RenderContext.SetRootShaderResourceView(6, pGpuScene->GetMeshTable());
+
+	for (auto& modelInstance : pGpuScene->pScene->ModelInstances)
 	{
-		visibleMeshesIndices[&modelInstance].resize(modelInstance.MeshInstances.size());
-	}
+		RenderContext.SetRootShaderResourceView(4, modelInstance.pModel->VertexResource);
 
-	const uint32_t numVisibleModels = CullModels(&Scene.Camera, Scene.ModelInstances, visibleModelInstanceIndices);
-	for (uint32_t i = 0; i < numVisibleModels; ++i)
-	{
-		auto& pModelInstance = visibleModelInstanceIndices[i];
-		const uint32_t numVisibleMeshes = CullMeshes(&Scene.Camera, pModelInstance->MeshInstances, visibleMeshesIndices[pModelInstance]);
-
-		for (uint32_t j = 0; j < numVisibleMeshes; ++j)
+		for (auto& meshInstance : modelInstance)
 		{
-			const uint32_t MeshIndex = visibleMeshesIndices[pModelInstance][j];
-			const MeshInstance& MeshInstance = pModelInstance->MeshInstances[MeshIndex];
+			RenderContext.SetRoot32BitConstants(0, 1, &meshInstance.InstanceID, 0);
 
-			RenderContext.SetRoot32BitConstants(0, 1, &MeshInstance.InstanceID, 0);
+			RenderContext.SetRootShaderResourceView(1, meshInstance.pMesh->MeshletResource);
+			RenderContext.SetRootShaderResourceView(2, meshInstance.pMesh->VertexIndexResource);
+			RenderContext.SetRootShaderResourceView(3, meshInstance.pMesh->PrimitiveIndexResource);
 
-			/*
-				In the shader we use SV_VertexID (No need to bind VB or IB because it is already a StructuredBuffer)
-				to draw objects and in MSDN: VertexID is a 32-bit unsigned integer scalar counter value coming out of Draw*() calls identifying to Shaders each vertex.
-				This value can be declared(22.3.11) for input by the Vertex Shader only.
-
-				For Draw() and DrawInstanced(), VertexID starts at 0, and it increments for every vertex. Across instances in DrawInstanced(),
-				the count resets back to the start value. Should the 32-bit VertexID calculation overflow, it simply wraps.
-
-				For DrawIndexed() and DrawIndexedInstanced(), VertexID represents the index value.
-			*/
-			RenderContext->DrawInstanced(MeshInstance.pMesh->IndexCount, 1, MeshInstance.pMesh->BaseVertexLocation, 0);
+			RenderContext->DispatchMesh(meshInstance.pMesh->Meshlets.size(), 1, 1);
 		}
 	}
 }
 
 void GBuffer::RenderLights(RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Render Lights");
+	PIXEvent(RenderContext->GetApiHandle(), L"Render Lights");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferLights);
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetLightTableHandle());
+	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetLightTable());
 
-	const Scene& Scene = *pGpuScene->pScene;
-	for (const auto& light : Scene.Lights)
-	{
-		size_t GpuLightIndex = light.GetGpuLightIndex();
-		RenderContext.SetRoot32BitConstants(0, 1, &GpuLightIndex, 0);
-		RenderContext->DrawInstanced(6, 1, 0, 0);
-	}
+	RenderContext->DispatchMesh(pGpuScene->pScene->Lights.size(), 1, 1);
 }

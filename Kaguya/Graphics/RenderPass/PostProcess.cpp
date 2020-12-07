@@ -11,9 +11,7 @@
 constexpr size_t NumTonemapRootConstants = 1 + sizeof(PostProcess::GranTurismoOperator) / 4;
 
 PostProcess::PostProcess(UINT Width, UINT Height)
-	: RenderPass("Post Process",
-		{ Width, Height, RendererFormats::HDRBufferFormat },
-		NumResources)
+	: RenderPass("Post Process", { Width, Height }, NumResources)
 {
 	ExplicitResourceTransition = true;
 }
@@ -134,10 +132,10 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(Properties.Format);
+		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 
@@ -147,19 +145,19 @@ void PostProcess::ScheduleResource(ResourceScheduler* pResourceScheduler, Render
 	{
 		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
-			proxy.SetFormat(Properties.Format);
+			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
 			proxy.SetHeight(Properties.Height / denominators[denominatorIndex]);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = Resource::Flags::UnorderedAccess;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 
 		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
-			proxy.SetFormat(Properties.Format);
+			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width / denominators[denominatorIndex]);
 			proxy.SetHeight(Properties.Height / denominators[denominatorIndex]);
-			proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+			proxy.BindFlags = Resource::Flags::UnorderedAccess;
 			proxy.InitialState = Resource::State::UnorderedAccess;
 		});
 	}
@@ -193,7 +191,7 @@ void PostProcess::RenderGui()
 
 void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Post Process");
+	PIXEvent(RenderContext->GetApiHandle(), L"Post Process");
 
 	auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
 	Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
@@ -214,11 +212,11 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		Bloom PP is based on Microsoft's DirectX-Graphics-Samples's MiniEngine.
 		https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine
 	*/
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom");
+	PIXEvent(RenderContext->GetApiHandle(), L"Bloom");
 
 	// Bloom Mask
 	{
-		PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom Mask");
+		PIXEvent(RenderContext->GetApiHandle(), L"Bloom Mask");
 
 		auto pOutput = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1a]);
 
@@ -246,7 +244,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 	// Bloom Downsample
 	{
-		PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom Downsample");
+		PIXEvent(RenderContext->GetApiHandle(), L"Bloom Downsample");
 
 		auto pOutput1 = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget2a]);
 
@@ -295,7 +293,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 	// Bloom Composition
 	{
-		PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom Composition");
+		PIXEvent(RenderContext->GetApiHandle(), L"Bloom Composition");
 
 		auto pBloom = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1b]);
 		auto pOutput = RenderContext.GetTexture(Resources[EResources::RenderTarget]);
@@ -342,7 +340,7 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 
 		// Tonemap
 		{
-			PIXMarker(RenderContext->GetD3DCommandList(), L"Tonemap");
+			PIXEvent(RenderContext->GetApiHandle(), L"Tonemap");
 
 			struct Tonemapping_SubPass_Data
 			{
@@ -372,11 +370,10 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 
 		// ImGui Render
 		{
-			PIXMarker(RenderContext->GetD3DCommandList(), L"ImGui Render");
+			PIXEvent(RenderContext->GetApiHandle(), L"ImGui Render");
 
-			RenderContext->SetDescriptorHeaps(RenderContext.GetImGuiDescriptorHeap(), nullptr);
 			ImGui::Render();
-			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), RenderContext->GetD3DCommandList());
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), RenderContext->GetApiHandle());
 		}
 	}
 	RenderContext->TransitionBarrier(pDestination, Resource::State::Present);
@@ -384,7 +381,7 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 
 void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom Blur");
+	PIXEvent(RenderContext->GetApiHandle(), L"Bloom Blur");
 
 	auto pOutput = RenderContext.GetTexture(Resources[Output]);
 
@@ -411,7 +408,7 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 
 void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowResolution, size_t Output, RenderContext& RenderContext)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Bloom Upsample Blur Accumulation");
+	PIXEvent(RenderContext->GetApiHandle(), L"Bloom Upsample Blur Accumulation");
 
 	auto pOutput = RenderContext.GetTexture(Resources[Output]);
 

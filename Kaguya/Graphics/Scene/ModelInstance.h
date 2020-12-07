@@ -15,6 +15,9 @@ public:
 	DirectX::BoundingBox BoundingBox;
 	std::vector<MeshInstance> MeshInstances;
 
+	auto begin() { return MeshInstances.begin(); }
+	auto end() { return MeshInstances.end(); }
+
 	void Translate(float DeltaX, float DeltaY, float DeltaZ);
 	void SetScale(float Scale);
 	void SetScale(float ScaleX, float ScaleY, float ScaleZ);

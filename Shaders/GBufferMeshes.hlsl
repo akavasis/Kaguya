@@ -1,5 +1,25 @@
-#include "HLSLCommon.hlsli"
-#include "GBuffer.hlsli"
+#include <GBuffer.hlsli>
+
+struct Meshlet
+{
+	uint VertexCount;
+	uint VertexOffset;
+	uint PrimitiveCount;
+	uint PrimitiveOffset;
+};
+
+struct VertexAttributes
+{
+    float4      PositionH			: SV_POSITION;
+	float4      PreviousPositionH	: PREVIOUS_POSITIONH;
+	float3      PositionW			: POSITIONW;
+	float3      NormalL				: NORMALL;
+	float2      TextureCoord		: TEXCOORD;
+    float3      TangentW            : TANGENT;
+    float3      BitangentW          : BITANGENT;
+    float3      NormalW             : NORMAL;
+    uint        MeshletIndex        : MESHLET_INDEX;
+};
 
 //----------------------------------------------------------------------------------------------------
 cbuffer RootConstants
@@ -7,56 +27,96 @@ cbuffer RootConstants
 	uint InstanceID;
 };
 
-StructuredBuffer<Vertex> VertexBuffer	: register(t0, space0);
-StructuredBuffer<uint> IndexBuffer		: register(t1, space0);
-StructuredBuffer<Mesh> Meshes			: register(t2, space0);
-StructuredBuffer<Material> Materials	: register(t3, space0);
+StructuredBuffer<Meshlet>   Meshlets            : register(t0, space0);
+ByteAddressBuffer           VertexIndices       : register(t1, space0);
+StructuredBuffer<uint>      PrimitiveIndices    : register(t2, space0);
+StructuredBuffer<Vertex>    Vertices            : register(t3, space0);
 
-#include "ShaderLayout.hlsli"
+StructuredBuffer<Material>  Materials	        : register(t4, space0);
+StructuredBuffer<Mesh>      Meshes			    : register(t5, space0);
 
-SamplerState AnisotropicClamp			: register(s0, space0);
+SamplerState                AnisotropicClamp	: register(s0, space0);
 
-struct VSOutput
+#include <ShaderLayout.hlsli>
+
+uint3 UnpackPrimitive(uint primitive)
 {
-	float4 PositionH			: SV_POSITION;
-	float4 PreviousPositionH	: PREVIOUS_POSITIONH;
-	float3 PositionW			: POSITIONW;
-	float3 NormalL				: NORMALL;
-	float2 TextureCoord			: TEXCOORD;
-	float3x3 TBNMatrix			: TBNBASIS;
-};
-
-VSOutput VSMain(uint VertexID : SV_VertexID)
-{
-	VSOutput OUT;
-	{
-		Mesh mesh = Meshes[InstanceID];
-		uint index = IndexBuffer[mesh.IndexOffset + VertexID];
-		Vertex vertex = VertexBuffer[mesh.VertexOffset + index];
-		
-		float4 worldPos		= mul(float4(vertex.Position, 1.0f), mesh.World);
-		float4 prevWorldPos = mul(float4(vertex.Position, 1.0f), mesh.PreviousWorld);
-		
-		// Transform to world space
-		OUT.PositionW = worldPos.xyz;
-		// Transform to homogeneous/clip space
-		OUT.PositionH = mul(float4(OUT.PositionW, 1.0f), g_SystemConstants.Camera.ViewProjection);
-		
-		OUT.PreviousPositionH = mul(prevWorldPos, g_SystemConstants.PreviousCamera.ViewProjection);
-		
-		OUT.NormalL = vertex.Normal;
-		
-		OUT.TextureCoord = vertex.Texture;
-		// Transform normal to world space
-		// Build orthonormal basis.
-		float3 N = normalize(mul(vertex.Normal, (float3x3) mesh.World));
-	
-		OUT.TBNMatrix = GetTBNMatrix(N);
-	}
-	return OUT;
+    // Unpacks a 10 bits per index triangle from a 32-bit uint.
+    return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
 }
 
-float3 GetAlbedoMap(VSOutput IN, Material Material)
+uint3 GetPrimitive(Meshlet m, uint index)
+{
+    return UnpackPrimitive(PrimitiveIndices[m.PrimitiveOffset + index]);
+}
+
+uint GetVertexIndex(Meshlet m, uint localIndex)
+{
+    localIndex = m.VertexOffset + localIndex;
+    return VertexIndices.Load(localIndex * 4);
+}
+
+VertexAttributes GetVertexAttributes(uint meshletIndex, uint vertexIndex, Mesh mesh)
+{
+    Vertex vertex = Vertices[vertexIndex + mesh.VertexOffset];
+
+    VertexAttributes OUT;
+
+    float4 worldPos		= mul(float4(vertex.Position, 1.0f), mesh.World);
+	float4 prevWorldPos = mul(float4(vertex.Position, 1.0f), mesh.PreviousWorld);
+	
+	// Transform to world space
+	OUT.PositionW = worldPos.xyz;
+	// Transform to homogeneous/clip space
+	OUT.PositionH = mul(float4(OUT.PositionW, 1.0f), g_SystemConstants.Camera.ViewProjection);
+	
+	OUT.PreviousPositionH = mul(prevWorldPos, g_SystemConstants.PreviousCamera.ViewProjection);
+	
+	OUT.NormalL = vertex.Normal;
+	
+	OUT.TextureCoord = vertex.Texture;
+	// Transform normal to world space
+	// Build orthonormal basis.
+	float3 Normal = normalize(mul(vertex.Normal, (float3x3) mesh.World));
+    float3 Tangent, Bitangent;
+	CoordinateSystem(Normal, Tangent, Bitangent);
+	
+	OUT.TangentW = Tangent;
+    OUT.BitangentW = Tangent;
+    OUT.NormalW = Normal;
+
+    OUT.MeshletIndex = meshletIndex;
+
+    return OUT;
+}
+
+[numthreads(128, 1, 1)]
+[outputtopology("triangle")]
+void MSMain(uint gtid : SV_GroupThreadID, uint gid : SV_GroupID,
+    out indices uint3 tris[128],
+    out vertices VertexAttributes verts[128]
+)
+{
+    Mesh mesh = Meshes[InstanceID];
+    Meshlet meshlet = Meshlets[gid];
+
+    SetMeshOutputCounts(meshlet.VertexCount, meshlet.PrimitiveCount);
+    
+    // SV_GroupThreadID is always relative to numthreads attribute, so we can use that to
+    // identify our primitives and vertices
+    if (gtid < meshlet.PrimitiveCount)
+    {
+        tris[gtid] = GetPrimitive(meshlet, gtid);
+    }
+
+    if (gtid < meshlet.VertexCount)
+    {
+        uint vertexIndex = GetVertexIndex(meshlet, gtid);
+        verts[gtid] = GetVertexAttributes(gid, vertexIndex, mesh);
+    }
+}
+
+float3 GetAlbedoMap(VertexAttributes IN, Material Material)
 {
 	if (Material.UseAttributeAsValues)
 		return Material.Albedo;
@@ -67,16 +127,17 @@ float3 GetAlbedoMap(VSOutput IN, Material Material)
 	return Material.Albedo;
 }
 
-float3 GetNormalMap(VSOutput IN, Material Material)
+float3 GetNormalMap(VertexAttributes IN, Material Material)
 {
 	int Index = Material.TextureIndices[NormalIdx];
 	Texture2D NormalMap = g_Texture2DTable[Index];
 	float3 Normal = NormalMap.Sample(AnisotropicClamp, IN.TextureCoord).xyz;
 	Normal = Normal * 2.0f - 1.0f;
-	return normalize(mul(Normal, IN.TBNMatrix));
+    float3x3 TBNMatrix = float3x3(IN.TangentW, IN.BitangentW, IN.NormalW);
+	return normalize(mul(Normal, TBNMatrix));
 }
 
-float GetRoughnessMap(VSOutput IN, Material Material)
+float GetRoughnessMap(VertexAttributes IN, Material Material)
 {
 	if (Material.UseAttributeAsValues)
 		return Material.Roughness;
@@ -94,7 +155,7 @@ float GetRoughnessMap(VSOutput IN, Material Material)
 	}
 }
 
-float GetMetallicMap(VSOutput IN, Material Material)
+float GetMetallicMap(VertexAttributes IN, Material Material)
 {
 	if (Material.UseAttributeAsValues)
 		return Material.Metallic;
@@ -132,7 +193,7 @@ float2 calcMotionVector(float4 prevClipPos, float2 currentPixelPos, float2 invFr
 	return motionVec;
 }
 
-MRT PSMain(VSOutput IN)
+MRT PSMain(VertexAttributes IN)
 {
 	Mesh mesh = Meshes[InstanceID];
 	Material material = Materials[mesh.MaterialIndex];

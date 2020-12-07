@@ -185,9 +185,9 @@ void RenderContext::BindGraphicsShaderLayoutResource(const RootSignature* pRootS
 		SV_pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::SystemConstants + RootParameterOffset, SV_pSystemConstants->GetGpuVirtualAddress());
 	if (SV_pGpuData)
 		SV_pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameterOffset, SV_pGpuData->GetGpuVirtualAddressAt(SV_RenderPassIndex));
-	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GPUHandle);
-	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GPUHandle);
-	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GPUHandle);
+	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GpuHandle);
+	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GpuHandle);
+	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GpuHandle);
 }
 
 void RenderContext::BindComputeShaderLayoutResource(const RootSignature* pRootSignature)
@@ -202,7 +202,7 @@ void RenderContext::BindComputeShaderLayoutResource(const RootSignature* pRootSi
 		SV_pCommandContext->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::SystemConstants + RootParameterOffset, SV_pSystemConstants->GetGpuVirtualAddress());
 	if (SV_pGpuData)
 		SV_pCommandContext->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameterOffset, SV_pGpuData->GetGpuVirtualAddressAt(SV_RenderPassIndex));
-	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GPUHandle);
-	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GPUHandle);
-	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GPUHandle);
+	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GpuHandle);
+	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GpuHandle);
+	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GpuHandle);
 }

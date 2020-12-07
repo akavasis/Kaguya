@@ -19,7 +19,7 @@ namespace Kaguya
 }
 
 #ifdef _DEBUG
-#define PIXCapture() Kaguya::Internal::PIXCapture pixcapture
+#define PIXCapture() Kaguya::Internal::PIXCapture __PIXCAPTURE
 #else
 #define PIXCapture() 
 #endif

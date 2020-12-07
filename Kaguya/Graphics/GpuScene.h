@@ -3,7 +3,8 @@
 #include <Core/Allocator/VariableSizedAllocator.h>
 
 #include "Scene/Scene.h"
-#include "GpuTextureAllocator.h"
+#include "BufferManager.h"
+#include "TextureManager.h"
 #include "RenderDevice.h"
 #include "RenderContext.h"
 
@@ -24,18 +25,17 @@ public:
 	bool Update(float AspectRatio);
 	void CreateTopLevelAS(RenderContext& RenderContext);
 
-	inline auto GetLightTableHandle()			const { return m_LightTable; }
-	inline auto GetMaterialTableHandle()		const { return m_MaterialTable; }
-	inline auto GetMeshTable()					const { return m_MeshTable; }
-	inline auto GetVertexBufferHandle()			const { return m_VertexBuffer; }
-	inline auto GetIndexBufferHandle()			const { return m_IndexBuffer; }
-	inline auto GetRTTLASResourceHandle()		const { return m_RaytracingTopLevelAccelerationStructure.Result; }
+	inline auto GetLightTable()						const { return m_LightTable; }
+	inline auto GetMaterialTable()					const { return m_MaterialTable; }
+	inline auto GetMeshTable()						const { return m_MeshTable; }
+	inline auto GetTopLevelAccelerationStructure()	const { return m_RaytracingTopLevelAccelerationStructure.Result; }
 
 	HLSL::Camera GetHLSLCamera() const;
 	HLSL::Camera GetHLSLPreviousCamera() const;
 
 	Scene* pScene;
-	GpuTextureAllocator GpuTextureAllocator;
+	BufferManager BufferManager;
+	TextureManager TextureManager;
 private:
 	void CreateBottomLevelAS(RenderContext& RenderContext);
 
@@ -58,12 +58,6 @@ private:
 	RenderResourceHandle	m_LightTable;
 	RenderResourceHandle	m_MaterialTable;
 	RenderResourceHandle	m_MeshTable;
-
-	RenderResourceHandle	m_VertexBuffer, m_UploadVertexBuffer;
-	VariableSizedAllocator	m_VertexBufferAllocator;
-
-	RenderResourceHandle	m_IndexBuffer, m_UploadIndexBuffer;
-	VariableSizedAllocator	m_IndexBufferAllocator;
 
 	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS					m_RaytracingTopLevelAccelerationStructure;

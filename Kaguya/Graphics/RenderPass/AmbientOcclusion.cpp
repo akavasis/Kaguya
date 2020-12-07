@@ -8,7 +8,7 @@
 
 AmbientOcclusion::AmbientOcclusion(UINT Width, UINT Height)
 	: RenderPass("Ambient Occlusion",
-		{ Width, Height, RendererFormats::HDRBufferFormat },
+		{ Width, Height },
 		NumResources)
 {
 	UseRayTracing = true;
@@ -86,10 +86,10 @@ void AmbientOcclusion::ScheduleResource(ResourceScheduler* pResourceScheduler, R
 {
 	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 	{
-		proxy.SetFormat(Properties.Format);
+		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
 		proxy.SetHeight(Properties.Height);
-		proxy.BindFlags = Resource::BindFlags::UnorderedAccess;
+		proxy.BindFlags = Resource::Flags::UnorderedAccess;
 		proxy.InitialState = Resource::State::UnorderedAccess;
 	});
 }
@@ -109,7 +109,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -129,7 +129,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -158,7 +158,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateDeviceBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
+		pRenderDevice->CreateBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
 		{
 			proxy.SetSizeInBytes(shaderTableSizeInBytes);
 			proxy.SetStride(stride);
@@ -190,7 +190,7 @@ void AmbientOcclusion::RenderGui()
 
 void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXMarker(RenderContext->GetD3DCommandList(), L"Ambient Occlusion");
+	PIXEvent(RenderContext->GetApiHandle(), L"Ambient Occlusion");
 
 	struct AmbientOcclusionData
 	{
@@ -214,11 +214,11 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::AmbientOcclusion);
-	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetRTTLASResourceHandle());
-	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBufferHandle());
-	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBufferHandle());
+	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
+	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
+	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTableHandle());
+	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTable());
 
 	RenderContext.DispatchRays(
 		m_RayGenerationShaderTable,
