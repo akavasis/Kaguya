@@ -208,7 +208,7 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 
 		if (pRenderPass->UseRayTracing)
 		{
-			DWORD Result = WaitForSingleObject(ASBuildEvent, INFINITE);
+			::WaitForSingleObject(ASBuildEvent, INFINITE);
 		}
 
 		pRenderDevice->BindGpuDescriptorHeap(pCommandContext);

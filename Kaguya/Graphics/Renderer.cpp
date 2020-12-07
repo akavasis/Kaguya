@@ -353,7 +353,10 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 		pRenderer->BuildAccelerationStructureEvent.wait();
 
 		if (pRenderer->ExitAsyncQueuesThread)
+		{
+			LOG_INFO("Exiting {}", __FUNCTION__);
 			break;
+		}
 
 		pRenderer->AccelerationStructureCompleteEvent.ResetEvent();
 		{
@@ -381,7 +384,10 @@ DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
 	while (true)
 	{
 		if (pRenderer->ExitAsyncQueuesThread)
+		{
+			LOG_INFO("Exiting {}", __FUNCTION__);
 			break;
+		}
 
 		// TODO: Add async upload for resources
 	}

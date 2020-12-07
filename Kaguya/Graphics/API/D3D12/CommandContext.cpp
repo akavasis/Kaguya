@@ -25,14 +25,14 @@ void CommandContext::Reset(UINT64 FenceValue, UINT64 CompletedValue, CommandQueu
 {
 	assert(pCommandQueue->GetType() == GetD3DCommandListType(m_Type));
 
-	pCommandQueue->DiscardCommandAllocator(FenceValue, SV_pAllocator);
-	pCommandQueue->DiscardCommandAllocator(FenceValue, SV_pPendingAllocator);
+	pCommandQueue->DiscardCommandAllocator(FenceValue, pAllocator);
+	pCommandQueue->DiscardCommandAllocator(FenceValue, pPendingAllocator);
 
-	SV_pAllocator			= pCommandQueue->RequestAllocator(CompletedValue);
-	SV_pPendingAllocator	= pCommandQueue->RequestAllocator(CompletedValue);
+	pAllocator			= pCommandQueue->RequestAllocator(CompletedValue);
+	pPendingAllocator	= pCommandQueue->RequestAllocator(CompletedValue);
 
-	ThrowCOMIfFailed(m_pCommandList->Reset(SV_pAllocator, nullptr));
-	ThrowCOMIfFailed(m_pPendingCommandList->Reset(SV_pPendingAllocator, nullptr));
+	ThrowCOMIfFailed(m_pCommandList->Reset(pAllocator, nullptr));
+	ThrowCOMIfFailed(m_pPendingCommandList->Reset(pPendingAllocator, nullptr));
 
 	// Reset resource state tracking and resource barriers 
 	m_ResourceStateTracker.Reset();

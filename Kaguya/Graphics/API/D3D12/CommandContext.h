@@ -100,8 +100,8 @@ public:
 		m_pCommandList->DispatchMesh(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 	}
 private:
-	ID3D12CommandAllocator*								SV_pAllocator			= nullptr;
-	ID3D12CommandAllocator*								SV_pPendingAllocator	= nullptr;
+	ID3D12CommandAllocator*								pAllocator			= nullptr;
+	ID3D12CommandAllocator*								pPendingAllocator	= nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pCommandList;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pPendingCommandList;

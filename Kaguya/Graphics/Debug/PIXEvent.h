@@ -20,5 +20,5 @@ namespace Kaguya
 #ifdef _DEBUG
 #define PIXEvent(pCommandList, pMsg) Kaguya::Internal::PIXEvent __PIXEVENT(pCommandList, pMsg)
 #else
-#define PIXMarker(pCommandList, pMsg) 
+#define PIXEvent(pCommandList, pMsg) 
 #endif

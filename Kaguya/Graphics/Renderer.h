@@ -1,6 +1,7 @@
 #pragma once
 #include <wrl/client.h>
 #include <wil/resource.h>
+#include <atomic>
 #include "Core/RenderSystem.h"
 
 #include "RenderDevice.h"
@@ -42,5 +43,5 @@ private:
 	wil::unique_event						AccelerationStructureCompleteEvent	= nullptr;
 	wil::unique_handle						AsyncComputeThread					= nullptr;
 	wil::unique_handle						AsyncCopyThread						= nullptr;
-	bool									ExitAsyncQueuesThread				= false;
+	std::atomic<bool>						ExitAsyncQueuesThread				= false;
 };

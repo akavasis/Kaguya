@@ -21,5 +21,5 @@ private:
 	static bool HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message);
 
 	inline static wil::unique_handle			RenderThread;
-	inline static bool							ExitRenderThread		= false;
+	inline static std::atomic<bool>				ExitRenderThread		= false;
 };

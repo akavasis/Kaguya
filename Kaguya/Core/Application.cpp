@@ -96,11 +96,15 @@ int Application::Run(RenderSystem* pRenderSystem)
 		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
 
+	LOG_INFO("Shutting down...");
+
 	// Set ExitRenderThread to true and wait for it to join
 	if (RenderThread)
 	{
+		LOG_INFO("Joining render thread");
 		ExitRenderThread = true;
 		::WaitForSingleObject(RenderThread.get(), INFINITE);
+		LOG_INFO("Render thread joined");
 	}
 
 	if (pWindow)
