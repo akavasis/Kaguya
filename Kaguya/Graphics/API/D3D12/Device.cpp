@@ -94,7 +94,7 @@ Device::Device(IDXGIAdapter4* pAdapter)
 
 		if (SupportUAV)
 		{
-			m_UAVSupportedFormat.insert(OptionalFormats[i]);
+			m_UAVSupportedFormats.insert(OptionalFormats[i]);
 		}
 	}
 }
@@ -127,7 +127,7 @@ bool Device::IsUAVCompatable(DXGI_FORMAT Format)
 	case DXGI_FORMAT_R8_SINT:
 		return true;
 	}
-	if (m_UAVSupportedFormat.find(Format) != m_UAVSupportedFormat.end())
+	if (m_UAVSupportedFormats.find(Format) != m_UAVSupportedFormats.end())
 		return true;
 	return false;
 }

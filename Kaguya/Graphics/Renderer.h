@@ -34,7 +34,7 @@ private:
 
 	RenderDevice*							m_pRenderDevice						= nullptr;
 	RenderGraph*							m_pRenderGraph						= nullptr;
-	RenderContext							m_RenderContext; // Used exclusively by the renderer
+	RenderContext							m_GraphicsContext;
 
 	Scene									m_Scene;
 	GpuScene*								m_pGpuScene							= nullptr;

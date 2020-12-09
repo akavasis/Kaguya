@@ -88,7 +88,7 @@ void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext,
 TopLevelAccelerationStructure::TopLevelAccelerationStructure()
 {
 	ScratchSizeInBytes = ResultSizeInBytes = InstanceDescsSizeInBytes = 0;
-	BuildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+	BuildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
 }
 
 void TopLevelAccelerationStructure::AddInstance(const RaytracingInstanceDesc& Desc)

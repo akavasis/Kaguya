@@ -59,17 +59,17 @@ bool Renderer::Initialize()
 		return false;
 	}
 
-	m_RenderContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice, m_pRenderDevice->AllocateContext(CommandContext::Graphics));
-	m_RenderContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+	m_GraphicsContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice, m_pRenderDevice->AllocateContext(CommandContext::Graphics));
+	m_GraphicsContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
 
 	BuildAccelerationStructureEvent.create();
 	AccelerationStructureCompleteEvent.create(wil::EventOptions::ManualReset);
 	AsyncComputeThread	= wil::unique_handle(::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr));
 	AsyncCopyThread		= wil::unique_handle(::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr));
 
-	m_pGpuScene->TextureManager.StageSystemReservedTextures(m_RenderContext);
+	m_pGpuScene->TextureManager.StageSystemReservedTextures(m_GraphicsContext);
 
-	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
+	CommandContext* pCommandContexts[] = { m_GraphicsContext.GetCommandContext() };
 	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, 1, pCommandContexts);
 	m_pRenderDevice->FlushGraphicsQueue();
 	m_pGpuScene->TextureManager.DisposeResources();
@@ -274,15 +274,15 @@ void Renderer::SetScene(Scene Scene)
 
 	m_pGpuScene->pScene = &m_Scene;
 
-	m_RenderContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
-	m_pRenderDevice->BindGpuDescriptorHeap(m_RenderContext.GetCommandContext());
-	m_pGpuScene->UploadTextures(m_RenderContext);
-	m_pGpuScene->UploadModels(m_RenderContext);
+	m_GraphicsContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+	m_pRenderDevice->BindGpuDescriptorHeap(m_GraphicsContext.GetCommandContext());
+	m_pGpuScene->UploadTextures(m_GraphicsContext);
+	m_pGpuScene->UploadModels(m_GraphicsContext);
 	m_pGpuScene->UploadLights();
 	m_pGpuScene->UploadMaterials();
 	m_pGpuScene->UploadMeshes();
 
-	CommandContext* pCommandContexts[] = { m_RenderContext.GetCommandContext() };
+	CommandContext* pCommandContexts[] = { m_GraphicsContext.GetCommandContext() };
 	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, ARRAYSIZE(pCommandContexts), pCommandContexts);
 	m_pRenderDevice->FlushGraphicsQueue();
 	m_pGpuScene->DisposeResources();

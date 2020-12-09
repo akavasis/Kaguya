@@ -84,10 +84,6 @@ public:
 	void FlushComputeQueue();
 	void FlushCopyQueue();
 
-	// Shader compilation
-	[[nodiscard]] Shader CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines);
-	[[nodiscard]] Library CompileLibrary(const std::filesystem::path& Path);
-
 	RenderResourceHandle InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name);
 	std::string GetRenderResourceHandleName(RenderResourceHandle RenderResourceHandle);
 

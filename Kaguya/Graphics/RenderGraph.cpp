@@ -12,12 +12,12 @@ RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
 RenderGraph::~RenderGraph()
 {
 	ExitRenderPassThread = true;
-	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
+	for (size_t i = 0; i < m_WorkerExecuteEvents.size(); ++i)
 	{
 		// Tell each worker to exit.
 		m_WorkerExecuteEvents[i].SetEvent();
 	}
-	WaitForMultipleObjects(m_RenderPasses.size(), m_Threads.data()->addressof(), TRUE, INFINITE);
+	WaitForMultipleObjects(m_Threads.size(), m_Threads.data()->addressof(), TRUE, INFINITE);
 }
 
 RenderPass* RenderGraph::AddRenderPass(RenderPass* pRenderPass)
@@ -184,6 +184,8 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 		RenderContext RenderContext(ThreadID, pSystemConstants, pGpuData, pRenderDevice, pCommandContext);
 		PIXScopedEvent(RenderContext->GetApiHandle(), 0, Name.data());
 
+		pRenderDevice->BindGpuDescriptorHeap(pCommandContext);
+
 		if (!pRenderPass->ExplicitResourceTransition)
 		{
 			for (auto& resource : pRenderPass->Resources)
@@ -213,7 +215,6 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 			::WaitForSingleObject(ASBuildEvent, INFINITE);
 		}
 
-		pRenderDevice->BindGpuDescriptorHeap(pCommandContext);
 		pRenderPass->OnExecute(RenderContext, pRenderGraph);
 
 		if (!pRenderPass->ExplicitResourceTransition)

@@ -24,5 +24,5 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12Device5>	m_ApiHandle;
 	UINT									m_DescriptorHandleIncrementSizeCache[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-	std::unordered_set<DXGI_FORMAT>			m_UAVSupportedFormat;
+	std::unordered_set<DXGI_FORMAT>			m_UAVSupportedFormats;
 };
