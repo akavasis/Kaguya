@@ -136,6 +136,7 @@ public:
 	wil::unique_event											GraphicsFenceCompletionEvent, ComputeFenceCompletionEvent, CopyFenceCompletionEvent;
 
 	ResourceStateTracker										GlobalResourceStateTracker;
+	RWLock														GlobalResourceStateTrackerRWLock;
 	ShaderCompiler												ShaderCompiler;
 
 	UINT														BackBufferIndex;

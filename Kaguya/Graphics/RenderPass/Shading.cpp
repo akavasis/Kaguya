@@ -175,12 +175,11 @@ void Shading::RenderGui()
 
 void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Shading");
-
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 
 	struct RenderPassData
 	{
+		// Input textures
 		int Albedo;
 		int Normal;
 		int TypeAndIndex;
@@ -192,35 +191,34 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		int LTC_LUT_GGX_Terms;
 		int BlueNoise;
 
+		// Output textures
 		int AnalyticUnshadowed;
 		int StochasticUnshadowed;
 		int StochasticShadowed;
-	} Data;
+	} g_RenderPassData;
 
-	Data.Albedo									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;
-	Data.Normal									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
-	Data.TypeAndIndex							= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
-	Data.Depth									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Depth]).HeapIndex;
+	g_RenderPassData.Albedo									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;
+	g_RenderPassData.Normal									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;
+	g_RenderPassData.TypeAndIndex							= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::TypeAndIndex]).HeapIndex;
+	g_RenderPassData.Depth									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Depth]).HeapIndex;
 
-	Data.LTC_LUT_DisneyDiffuse_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture()).HeapIndex;
-	Data.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;
-	Data.LTC_LUT_GGX_InverseMatrix				= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
-	Data.LTC_LUT_GGX_Terms						= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
-	Data.BlueNoise								= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetBlueNoise()).HeapIndex;
+	g_RenderPassData.LTC_LUT_DisneyDiffuse_InverseMatrix	= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture()).HeapIndex;
+	g_RenderPassData.LTC_LUT_DisneyDiffuse_Terms			= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_DisneyDiffuse_TermsTexture()).HeapIndex;
+	g_RenderPassData.LTC_LUT_GGX_InverseMatrix				= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_GGX_InverseMatrixTexture()).HeapIndex;
+	g_RenderPassData.LTC_LUT_GGX_Terms						= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetLTC_LUT_GGX_TermsTexture()).HeapIndex;
+	g_RenderPassData.BlueNoise								= RenderContext.GetShaderResourceView(pGpuScene->TextureManager.GetBlueNoise()).HeapIndex;
 	
-	Data.AnalyticUnshadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::AnalyticUnshadowed]).HeapIndex;
-	Data.StochasticUnshadowed					= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticUnshadowed]).HeapIndex;
-	Data.StochasticShadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticShadowed]).HeapIndex;
+	g_RenderPassData.AnalyticUnshadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::AnalyticUnshadowed]).HeapIndex;
+	g_RenderPassData.StochasticUnshadowed					= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticUnshadowed]).HeapIndex;
+	g_RenderPassData.StochasticShadowed						= RenderContext.GetUnorderedAccessView(Resources[EResources::StochasticShadowed]).HeapIndex;
 	
-	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Shading);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
-	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
-	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
-	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTable());
-	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTable());
+	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetMeshTable());
+	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetLightTable());
+	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMaterialTable());
 
 	RenderContext.DispatchRays(
 		m_RayGenerationShaderTable,

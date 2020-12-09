@@ -10,13 +10,13 @@ CommandContext::CommandContext(ID3D12Device4* pDevice, Type Type)
 	ThrowCOMIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
 }
 
-bool CommandContext::Close(ResourceStateTracker& GlobalResourceStateTracker)
+bool CommandContext::Close(ResourceStateTracker* pGlobalResourceStateTracker)
 {
 	FlushResourceBarriers();
 	ThrowCOMIfFailed(m_pCommandList->Close());
 
-	UINT numPendingBarriers = m_ResourceStateTracker.FlushPendingResourceBarriers(GlobalResourceStateTracker, m_pPendingCommandList.Get());
-	GlobalResourceStateTracker.UpdateResourceStates(m_ResourceStateTracker);
+	UINT numPendingBarriers = m_ResourceStateTracker.FlushPendingResourceBarriers(*pGlobalResourceStateTracker, m_pPendingCommandList.Get());
+	pGlobalResourceStateTracker->UpdateResourceStates(m_ResourceStateTracker);
 	ThrowCOMIfFailed(m_pPendingCommandList->Close());
 	return numPendingBarriers > 0;
 }
@@ -107,7 +107,8 @@ void CommandContext::FlushResourceBarriers()
 
 void CommandContext::CopyBufferRegion(Buffer* pDstBuffer, UINT64 DstOffset, Buffer* pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
 {
-	TransitionBarrier(pDstBuffer, Resource::State::CopyDest);
+	if (!(pDstBuffer->GetCpuAccess() == Buffer::CpuAccess::Read)) // Readback resources have to be in D3D12_RESOURCE_STATE_COPY_DEST so dont need to transition them
+		TransitionBarrier(pDstBuffer, Resource::State::CopyDest);
 	if (!(pSrcBuffer->GetCpuAccess() == Buffer::CpuAccess::Write)) // Upload resources have to be in D3D12_RESOURCE_STATE_GENERIC_READ so dont need to transition them
 		TransitionBarrier(pSrcBuffer, Resource::State::CopySource);
 	FlushResourceBarriers();

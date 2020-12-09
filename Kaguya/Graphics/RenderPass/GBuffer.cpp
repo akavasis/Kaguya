@@ -132,8 +132,6 @@ void GBuffer::RenderGui()
 
 void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"GBuffer");
-
 	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
 	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
 
@@ -170,7 +168,7 @@ void GBuffer::StateRefresh()
 
 void GBuffer::RenderMeshes(RenderContext& RenderContext)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Render Meshes");
+	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Render Meshes");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferMeshes);
 
@@ -196,7 +194,7 @@ void GBuffer::RenderMeshes(RenderContext& RenderContext)
 
 void GBuffer::RenderLights(RenderContext& RenderContext)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Render Lights");
+	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Render Lights");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferLights);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetLightTable());

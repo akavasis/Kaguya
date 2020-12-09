@@ -175,11 +175,11 @@ void RenderContext::SetRaytracingPSO(RaytracingPipelineState* pRaytracingPipelin
 
 void RenderContext::BindGraphicsShaderLayoutResource(const RootSignature* pRootSignature)
 {
-	const size_t RootParameterOffset = pRootSignature->NumParameters - RootParameters::ShaderLayout::NumRootParameters;
+	const auto RootParameterOffset = pRootSignature->NumParameters - RootParameters::ShaderLayout::NumRootParameters;
 
-	Descriptor ShaderResourceDescriptorFromStart	= SV_pRenderDevice->GetGpuDescriptorHeapSRDescriptorFromStart();
-	Descriptor UnorderedAccessDescriptorFromStart	= SV_pRenderDevice->GetGpuDescriptorHeapUADescriptorFromStart();
-	Descriptor SamplerDescriptorFromStart			= SV_pRenderDevice->GetSamplerDescriptorHeapDescriptorFromStart();
+	auto ShaderResourceDescriptorFromStart	= SV_pRenderDevice->GetGpuDescriptorHeapSRDescriptorFromStart();
+	auto UnorderedAccessDescriptorFromStart	= SV_pRenderDevice->GetGpuDescriptorHeapUADescriptorFromStart();
+	auto SamplerDescriptorFromStart			= SV_pRenderDevice->GetSamplerDescriptorHeapDescriptorFromStart();
 
 	if (SV_pSystemConstants)
 		SV_pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::SystemConstants + RootParameterOffset, SV_pSystemConstants->GetGpuVirtualAddress());
@@ -192,11 +192,11 @@ void RenderContext::BindGraphicsShaderLayoutResource(const RootSignature* pRootS
 
 void RenderContext::BindComputeShaderLayoutResource(const RootSignature* pRootSignature)
 {
-	const size_t RootParameterOffset = pRootSignature->NumParameters - RootParameters::ShaderLayout::NumRootParameters;
+	const auto RootParameterOffset = pRootSignature->NumParameters - RootParameters::ShaderLayout::NumRootParameters;
 
-	Descriptor ShaderResourceDescriptorFromStart	= SV_pRenderDevice->GetGpuDescriptorHeapSRDescriptorFromStart();
-	Descriptor UnorderedAccessDescriptorFromStart	= SV_pRenderDevice->GetGpuDescriptorHeapUADescriptorFromStart();
-	Descriptor SamplerDescriptorFromStart			= SV_pRenderDevice->GetSamplerDescriptorHeapDescriptorFromStart();
+	auto ShaderResourceDescriptorFromStart	= SV_pRenderDevice->GetGpuDescriptorHeapSRDescriptorFromStart();
+	auto UnorderedAccessDescriptorFromStart	= SV_pRenderDevice->GetGpuDescriptorHeapUADescriptorFromStart();
+	auto SamplerDescriptorFromStart			= SV_pRenderDevice->GetSamplerDescriptorHeapDescriptorFromStart();
 
 	if (SV_pSystemConstants)
 		SV_pCommandContext->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::SystemConstants + RootParameterOffset, SV_pSystemConstants->GetGpuVirtualAddress());

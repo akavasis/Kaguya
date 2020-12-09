@@ -29,7 +29,7 @@ public:
 	inline auto GetType() const { return m_Type; }
 
 	// These methods is internally used by the renderer
-	bool Close(ResourceStateTracker& GlobalResourceStateTracker);
+	bool Close(ResourceStateTracker* pGlobalResourceStateTracker);
 	void Reset(UINT64 FenceValue, UINT64 CompletedValue, CommandQueue* pCommandQueue);
 
 	void SetPipelineState(const PipelineState* pPipelineState);

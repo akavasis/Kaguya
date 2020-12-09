@@ -59,12 +59,14 @@ void RenderDevice::BindGpuDescriptorHeap(CommandContext* pCommandContext)
 
 void RenderDevice::ExecuteCommandContexts(CommandContext::Type Type, UINT NumCommandContexts, CommandContext* ppCommandContexts[])
 {
+	ScopedWriteLock SWL(GlobalResourceStateTrackerRWLock);
+
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
 	commandlistsToBeExecuted.reserve(size_t(NumCommandContexts) * 2);
 	for (UINT i = 0; i < NumCommandContexts; ++i)
 	{
 		CommandContext* pCommandContext = ppCommandContexts[i];
-		if (pCommandContext->Close(GlobalResourceStateTracker))
+		if (pCommandContext->Close(&GlobalResourceStateTracker))
 		{
 			commandlistsToBeExecuted.push_back(pCommandContext->GetPendingCommandList());
 		}
@@ -99,16 +101,6 @@ void RenderDevice::FlushCopyQueue()
 	CopyFenceCompletionEvent.wait();
 }
 
-Shader RenderDevice::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
-{
-	return ShaderCompiler.CompileShader(Type, Path.c_str(), pEntryPoint, ShaderDefines);
-}
-
-Library RenderDevice::CompileLibrary(const std::filesystem::path& Path)
-{
-	return ShaderCompiler.CompileLibrary(Path.c_str());
-}
-
 RenderResourceHandle RenderDevice::InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name)
 {
 	switch (Type)
@@ -128,14 +120,14 @@ std::string RenderDevice::GetRenderResourceHandleName(RenderResourceHandle Handl
 {
 	switch (Handle.Type)
 	{
-	case RenderResourceType::Buffer:		return m_BufferHandleRegistry.GetName(Handle); break;
-	case RenderResourceType::Texture:		return m_TextureHandleRegistry.GetName(Handle); break;
-	case RenderResourceType::Heap:			return m_HeapHandleRegistry.GetName(Handle); break;
-	case RenderResourceType::RootSignature: return m_RootSignatureHandleRegistry.GetName(Handle); break;
-	case RenderResourceType::GraphicsPSO:	return m_GraphicsPipelineStateHandleRegistry.GetName(Handle); break;
-	case RenderResourceType::ComputePSO:	return m_ComputePipelineStateHandleRegistry.GetName(Handle); break;
+	case RenderResourceType::Buffer:		return m_BufferHandleRegistry.GetName(Handle);					break;
+	case RenderResourceType::Texture:		return m_TextureHandleRegistry.GetName(Handle);					break;
+	case RenderResourceType::Heap:			return m_HeapHandleRegistry.GetName(Handle);					break;
+	case RenderResourceType::RootSignature: return m_RootSignatureHandleRegistry.GetName(Handle);			break;
+	case RenderResourceType::GraphicsPSO:	return m_GraphicsPipelineStateHandleRegistry.GetName(Handle);	break;
+	case RenderResourceType::ComputePSO:	return m_ComputePipelineStateHandleRegistry.GetName(Handle);	break;
 	case RenderResourceType::RaytracingPSO: return m_RaytracingPipelineStateHandleRegistry.GetName(Handle); break;
-	default: break;
+	default:																								break;
 	}
 	return std::string();
 }
@@ -738,11 +730,8 @@ CommandQueue& RenderDevice::GetApiCommandQueue(CommandContext::Type Type)
 
 void RenderDevice::AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy)
 {
-	// SystemConstants
-	RootSignatureProxy.AddRootCBVParameter(RootCBV(0, 100));
-
-	// RenderPassDataCB
-	RootSignatureProxy.AddRootCBVParameter(RootCBV(1, 100));
+	RootSignatureProxy.AddRootCBVParameter(RootCBV(0, 100)); // g_SystemConstants
+	RootSignatureProxy.AddRootCBVParameter(RootCBV(1, 100)); // g_RenderPassData
 
 	/* Descriptor Tables */
 
@@ -751,11 +740,11 @@ void RenderDevice::AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatur
 	{
 		constexpr D3D12_DESCRIPTOR_RANGE_FLAGS Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE;
 
-		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, Flags, 0)); // Texture2DTable
-		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, Flags, 0)); // Texture2DUINT4Table
-		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 102, Flags, 0)); // Texture2DArrayTable
-		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 103, Flags, 0)); // TextureCubeTable
-		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 104, Flags, 0)); // RawBufferTable
+		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, Flags, 0)); // g_Texture2DTable
+		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, Flags, 0)); // g_Texture2DUINT4Table
+		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 102, Flags, 0)); // g_Texture2DArrayTable
+		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 103, Flags, 0)); // g_TextureCubeTable
+		ShaderResourceDescriptorTable.AddDescriptorRange(DescriptorRange::Type::SRV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 104, Flags, 0)); // g_ByteAddressBufferTable
 	}
 	RootSignatureProxy.AddRootDescriptorTableParameter(ShaderResourceDescriptorTable);
 
@@ -764,8 +753,8 @@ void RenderDevice::AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatur
 	{
 		constexpr D3D12_DESCRIPTOR_RANGE_FLAGS Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE;
 
-		UnorderedAccessDescriptorTable.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, Flags, 0)); // RWTexture2DTable
-		UnorderedAccessDescriptorTable.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, Flags, 0)); // RWTexture2DArrayTable
+		UnorderedAccessDescriptorTable.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, Flags, 0)); // g_RWTexture2DTable
+		UnorderedAccessDescriptorTable.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, Flags, 0)); // g_RWTexture2DArrayTable
 	}
 	RootSignatureProxy.AddRootDescriptorTableParameter(UnorderedAccessDescriptorTable);
 
@@ -774,7 +763,7 @@ void RenderDevice::AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatur
 	{
 		constexpr D3D12_DESCRIPTOR_RANGE_FLAGS Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-		SamplerDescriptorTable.AddDescriptorRange(DescriptorRange::Type::Sampler, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, Flags, 0)); // SamplerTable
+		SamplerDescriptorTable.AddDescriptorRange(DescriptorRange::Type::Sampler, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, Flags, 0)); // g_SamplerTable
 	}
 	RootSignatureProxy.AddRootDescriptorTableParameter(SamplerDescriptorTable);
 }

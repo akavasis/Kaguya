@@ -1,4 +1,21 @@
 #pragma once
+#include "../RenderResourceHandle.h"
+
+struct BufferHandle : RenderResourceHandle
+{
+	BufferHandle()
+	{
+		Type = RenderResourceType::Buffer;
+	}
+};
+
+struct TextureHandle : RenderResourceHandle
+{
+	TextureHandle()
+	{
+		Type = RenderResourceType::Texture;
+	}
+};
 
 enum class PrimitiveTopology
 {

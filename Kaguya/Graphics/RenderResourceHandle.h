@@ -15,8 +15,8 @@ enum class RenderResourceType : UINT64
 	RaytracingPSO
 };
 
-#define MAX_UID (1ull << 28ull)
-#define MAX_PTR (1ull << 32ull)
+constexpr auto MAX_UID = (1ull << 28ull);
+constexpr auto MAX_PTR = (1ull << 32ull);
 
 struct RenderResourceHandle
 {

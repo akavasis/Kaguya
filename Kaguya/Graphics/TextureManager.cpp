@@ -280,7 +280,7 @@ void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTex
 {
 #ifdef _DEBUG
 	std::wstring Path = UTF8ToUTF16(StagingTexture.Name);
-	PIXEvent(RenderContext->GetApiHandle(), Path.data());
+	PIXScopedEvent(RenderContext->GetApiHandle(), 0, Path.data());
 #endif
 
 	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);

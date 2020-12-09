@@ -76,4 +76,5 @@ void Miss(inout RayPayload rayPayload)
 [shader("closesthit")]
 void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 {
+	
 }

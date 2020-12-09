@@ -59,7 +59,7 @@ void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
+		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
@@ -181,31 +181,30 @@ void Pathtracing::RenderGui()
 		int Dirty = 0;
 		Dirty |= (int)ImGui::SliderInt("Num Samples Per Pixel", &settings.NumSamplesPerPixel, 1, 10);
 		Dirty |= (int)ImGui::SliderInt("Max Depth", &settings.MaxDepth, 1, 7);
-		
-		if (Dirty) Refresh = true;
+
+		if (Dirty)
+		{
+			Refresh = true;
+		}
 		ImGui::TreePop();
 	}
 }
 
 void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Path tracing");
-
 	struct RenderPassData
 	{
 		uint OutputIndex;
-	} Data;
+	} g_RenderPassData;
 
-	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
-	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
+	g_RenderPassData.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Pathtracing);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
-	//RenderContext.SetRootShaderResourceView(1, pGpuScene->GetVertexBuffer());
-	//RenderContext.SetRootShaderResourceView(2, pGpuScene->GetIndexBuffer());
-	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
-	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetLightTable());
-	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTable());
+	RenderContext.SetRootShaderResourceView(1, pGpuScene->GetMeshTable());
+	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetLightTable());
+	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMaterialTable());
 
 	RenderContext.DispatchRays(
 		m_RayGenerationShaderTable,

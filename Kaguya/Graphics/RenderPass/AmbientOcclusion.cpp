@@ -61,7 +61,7 @@ void AmbientOcclusion::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
+		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
@@ -190,9 +190,7 @@ void AmbientOcclusion::RenderGui()
 
 void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Ambient Occlusion");
-
-	struct AmbientOcclusionData
+	struct RenderPassData
 	{
 		float AORadius;
 		int NumAORaysPerPixel;
@@ -200,18 +198,16 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 		int InputWorldPositionIndex;
 		int InputWorldNormalIndex;
 		int OutputIndex;
-	} Data;
+	} g_RenderPassData;
 
-	Data.AORadius = Settings.AORadius;
-	Data.NumAORaysPerPixel = Settings.NumAORaysPerPixel;
+	g_RenderPassData.AORadius = Settings.AORadius;
+	g_RenderPassData.NumAORaysPerPixel = Settings.NumAORaysPerPixel;
 
 	// TODO: UPDATE THIS VALUE
 	//Data.InputWorldPositionIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldPosition]).HeapIndex;
 	//Data.InputWorldNormalIndex = RenderContext.GetShaderResourceView(pRaytraceGBufferRenderPass->Resources[RaytraceGBuffer::EResources::WorldNormal]).HeapIndex;
-	Data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
-	RenderContext.UpdateRenderPassData<AmbientOcclusionData>(Data);
-
-	RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::UnorderedAccess);
+	g_RenderPassData.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::AmbientOcclusion);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetTopLevelAccelerationStructure());
@@ -220,14 +216,14 @@ void AmbientOcclusion::Execute(RenderContext& RenderContext, RenderGraph* pRende
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMeshTable());
 	RenderContext.SetRootShaderResourceView(4, pGpuScene->GetMaterialTable());
 
-	RenderContext.DispatchRays(
+	RenderContext.DispatchRays
+	(
 		m_RayGenerationShaderTable,
 		m_MissShaderTable,
 		m_HitGroupShaderTable,
 		Properties.Width,
-		Properties.Height);
-
-	RenderContext.UAVBarrier(Resources[EResources::RenderTarget]);
+		Properties.Height
+	);
 }
 
 void AmbientOcclusion::StateRefresh()

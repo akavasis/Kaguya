@@ -14,6 +14,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - __Rectangular area light via linearly transformed cosines (LTC)__
 - __Ray-traced soft shadows__
 - __Shadow denoising via SVGF__
+- __Mesh shader__
 
 # Goals
 - Experiment with DirectX 12 Ultimate features: DirectX Raytracing 1.1, Variable Rate Shading, Mesh Shaders, and Sampler Feedback
@@ -42,6 +43,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - imgui (https://github.com/ocornut/imgui)
 - spdlog (https://github.com/gabime/spdlog)
 - WinPixEventRunTime (https://devblogs.microsoft.com/pix/winpixeventruntime/)
+- wil (https://github.com/microsoft/wil)
 
 # Showcase
 

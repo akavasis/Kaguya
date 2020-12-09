@@ -13,16 +13,18 @@
 #define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
 RaytracingAccelerationStructure		SceneBVH			: register(t0, space0);
-StructuredBuffer<Vertex>			VertexBuffer		: register(t1, space0);
-StructuredBuffer<uint>				IndexBuffer			: register(t2, space0);
-StructuredBuffer<Mesh>				Meshes				: register(t3, space0);
-StructuredBuffer<PolygonalLight>	Lights				: register(t4, space0);
-StructuredBuffer<Material>			Materials			: register(t5, space0);
+StructuredBuffer<Mesh>				Meshes				: register(t1, space0);
+StructuredBuffer<PolygonalLight>	Lights				: register(t2, space0);
+StructuredBuffer<Material>			Materials			: register(t3, space0);
 
 SamplerState						SamplerLinearWrap	: register(s0, space0);
 SamplerState						SamplerLinearClamp	: register(s1, space0);
 
 #include <ShaderLayout.hlsli>
+
+// Local Root Signature
+StructuredBuffer<Vertex>			VertexBuffer		: register(t0, space1);
+StructuredBuffer<uint>				IndexBuffer			: register(t1, space1);
 
 Triangle GetTriangle()
 {

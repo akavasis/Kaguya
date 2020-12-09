@@ -193,7 +193,7 @@ void loadCurrData(int2 ScreenSpaceCoord, out float3 StochasticShadowed, out floa
 	StochasticUnshadowed = Source1[ScreenSpaceCoord].rgb;
 }
 
-[numthreads(8, 8, 1)]
+[numthreads(16, 16, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
     // Load current

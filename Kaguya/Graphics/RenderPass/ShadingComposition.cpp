@@ -56,8 +56,6 @@ void ShadingComposition::RenderGui()
 
 void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Shading Composition");
-
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
 	auto pSVGFAtrousRenderPass = pRenderGraph->GetRenderPass<SVGFAtrous>();
 
@@ -70,15 +68,15 @@ void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRen
 
 		// Output Textures
 		uint RenderTarget;
-	} Data;
+	} g_RenderPassData;
 
-	Data.AnalyticUnshadowed	= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::AnalyticUnshadowed]).HeapIndex;
-	Data.Source0Index		= RenderContext.GetShaderResourceView(pSVGFAtrousRenderPass->Resources[SVGFAtrous::EResources::RenderTarget0]).HeapIndex;
-	Data.Source1Index		= RenderContext.GetShaderResourceView(pSVGFAtrousRenderPass->Resources[SVGFAtrous::EResources::RenderTarget1]).HeapIndex;
+	g_RenderPassData.AnalyticUnshadowed	= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::AnalyticUnshadowed]).HeapIndex;
+	g_RenderPassData.Source0Index		= RenderContext.GetShaderResourceView(pSVGFAtrousRenderPass->Resources[SVGFAtrous::EResources::RenderTarget0]).HeapIndex;
+	g_RenderPassData.Source1Index		= RenderContext.GetShaderResourceView(pSVGFAtrousRenderPass->Resources[SVGFAtrous::EResources::RenderTarget1]).HeapIndex;
 
-	Data.RenderTarget		= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	g_RenderPassData.RenderTarget		= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
 
-	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::ShadingComposition);
 	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);

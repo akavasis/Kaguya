@@ -74,18 +74,21 @@ struct RendererFormats
 
 struct Shaders
 {
+	// Vertex Shaders
 	struct VS
 	{
 		inline static Shader Quad;
 		inline static Shader Skybox;
 	};
 
+	// Mesh Shaders
 	struct MS
 	{
 		inline static Shader GBufferMeshes;
 		inline static Shader GBufferLights;
 	};
 
+	// Pixel Shaders
 	struct PS
 	{
 		inline static Shader ConvolutionIrradiance;
@@ -97,6 +100,7 @@ struct Shaders
 		inline static Shader PostProcess_Tonemapping;
 	};
 
+	// Compute Shaders
 	struct CS
 	{
 		inline static Shader EquirectangularToCubemap;
@@ -148,6 +152,7 @@ struct RootSignatures
 
 	inline static RenderResourceHandle ShadingComposition;
 
+	inline static RenderResourceHandle Accumulation;
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 	inline static RenderResourceHandle PostProcess_BloomMask;
 	inline static RenderResourceHandle PostProcess_BloomDownsample;
@@ -155,13 +160,10 @@ struct RootSignatures
 	inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
 	inline static RenderResourceHandle PostProcess_BloomComposition;
 
-	inline static RenderResourceHandle MeshShader;
-
 	struct Raytracing
 	{
-		inline static RenderResourceHandle Accumulation;
+		inline static RenderResourceHandle Local;
 		inline static RenderResourceHandle EmptyLocal;
-
 		inline static RenderResourceHandle Global;
 	};
 
@@ -177,8 +179,6 @@ struct GraphicsPSOs
 	inline static RenderResourceHandle GBufferLights;
 
 	inline static RenderResourceHandle PostProcess_Tonemapping;
-
-	inline static RenderResourceHandle MeshShader;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

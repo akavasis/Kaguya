@@ -18,17 +18,17 @@ PostProcess::PostProcess(UINT Width, UINT Height)
 
 void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 {
-	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
-	Resources[BloomRenderTarget1a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget1a");
-	Resources[BloomRenderTarget1b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget1b");
-	Resources[BloomRenderTarget2a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget2a");
-	Resources[BloomRenderTarget2b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget2b");
-	Resources[BloomRenderTarget3a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget3a");
-	Resources[BloomRenderTarget3b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget3b");
-	Resources[BloomRenderTarget4a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget4a");
-	Resources[BloomRenderTarget4b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget4b");
-	Resources[BloomRenderTarget5a] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget5a");
-	Resources[BloomRenderTarget5b] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget5b");
+	Resources[RenderTarget]			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
+	Resources[BloomRenderTarget1a]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget1a");
+	Resources[BloomRenderTarget1b]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget1b");
+	Resources[BloomRenderTarget2a]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget2a");
+	Resources[BloomRenderTarget2b]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget2b");
+	Resources[BloomRenderTarget3a]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget3a");
+	Resources[BloomRenderTarget3b]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget3b");
+	Resources[BloomRenderTarget4a]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget4a");
+	Resources[BloomRenderTarget4b]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget4b");
+	Resources[BloomRenderTarget5a]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget5a");
+	Resources[BloomRenderTarget5b]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget5b");
 
 	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_Tonemapping, [&](RootSignatureProxy& proxy)
 	{
@@ -191,8 +191,6 @@ void PostProcess::RenderGui()
 
 void PostProcess::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Post Process");
-
 	auto pAccumulationRenderPass = pRenderGraph->GetRenderPass<Accumulation>();
 	Descriptor InputSRV = RenderContext.GetShaderResourceView(pAccumulationRenderPass->Resources[Accumulation::EResources::RenderTarget]);
 
@@ -212,11 +210,11 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		Bloom PP is based on Microsoft's DirectX-Graphics-Samples's MiniEngine.
 		https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine
 	*/
-	PIXEvent(RenderContext->GetApiHandle(), L"Bloom");
+	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom");
 
 	// Bloom Mask
 	{
-		PIXEvent(RenderContext->GetApiHandle(), L"Bloom Mask");
+		PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Mask");
 
 		auto pOutput = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1a]);
 
@@ -244,7 +242,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 	// Bloom Downsample
 	{
-		PIXEvent(RenderContext->GetApiHandle(), L"Bloom Downsample");
+		PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Downsample");
 
 		auto pOutput1 = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget2a]);
 
@@ -293,7 +291,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 	// Bloom Composition
 	{
-		PIXEvent(RenderContext->GetApiHandle(), L"Bloom Composition");
+		PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Composition");
 
 		auto pBloom = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1b]);
 		auto pOutput = RenderContext.GetTexture(Resources[EResources::RenderTarget]);
@@ -340,7 +338,7 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 
 		// Tonemap
 		{
-			PIXEvent(RenderContext->GetApiHandle(), L"Tonemap");
+			PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Tonemap");
 
 			struct Tonemapping_SubPass_Data
 			{
@@ -370,7 +368,7 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 
 		// ImGui Render
 		{
-			PIXEvent(RenderContext->GetApiHandle(), L"ImGui Render");
+			PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"ImGui Render");
 
 			ImGui::Render();
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), RenderContext->GetApiHandle());
@@ -381,7 +379,7 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 
 void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Bloom Blur");
+	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Blur");
 
 	auto pOutput = RenderContext.GetTexture(Resources[Output]);
 
@@ -408,7 +406,7 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 
 void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowResolution, size_t Output, RenderContext& RenderContext)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Bloom Upsample Blur Accumulation");
+	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Upsample Blur Accumulation");
 
 	auto pOutput = RenderContext.GetTexture(Resources[Output]);
 

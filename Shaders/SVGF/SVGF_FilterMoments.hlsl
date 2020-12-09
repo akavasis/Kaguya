@@ -24,7 +24,7 @@ struct RenderPassData
 #define RenderPassDataType RenderPassData
 #include <ShaderLayout.hlsli>
 
-[numthreads(8, 8, 1)]
+[numthreads(16, 16, 1)]
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
 	Texture2D			Source0			= g_Texture2DTable[g_RenderPassData.Source0];

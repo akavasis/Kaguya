@@ -3,35 +3,38 @@
 
 void ResourceStateTracker::AddResourceState(ResourceType* pResource, D3D12_RESOURCE_STATES ResourceStates)
 {
-	if (!pResource)
-		return;
-	m_ResourceStates[pResource].SetSubresourceState(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, ResourceStates);
+	if (pResource)
+	{
+		m_ResourceStates[pResource].SetSubresourceState(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, ResourceStates);
+	}
 }
 
 bool ResourceStateTracker::RemoveResourceState(ResourceType* pResource)
 {
-	if (!pResource)
-		return false;
-
-	if (auto iter = m_ResourceStates.find(pResource);
-		iter != m_ResourceStates.end())
+	if (pResource)
 	{
-		m_ResourceStates.erase(iter);
-		return true;
+		if (auto iter = m_ResourceStates.find(pResource);
+			iter != m_ResourceStates.end())
+		{
+			m_ResourceStates.erase(iter);
+			return true;
+		}
 	}
+
 	return false;
 }
 
 void ResourceStateTracker::SetResourceState(ResourceType* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates)
 {
-	if (!pResource)
-		return;
-	m_ResourceStates[pResource].SetSubresourceState(Subresource, ResourceStates);
+	if (pResource)
+	{
+		m_ResourceStates[pResource].SetSubresourceState(Subresource, ResourceStates);
+	}
 }
 
-void ResourceStateTracker::UpdateResourceStates(const ResourceStateTracker& RST)
+void ResourceStateTracker::UpdateResourceStates(const ResourceStateTracker& ResourceStateTracker)
 {
-	for (const auto& resourceState : RST.m_ResourceStates)
+	for (const auto& resourceState : ResourceStateTracker.m_ResourceStates)
 	{
 		m_ResourceStates[resourceState.first] = resourceState.second;
 	}
@@ -61,11 +64,13 @@ UINT ResourceStateTracker::FlushPendingResourceBarriers(const ResourceStateTrack
 			if (pendingTransition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES &&
 				!resourceState->SubresourceState.empty())
 			{
-				for (auto subresourceState : resourceState->SubresourceState)
+				for (const auto& subresourceState : resourceState->SubresourceState)
 				{
 					// If the subresource state is already the same as the transition state
 					if (pendingTransition.StateAfter == subresourceState.second)
+					{
 						continue;
+					}
 
 					D3D12_RESOURCE_BARRIER newBarrier = pendingBarrier;
 					newBarrier.Transition.Subresource = subresourceState.first;
@@ -78,7 +83,9 @@ UINT ResourceStateTracker::FlushPendingResourceBarriers(const ResourceStateTrack
 				// We're only transitioning a particular subresource (could be all, or just 1)
 				D3D12_RESOURCE_STATES state = resourceState->GetSubresourceState(pendingTransition.Subresource);
 				if (pendingTransition.StateAfter == state)
+				{
 					continue;
+				}
 
 				pendingBarrier.Transition.StateBefore = state;
 				resourceBarriers.push_back(pendingBarrier);
@@ -115,8 +122,8 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& Barrier
 		// First check if there is already a known "final" state for the given resource.
 		// If there is, the resource has been used on the command list before and
 		// already has a known state within the command list execution.
-		auto iter = m_ResourceStates.find(Barrier.Transition.pResource);
-		if (iter != m_ResourceStates.end())
+		if (auto iter = m_ResourceStates.find(Barrier.Transition.pResource);
+			iter != m_ResourceStates.end())
 		{
 			auto& resourceState = iter->second;
 			// If the known final state of the resource is different...
@@ -124,7 +131,7 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& Barrier
 				!resourceState.SubresourceState.empty())
 			{
 				// First transition all of the subresources if they are different than the StateAfter.
-				for (auto subresourceState : resourceState.SubresourceState)
+				for (const auto& subresourceState : resourceState.SubresourceState)
 				{
 					if (Barrier.Transition.StateAfter != subresourceState.second)
 					{
@@ -170,8 +177,11 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& Barrier
 
 std::optional<ResourceStateTracker::ResourceState> ResourceStateTracker::Find(ResourceType* pResource) const
 {
-	auto iter = m_ResourceStates.find(pResource);
-	if (iter != m_ResourceStates.end())
+	if (auto iter = m_ResourceStates.find(pResource);
+		iter != m_ResourceStates.end())
+	{
 		return iter->second;
+	}
+
 	return {};
 }

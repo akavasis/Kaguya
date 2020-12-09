@@ -151,7 +151,7 @@ void Renderer::Render()
 	bool Refresh = m_pGpuScene->Update(AspectRatio);
 	BuildAccelerationStructureEvent.SetEvent(); // Tell the AsyncComputeThreadProc to build our TLAS after we have updated any scene objects
 
-	auto CommandContexts = m_pRenderGraph->GetCommandContexts();
+	auto& CommandContexts = m_pRenderGraph->GetCommandContexts();
 	for (auto CommandContext : CommandContexts)
 	{
 		CommandContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
@@ -164,8 +164,7 @@ void Renderer::Render()
 
 	uint32_t				SyncInterval		= Settings::VSync ? 1u : 0u;
 	uint32_t				PresentFlags		= (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
-	DXGI_PRESENT_PARAMETERS PresentParameters	= { 0u, nullptr, nullptr, nullptr };
-	HRESULT hr = m_pSwapChain->Present1(SyncInterval, PresentFlags, &PresentParameters);
+	HRESULT hr = m_pSwapChain->Present(SyncInterval, PresentFlags);
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
 		LOG_ERROR("DXGI_ERROR_DEVICE_REMOVED");
@@ -205,21 +204,9 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 		}
 
 		// Resize backbuffer
-		constexpr uint32_t	NodeMask											= 0;
-		uint32_t			Nodes[RenderDevice::NumSwapChainBuffers]			= {};
-		IUnknown*			CommandQueues[RenderDevice::NumSwapChainBuffers]	= {};
-
-		for (auto& node : Nodes)
-		{ 
-			node = NodeMask;
-		}
-		for (auto& commandQueue : CommandQueues)
-		{ 
-			commandQueue = m_pRenderDevice->GraphicsQueue.GetApiHandle();
-		}
-
+		// Note: Cannot use ResizeBuffers1 when debugging in Nsight Graphics, it will crash
 		uint32_t SwapChainFlags	= m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers1(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags, Nodes, CommandQueues));
+		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
 
 		// Recreate descriptors
 		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
@@ -342,6 +329,8 @@ void Renderer::RenderGui()
 //----------------------------------------------------------------------------------------------------
 DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 {
+	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
+
 	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
 	auto pRenderDevice = pRenderer->m_pRenderDevice;
 
@@ -376,6 +365,8 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 
 DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
 {
+	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
+
 	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
 	auto pRenderDevice = pRenderer->m_pRenderDevice;
 

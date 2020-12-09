@@ -58,6 +58,7 @@
 // D3D12
 #include <d3d12.h>
 #pragma comment(lib, "d3d12.lib")
+#include <pix3.h>
 
 #include <Core/Application.h>
 #include <Core/Utility.h>
@@ -69,5 +70,4 @@
 
 #include <Math/MathLibrary.h>
 
-#include <Graphics/Debug/PIXEvent.h>
 #include <Graphics/Debug/PIXCapture.h>

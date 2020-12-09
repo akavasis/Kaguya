@@ -22,7 +22,7 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 {
 	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
 
-	pRenderDevice->CreateRootSignature(RootSignatures::Raytracing::Accumulation, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::Accumulation, [](RootSignatureProxy& proxy)
 	{
 		proxy.DenyTessellationShaderAccess();
 		proxy.DenyGSAccess();
@@ -30,7 +30,7 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 
 	pRenderDevice->CreateComputePipelineState(ComputePSOs::Accumulation, [=](ComputePipelineStateProxy& proxy)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Accumulation);
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Accumulation);
 		proxy.pCS = &Shaders::CS::Accumulation;
 	});
 }
@@ -59,8 +59,6 @@ void Accumulation::RenderGui()
 
 void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Accumulation");
-
 	//auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);
 
@@ -76,13 +74,13 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 
 		uint Input;
 		uint RenderTarget;
-	} Data;
+	} g_RenderPassData;
 
-	Data.AccumulationCount = Settings.AccumulationCount++;
+	g_RenderPassData.AccumulationCount = Settings.AccumulationCount++;
 
-	Data.Input = InputSRV.HeapIndex;
-	Data.RenderTarget = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
-	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
+	g_RenderPassData.Input = InputSRV.HeapIndex;
+	g_RenderPassData.RenderTarget = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::Accumulation);
 	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);

@@ -101,8 +101,6 @@ void SVGFReproject::RenderGui()
 
 void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"SVGF Reproject");
-
 	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget0], Resource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget1], Resource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[EResources::PrevLinearZ], Resource::State::NonPixelShaderResource);
@@ -137,34 +135,34 @@ void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGr
 		uint RenderTarget1;
 		uint Moments;
 		uint HistoryLength;
-	} Data;
+	} g_RenderPassData;
 
-	Data.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
+	g_RenderPassData.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
 
-	Data.Alpha					= SVGFSettings::Alpha;
-	Data.MomentsAlpha			= SVGFSettings::MomentsAlpha;
+	g_RenderPassData.Alpha					= SVGFSettings::Alpha;
+	g_RenderPassData.MomentsAlpha			= SVGFSettings::MomentsAlpha;
 
-	Data.Motion					= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_MotionVector]).HeapIndex;
-	Data.LinearZ				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_LinearZ]).HeapIndex;
+	g_RenderPassData.Motion					= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_MotionVector]).HeapIndex;
+	g_RenderPassData.LinearZ				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_LinearZ]).HeapIndex;
 
-	Data.Source0				= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::StochasticShadowed]).HeapIndex;
-	Data.Source1				= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::StochasticUnshadowed]).HeapIndex;
+	g_RenderPassData.Source0				= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::StochasticShadowed]).HeapIndex;
+	g_RenderPassData.Source1				= RenderContext.GetShaderResourceView(pShadingRenderPass->Resources[Shading::EResources::StochasticUnshadowed]).HeapIndex;
 
-	Data.PrevSource0			= RenderContext.GetShaderResourceView(Resources[EResources::PrevRenderTarget0]).HeapIndex;
-	Data.PrevSource1			= RenderContext.GetShaderResourceView(Resources[EResources::PrevRenderTarget1]).HeapIndex;
-	Data.PrevLinearZ			= RenderContext.GetShaderResourceView(Resources[EResources::PrevLinearZ]).HeapIndex;
-	Data.PrevMoments			= RenderContext.GetShaderResourceView(Resources[EResources::PrevMoments]).HeapIndex;
-	Data.PrevHistoryLength		= RenderContext.GetShaderResourceView(Resources[EResources::PrevHistoryLength]).HeapIndex;
+	g_RenderPassData.PrevSource0			= RenderContext.GetShaderResourceView(Resources[EResources::PrevRenderTarget0]).HeapIndex;
+	g_RenderPassData.PrevSource1			= RenderContext.GetShaderResourceView(Resources[EResources::PrevRenderTarget1]).HeapIndex;
+	g_RenderPassData.PrevLinearZ			= RenderContext.GetShaderResourceView(Resources[EResources::PrevLinearZ]).HeapIndex;
+	g_RenderPassData.PrevMoments			= RenderContext.GetShaderResourceView(Resources[EResources::PrevMoments]).HeapIndex;
+	g_RenderPassData.PrevHistoryLength		= RenderContext.GetShaderResourceView(Resources[EResources::PrevHistoryLength]).HeapIndex;
 
-	Data.RenderTarget0			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget0]).HeapIndex;
-	Data.RenderTarget1			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget1]).HeapIndex;
-	Data.Moments				= RenderContext.GetUnorderedAccessView(Resources[EResources::Moments]).HeapIndex;
-	Data.HistoryLength			= RenderContext.GetUnorderedAccessView(Resources[EResources::HistoryLength]).HeapIndex;
+	g_RenderPassData.RenderTarget0			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget0]).HeapIndex;
+	g_RenderPassData.RenderTarget1			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget1]).HeapIndex;
+	g_RenderPassData.Moments				= RenderContext.GetUnorderedAccessView(Resources[EResources::Moments]).HeapIndex;
+	g_RenderPassData.HistoryLength			= RenderContext.GetUnorderedAccessView(Resources[EResources::HistoryLength]).HeapIndex;
 
-	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::SVGF_Reproject);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
+	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
 
 	RenderContext.CopyResource(Resources[EResources::PrevRenderTarget0], Resources[EResources::RenderTarget0]);
 	RenderContext.CopyResource(Resources[EResources::PrevRenderTarget1], Resources[EResources::RenderTarget1]);
@@ -231,8 +229,6 @@ void SVGFFilterMoments::RenderGui()
 
 void SVGFFilterMoments::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"SVGF Filter Moments");
-
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 	auto pSVGFReprojectRenderPass = pRenderGraph->GetRenderPass<SVGFReproject>();
 
@@ -253,26 +249,26 @@ void SVGFFilterMoments::Execute(RenderContext& RenderContext, RenderGraph* pRend
 		// Output Textures
 		uint RenderTarget0;
 		uint RenderTarget1;
-	} Data;
+	} g_RenderPassData;
 
-	Data.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
+	g_RenderPassData.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
 
-	Data.PhiColor				= SVGFSettings::PhiColor;
-	Data.PhiNormal				= SVGFSettings::PhiNormal;
+	g_RenderPassData.PhiColor				= SVGFSettings::PhiColor;
+	g_RenderPassData.PhiNormal				= SVGFSettings::PhiNormal;
 
-	Data.Source0				= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::RenderTarget0]).HeapIndex;
-	Data.Source1				= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::RenderTarget1]).HeapIndex;
-	Data.Moments				= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::Moments]).HeapIndex;
-	Data.HistoryLength			= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::HistoryLength]).HeapIndex;
-	Data.Compact				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_Compact]).HeapIndex;
+	g_RenderPassData.Source0				= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::RenderTarget0]).HeapIndex;
+	g_RenderPassData.Source1				= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::RenderTarget1]).HeapIndex;
+	g_RenderPassData.Moments				= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::Moments]).HeapIndex;
+	g_RenderPassData.HistoryLength			= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::HistoryLength]).HeapIndex;
+	g_RenderPassData.Compact				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_Compact]).HeapIndex;
 
-	Data.RenderTarget0			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget0]).HeapIndex;
-	Data.RenderTarget1			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget1]).HeapIndex;
+	g_RenderPassData.RenderTarget0			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget0]).HeapIndex;
+	g_RenderPassData.RenderTarget1			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget1]).HeapIndex;
 
-	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::SVGF_FilterMoments);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
+	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
 }
 
 void SVGFFilterMoments::StateRefresh()
@@ -333,8 +329,6 @@ void SVGFAtrous::RenderGui()
 
 void SVGFAtrous::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"SVGF Atrous");
-
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 	auto pSVGFReprojectRenderPass = pRenderGraph->GetRenderPass<SVGFReproject>();
 	auto pSVGFFilterMomentsRenderPass = pRenderGraph->GetRenderPass<SVGFFilterMoments>();
@@ -357,27 +351,27 @@ void SVGFAtrous::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph
 		// Output Textures
 		uint RenderTarget0;
 		uint RenderTarget1;
-	} Data;
+	} g_RenderPassData;
 
-	Data.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
+	g_RenderPassData.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
 
-	Data.PhiColor				= SVGFSettings::PhiColor;
-	Data.PhiNormal				= SVGFSettings::PhiNormal;
-	Data.StepSize				= 1;
+	g_RenderPassData.PhiColor				= SVGFSettings::PhiColor;
+	g_RenderPassData.PhiNormal				= SVGFSettings::PhiNormal;
+	g_RenderPassData.StepSize				= 1;
 
-	Data.DenoisedSource0		= RenderContext.GetShaderResourceView(pSVGFFilterMomentsRenderPass->Resources[SVGFFilterMoments::EResources::RenderTarget0]).HeapIndex;
-	Data.DenoisedSource1		= RenderContext.GetShaderResourceView(pSVGFFilterMomentsRenderPass->Resources[SVGFFilterMoments::EResources::RenderTarget1]).HeapIndex;
-	Data.Moments				= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::Moments]).HeapIndex;
-	Data.HistoryLength			= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::HistoryLength]).HeapIndex;
-	Data.Compact				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_Compact]).HeapIndex;
+	g_RenderPassData.DenoisedSource0		= RenderContext.GetShaderResourceView(pSVGFFilterMomentsRenderPass->Resources[SVGFFilterMoments::EResources::RenderTarget0]).HeapIndex;
+	g_RenderPassData.DenoisedSource1		= RenderContext.GetShaderResourceView(pSVGFFilterMomentsRenderPass->Resources[SVGFFilterMoments::EResources::RenderTarget1]).HeapIndex;
+	g_RenderPassData.Moments				= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::Moments]).HeapIndex;
+	g_RenderPassData.HistoryLength			= RenderContext.GetShaderResourceView(pSVGFReprojectRenderPass->Resources[SVGFReproject::EResources::HistoryLength]).HeapIndex;
+	g_RenderPassData.Compact				= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::SVGF_Compact]).HeapIndex;
 
-	Data.RenderTarget0			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget0]).HeapIndex;
-	Data.RenderTarget1			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget1]).HeapIndex;
+	g_RenderPassData.RenderTarget0			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget0]).HeapIndex;
+	g_RenderPassData.RenderTarget1			= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget1]).HeapIndex;
 
-	RenderContext.UpdateRenderPassData<RenderPassData>(Data);
+	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::SVGF_Atrous);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
+	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
 }
 
 void SVGFAtrous::StateRefresh()

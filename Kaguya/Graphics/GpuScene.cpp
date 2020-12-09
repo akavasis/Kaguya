@@ -329,7 +329,7 @@ bool GpuScene::Update(float AspectRatio)
 
 void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 {
-	PIXEvent(RenderContext->GetApiHandle(), L"Top Level Acceleration Structure Generation");
+	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Top Level Acceleration Structure Generation");
 
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
 
@@ -447,7 +447,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
 	}
 
-	PIXEvent(RenderContext->GetApiHandle(), L"Bottom Level Acceleration Structure Generation");
+	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bottom Level Acceleration Structure Generation");
 
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{

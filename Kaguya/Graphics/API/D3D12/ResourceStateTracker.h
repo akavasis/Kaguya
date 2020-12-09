@@ -37,7 +37,7 @@ public:
 	void AddResourceState(ResourceType* pResource, D3D12_RESOURCE_STATES ResourceStates);
 	bool RemoveResourceState(ResourceType* pResource);
 	void SetResourceState(ResourceType* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates);
-	void UpdateResourceStates(const ResourceStateTracker& RST);
+	void UpdateResourceStates(const ResourceStateTracker& ResourceStateTracker);
 	void Reset();
 
 	UINT FlushPendingResourceBarriers(const ResourceStateTracker& GlobalResourceStateTracker, ID3D12GraphicsCommandList* pCommandList);

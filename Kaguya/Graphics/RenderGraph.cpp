@@ -167,8 +167,9 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 	auto pCommandContext	= pRenderPassThreadProcParameter->pCommandContext;
 	auto pSystemConstants	= pRenderPassThreadProcParameter->pSystemConstants;
 	auto pGpuData			= pRenderPassThreadProcParameter->pGpuData;
+	auto Name				= UTF8ToUTF16(pRenderPass->Name);
 
-	SetThreadDescription(GetCurrentThread(), UTF8ToUTF16(pRenderPass->Name).data());
+	SetThreadDescription(GetCurrentThread(), Name.data());
 
 	while (true)
 	{
@@ -181,6 +182,7 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 		}
 
 		RenderContext RenderContext(ThreadID, pSystemConstants, pGpuData, pRenderDevice, pCommandContext);
+		PIXScopedEvent(RenderContext->GetApiHandle(), 0, Name.data());
 
 		if (!pRenderPass->ExplicitResourceTransition)
 		{

@@ -341,4 +341,5 @@ void ShadowMiss(inout ShadowRayPayload rayPayload)
 [shader("closesthit")]
 void ShadowClosestHit(inout ShadowRayPayload rayPayload, in HitAttributes attrib)
 {
+	
 }

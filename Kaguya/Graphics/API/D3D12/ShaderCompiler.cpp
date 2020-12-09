@@ -52,10 +52,10 @@ void ShaderCompiler::SetIncludeDirectory(const std::filesystem::path& pPath)
 	m_IncludeDirectory = pPath;
 }
 
-Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
+Shader ShaderCompiler::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
 {
 	auto ProfileString	= ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_5);
-	auto pDxcBlob		= Compile(pPath, pEntryPoint, ProfileString.data(), ShaderDefines);
+	auto pDxcBlob		= Compile(Path, pEntryPoint, ProfileString.data(), ShaderDefines);
 
 	DxcBuffer DxcBuffer = {};
 	DxcBuffer.Ptr		= pDxcBlob->GetBufferPointer();
@@ -67,10 +67,10 @@ Shader ShaderCompiler::CompileShader(Shader::Type Type, LPCWSTR pPath, LPCWSTR p
 	return Shader(Type, pDxcBlob, pShaderReflection);
 }
 
-Library ShaderCompiler::CompileLibrary(LPCWSTR pPath)
+Library ShaderCompiler::CompileLibrary(const std::filesystem::path& Path)
 {
 	auto ProfileString	= LibraryProfileString(ShaderCompiler::Profile::Profile_6_5);
-	auto pDxcBlob		= Compile(pPath, L"", ProfileString.data(), {});
+	auto pDxcBlob		= Compile(Path, L"", ProfileString.data(), {});
 
 	DxcBuffer DxcBuffer = {};
 	DxcBuffer.Ptr		= pDxcBlob->GetBufferPointer();
@@ -82,10 +82,9 @@ Library ShaderCompiler::CompileLibrary(LPCWSTR pPath)
 	return Library(pDxcBlob, pLibraryReflection);
 }
 
-Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines)
+Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(const std::filesystem::path& Path, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines)
 {
-	std::filesystem::path filePath = std::filesystem::absolute(pPath);
-	assert(std::filesystem::exists(filePath) && "File Not Found");
+	assert(std::filesystem::exists(Path) && "File Not Found");
 
 	// https://developer.nvidia.com/dx12-dos-and-donts
 	// Use the /all_resources_bound / D3DCOMPILE_ALL_RESOURCES_BOUND compile flag if possible This allows for the compiler to do a better job at optimizing texture accesses.
@@ -109,13 +108,13 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(LPCWSTR pPath, LPCWSTR 
 	ComPtr<IDxcIncludeHandler>	pDxcIncludeHandler;
 	UINT32						CodePage = CP_ACP;
 
-	ThrowCOMIfFailed(m_DxcLibrary->CreateBlobFromFile(filePath.c_str(), &CodePage, pSource.ReleaseAndGetAddressOf()));
+	ThrowCOMIfFailed(m_DxcLibrary->CreateBlobFromFile(Path.c_str(), &CodePage, pSource.ReleaseAndGetAddressOf()));
 	ThrowCOMIfFailed(m_DxcLibrary->CreateIncludeHandler(pDxcIncludeHandler.ReleaseAndGetAddressOf()));
 
 	ComPtr<IDxcOperationResult> pDxcOperationResult;
 	ThrowCOMIfFailed(m_DxcCompiler->Compile(
 		pSource.Get(),
-		filePath.c_str(),
+		Path.c_str(),
 		pEntryPoint,
 		pProfile,
 		Arguments, ARRAYSIZE(Arguments),
