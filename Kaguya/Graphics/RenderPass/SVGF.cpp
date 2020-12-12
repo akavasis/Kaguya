@@ -29,15 +29,9 @@ void SVGFReproject::InitializePipeline(RenderDevice* pRenderDevice)
 	Resources[Moments] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "Moments");
 	Resources[HistoryLength] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "HistoryLength");
 
-	pRenderDevice->CreateRootSignature(RootSignatures::SVGF_Reproject, [&](RootSignatureProxy& proxy)
-	{
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
 	pRenderDevice->CreateComputePipelineState(ComputePSOs::SVGF_Reproject, [=](ComputePipelineStateProxy& proxy)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::SVGF_Reproject);
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
 		proxy.pCS = &Shaders::CS::SVGF_Reproject;
 	});
 }
@@ -188,15 +182,9 @@ void SVGFFilterMoments::InitializePipeline(RenderDevice* pRenderDevice)
 	Resources[RenderTarget0] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget0");
 	Resources[RenderTarget1] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget1");
 
-	pRenderDevice->CreateRootSignature(RootSignatures::SVGF_FilterMoments, [&](RootSignatureProxy& proxy)
-	{
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
 	pRenderDevice->CreateComputePipelineState(ComputePSOs::SVGF_FilterMoments, [=](ComputePipelineStateProxy& proxy)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::SVGF_FilterMoments);
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
 		proxy.pCS = &Shaders::CS::SVGF_FilterMoments;
 	});
 }
@@ -288,15 +276,9 @@ void SVGFAtrous::InitializePipeline(RenderDevice* pRenderDevice)
 	Resources[RenderTarget0] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget0");
 	Resources[RenderTarget1] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget1");
 
-	pRenderDevice->CreateRootSignature(RootSignatures::SVGF_Atrous, [&](RootSignatureProxy& proxy)
-	{
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
 	pRenderDevice->CreateComputePipelineState(ComputePSOs::SVGF_Atrous, [=](ComputePipelineStateProxy& proxy)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::SVGF_Atrous);
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
 		proxy.pCS = &Shaders::CS::SVGF_Atrous;
 	});
 }

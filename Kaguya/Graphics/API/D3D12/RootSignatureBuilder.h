@@ -1,29 +1,28 @@
 #pragma once
 #include <d3d12.h>
-#include "Proxy.h"
-#include "../D3D12/RootSignature.h"
+#include <vector>
+#include "RootSignature.h"
 
-class RootSignatureProxy : public Proxy
+/*
+	The maximum size of a root signature is 64 DWORDs.
+
+	This maximum size is chosen to prevent abuse of the root signature as a way of storing bulk data. Each entry in the root signature has a cost towards this 64 DWORD limit:
+
+	Descriptor tables cost 1 DWORD each.
+	Root constants cost 1 DWORD each, since they are 32-bit values.
+	Root descriptors (64-bit GPU virtual addresses) cost 2 DWORDs each.
+	Static samplers do not have any cost in the size of the root signature.
+
+	Use a small a root signature as necessary, though balance this with the flexibility of a larger root signature.
+	Arrange parameters in a large root signature so that the parameters most likely to change often, or if low access latency for a given parameter is important, occur first.
+	If convenient, use root constants or root constant buffer views over putting constant buffer views in a descriptor heap.
+*/
+class RootSignatureBuilder
 {
 public:
-	/*
-		The maximum size of a root signature is 64 DWORDs.
+	RootSignatureBuilder();
 
-		This maximum size is chosen to prevent abuse of the root signature as a way of storing bulk data. Each entry in the root signature has a cost towards this 64 DWORD limit:
-
-		Descriptor tables cost 1 DWORD each.
-		Root constants cost 1 DWORD each, since they are 32-bit values.
-		Root descriptors (64-bit GPU virtual addresses) cost 2 DWORDs each.
-		Static samplers do not have any cost in the size of the root signature.
-	*/
-
-	/*
-		Use a small a root signature as necessary, though balance this with the flexibility of a larger root signature.
-		Arrange parameters in a large root signature so that the parameters most likely to change often, or if low access latency for a given parameter is important, occur first.
-		If convenient, use root constants or root constant buffer views over putting constant buffer views in a descriptor heap.
-	*/
-	friend class RootSignature;
-	RootSignatureProxy();
+	D3D12_ROOT_SIGNATURE_DESC1 Build();
 
 	void AddRootDescriptorTableParameter(const RootDescriptorTable& RootDescriptorTable);
 	template<typename T>
@@ -74,9 +73,8 @@ public:
 	void DenyPSAccess();
 	void AllowStreamOutput();
 	void SetAsLocalRootSignature();
-protected:
-	void Link() override;
-	D3D12_ROOT_SIGNATURE_DESC1 BuildD3DDesc();
+	void DenyASAccess();
+	void DenyMSAccess();
 private:
 	std::vector<D3D12_ROOT_PARAMETER1>					m_Parameters;
 	std::vector<D3D12_STATIC_SAMPLER_DESC>				m_StaticSamplers;

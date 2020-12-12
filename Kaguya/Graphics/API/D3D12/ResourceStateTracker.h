@@ -6,8 +6,6 @@
 class ResourceStateTracker
 {
 public:
-	using ResourceType = ID3D12Resource;
-
 	struct ResourceState
 	{
 		D3D12_RESOURCE_STATES State;
@@ -34,9 +32,9 @@ public:
 		}
 	};
 
-	void AddResourceState(ResourceType* pResource, D3D12_RESOURCE_STATES ResourceStates);
-	bool RemoveResourceState(ResourceType* pResource);
-	void SetResourceState(ResourceType* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates);
+	void AddResourceState(ID3D12Resource* pResource, D3D12_RESOURCE_STATES ResourceStates);
+	bool RemoveResourceState(ID3D12Resource* pResource);
+	void SetResourceState(ID3D12Resource* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates);
 	void UpdateResourceStates(const ResourceStateTracker& ResourceStateTracker);
 	void Reset();
 
@@ -45,9 +43,9 @@ public:
 
 	void ResourceBarrier(const D3D12_RESOURCE_BARRIER& Barrier);
 
-	std::optional<ResourceStateTracker::ResourceState> Find(ResourceType* pResource) const;
+	std::optional<ResourceStateTracker::ResourceState> Find(ID3D12Resource* pResource) const;
 private:
-	std::unordered_map<ResourceType*, ResourceState> m_ResourceStates;
+	std::unordered_map<ID3D12Resource*, ResourceState> m_ResourceStates;
 
 	// Pending resource transitions are committed to a separate commandlist before this commandlist
 	// is executed on the command queue. This guarantees that resources will

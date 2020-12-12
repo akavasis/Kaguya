@@ -29,9 +29,6 @@ private:
 	static DWORD WINAPI AsyncComputeThreadProc(_In_ PVOID pParameter);
 	static DWORD WINAPI AsyncCopyThreadProc(_In_ PVOID pParameter);
 	
-	DXGIManager								m_DXGIManager;
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> m_pSwapChain;
-
 	RenderDevice*							m_pRenderDevice						= nullptr;
 	RenderGraph*							m_pRenderGraph						= nullptr;
 	RenderContext							m_GraphicsContext;
@@ -39,9 +36,9 @@ private:
 	Scene									m_Scene;
 	GpuScene*								m_pGpuScene							= nullptr;
 
-	wil::unique_event						BuildAccelerationStructureEvent		= nullptr;
-	wil::unique_event						AccelerationStructureCompleteEvent	= nullptr;
-	wil::unique_handle						AsyncComputeThread					= nullptr;
-	wil::unique_handle						AsyncCopyThread						= nullptr;
+	wil::unique_event						BuildAccelerationStructureEvent;
+	wil::unique_event						AccelerationStructureCompleteEvent;
+	wil::unique_handle						AsyncComputeThread;
+	wil::unique_handle						AsyncCopyThread;
 	std::atomic<bool>						ExitAsyncQueuesThread				= false;
 };

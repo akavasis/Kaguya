@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "RootSignature.h"
-#include "Device.h"
-#include "../Proxy/RootSignatureProxy.h"
+
+#include "RootSignatureBuilder.h"
 
 //----------------------------------------------------------------------------------------------------
 RootParameter::RootParameter(Type Type)
@@ -46,15 +46,14 @@ void RootDescriptorTable::AddDescriptorRange(DescriptorRange::Type Type, const D
 }
 
 //----------------------------------------------------------------------------------------------------
-RootSignature::RootSignature(const Device* pDevice, RootSignatureProxy& Proxy)
-	: NumParameters(Proxy.m_Parameters.size()),
-	NumStaticSamplers(Proxy.m_StaticSamplers.size())
+RootSignature::RootSignature(ID3D12Device* pDevice, RootSignatureBuilder& Builder)
 {
-	Proxy.Link();
-
 	D3D12_VERSIONED_ROOT_SIGNATURE_DESC VersionedRootSignatureDesc	= {};
 	VersionedRootSignatureDesc.Version								= D3D_ROOT_SIGNATURE_VERSION_1_1;
-	VersionedRootSignatureDesc.Desc_1_1								= Proxy.BuildD3DDesc();
+	VersionedRootSignatureDesc.Desc_1_1								= Builder.Build();
+
+	NumParameters		= VersionedRootSignatureDesc.Desc_1_1.NumParameters;
+	NumStaticSamplers	= VersionedRootSignatureDesc.Desc_1_1.NumStaticSamplers;
 
 	// Serialize the root signature.
 	Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSignatureBlob;
@@ -67,6 +66,6 @@ RootSignature::RootSignature(const Device* pDevice, RootSignatureProxy& Proxy)
 	}
 
 	// Create the root signature.
-	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateRootSignature(0, pSerializedRootSignatureBlob->GetBufferPointer(),
+	ThrowCOMIfFailed(pDevice->CreateRootSignature(0, pSerializedRootSignatureBlob->GetBufferPointer(),
 		pSerializedRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
 }

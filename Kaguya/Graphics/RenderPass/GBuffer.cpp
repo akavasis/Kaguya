@@ -22,22 +22,22 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 	Resources[SVGF_Compact]			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "SVGF_Compact");
 	Resources[Depth]				= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "Depth");
 
-	pRenderDevice->CreateRootSignature(RootSignatures::GBufferMeshes, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::GBufferMeshes, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 1)); // InstanceID
+		Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, 1)); // InstanceID
 
-		proxy.AddRootSRVParameter(RootSRV(0, 0)); // Meshlets
-		proxy.AddRootSRVParameter(RootSRV(1, 0)); // UniqueVertexIndices
-		proxy.AddRootSRVParameter(RootSRV(2, 0)); // PrimitiveIndices
-		proxy.AddRootSRVParameter(RootSRV(3, 0)); // Vertices
+		Builder.AddRootSRVParameter(RootSRV(0, 0)); // Meshlets
+		Builder.AddRootSRVParameter(RootSRV(1, 0)); // UniqueVertexIndices
+		Builder.AddRootSRVParameter(RootSRV(2, 0)); // PrimitiveIndices
+		Builder.AddRootSRVParameter(RootSRV(3, 0)); // Vertices
 
-		proxy.AddRootSRVParameter(RootSRV(4, 0)); // Materials
-		proxy.AddRootSRVParameter(RootSRV(5, 0)); // Meshes
+		Builder.AddRootSRVParameter(RootSRV(4, 0)); // Materials
+		Builder.AddRootSRVParameter(RootSRV(5, 0)); // Meshes
 
-		proxy.AddStaticSampler(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
+		Builder.AddStaticSampler(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
 	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferMeshes, [=](GraphicsPipelineStateProxy& proxy)
@@ -58,12 +58,12 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		proxy.SetDepthStencilFormat(RenderDevice::DepthFormat);
 	});
 
-	pRenderDevice->CreateRootSignature(RootSignatures::GBufferLights, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::GBufferLights, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootSRVParameter(RootSRV(0, 0)); // Light Buffer, t0 | space0
+		Builder.AddRootSRVParameter(RootSRV(0, 0)); // Light Buffer, t0 | space0
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
 	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferLights, [=](GraphicsPipelineStateProxy& proxy)

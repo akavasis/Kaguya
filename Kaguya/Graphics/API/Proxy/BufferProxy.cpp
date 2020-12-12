@@ -50,13 +50,13 @@ D3D12_HEAP_PROPERTIES BufferProxy::BuildD3DHeapProperties() const
 {
 	switch (m_CpuAccess)
 	{
-	case Buffer::CpuAccess::Write:	return kUploadHeapProps;
-	case Buffer::CpuAccess::Read:	return kReadbackHeapProps;
-	default:						return kDefaultHeapProps;
+	case Buffer::CpuAccess::Write:	return CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	case Buffer::CpuAccess::Read:	return CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+	default:						return CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	}
 }
 
 D3D12_RESOURCE_DESC BufferProxy::BuildD3DDesc() const
 {
-	return CD3DX12_RESOURCE_DESC::Buffer(m_SizeInBytes, GetD3DResourceFlags(BindFlags));
+	return CD3DX12_RESOURCE_DESC::Buffer(m_SizeInBytes, GetD3D12ResourceFlags(BindFlags));
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <atomic>
 #include <vector>
 #include <unordered_set>
 #include <string>
@@ -70,7 +71,7 @@ private:
 	void CreaterResources();
 	void CreateResourceViews();
 
-	inline static bool											ExitRenderPassThread = false;
+	inline static std::atomic<bool>								ExitRenderPassThread = false;
 
 	RenderDevice*												SV_pRenderDevice;
 

@@ -1,9 +1,7 @@
 #include "pch.h"
 #include "CommandQueue.h"
 
-CommandQueue::CommandQueue(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
-	: m_Type(Type),
-	m_CommandAllocatorPool(pDevice, Type)
+void CommandQueue::Create(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 {
 	D3D12_COMMAND_QUEUE_DESC Desc	= {};
 	Desc.Type						= Type;
@@ -11,6 +9,20 @@ CommandQueue::CommandQueue(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 	Desc.Flags						= D3D12_COMMAND_QUEUE_FLAG_NONE;
 	Desc.NodeMask					= 0;
 	ThrowCOMIfFailed(pDevice->CreateCommandQueue(&Desc, IID_PPV_ARGS(&m_ApiHandle)));
+	m_CommandAllocatorPool.Create(pDevice, Type);
+
+	switch (Type)
+	{
+	case D3D12_COMMAND_LIST_TYPE_DIRECT:
+		m_ApiHandle->SetName(L"Direct Command Queue");
+		break;
+	case D3D12_COMMAND_LIST_TYPE_COMPUTE:
+		m_ApiHandle->SetName(L"Compute Command Queue");
+		break;
+	case D3D12_COMMAND_LIST_TYPE_COPY:
+		m_ApiHandle->SetName(L"Copy Command Queue");
+		break;
+	}
 }
 
 ID3D12CommandAllocator* CommandQueue::RequestAllocator(UINT64 CompletedValue)

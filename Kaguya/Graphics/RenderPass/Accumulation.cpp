@@ -22,15 +22,9 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 {
 	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
 
-	pRenderDevice->CreateRootSignature(RootSignatures::Accumulation, [](RootSignatureProxy& proxy)
-	{
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
 	pRenderDevice->CreateComputePipelineState(ComputePSOs::Accumulation, [=](ComputePipelineStateProxy& proxy)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Accumulation);
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
 		proxy.pCS = &Shaders::CS::Accumulation;
 	});
 }

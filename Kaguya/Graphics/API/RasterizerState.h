@@ -58,5 +58,5 @@ private:
 	bool			m_ConservativeRaster;
 };
 
-D3D12_FILL_MODE GetD3DFillMode(RasterizerState::FillMode FillMode);
-D3D12_CULL_MODE GetD3DCullMode(RasterizerState::CullMode CullMode);
+D3D12_FILL_MODE GetD3D12FillMode(RasterizerState::FillMode FillMode);
+D3D12_CULL_MODE GetD3D12CullMode(RasterizerState::CullMode CullMode);

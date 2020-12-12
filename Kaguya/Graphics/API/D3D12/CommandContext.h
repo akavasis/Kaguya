@@ -6,7 +6,6 @@
 #include "CommandQueue.h"
 #include "Buffer.h"
 #include "Texture.h"
-#include "Heap.h"
 #include "RootSignature.h"
 #include "PipelineState.h"
 #include "RaytracingPipelineState.h"

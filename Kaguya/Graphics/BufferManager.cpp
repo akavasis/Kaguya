@@ -28,8 +28,9 @@ void BufferManager::DisposeResources()
 
 BufferManager::StagingBuffer BufferManager::CreateStagingBuffer(D3D12_RESOURCE_DESC Desc, const void* pData)
 {
+	auto HeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	Microsoft::WRL::ComPtr<ID3D12Resource> StagingResource;
-	pRenderDevice->Device.GetApiHandle()->CreateCommittedResource(&kUploadHeapProps, D3D12_HEAP_FLAG_NONE,
+	pRenderDevice->Device.GetApiHandle()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE,
 		&Desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(StagingResource.ReleaseAndGetAddressOf()));
 
 	BYTE* pMemory = nullptr;
@@ -50,9 +51,9 @@ void BufferManager::LoadModel(Model& Model)
 	StageVertexResource(Model);
 	StageIndexResource(Model);
 
-	Model.MeshletHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + "[Meshlet Heap]");
-	Model.VertexIndexHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + "[Vertex Index Heap]");
-	Model.PrimitiveIndexHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + "[Primitive Index Heap]");
+	Model.MeshletHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + " [Meshlet Heap]");
+	Model.VertexIndexHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + " [Vertex Index Heap]");
+	Model.PrimitiveIndexHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + " [Primitive Index Heap]");
 
 	std::vector<D3D12_RESOURCE_DESC> MeshletDescs;
 	std::vector<D3D12_RESOURCE_DESC> VertexIndexDescs;
@@ -74,10 +75,8 @@ void BufferManager::LoadModel(Model& Model)
 		std::vector<D3D12_RESOURCE_ALLOCATION_INFO1> ResourceAllocationInfo1(MeshletDescs.size());
 		auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, MeshletDescs.size(), MeshletDescs.data(), ResourceAllocationInfo1.data());
 
-		pRenderDevice->CreateHeap(Model.MeshletHeap, [&](HeapProxy& proxy)
-		{
-			proxy.SizeInBytes = ResourceAllocationInfo.SizeInBytes;
-		});
+		auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS);
+		pRenderDevice->CreateHeap(Model.MeshletHeap, HeapDesc);
 
 		for (size_t i = 0; i < Model.Meshes.size(); ++i)
 		{
@@ -103,10 +102,8 @@ void BufferManager::LoadModel(Model& Model)
 		std::vector<D3D12_RESOURCE_ALLOCATION_INFO1> ResourceAllocationInfo1(VertexIndexDescs.size());
 		auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, VertexIndexDescs.size(), VertexIndexDescs.data(), ResourceAllocationInfo1.data());
 
-		pRenderDevice->CreateHeap(Model.VertexIndexHeap, [&](HeapProxy& proxy)
-		{
-			proxy.SizeInBytes = ResourceAllocationInfo.SizeInBytes;
-		});
+		auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS);
+		pRenderDevice->CreateHeap(Model.VertexIndexHeap, HeapDesc);
 
 		for (size_t i = 0; i < Model.Meshes.size(); ++i)
 		{
@@ -132,10 +129,8 @@ void BufferManager::LoadModel(Model& Model)
 		std::vector<D3D12_RESOURCE_ALLOCATION_INFO1> ResourceAllocationInfo1(PrimitiveIndexDescs.size());
 		auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, PrimitiveIndexDescs.size(), PrimitiveIndexDescs.data(), ResourceAllocationInfo1.data());
 
-		pRenderDevice->CreateHeap(Model.PrimitiveIndexHeap, [&](HeapProxy& proxy)
-		{
-			proxy.SizeInBytes = ResourceAllocationInfo.SizeInBytes;
-		});
+		auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS);
+		pRenderDevice->CreateHeap(Model.PrimitiveIndexHeap, HeapDesc);
 
 		for (size_t i = 0; i < Model.Meshes.size(); ++i)
 		{

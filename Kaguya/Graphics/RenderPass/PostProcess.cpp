@@ -30,61 +30,61 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 	Resources[BloomRenderTarget5a]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget5a");
 	Resources[BloomRenderTarget5b]	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "BloomRenderTarget5b");
 
-	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_Tonemapping, [&](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_Tonemapping, [&](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, NumTonemapRootConstants)); // Settings b0 | space0
+		Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, NumTonemapRootConstants)); // Settings b0 | space0
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomMask, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomMask, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 5));
+		Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, 5));
 
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
+		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomDownsample, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomDownsample, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 7));
+		Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, 7));
 
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
+		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomBlur, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomBlur, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 4));
+		Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, 4));
 
-		proxy.AllowInputLayout();
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.AllowInputLayout();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
+		Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
 
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
+		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomComposition, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(RootSignatures::PostProcess_BloomComposition, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
+		Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, 6));
 
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
+		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0);
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
 	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::PostProcess_Tonemapping, [=](GraphicsPipelineStateProxy& proxy)
@@ -323,8 +323,8 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	auto pDestination = RenderContext.GetTexture(RenderContext.GetCurrentSwapChainResourceHandle());
-	auto DestinationRTV = RenderContext.GetRenderTargetView(RenderContext.GetCurrentSwapChainResourceHandle());
+	auto pDestination = RenderContext.GetTexture(RenderContext.GetCurrentBackBufferHandle());
+	auto DestinationRTV = RenderContext.GetRenderTargetView(RenderContext.GetCurrentBackBufferHandle());
 
 	RenderContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
 	{

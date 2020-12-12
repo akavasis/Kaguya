@@ -71,7 +71,7 @@ void CommandContext::TransitionBarrier(Resource* pResource, Resource::State Tran
 	ID3D12Resource* resource = pResource ? pResource->GetApiHandle() : nullptr;
 	if (resource)
 	{
-		D3D12_RESOURCE_STATES transitionState = GetD3DResourceStates(TransitionState);
+		D3D12_RESOURCE_STATES transitionState = GetD3D12ResourceStates(TransitionState);
 		m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_UNKNOWN, transitionState, Subresource));
 	}
 #undef D3D12_RESOURCE_STATE_UNKNOWN

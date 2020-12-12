@@ -23,9 +23,9 @@ public:
 
 	inline auto GetCommandContext() const { return SV_pCommandContext; }
 
-	inline auto GetCurrentSwapChainResourceHandle() const
+	inline auto GetCurrentBackBufferHandle() const
 	{
-		return SV_pRenderDevice->BackBufferHandle[SV_pRenderDevice->BackBufferIndex];
+		return SV_pRenderDevice->GetCurrentBackBufferHandle();
 	}
 
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle) const { return SV_pRenderDevice->GetBuffer(Handle); }

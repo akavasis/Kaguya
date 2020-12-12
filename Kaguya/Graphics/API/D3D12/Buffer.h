@@ -18,7 +18,7 @@ public:
 	Buffer() = default;
 	Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
 	Buffer(const Device* pDevice, BufferProxy& Proxy);
-	Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy);
+	Buffer(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy);
 	~Buffer() override;
 
 	inline auto GetStride() const { return m_Stride; }

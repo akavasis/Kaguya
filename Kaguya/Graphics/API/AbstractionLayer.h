@@ -38,5 +38,5 @@ enum class ComparisonFunc
 	Always			// Comparison always succeeds
 };
 
-D3D12_COMPARISON_FUNC GetD3DComparisonFunc(ComparisonFunc Func);
+D3D12_COMPARISON_FUNC GetD3D12ComparisonFunc(ComparisonFunc Func);
 D3D12_PRIMITIVE_TOPOLOGY_TYPE GetD3DPrimitiveTopologyType(PrimitiveTopology Topology);

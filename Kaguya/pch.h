@@ -55,6 +55,14 @@
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx12.h>
 
+// DXGI
+#include <dxgi1_6.h>
+#if defined(_DEBUG)
+#include <dxgidebug.h>
+#endif
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")
+
 // D3D12
 #include <d3d12.h>
 #pragma comment(lib, "d3d12.lib")

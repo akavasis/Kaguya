@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "PIXCapture.h"
-#include <dxgi1_6.h>
 
 #undef PIXCapture
 

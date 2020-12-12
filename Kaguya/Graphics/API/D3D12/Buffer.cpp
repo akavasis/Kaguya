@@ -22,7 +22,7 @@ Buffer::Buffer(const Device* pDevice, BufferProxy& Proxy)
 	}
 }
 
-Buffer::Buffer(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy)
+Buffer::Buffer(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy)
 	: Resource(pDevice, pHeap, HeapOffset, Proxy),
 	m_Stride(Proxy.m_Stride),
 	m_CpuAccess(Proxy.m_CpuAccess),

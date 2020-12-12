@@ -3,8 +3,7 @@
 #include <wrl/client.h>
 
 //----------------------------------------------------------------------------------------------------
-class Device;
-class RootSignatureProxy;
+class RootSignatureBuilder;
 
 //----------------------------------------------------------------------------------------------------
 class RootParameter
@@ -37,17 +36,21 @@ struct DescriptorRange
 		Sampler
 	};
 
-	DescriptorRange(UINT NumDescriptors,
-	UINT BaseShaderRegister,
-	UINT RegisterSpace,
-	D3D12_DESCRIPTOR_RANGE_FLAGS Flags,
-	UINT OffsetInDescriptorsFromTableStart)
+	DescriptorRange
+	(
+		UINT NumDescriptors,
+		UINT BaseShaderRegister,
+		UINT RegisterSpace,
+		D3D12_DESCRIPTOR_RANGE_FLAGS Flags,
+		UINT OffsetInDescriptorsFromTableStart
+	)
 		: NumDescriptors(NumDescriptors),
 		BaseShaderRegister(BaseShaderRegister),
 		RegisterSpace(RegisterSpace),
 		Flags(Flags),
 		OffsetInDescriptorsFromTableStart(OffsetInDescriptorsFromTableStart)
 	{
+
 	}
 
 	UINT NumDescriptors;
@@ -144,7 +147,7 @@ public:
 	enum : UINT { UnboundDescriptorSize = UINT_MAX };
 
 	RootSignature() = default;
-	RootSignature(const Device* pDevice, RootSignatureProxy& Proxy);
+	RootSignature(ID3D12Device* pDevice, RootSignatureBuilder& Builder);
 
 	inline auto GetApiHandle() const { return m_RootSignature.Get(); }
 

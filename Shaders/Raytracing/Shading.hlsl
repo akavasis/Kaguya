@@ -177,6 +177,7 @@ void RayGeneration()
 	if (GBufferType == GBufferTypeMesh)
 	{
 		HaltonState haltonState = InitHaltonState(launchIndex.x, launchIndex.y, 0, 16, g_SystemConstants.TotalFrameCount, 64, 16);
+		uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(g_SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
 
 		GBufferMesh GBufferMesh = GetGBufferMesh(GBuffer, launchIndex);
 		
@@ -192,98 +193,53 @@ void RayGeneration()
 		float3 specular = lerp(float3(0.04f, 0.04f, 0.04f), GBufferMesh.Albedo, GBufferMesh.Metallic);
 		float3 diffuse = GBufferMesh.Albedo;
 	
-		for (int i = 0; i < g_SystemConstants.NumPolygonalLights; ++i)
+		int lightIndex  = min(int(RandomFloat01(seed) * g_SystemConstants.NumPolygonalLights), g_SystemConstants.NumPolygonalLights - 1);
+		PolygonalLight Light = Lights[lightIndex];
+		
+		float3 ex = Light.Points[1] - Light.Points[0];
+		float3 ey = Light.Points[3] - Light.Points[0];
+		SphericalRectangle squad = SphericalRectangleInit(Light.Points[0], ex, ey, position);
+		
+		float diffProb, brdfProb;
+		shadingResult.AnalyticUnshadowed += (Light.Color * Light.Luminance) * (ShadeWithAreaLight(position, diffuse, specular, ltcTerms, Light.Points, diffProb, brdfProb));
+		static const uint RaysPerLight = 1;
+		[unroll]
+		for (uint rayIdx = 0; rayIdx < RaysPerLight; ++rayIdx)
 		{
-			PolygonalLight Light = Lights[i];
-			
-			float3 ex = Light.Points[1] - Light.Points[0];
-			float3 ey = Light.Points[3] - Light.Points[0];
-			SphericalRectangle squad = SphericalRectangleInit(Light.Points[0], ex, ey, position);
-			
-			float diffProb, brdfProb;
-			shadingResult.AnalyticUnshadowed += (Light.Color * Light.Luminance) * (ShadeWithAreaLight(position, diffuse, specular, ltcTerms, Light.Points, diffProb, brdfProb));
+			// Used for 2D position on light/BRDF
+			const float u1 = frac(HaltonNext(haltonState) + blueNoise.r);
+			const float u2 = frac(HaltonNext(haltonState) + blueNoise.g);
 		
-			static const uint RaysPerLight = 1;
-			[unroll]
-			for (uint rayIdx = 0; rayIdx < RaysPerLight; ++rayIdx)
+			// Choosing BRDF lobes
+			const float u3 = frac(HaltonNext(haltonState) + blueNoise.b);
+		
+			// Choosing between light and BRDF sampling
+			const float u4 = frac(HaltonNext(haltonState) + blueNoise.a);
+			// BRDF sample
+			if (u4 <= brdfProb)
 			{
-				// Used for 2D position on light/BRDF
-				const float u1 = frac(HaltonNext(haltonState) + blueNoise.r);
-				const float u2 = frac(HaltonNext(haltonState) + blueNoise.g);
+				// Randomly pick specular or diffuse lobe based on diffuse probability
+				const bool bSpec = u3 > diffProb;
 			
-				// Choosing BRDF lobes
-				const float u3 = frac(HaltonNext(haltonState) + blueNoise.b);
-			
-				// Choosing between light and BRDF sampling
-				const float u4 = frac(HaltonNext(haltonState) + blueNoise.a);
-		
-				// BRDF sample
-				if (u4 <= brdfProb)
+				// Importance sample the BRDF
+				float3 w_i = BRDFSample(bSpec, u1, u2, ltcTerms);
+				Ray ray = InitRay(position, 0.0f, normalize(w_i), FLT_MAX);
+				Plane plane = InitPlane(Light.Orientation.xyz, Light.Position.xyz);
+				float3 Y;
+				if (RayPlaneIntersection(ray, plane, Y))
 				{
-					// Randomly pick specular or diffuse lobe based on diffuse probability
-					const bool bSpec = u3 > diffProb;
-				
-					// Importance sample the BRDF
-					float3 w_i = BRDFSample(bSpec, u1, u2, ltcTerms);
-					Ray ray = InitRay(position, 0.0f, normalize(w_i), FLT_MAX);
-					Plane plane = InitPlane(Light.Orientation.xyz, Light.Position.xyz);
-					float3 Y;
-					if (RayPlaneIntersection(ray, plane, Y))
-					{
-						float3 delta = Y - position;
-						float len = length(delta);
-					
-						float lightPDF = 1.0f / squad.SolidAngle;
-					
-						float brdfPDF;
-						float3 f = BRDFEval(diffuse, specular, ltcTerms, w_i, diffProb, brdfPDF);
-					
-						const float misPDF = lerp(lightPDF, brdfPDF, brdfProb);
-					
-						// This test should almost never fail because we just importance sampled from the BRDF.
-						// Only an all black BRDF or a precision issue could trigger this.
-						if (brdfPDF > 0.0f)
-						{
-							// Stochastic estimate of incident light, without shadow
-							// Note: projection cosine dot(w_i, n) is baked into the LTC-based BRDF
-							float3 L_i = (Light.Color * Light.Luminance) * f / misPDF;
-							if (any(isnan(L_i)))
-							{
-								L_i = 0.0.xxx;
-							}
-						
-							shadingResult.StochasticUnshadowed += L_i;
-
-							bool veryClose = (len < epsilon);
-							if (!veryClose)
-							{
-								// Cast the shadow ray from the source towards the surface 
-								// so that shadowing is consistent with front faces from the 
-								// light's perspective. There's no reason to cast from the light
-								// for coherence because this is an area source.
-								float Visibility = TraceShadowRay(Y, epsilon, -w_i, max(len - epsilon, epsilon));
-								shadingResult.StochasticShadowed += L_i * Visibility;
-							}
-						}
-					}
-				}
-				// Light sample
-				else
-				{
-					// Pick a random point on the light
-					float3 Y = SphericalRectangleSample(squad, u1, u2);
-
 					float3 delta = Y - position;
 					float len = length(delta);
-					float3 w_i = delta / max(len, 0.001f);
-
+				
 					float lightPDF = 1.0f / squad.SolidAngle;
-
+				
 					float brdfPDF;
 					float3 f = BRDFEval(diffuse, specular, ltcTerms, w_i, diffProb, brdfPDF);
-
+				
 					const float misPDF = lerp(lightPDF, brdfPDF, brdfProb);
-
+				
+					// This test should almost never fail because we just importance sampled from the BRDF.
+					// Only an all black BRDF or a precision issue could trigger this.
 					if (brdfPDF > 0.0f)
 					{
 						// Stochastic estimate of incident light, without shadow
@@ -293,10 +249,10 @@ void RayGeneration()
 						{
 							L_i = 0.0.xxx;
 						}
-
+					
 						shadingResult.StochasticUnshadowed += L_i;
 
-						const bool veryClose = (len < epsilon);
+						bool veryClose = (len < epsilon);
 						if (!veryClose)
 						{
 							// Cast the shadow ray from the source towards the surface 
@@ -306,6 +262,47 @@ void RayGeneration()
 							float Visibility = TraceShadowRay(Y, epsilon, -w_i, max(len - epsilon, epsilon));
 							shadingResult.StochasticShadowed += L_i * Visibility;
 						}
+					}
+				}
+			}
+			// Light sample
+			else
+			{
+				// Pick a random point on the light
+				float3 Y = SphericalRectangleSample(squad, u1, u2);
+
+				float3 delta = Y - position;
+				float len = length(delta);
+				float3 w_i = delta / max(len, 0.001f);
+
+				float lightPDF = 1.0f / squad.SolidAngle;
+
+				float brdfPDF;
+				float3 f = BRDFEval(diffuse, specular, ltcTerms, w_i, diffProb, brdfPDF);
+
+				const float misPDF = lerp(lightPDF, brdfPDF, brdfProb);
+
+				if (brdfPDF > 0.0f)
+				{
+					// Stochastic estimate of incident light, without shadow
+					// Note: projection cosine dot(w_i, n) is baked into the LTC-based BRDF
+					float3 L_i = (Light.Color * Light.Luminance) * f / misPDF;
+					if (any(isnan(L_i)))
+					{
+						L_i = 0.0.xxx;
+					}
+
+					shadingResult.StochasticUnshadowed += L_i;
+
+					const bool veryClose = (len < epsilon);
+					if (!veryClose)
+					{
+						// Cast the shadow ray from the source towards the surface 
+						// so that shadowing is consistent with front faces from the 
+						// light's perspective. There's no reason to cast from the light
+						// for coherence because this is an area source.
+						float Visibility = TraceShadowRay(Y, epsilon, -w_i, max(len - epsilon, epsilon));
+						shadingResult.StochasticShadowed += L_i * Visibility;
 					}
 				}
 			}

@@ -34,12 +34,11 @@ bool Renderer::Initialize()
 {
 	try
 	{
-		m_pRenderDevice	= new RenderDevice(m_DXGIManager.QueryAdapter(API::API_D3D12).Get());
+		m_pRenderDevice	= new RenderDevice(Application::pWindow);
 		m_pRenderDevice->ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
 
 		m_pRenderGraph	= new RenderGraph(m_pRenderDevice);
 		m_pGpuScene		= new GpuScene(m_pRenderDevice);
-		m_pSwapChain	= m_DXGIManager.CreateSwapChain(m_pRenderDevice->GraphicsQueue.GetApiHandle(), Application::pWindow, RenderDevice::SwapChainBufferFormat, RenderDevice::NumSwapChainBuffers);
 
 		Shaders::Register(m_pRenderDevice);
 		Libraries::Register(m_pRenderDevice);
@@ -67,7 +66,7 @@ bool Renderer::Initialize()
 	AsyncComputeThread	= wil::unique_handle(::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr));
 	AsyncCopyThread		= wil::unique_handle(::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr));
 
-	m_pGpuScene->TextureManager.StageSystemReservedTextures(m_GraphicsContext);
+	m_pGpuScene->TextureManager.StageAssetTextures(m_GraphicsContext);
 
 	CommandContext* pCommandContexts[] = { m_GraphicsContext.GetCommandContext() };
 	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, 1, pCommandContexts);
@@ -96,8 +95,6 @@ bool Renderer::Initialize()
 //----------------------------------------------------------------------------------------------------
 void Renderer::Update(const Time& Time)
 {
-	m_pRenderDevice->BackBufferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
-
 	m_Scene.PreviousCamera = m_Scene.Camera;
 }
 
@@ -161,17 +158,10 @@ void Renderer::Render()
 	m_pRenderGraph->Execute(Refresh);
 
 	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, CommandContexts.size(), CommandContexts.data());
-
-	uint32_t				SyncInterval		= Settings::VSync ? 1u : 0u;
-	uint32_t				PresentFlags		= (m_DXGIManager.TearingSupport() && !Settings::VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
-	HRESULT hr = m_pSwapChain->Present(SyncInterval, PresentFlags);
-	if (hr == DXGI_ERROR_DEVICE_REMOVED)
-	{
-		LOG_ERROR("DXGI_ERROR_DEVICE_REMOVED");
-	}
+	m_pRenderDevice->Present(Settings::VSync);
 
 	UINT64 Value = ++m_pRenderDevice->GraphicsFenceValue;
-	ThrowCOMIfFailed(m_pRenderDevice->GraphicsQueue->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
+	ThrowCOMIfFailed(m_pRenderDevice->GraphicsQueue.GetApiHandle()->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
 	ThrowCOMIfFailed(m_pRenderDevice->GraphicsFence->SetEventOnCompletion(Value, m_pRenderDevice->GraphicsFenceCompletionEvent.get()));
 	m_pRenderDevice->GraphicsFenceCompletionEvent.wait();
 
@@ -179,7 +169,7 @@ void Renderer::Render()
 	{
 		Screenshot = false;
 
-		auto pTexture = m_pRenderDevice->GetTexture(m_pRenderDevice->BackBufferHandle[m_pRenderDevice->BackBufferIndex]);
+		auto pTexture = m_pRenderDevice->GetTexture(m_pRenderDevice->GetCurrentBackBufferHandle());
 
 		auto FileName = Application::ExecutableFolderPath / L"Screenshot.jpg";
 		HRESULT hr = DirectX::SaveWICTextureToFile(m_pRenderDevice->GraphicsQueue.GetApiHandle(), pTexture->GetApiHandle(),
@@ -195,33 +185,7 @@ void Renderer::Render()
 //----------------------------------------------------------------------------------------------------
 bool Renderer::Resize(uint32_t Width, uint32_t Height)
 {
-	m_pRenderDevice->FlushGraphicsQueue();
-	{
-		// Release resources before resize swap chain
-		for (auto SwapChainTexture : m_pRenderDevice->BackBufferHandle)
-		{
-			m_pRenderDevice->Destroy(SwapChainTexture);
-		}
-
-		// Resize backbuffer
-		// Note: Cannot use ResizeBuffers1 when debugging in Nsight Graphics, it will crash
-		uint32_t SwapChainFlags	= m_DXGIManager.TearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		ThrowCOMIfFailed(m_pSwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
-
-		// Recreate descriptors
-		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
-		{
-			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
-			ThrowCOMIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
-			m_pRenderDevice->CreateTexture(m_pRenderDevice->BackBufferHandle[i], pBackBuffer, Resource::State::Common);
-			m_pRenderDevice->CreateRenderTargetView(m_pRenderDevice->BackBufferHandle[i]);
-		}
-
-		// Reset back buffer index
-		m_pRenderDevice->BackBufferIndex = 0;
-	}
-	m_pRenderDevice->FlushGraphicsQueue();
-
+	m_pRenderDevice->Resize(Width, Height);
 	return true;
 }
 
@@ -259,6 +223,14 @@ void Renderer::Destroy()
 		delete m_pRenderDevice;
 		m_pRenderDevice = nullptr;
 	}
+
+#ifdef _DEBUG
+	Microsoft::WRL::ComPtr<IDXGIDebug> DXGIDebug;
+	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&DXGIDebug))))
+	{
+		DXGIDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
+	}
+#endif
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -293,9 +265,11 @@ void Renderer::RenderGui()
 {
 	if (ImGui::Begin("Renderer"))
 	{
-		auto localVideoMemoryInfo = m_DXGIManager.QueryLocalVideoMemoryInfo();
-		auto usageInMiB = ToMiB(localVideoMemoryInfo.CurrentUsage);
-		ImGui::Text("VRAM Usage: %d Mib", usageInMiB);
+		auto AdapterDescription = UTF16ToUTF8(m_pRenderDevice->GetAdapterDescription());
+		auto LocalVideoMemoryInfo = m_pRenderDevice->QueryLocalVideoMemoryInfo();
+		auto UsageInMiB = ToMiB(LocalVideoMemoryInfo.CurrentUsage);
+		ImGui::Text("GPU: %s", AdapterDescription.data());
+		ImGui::Text("VRAM Usage: %d Mib", UsageInMiB);
 
 		ImGui::Text("");
 		ImGui::Text("Total Frame Count: %d", Statistics::TotalFrameCount);

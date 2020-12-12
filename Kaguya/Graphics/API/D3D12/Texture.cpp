@@ -25,7 +25,7 @@ Texture::Texture(const Device* pDevice, TextureProxy& Proxy)
 	m_MipLevels = m_pResource->GetDesc().MipLevels;
 }
 
-Texture::Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy)
+Texture::Texture(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy)
 	: Resource(pDevice, pHeap, HeapOffset, Proxy),
 	m_Format(Proxy.m_Format),
 	m_Width(Proxy.m_Width),

@@ -146,13 +146,6 @@ struct RootSignatures
 	inline static RenderResourceHandle GBufferMeshes;
 	inline static RenderResourceHandle GBufferLights;
 
-	inline static RenderResourceHandle SVGF_Reproject;
-	inline static RenderResourceHandle SVGF_FilterMoments;
-	inline static RenderResourceHandle SVGF_Atrous;
-
-	inline static RenderResourceHandle ShadingComposition;
-
-	inline static RenderResourceHandle Accumulation;
 	inline static RenderResourceHandle PostProcess_Tonemapping;
 	inline static RenderResourceHandle PostProcess_BloomMask;
 	inline static RenderResourceHandle PostProcess_BloomDownsample;

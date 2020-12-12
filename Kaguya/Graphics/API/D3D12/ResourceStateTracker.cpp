@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ResourceStateTracker.h"
 
-void ResourceStateTracker::AddResourceState(ResourceType* pResource, D3D12_RESOURCE_STATES ResourceStates)
+void ResourceStateTracker::AddResourceState(ID3D12Resource* pResource, D3D12_RESOURCE_STATES ResourceStates)
 {
 	if (pResource)
 	{
@@ -9,7 +9,7 @@ void ResourceStateTracker::AddResourceState(ResourceType* pResource, D3D12_RESOU
 	}
 }
 
-bool ResourceStateTracker::RemoveResourceState(ResourceType* pResource)
+bool ResourceStateTracker::RemoveResourceState(ID3D12Resource* pResource)
 {
 	if (pResource)
 	{
@@ -24,7 +24,7 @@ bool ResourceStateTracker::RemoveResourceState(ResourceType* pResource)
 	return false;
 }
 
-void ResourceStateTracker::SetResourceState(ResourceType* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates)
+void ResourceStateTracker::SetResourceState(ID3D12Resource* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates)
 {
 	if (pResource)
 	{
@@ -175,7 +175,7 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& Barrier
 	}
 }
 
-std::optional<ResourceStateTracker::ResourceState> ResourceStateTracker::Find(ResourceType* pResource) const
+std::optional<ResourceStateTracker::ResourceState> ResourceStateTracker::Find(ID3D12Resource* pResource) const
 {
 	if (auto iter = m_ResourceStates.find(pResource);
 		iter != m_ResourceStates.end())

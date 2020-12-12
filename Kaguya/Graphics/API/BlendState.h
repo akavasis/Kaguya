@@ -103,6 +103,6 @@ private:
 	RenderTarget	m_RenderTargets[8];
 };
 
-D3D12_BLEND_OP GetD3DBlendOp(BlendState::BlendOp Op);
-D3D12_LOGIC_OP GetD3DLogicOp(BlendState::LogicOp Op);
-D3D12_BLEND GetD3DBlend(BlendState::Factor Factor);
+D3D12_BLEND_OP GetD3D12BlendOp(BlendState::BlendOp Op);
+D3D12_LOGIC_OP GetD3D12LogicOp(BlendState::LogicOp Op);
+D3D12_BLEND GetD3D12Blend(BlendState::Factor Factor);

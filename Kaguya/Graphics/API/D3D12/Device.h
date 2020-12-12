@@ -8,14 +8,12 @@
 class Device
 {
 public:
-	Device() = default;
-	Device(IDXGIAdapter4* pAdapter);
-	~Device();
+	void Create(IDXGIAdapter4* pAdapter);
 
 	inline auto GetApiHandle() const { return m_ApiHandle.Get(); }
 	inline auto GetDescriptorIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE Type) const { return m_DescriptorHandleIncrementSizeCache[UINT(Type)]; }
 
-	bool IsUAVCompatable(DXGI_FORMAT Format);
+	bool IsUAVCompatable(DXGI_FORMAT Format) const;
 private:
 	void CheckRootSignature_1_1Support();
 	void CheckShaderModel6PlusSupport();

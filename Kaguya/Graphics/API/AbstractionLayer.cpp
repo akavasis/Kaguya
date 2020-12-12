@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "AbstractionLayer.h"
 
-D3D12_COMPARISON_FUNC GetD3DComparisonFunc(ComparisonFunc Func)
+D3D12_COMPARISON_FUNC GetD3D12ComparisonFunc(ComparisonFunc Func)
 {
 	switch (Func)
 	{

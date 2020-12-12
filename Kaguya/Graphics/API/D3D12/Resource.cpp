@@ -38,7 +38,7 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 	const D3D12_HEAP_PROPERTIES				HeapProperties			= Proxy.BuildD3DHeapProperties();
 	const D3D12_HEAP_FLAGS					HeapFlags				= D3D12_HEAP_FLAG_NONE;
 	const D3D12_RESOURCE_DESC				ResourceDesc			= Proxy.BuildD3DDesc();
-	const D3D12_RESOURCE_STATES				ResourceStates			= GetD3DResourceStates(Proxy.InitialState);
+	const D3D12_RESOURCE_STATES				ResourceStates			= GetD3D12ResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE*				pClearValue				= Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
 	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetApiHandle()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
@@ -58,12 +58,12 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 		IID_PPV_ARGS(&m_pResource)));
 }
 
-Resource::Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy)
+Resource::Resource(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy)
 {
 	Proxy.Link();
 
 	const D3D12_RESOURCE_DESC				ResourceDesc			= Proxy.BuildD3DDesc();
-	D3D12_RESOURCE_STATES					ResourceStates			= GetD3DResourceStates(Proxy.InitialState);
+	D3D12_RESOURCE_STATES					ResourceStates			= GetD3D12ResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE*				pClearValue				= Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
 	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetApiHandle()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
@@ -74,14 +74,9 @@ Resource::Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, 
 	m_SizeInBytes		= ResourceAllocationInfo.SizeInBytes;
 	m_Alignment			= ResourceAllocationInfo.Alignment;
 	m_HeapOffset		= HeapOffset;
-	switch (pHeap->GetType())
-	{
-	case Heap::Type::Upload:	ResourceStates = D3D12_RESOURCE_STATE_GENERIC_READ; break;
-	case Heap::Type::Readback:	ResourceStates = D3D12_RESOURCE_STATE_COPY_DEST;	break;
-	}
 
 	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreatePlacedResource(
-		pHeap->GetApiHandle(),
+		pHeap,
 		HeapOffset,
 		&ResourceDesc,
 		ResourceStates,
@@ -93,7 +88,7 @@ Resource::~Resource()
 {
 }
 
-D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type)
+D3D12_RESOURCE_DIMENSION GetD3D12ResourceDimension(Resource::Type Type)
 {
 	switch (Type)
 	{
@@ -105,7 +100,7 @@ D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type)
 	}
 }
 
-D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::Flags Flags)
+D3D12_RESOURCE_FLAGS GetD3D12ResourceFlags(Resource::Flags Flags)
 {
 	D3D12_RESOURCE_FLAGS ResourceFlags = D3D12_RESOURCE_FLAG_NONE;
 
@@ -118,7 +113,7 @@ D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::Flags Flags)
 	return ResourceFlags;
 }
 
-D3D12_RESOURCE_STATES GetD3DResourceStates(Resource::State State)
+D3D12_RESOURCE_STATES GetD3D12ResourceStates(Resource::State State)
 {
 	D3D12_RESOURCE_STATES ResourceStates = D3D12_RESOURCE_STATE_COMMON;
 	if (EnumMaskBitSet(State, Resource::State::Unknown) ||

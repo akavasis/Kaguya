@@ -19,15 +19,9 @@ void ShadingComposition::InitializePipeline(RenderDevice* pRenderDevice)
 {
 	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
 
-	pRenderDevice->CreateRootSignature(RootSignatures::ShadingComposition, [&](RootSignatureProxy& proxy)
-	{
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
-	});
-
 	pRenderDevice->CreateComputePipelineState(ComputePSOs::ShadingComposition, [=](ComputePipelineStateProxy& proxy)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::ShadingComposition);
+		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
 		proxy.pCS = &Shaders::CS::ShadingComposition;
 	});
 }
@@ -79,7 +73,7 @@ void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRen
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::ShadingComposition);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
+	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
 }
 
 void ShadingComposition::StateRefresh()

@@ -5,12 +5,10 @@
 DepthStencilState::Stencil::operator D3D12_DEPTH_STENCILOP_DESC() const noexcept
 {
 	D3D12_DEPTH_STENCILOP_DESC Desc = {};
-	{
-		Desc.StencilFailOp		= GetD3DStencilOp(StencilFailOp);
-		Desc.StencilDepthFailOp = GetD3DStencilOp(StencilDepthFailOp);
-		Desc.StencilPassOp		= GetD3DStencilOp(StencilPassOp);
-		Desc.StencilFunc		= GetD3DComparisonFunc(StencilFunc);
-	}
+	Desc.StencilFailOp				= GetD3D12StencilOp(StencilFailOp);
+	Desc.StencilDepthFailOp			= GetD3D12StencilOp(StencilDepthFailOp);
+	Desc.StencilPassOp				= GetD3D12StencilOp(StencilPassOp);
+	Desc.StencilFunc				= GetD3D12ComparisonFunc(StencilFunc);
 	return Desc;
 }
 
@@ -54,7 +52,13 @@ void DepthStencilState::SetStencilWriteMask(UINT8 StencilWriteMask)
 	m_StencilWriteMask = StencilWriteMask;
 }
 
-void DepthStencilState::SetStencilOp(Face Face, StencilOperation StencilFailOp, StencilOperation StencilDepthFailOp, StencilOperation StencilPassOp)
+void DepthStencilState::SetStencilOp
+(
+	Face Face,
+	StencilOperation StencilFailOp,
+	StencilOperation StencilDepthFailOp,
+	StencilOperation StencilPassOp
+)
 {
 	if (Face == Face::FrontAndBack)
 	{
@@ -80,21 +84,19 @@ void DepthStencilState::SetStencilFunc(Face Face, ComparisonFunc StencilFunc)
 
 DepthStencilState::operator D3D12_DEPTH_STENCIL_DESC() const noexcept
 {
-	D3D12_DEPTH_STENCIL_DESC Desc = {};
-	{
-		Desc.DepthEnable		= m_DepthEnable ? TRUE : FALSE;
-		Desc.DepthWriteMask		= m_DepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-		Desc.DepthFunc			= GetD3DComparisonFunc(m_DepthFunc);
-		Desc.StencilEnable		= m_StencilEnable ? TRUE : FALSE;
-		Desc.StencilReadMask	= m_StencilReadMask;
-		Desc.StencilWriteMask	= m_StencilWriteMask;
-		Desc.FrontFace			= m_FrontFace;
-		Desc.BackFace			= m_BackFace;
-	}
+	D3D12_DEPTH_STENCIL_DESC Desc	= {};
+	Desc.DepthEnable				= m_DepthEnable ? TRUE : FALSE;
+	Desc.DepthWriteMask				= m_DepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+	Desc.DepthFunc					= GetD3D12ComparisonFunc(m_DepthFunc);
+	Desc.StencilEnable				= m_StencilEnable ? TRUE : FALSE;
+	Desc.StencilReadMask			= m_StencilReadMask;
+	Desc.StencilWriteMask			= m_StencilWriteMask;
+	Desc.FrontFace					= m_FrontFace;
+	Desc.BackFace					= m_BackFace;
 	return Desc;
 }
 
-D3D12_STENCIL_OP GetD3DStencilOp(DepthStencilState::StencilOperation Op)
+D3D12_STENCIL_OP GetD3D12StencilOp(DepthStencilState::StencilOperation Op)
 {
 	switch (Op)
 	{

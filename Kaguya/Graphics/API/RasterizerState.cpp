@@ -76,8 +76,8 @@ RasterizerState::operator D3D12_RASTERIZER_DESC() const noexcept
 {
 	D3D12_RASTERIZER_DESC Desc	= CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	{
-		Desc.FillMode				= GetD3DFillMode(m_FillMode);
-		Desc.CullMode				= GetD3DCullMode(m_CullMode);
+		Desc.FillMode				= GetD3D12FillMode(m_FillMode);
+		Desc.CullMode				= GetD3D12CullMode(m_CullMode);
 		Desc.FrontCounterClockwise	= m_FrontCounterClockwise ? TRUE : FALSE;
 		Desc.DepthBias				= m_DepthBias;
 		Desc.DepthBiasClamp			= m_DepthBiasClamp;
@@ -91,7 +91,7 @@ RasterizerState::operator D3D12_RASTERIZER_DESC() const noexcept
 	return Desc;
 }
 
-D3D12_FILL_MODE GetD3DFillMode(RasterizerState::FillMode FillMode)
+D3D12_FILL_MODE GetD3D12FillMode(RasterizerState::FillMode FillMode)
 {
 	switch (FillMode)
 	{
@@ -101,7 +101,7 @@ D3D12_FILL_MODE GetD3DFillMode(RasterizerState::FillMode FillMode)
 	return D3D12_FILL_MODE();
 }
 
-D3D12_CULL_MODE GetD3DCullMode(RasterizerState::CullMode CullMode)
+D3D12_CULL_MODE GetD3D12CullMode(RasterizerState::CullMode CullMode)
 {
 	switch (CullMode)
 	{

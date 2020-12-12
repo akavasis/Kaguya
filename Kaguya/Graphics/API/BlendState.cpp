@@ -7,13 +7,13 @@ BlendState::RenderTarget::operator D3D12_RENDER_TARGET_BLEND_DESC() const noexce
 	D3D12_RENDER_TARGET_BLEND_DESC Desc = {};
 	Desc.BlendEnable					= Operation == Operation::Blend ? TRUE : FALSE;
 	Desc.LogicOpEnable					= Operation == Operation::Logic ? TRUE : FALSE;
-	Desc.SrcBlend						= GetD3DBlend(SrcBlendRGB);
-	Desc.DestBlend						= GetD3DBlend(DstBlendRGB);
-	Desc.BlendOp						= GetD3DBlendOp(BlendOpRGB);
-	Desc.SrcBlendAlpha					= GetD3DBlend(SrcBlendAlpha);
-	Desc.DestBlendAlpha					= GetD3DBlend(DstBlendAlpha);
-	Desc.BlendOpAlpha					= GetD3DBlendOp(BlendOpAlpha);
-	Desc.LogicOp						= GetD3DLogicOp(LogicOpRGB);
+	Desc.SrcBlend						= GetD3D12Blend(SrcBlendRGB);
+	Desc.DestBlend						= GetD3D12Blend(DstBlendRGB);
+	Desc.BlendOp						= GetD3D12BlendOp(BlendOpRGB);
+	Desc.SrcBlendAlpha					= GetD3D12Blend(SrcBlendAlpha);
+	Desc.DestBlendAlpha					= GetD3D12Blend(DstBlendAlpha);
+	Desc.BlendOpAlpha					= GetD3D12BlendOp(BlendOpAlpha);
+	Desc.LogicOp						= GetD3D12LogicOp(LogicOpRGB);
 	Desc.RenderTargetWriteMask			|= WriteMask.WriteRed ? D3D12_COLOR_WRITE_ENABLE_RED : 0;
 	Desc.RenderTargetWriteMask			|= WriteMask.WriteGreen ? D3D12_COLOR_WRITE_ENABLE_GREEN : 0;
 	Desc.RenderTargetWriteMask			|= WriteMask.WriteBlue ? D3D12_COLOR_WRITE_ENABLE_BLUE : 0;
@@ -67,7 +67,7 @@ void BlendState::AddRenderTargetForLogicOp(LogicOp LogicOpRGB)
 
 BlendState::operator D3D12_BLEND_DESC() const noexcept
 {
-	D3D12_BLEND_DESC Desc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	D3D12_BLEND_DESC Desc		= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	Desc.AlphaToCoverageEnable	= m_AlphaToCoverageEnable ? TRUE : FALSE;
 	Desc.IndependentBlendEnable = m_IndependentBlendEnable ? TRUE : FALSE;
 	for (UINT i = 0; i < m_NumRenderTargets; ++i)
@@ -77,7 +77,7 @@ BlendState::operator D3D12_BLEND_DESC() const noexcept
 	return Desc;
 }
 
-D3D12_BLEND_OP GetD3DBlendOp(BlendState::BlendOp Op)
+D3D12_BLEND_OP GetD3D12BlendOp(BlendState::BlendOp Op)
 {
 	switch (Op)
 	{
@@ -90,7 +90,7 @@ D3D12_BLEND_OP GetD3DBlendOp(BlendState::BlendOp Op)
 	return D3D12_BLEND_OP();
 }
 
-D3D12_LOGIC_OP GetD3DLogicOp(BlendState::LogicOp Op)
+D3D12_LOGIC_OP GetD3D12LogicOp(BlendState::LogicOp Op)
 {
 	switch (Op)
 	{
@@ -114,7 +114,7 @@ D3D12_LOGIC_OP GetD3DLogicOp(BlendState::LogicOp Op)
 	return D3D12_LOGIC_OP();
 }
 
-D3D12_BLEND GetD3DBlend(BlendState::Factor Factor)
+D3D12_BLEND GetD3D12Blend(BlendState::Factor Factor)
 {
 	switch (Factor)
 	{

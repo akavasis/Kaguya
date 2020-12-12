@@ -10,7 +10,7 @@ public:
 	Texture() = default;
 	Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
 	Texture(const Device* pDevice, TextureProxy& Proxy);
-	Texture(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy);
+	Texture(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy);
 	~Texture() override;
 
 	inline auto GetFormat() const { return m_Format; }

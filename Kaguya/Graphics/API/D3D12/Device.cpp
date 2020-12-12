@@ -3,7 +3,7 @@
 
 #define GPU_BASED_VALIDATION 0
 
-Device::Device(IDXGIAdapter4* pAdapter)
+void Device::Create(IDXGIAdapter4* pAdapter)
 {
 #if defined(_DEBUG)
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
@@ -99,11 +99,7 @@ Device::Device(IDXGIAdapter4* pAdapter)
 	}
 }
 
-Device::~Device()
-{
-}
-
-bool Device::IsUAVCompatable(DXGI_FORMAT Format)
+bool Device::IsUAVCompatable(DXGI_FORMAT Format) const
 {
 	switch (Format)
 	{

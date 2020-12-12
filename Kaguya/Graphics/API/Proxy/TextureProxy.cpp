@@ -63,18 +63,21 @@ void TextureProxy::Link()
 
 D3D12_HEAP_PROPERTIES TextureProxy::BuildD3DHeapProperties() const
 {
-	return kDefaultHeapProps;
+	return CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 }
 
 D3D12_RESOURCE_DESC TextureProxy::BuildD3DDesc() const
 {
-	const D3D12_RESOURCE_FLAGS ResourceFlags = GetD3DResourceFlags(BindFlags);
+	const D3D12_RESOURCE_FLAGS ResourceFlags = GetD3D12ResourceFlags(BindFlags);
+	D3D12_RESOURCE_DESC Desc = {};
 	switch (m_Type)
 	{
-	case Resource::Type::Texture1D:		return CD3DX12_RESOURCE_DESC::Tex1D(m_Format, m_Width, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
-	case Resource::Type::Texture2D:		return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
-	case Resource::Type::Texture3D:		return CD3DX12_RESOURCE_DESC::Tex3D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, ResourceFlags);
-	case Resource::Type::TextureCube:	return CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags);
-	default:							assert(false && __FUNCTION__); return D3D12_RESOURCE_DESC();
+	case Resource::Type::Texture1D:		Desc = CD3DX12_RESOURCE_DESC::Tex1D(m_Format, m_Width, m_DepthOrArraySize, m_MipLevels, ResourceFlags);					break;
+	case Resource::Type::Texture2D:		Desc = CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags); break;
+	case Resource::Type::Texture3D:		Desc = CD3DX12_RESOURCE_DESC::Tex3D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, ResourceFlags);		break;
+	case Resource::Type::TextureCube:	Desc = CD3DX12_RESOURCE_DESC::Tex2D(m_Format, m_Width, m_Height, m_DepthOrArraySize, m_MipLevels, 1, 0, ResourceFlags); break;
 	}
+
+	Desc.Alignment = Alignment;
+	return Desc;
 }

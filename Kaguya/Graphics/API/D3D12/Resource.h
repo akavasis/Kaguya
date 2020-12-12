@@ -2,7 +2,6 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include "Core/Utility.h"
-#include "Heap.h"
 
 class Device;
 class ResourceProxy;
@@ -59,7 +58,7 @@ public:
 	Resource() = default;
 	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
 	Resource(const Device* pDevice, ResourceProxy& Proxy);
-	Resource(const Device* pDevice, const Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy);
+	Resource(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy);
 	virtual ~Resource() = 0;
 
 	inline auto GetApiHandle() const { return m_pResource.Get(); }
@@ -84,6 +83,6 @@ protected:
 ENABLE_BITMASK_OPERATORS(Resource::Flags);
 ENABLE_BITMASK_OPERATORS(Resource::State);
 
-D3D12_RESOURCE_DIMENSION GetD3DResourceDimension(Resource::Type Type);
-D3D12_RESOURCE_FLAGS GetD3DResourceFlags(Resource::Flags Flags);
-D3D12_RESOURCE_STATES GetD3DResourceStates(Resource::State State);
+D3D12_RESOURCE_DIMENSION GetD3D12ResourceDimension(Resource::Type Type);
+D3D12_RESOURCE_FLAGS GetD3D12ResourceFlags(Resource::Flags Flags);
+D3D12_RESOURCE_STATES GetD3D12ResourceStates(Resource::State State);

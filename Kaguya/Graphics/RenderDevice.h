@@ -5,7 +5,6 @@
 
 #include <functional>
 #include <Template/Pool.h>
-#include "DXGIManager.h"
 #include "RenderResourceHandle.h"
 #include "RenderResourceHandleRegistry.h"
 #include "RenderBuffer.h"
@@ -13,20 +12,21 @@
 #include "RenderResourceContainer.h"
 
 #include "API/D3D12/Device.h"
-#include "API/D3D12/ShaderCompiler.h"
-#include "API/D3D12/ResourceStateTracker.h"
-#include "API/D3D12/DescriptorHeap.h"
-#include "API/D3D12/Fence.h"
 #include "API/D3D12/CommandQueue.h"
+#include "API/D3D12/ResourceStateTracker.h"
+#include "API/D3D12/ShaderCompiler.h"
+#include "API/D3D12/DescriptorHeap.h"
 #include "API/D3D12/CommandContext.h"
 #include "API/D3D12/RaytracingAccelerationStructure.h"
 
+#include "API/D3D12/RootSignatureBuilder.h"
+
 #include "API/Proxy/BufferProxy.h"
 #include "API/Proxy/TextureProxy.h"
-#include "API/Proxy/HeapProxy.h"
-#include "API/Proxy/RootSignatureProxy.h"
 #include "API/Proxy/PipelineStateProxy.h"
 #include "API/Proxy/RaytracingPipelineStateProxy.h"
+
+#include "API/D3D12/Heap.h"
 
 struct RootParameters
 {
@@ -68,8 +68,15 @@ public:
 	static constexpr DXGI_FORMAT DepthFormat			= DXGI_FORMAT_D32_FLOAT;
 	static constexpr DXGI_FORMAT DepthStencilFormat		= DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	RenderDevice(IDXGIAdapter4* pAdapter);
+	RenderDevice(const Window* pWindow);
 	~RenderDevice();
+
+	const std::wstring& GetAdapterDescription() const { return m_AdapterDescription; }
+	DXGI_QUERY_VIDEO_MEMORY_INFO QueryLocalVideoMemoryInfo() const;
+
+	void Present(bool VSync);
+
+	void Resize(UINT Width, UINT Height);
 
 	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
 
@@ -87,6 +94,8 @@ public:
 	RenderResourceHandle InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name);
 	std::string GetRenderResourceHandleName(RenderResourceHandle RenderResourceHandle);
 
+	RenderResourceHandle GetCurrentBackBufferHandle() const { return m_BackBufferHandle[m_BackBufferIndex]; }
+
 	// Resource creation
 	void CreateBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator);
 	void CreateBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator);
@@ -95,9 +104,9 @@ public:
 	void CreateTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
 	void CreateTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator);
 
-	void CreateHeap(RenderResourceHandle Handle, std::function<void(HeapProxy&)> Configurator);
+	void CreateHeap(RenderResourceHandle Handle, const D3D12_HEAP_DESC& Desc);
 
-	void CreateRootSignature(RenderResourceHandle Handle, std::function<void(RootSignatureProxy&)> Configurator, bool AddShaderLayoutRootParameters = true);
+	void CreateRootSignature(RenderResourceHandle Handle, std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters = true);
 	
 	void CreateGraphicsPipelineState(RenderResourceHandle Handle, std::function<void(GraphicsPipelineStateProxy&)> Configurator);
 	void CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateProxy&)> Configurator);
@@ -114,7 +123,6 @@ public:
 	// Returns nullptr if a resource is not found
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle)		{ return m_Buffers.GetResource(Handle); }
 	[[nodiscard]] inline auto GetTexture(RenderResourceHandle Handle)		{ return m_Textures.GetResource(Handle); }
-	[[nodiscard]] inline auto GetHeap(RenderResourceHandle Handle)			{ return m_Heaps.GetResource(Handle); }
 	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle Handle)	{ return m_RootSignatures.GetResource(Handle); }
 	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle Handle)	{ return m_GraphicsPipelineStates.GetResource(Handle); }
 	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle Handle)	{ return m_ComputePipelineStates.GetResource(Handle); }
@@ -125,21 +133,35 @@ public:
 	Descriptor GetRenderTargetView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 	Descriptor GetDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 
+private:
+	void InitializeDXGIObjects();
+	void InitializeDXGISwapChain(const Window* pWindow);
+
+	CommandQueue& GetApiCommandQueue(CommandContext::Type Type);
+	void AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder);
+
+private:
+	Microsoft::WRL::ComPtr<IDXGIFactory6>						m_DXGIFactory;
+	Microsoft::WRL::ComPtr<IDXGIAdapter4>						m_DXGIAdapter;
+	UINT														m_AdapterID;
+	std::wstring												m_AdapterDescription;
+	bool														m_TearingSupport;
+	Microsoft::WRL::ComPtr<IDXGISwapChain4>						m_DXGISwapChain;
+	UINT														m_BackBufferIndex;
+
+public:
 	Device														Device;
 	CommandQueue												GraphicsQueue, ComputeQueue, CopyQueue;
 	UINT64														GraphicsFenceValue, ComputeFenceValue, CopyFenceValue;
 	Microsoft::WRL::ComPtr<ID3D12Fence1>						GraphicsFence, ComputeFence, CopyFence;
 	wil::unique_event											GraphicsFenceCompletionEvent, ComputeFenceCompletionEvent, CopyFenceCompletionEvent;
 
-	ResourceStateTracker										GlobalResourceStateTracker;
-	RWLock														GlobalResourceStateTrackerRWLock;
 	ShaderCompiler												ShaderCompiler;
 
-	UINT														BackBufferIndex;
-	RenderResourceHandle										BackBufferHandle[NumSwapChainBuffers];
 private:
-	CommandQueue& GetApiCommandQueue(CommandContext::Type Type);
-	void AddShaderLayoutRootParameter(RootSignatureProxy& RootSignatureProxy);
+	RenderResourceHandle										m_BackBufferHandle[NumSwapChainBuffers];
+	ResourceStateTracker										m_GlobalResourceStateTracker;
+	RWLock														m_GlobalResourceStateTrackerRWLock;
 
 	std::vector<std::unique_ptr<CommandContext>>				m_CommandContexts[CommandContext::NumTypes];
 

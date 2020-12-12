@@ -280,6 +280,7 @@ Descriptor DescriptorHeap::GetDescriptorAt(INT PartitionIndex, UINT HeapIndex) c
 CBSRUADescriptorHeap::CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible)
 	: DescriptorHeap(pDevice, { NumCBDescriptors, NumSRDescriptors, NumUADescriptors }, ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 {
+
 }
 
 UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Buffer* pBuffer)
@@ -496,12 +497,14 @@ UINT64 CBSRUADescriptorHeap::GetHashValue(const D3D12_UNORDERED_ACCESS_VIEW_DESC
 SamplerDescriptorHeap::SamplerDescriptorHeap(Device* pDevice, UINT NumDescriptors, bool ShaderVisible)
 	: DescriptorHeap(pDevice, { NumDescriptors }, ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 {
+
 }
 
 //----------------------------------------------------------------------------------------------------
 RenderTargetDescriptorHeap::RenderTargetDescriptorHeap(Device* pDevice, UINT NumDescriptors)
 	: DescriptorHeap(pDevice, { NumDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 {
+
 }
 
 D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
@@ -581,6 +584,7 @@ void RenderTargetDescriptorHeap::Entry::operator=(Texture* pTexture)
 DepthStencilDescriptorHeap::DepthStencilDescriptorHeap(Device* pDevice, UINT NumDescriptors)
 	: DescriptorHeap(pDevice, { NumDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
 {
+
 }
 
 D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)

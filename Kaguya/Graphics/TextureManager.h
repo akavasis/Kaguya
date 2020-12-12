@@ -2,6 +2,7 @@
 #include <d3d12.h>
 #include <vector>
 #include <unordered_map>
+#include <DirectXTex.h>
 
 #include "RenderDevice.h"
 #include "RenderContext.h"
@@ -12,36 +13,44 @@ class TextureManager
 public:
 	TextureManager(RenderDevice* pRenderDevice);
 
-	inline auto GetDefaultWhiteTexture()						{ return m_SystemReservedTextures[DefaultWhite]; }
-	inline auto GetDefaultBlackTexture()						{ return m_SystemReservedTextures[DefaultBlack]; }
-	inline auto GetDefaultAlbedoTexture()						{ return m_SystemReservedTextures[DefaultAlbedo]; }
-	inline auto GetDefaultNormalTexture()						{ return m_SystemReservedTextures[DefaultNormal]; }
-	inline auto GetDefaultRoughnessTexture()					{ return m_SystemReservedTextures[DefaultRoughness]; }
-	inline auto GetBRDFLUTTexture()								{ return m_SystemReservedTextures[BRDFLUT]; }
-	inline auto GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture() { return m_SystemReservedTextures[LTC_LUT_DisneyDiffuse_InverseMatrix]; }
-	inline auto GetLTC_LUT_DisneyDiffuse_TermsTexture()			{ return m_SystemReservedTextures[LTC_LUT_DisneyDiffuse_Terms]; }
-	inline auto GetLTC_LUT_GGX_InverseMatrixTexture()			{ return m_SystemReservedTextures[LTC_LUT_GGX_InverseMatrix]; }
-	inline auto GetLTC_LUT_GGX_TermsTexture()					{ return m_SystemReservedTextures[LTC_LUT_GGX_Terms]; }
-	inline auto GetBlueNoise()									{ return m_SystemReservedTextures[BlueNoise]; }
+	inline auto GetDefaultWhiteTexture()						{ return m_SystemTextures[AssetTextures::DefaultWhite]; }
+	inline auto GetDefaultBlackTexture()						{ return m_SystemTextures[AssetTextures::DefaultBlack]; }
+	inline auto GetDefaultAlbedoTexture()						{ return m_SystemTextures[AssetTextures::DefaultAlbedo]; }
+	inline auto GetDefaultNormalTexture()						{ return m_SystemTextures[AssetTextures::DefaultNormal]; }
+	inline auto GetDefaultRoughnessTexture()					{ return m_SystemTextures[AssetTextures::DefaultRoughness]; }
+	inline auto GetLTC_LUT_DisneyDiffuse_InverseMatrixTexture() { return m_SystemTextures[AssetTextures::LTC_DisneyDiffuse_InverseMatrix]; }
+	inline auto GetLTC_LUT_DisneyDiffuse_TermsTexture()			{ return m_SystemTextures[AssetTextures::LTC_DisneyDiffuse_Terms]; }
+	inline auto GetLTC_LUT_GGX_InverseMatrixTexture()			{ return m_SystemTextures[AssetTextures::LTC_GGX_InverseMatrix]; }
+	inline auto GetLTC_LUT_GGX_TermsTexture()					{ return m_SystemTextures[AssetTextures::LTC_GGX_Terms]; }
 
-	void StageSystemReservedTextures(RenderContext& RenderContext);
+	inline auto GetBlueNoise()									{ return m_NoiseTextures[AssetTextures::BlueNoise]; }
+
+	void StageAssetTextures(RenderContext& RenderContext);
 	void Stage(Scene& Scene, RenderContext& RenderContext);
 	void DisposeResources();
 private:
-	enum SystemReservedTextures
+	struct AssetTextures
 	{
-		DefaultWhite,
-		DefaultBlack,
-		DefaultAlbedo,
-		DefaultNormal,
-		DefaultRoughness,
-		BRDFLUT,
-		LTC_LUT_DisneyDiffuse_InverseMatrix,
-		LTC_LUT_DisneyDiffuse_Terms,
-		LTC_LUT_GGX_InverseMatrix,
-		LTC_LUT_GGX_Terms,
-		BlueNoise,
-		NumSystemReservedTextures
+		// These textures can be created using small resources
+		enum System
+		{
+			DefaultWhite,
+			DefaultBlack,
+			DefaultAlbedo,
+			DefaultNormal,
+			DefaultRoughness,
+			LTC_DisneyDiffuse_InverseMatrix,
+			LTC_DisneyDiffuse_Terms,
+			LTC_GGX_InverseMatrix,
+			LTC_GGX_Terms,
+			NumSystemTextures
+		};
+
+		enum Noise
+		{
+			BlueNoise,
+			NumNoiseTextures
+		};
 	};
 
 	struct Status
@@ -59,6 +68,10 @@ private:
 		bool											GenerateMips;				// Indicates whether or not we should generate mips for the staged texture
 	};
 
+	StagingTexture CreateStagingTexture(std::string Name, D3D12_RESOURCE_DESC Desc, const DirectX::ScratchImage& ScratchImage, std::size_t MipLevels, bool GenerateMips);
+
+	void LoadSystemTextures();
+	void LoadNoiseTextures();
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
 	void LoadMaterial(Material& Material);
 	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext);
@@ -72,7 +85,12 @@ private:
 
 	RenderDevice*												pRenderDevice;
 
-	RenderResourceHandle										m_SystemReservedTextures[NumSystemReservedTextures];
+	RenderResourceHandle										m_SystemTextureHeap;
+	RenderResourceHandle										m_SystemTextures[AssetTextures::NumSystemTextures];
+
+	RenderResourceHandle										m_NoiseTextureHeap;
+	RenderResourceHandle										m_NoiseTextures[AssetTextures::NumNoiseTextures];
+
 	std::unordered_map<std::string, RenderResourceHandle>		m_TextureCache;
 
 	std::unordered_map<RenderResourceHandle, StagingTexture>	m_UnstagedTextures;

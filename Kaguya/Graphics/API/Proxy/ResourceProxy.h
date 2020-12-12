@@ -10,15 +10,16 @@ public:
 	friend class Resource;
 	ResourceProxy(Resource::Type Type);
 
-	Resource::Flags					BindFlags;			//< Default value: None
-	Resource::State						InitialState;		//< Default value: Unknown
+	Resource::Flags						BindFlags;				// Default value: None
+	Resource::State						InitialState;			// Default value: Unknown
+	UINT								Alignment		= 0;	// Default value: 0
 protected:
 	void Link() override;
 
 	virtual D3D12_HEAP_PROPERTIES BuildD3DHeapProperties() const = 0;
 	virtual D3D12_RESOURCE_DESC BuildD3DDesc() const = 0;
 
-	Resource::Type						m_Type;				//< Default value: constructor value
-	UINT								m_NumSubresources;	//< Default value: 0, this is set automatically
-	std::optional<D3D12_CLEAR_VALUE>	m_ClearValue;		//< Default value: std::nullopt
+	Resource::Type						m_Type;				// Default value: constructor value
+	UINT								m_NumSubresources;	// Default value: 0, this is set automatically
+	std::optional<D3D12_CLEAR_VALUE>	m_ClearValue;		// Default value: std::nullopt
 };

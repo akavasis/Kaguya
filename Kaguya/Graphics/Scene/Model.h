@@ -1,4 +1,6 @@
 #pragma once
+#include <wrl/client.h>
+#include <d3d12.h>
 #include "Vertex.h"
 #include "Mesh.h"
 

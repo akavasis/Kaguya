@@ -11,7 +11,7 @@ struct RenderPassData
 #define RenderPassDataType RenderPassData
 #include <ShaderLayout.hlsli>
 
-[numthreads(8, 8, 1)]
+[numthreads(16, 16, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)
 {
 	Texture2D			AnalyticUnshadowed	= g_Texture2DTable[g_RenderPassData.AnalyticUnshadowed];

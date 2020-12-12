@@ -82,13 +82,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	InitRootSignature(GBufferMeshes);
 	InitRootSignature(GBufferLights);
 
-	InitRootSignature(SVGF_Reproject);
-	InitRootSignature(SVGF_FilterMoments);
-	InitRootSignature(SVGF_Atrous);
-
-	InitRootSignature(ShadingComposition);
-
-	InitRootSignature(Accumulation);
 	InitRootSignature(PostProcess_Tonemapping);
 	InitRootSignature(PostProcess_BloomMask);
 	InitRootSignature(PostProcess_BloomDownsample);
@@ -100,10 +93,10 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	InitRootSignature(Raytracing::EmptyLocal);
 	InitRootSignature(Raytracing::Global);
 
-	pRenderDevice->CreateRootSignature(Default, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(Default, [](RootSignatureBuilder& Builder)
 	{
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
 	// Cubemap convolutions RS
@@ -116,85 +109,85 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		case Prefilter:  RootSignatureHandle = ConvolutionPrefilter; break;
 		}
 
-		pRenderDevice->CreateRootSignature(RootSignatureHandle, [i](RootSignatureProxy& proxy)
+		pRenderDevice->CreateRootSignature(RootSignatureHandle, [i](RootSignatureBuilder& Builder)
 		{
 			UINT Num32BitValues = i == Irradiance ? sizeof(ConvolutionIrradianceSettings) / 4 : sizeof(ConvolutionPrefilterSettings) / 4;
 
-			proxy.AddRootConstantsParameter(RootConstants<void>(0, 0, Num32BitValues));	// Settings					b0 | space0
-			proxy.AddRootConstantsParameter(RootConstants<void>(1, 0, 1));				// RootConstants			b1 | space0
-			proxy.AddRootSRVParameter(RootSRV(0, 0));									// Vertex Buffer			t1 | space0
-			proxy.AddRootSRVParameter(RootSRV(1, 0));									// Index Buffer				t2 | space0
-			proxy.AddRootSRVParameter(RootSRV(2, 0));									// Geometry info Buffer		t3 | space0
+			Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, Num32BitValues));	// Settings					b0 | space0
+			Builder.AddRootConstantsParameter(RootConstants<void>(1, 0, 1));				// RootConstants			b1 | space0
+			Builder.AddRootSRVParameter(RootSRV(0, 0));										// Vertex Buffer			t1 | space0
+			Builder.AddRootSRVParameter(RootSRV(1, 0));										// Index Buffer				t2 | space0
+			Builder.AddRootSRVParameter(RootSRV(2, 0));										// Geometry info Buffer		t3 | space0
 
-			proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
+			Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
 
-			proxy.DenyTessellationShaderAccess();
-			proxy.DenyGSAccess();
+			Builder.DenyTessellationShaderAccess();
+			Builder.DenyGSAccess();
 		});
 	}
 
 	// Generate mips RS
-	pRenderDevice->CreateRootSignature(GenerateMips, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(GenerateMips, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<GenerateMipsData>(0, 0));
+		Builder.AddRootConstantsParameter(RootConstants<GenerateMipsData>(0, 0));
 
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
+		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
 
-		proxy.DenyVSAccess();
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyVSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
 	// Equirectangular to cubemap RS
-	pRenderDevice->CreateRootSignature(EquirectangularToCubemap, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(EquirectangularToCubemap, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<EquirectangularToCubemapData>(0, 0));
+		Builder.AddRootConstantsParameter(RootConstants<EquirectangularToCubemapData>(0, 0));
 
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);
+		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);
 
-		proxy.DenyVSAccess();
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyVSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateRootSignature(Skybox, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(Skybox, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootConstantsParameter(RootConstants<void>(1, 0, 1));				// RootConstants			b1 | space0
-		proxy.AddRootSRVParameter(RootSRV(0, 0));									// Vertex Buffer			t1 | space0
-		proxy.AddRootSRVParameter(RootSRV(1, 0));									// Index Buffer				t2 | space0
-		proxy.AddRootSRVParameter(RootSRV(2, 0));									// Geometry info Buffer		t3 | space0
+		Builder.AddRootConstantsParameter(RootConstants<void>(1, 0, 1));			// RootConstants			b1 | space0
+		Builder.AddRootSRVParameter(RootSRV(0, 0));									// Vertex Buffer			t1 | space0
+		Builder.AddRootSRVParameter(RootSRV(1, 0));									// Index Buffer				t2 | space0
+		Builder.AddRootSRVParameter(RootSRV(2, 0));									// Geometry info Buffer		t3 | space0
 
-		proxy.DenyTessellationShaderAccess();
-		proxy.DenyGSAccess();
+		Builder.DenyTessellationShaderAccess();
+		Builder.DenyGSAccess();
 	});
 
 	// Local RS
-	pRenderDevice->CreateRootSignature(Raytracing::Local, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(Raytracing::Local, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootSRVParameter(RootSRV(0, 1));	// VertexBuffer,			t0 | space1
-		proxy.AddRootSRVParameter(RootSRV(1, 1));	// IndexBuffer				t1 | space1
+		Builder.AddRootSRVParameter(RootSRV(0, 1));	// VertexBuffer,			t0 | space1
+		Builder.AddRootSRVParameter(RootSRV(1, 1));	// IndexBuffer				t1 | space1
 
-		proxy.SetAsLocalRootSignature();
+		Builder.SetAsLocalRootSignature();
 	},
 		false);
 
 	// Empty Local RS
-	pRenderDevice->CreateRootSignature(Raytracing::EmptyLocal, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(Raytracing::EmptyLocal, [](RootSignatureBuilder& Builder)
 	{
-		proxy.SetAsLocalRootSignature();
+		Builder.SetAsLocalRootSignature();
 	},
 		false);
 
 	// Global RS
-	pRenderDevice->CreateRootSignature(Raytracing::Global, [](RootSignatureProxy& proxy)
+	pRenderDevice->CreateRootSignature(Raytracing::Global, [](RootSignatureBuilder& Builder)
 	{
-		proxy.AddRootSRVParameter(RootSRV(0, 0));	// BVH,						t0 | space0
-		proxy.AddRootSRVParameter(RootSRV(1, 0));	// Meshes,					t1 | space0
-		proxy.AddRootSRVParameter(RootSRV(2, 0));	// Lights,					t2 | space0
-		proxy.AddRootSRVParameter(RootSRV(3, 0));	// Materials				t3 | space0
+		Builder.AddRootSRVParameter(RootSRV(0, 0));	// BVH,						t0 | space0
+		Builder.AddRootSRVParameter(RootSRV(1, 0));	// Meshes,					t1 | space0
+		Builder.AddRootSRVParameter(RootSRV(2, 0));	// Lights,					t2 | space0
+		Builder.AddRootSRVParameter(RootSRV(3, 0));	// Materials				t3 | space0
 
-		proxy.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);	// SamplerLinearWrap	s0 | space0;
-		proxy.AddStaticSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);	// SamplerLinearClamp	s1 | space0;
+		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);	// SamplerLinearWrap	s0 | space0;
+		Builder.AddStaticSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);	// SamplerLinearClamp	s1 | space0;
 	});
 }
 
