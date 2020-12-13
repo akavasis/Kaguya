@@ -12,11 +12,11 @@ RenderDevice::RenderDevice(const Window* pWindow)
 
 	InitializeDXGISwapChain(pWindow);
 
-	m_NonShaderVisibleCBSRUADescriptorHeap = { &Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false };
-	m_ShaderVisibleCBSRUADescriptorHeap = { &Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true };
-	m_SamplerDescriptorHeap = { &Device, NumSamplerDescriptors, true };
-	m_RenderTargetDescriptorHeap = { &Device, NumRenderTargetDescriptors };
-	m_DepthStencilDescriptorHeap = { &Device, NumDepthStencilDescriptors };
+	m_NonShaderVisibleCBSRUADescriptorHeap	= { Device.GetApiHandle(), NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false };
+	m_ShaderVisibleCBSRUADescriptorHeap		= { Device.GetApiHandle(), NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true };
+	m_SamplerDescriptorHeap					= { Device.GetApiHandle(), NumSamplerDescriptors, true };
+	m_RenderTargetDescriptorHeap			= { Device.GetApiHandle(), NumRenderTargetDescriptors };
+	m_DepthStencilDescriptorHeap			= { Device.GetApiHandle(), NumDepthStencilDescriptors };
 
 	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 0;
 
@@ -158,14 +158,13 @@ RenderResourceHandle RenderDevice::InitializeRenderResourceHandle(RenderResource
 {
 	switch (Type)
 	{
-	case RenderResourceType::Buffer:		return m_BufferHandleRegistry.Allocate(Type, Name);						break;
-	case RenderResourceType::Texture:		return m_TextureHandleRegistry.Allocate(Type, Name);					break;
-	case RenderResourceType::Heap:			return m_HeapHandleRegistry.Allocate(Type, Name);						break;
-	case RenderResourceType::RootSignature: return m_RootSignatureHandleRegistry.Allocate(Type, Name);				break;
-	case RenderResourceType::GraphicsPSO:	return m_GraphicsPipelineStateHandleRegistry.Allocate(Type, Name);		break;
-	case RenderResourceType::ComputePSO:	return m_ComputePipelineStateHandleRegistry.Allocate(Type, Name);		break;
-	case RenderResourceType::RaytracingPSO: return m_RaytracingPipelineStateHandleRegistry.Allocate(Type, Name);	break;
-	default:								assert(false && "Invalid RenderResourceType");							return {};
+	case RenderResourceType::Buffer:					return m_BufferHandleRegistry.Allocate(Type, Name);
+	case RenderResourceType::Texture:					return m_TextureHandleRegistry.Allocate(Type, Name);
+	case RenderResourceType::Heap:						return m_HeapHandleRegistry.Allocate(Type, Name);
+	case RenderResourceType::RootSignature:				return m_RootSignatureHandleRegistry.Allocate(Type, Name);
+	case RenderResourceType::PipelineState:				return m_PipelineStateHandleRegistry.Allocate(Type, Name);
+	case RenderResourceType::RaytracingPipelineState:	return m_RaytracingPipelineStateHandleRegistry.Allocate(Type, Name);
+	default:											return RenderResourceHandle();
 	}
 }
 
@@ -173,16 +172,14 @@ std::string RenderDevice::GetRenderResourceHandleName(RenderResourceHandle Handl
 {
 	switch (Handle.Type)
 	{
-	case RenderResourceType::Buffer:		return m_BufferHandleRegistry.GetName(Handle);					break;
-	case RenderResourceType::Texture:		return m_TextureHandleRegistry.GetName(Handle);					break;
-	case RenderResourceType::Heap:			return m_HeapHandleRegistry.GetName(Handle);					break;
-	case RenderResourceType::RootSignature: return m_RootSignatureHandleRegistry.GetName(Handle);			break;
-	case RenderResourceType::GraphicsPSO:	return m_GraphicsPipelineStateHandleRegistry.GetName(Handle);	break;
-	case RenderResourceType::ComputePSO:	return m_ComputePipelineStateHandleRegistry.GetName(Handle);	break;
-	case RenderResourceType::RaytracingPSO: return m_RaytracingPipelineStateHandleRegistry.GetName(Handle); break;
-	default:																								break;
+	case RenderResourceType::Buffer:					return m_BufferHandleRegistry.GetName(Handle);
+	case RenderResourceType::Texture:					return m_TextureHandleRegistry.GetName(Handle);
+	case RenderResourceType::Heap:						return m_HeapHandleRegistry.GetName(Handle);
+	case RenderResourceType::RootSignature:				return m_RootSignatureHandleRegistry.GetName(Handle);
+	case RenderResourceType::PipelineState:				return m_PipelineStateHandleRegistry.GetName(Handle);
+	case RenderResourceType::RaytracingPipelineState:	return m_RaytracingPipelineStateHandleRegistry.GetName(Handle);
+	default:											return std::string();
 	}
-	return std::string();
 }
 
 void RenderDevice::CreateBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator)
@@ -255,7 +252,7 @@ void RenderDevice::CreateHeap(RenderResourceHandle Handle, const D3D12_HEAP_DESC
 
 void RenderDevice::CreateRootSignature(RenderResourceHandle Handle, std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters)
 {
-	RootSignatureBuilder Builder;
+	RootSignatureBuilder Builder = {};
 	Configurator(Builder);
 	if (AddShaderLayoutRootParameters)
 		AddShaderLayoutRootParameterToBuilder(Builder);
@@ -265,32 +262,32 @@ void RenderDevice::CreateRootSignature(RenderResourceHandle Handle, std::functio
 	pRootSignature->GetApiHandle()->SetName(Name.data());
 }
 
-void RenderDevice::CreateGraphicsPipelineState(RenderResourceHandle Handle, std::function<void(GraphicsPipelineStateProxy&)> Configurator)
+void RenderDevice::CreateGraphicsPipelineState(RenderResourceHandle Handle, std::function<void(GraphicsPipelineStateBuilder&)> Configurator)
 {
-	GraphicsPipelineStateProxy proxy;
-	Configurator(proxy);
+	GraphicsPipelineStateBuilder Builder = {};
+	Configurator(Builder);
 
-	auto pGraphicsPSO = m_GraphicsPipelineStates.CreateResource(Handle, &Device, proxy);
+	auto pGraphicsPSO = m_PipelineStates.CreateResource(Handle, Device.GetApiHandle(), Builder);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pGraphicsPSO->GetApiHandle()->SetName(Name.data());
 }
 
-void RenderDevice::CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateProxy&)> Configurator)
+void RenderDevice::CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateBuilder&)> Configurator)
 {
-	ComputePipelineStateProxy proxy;
-	Configurator(proxy);
+	ComputePipelineStateBuilder Builder = {};
+	Configurator(Builder);
 
-	auto pComputePSO = m_ComputePipelineStates.CreateResource(Handle, &Device, proxy);
+	auto pComputePSO = m_PipelineStates.CreateResource(Handle, Device.GetApiHandle(), Builder);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pComputePSO->GetApiHandle()->SetName(Name.data());
 }
 
-void RenderDevice::CreateRaytracingPipelineState(RenderResourceHandle Handle, std::function<void(RaytracingPipelineStateProxy&)> Configurator)
+void RenderDevice::CreateRaytracingPipelineState(RenderResourceHandle Handle, std::function<void(RaytracingPipelineStateBuilder&)> Configurator)
 {
-	RaytracingPipelineStateProxy proxy;
-	Configurator(proxy);
+	RaytracingPipelineStateBuilder Builder = {};
+	Configurator(Builder);
 
-	auto pRaytracingPSO = m_RaytracingPipelineStates.CreateResource(Handle, &Device, proxy);
+	auto pRaytracingPSO = m_RaytracingPipelineStates.CreateResource(Handle, Device.GetApiHandle(), Builder);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pRaytracingPSO->GetApiHandle()->SetName(Name.data());
 }
@@ -366,10 +363,9 @@ void RenderDevice::Destroy(RenderResourceHandle Handle)
 		}
 	}
 	break;
-	case RenderResourceType::RootSignature: m_RootSignatures.Destroy(Handle);				break;
-	case RenderResourceType::GraphicsPSO:	m_GraphicsPipelineStates.Destroy(Handle);		break;
-	case RenderResourceType::ComputePSO:	m_ComputePipelineStates.Destroy(Handle);		break;
-	case RenderResourceType::RaytracingPSO: m_RaytracingPipelineStates.Destroy(Handle);		break;
+	case RenderResourceType::RootSignature: m_RootSignatures.Destroy(Handle);						break;
+	case RenderResourceType::PipelineState:	m_PipelineStates.Destroy(Handle);						break;
+	case RenderResourceType::RaytracingPipelineState: m_RaytracingPipelineStates.Destroy(Handle);	break;
 	}
 }
 

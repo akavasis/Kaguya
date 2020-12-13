@@ -60,31 +60,26 @@ void RenderContext::SetPipelineState(RenderResourceHandle PipelineStateHandle)
 
 	switch (m_PipelineStateHandle.Type)
 	{
-	case RenderResourceType::GraphicsPSO:
-		SetGraphicsPSO(SV_pRenderDevice->GetGraphicsPSO(m_PipelineStateHandle));
+	case RenderResourceType::PipelineState:
+		SetPipelineState(SV_pRenderDevice->GetPipelineState(m_PipelineStateHandle));
 		break;
 
-	case RenderResourceType::ComputePSO:
-		SetComputePSO(SV_pRenderDevice->GetComputePSO(m_PipelineStateHandle));
-		break;
-
-	case RenderResourceType::RaytracingPSO:
-		SetRaytracingPSO(SV_pRenderDevice->GetRaytracingPSO(m_PipelineStateHandle));
+	case RenderResourceType::RaytracingPipelineState:
+		SetRaytracingPipelineState(SV_pRenderDevice->GetRaytracingPipelineState(m_PipelineStateHandle));
 		break;
 	}
 }
 
 void RenderContext::SetRoot32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues)
 {
-	switch (m_PipelineStateHandle.Type)
+	switch (m_PipelineStateType)
 	{
-	case RenderResourceType::GraphicsPSO:
+	case PipelineState::Type::Graphics:
 		SV_pCommandContext->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
 		break;
 
-		// RaytracingPSO's use SetComputeXXX method
-	case RenderResourceType::ComputePSO:
-	case RenderResourceType::RaytracingPSO:
+		// RaytracingPipelineState's use SetComputeXXX method
+	case PipelineState::Type::Compute:
 		SV_pCommandContext->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
 		break;
 	}
@@ -95,17 +90,17 @@ void RenderContext::SetRootShaderResourceView(UINT RootParameterIndex, RenderRes
 	assert(BufferHandle.Type == RenderResourceType::Buffer);
 
 	auto pBuffer = SV_pRenderDevice->GetBuffer(BufferHandle);
+	auto GpuVirtualAddress = pBuffer->GetGpuVirtualAddress();
 
-	switch (m_PipelineStateHandle.Type)
+	switch (m_PipelineStateType)
 	{
-	case RenderResourceType::GraphicsPSO:
-		SV_pCommandContext->SetGraphicsRootShaderResourceView(RootParameterIndex, pBuffer->GetGpuVirtualAddress());
+	case PipelineState::Type::Graphics:
+		SV_pCommandContext->SetGraphicsRootShaderResourceView(RootParameterIndex, GpuVirtualAddress);
 		break;
 
-		// RaytracingPSO's use SetComputeXXX method
-	case RenderResourceType::ComputePSO:
-	case RenderResourceType::RaytracingPSO:
-		SV_pCommandContext->SetComputeRootShaderResourceView(RootParameterIndex, pBuffer->GetGpuVirtualAddress());
+		// RaytracingPipelineState's use SetComputeXXX method
+	case PipelineState::Type::Compute:
+		SV_pCommandContext->SetComputeRootShaderResourceView(RootParameterIndex, GpuVirtualAddress);
 		break;
 	}
 }
@@ -118,8 +113,6 @@ void RenderContext::DispatchRays
 	UINT Width, UINT Height, UINT Depth
 )
 {
-	assert(RayGenerationShaderTable);
-
 	D3D12_DISPATCH_RAYS_DESC Desc = {};
 	{
 		auto pRayGenerationShaderTable					= SV_pRenderDevice->GetBuffer(RayGenerationShaderTable);
@@ -149,24 +142,34 @@ void RenderContext::DispatchRays
 	SV_pCommandContext->DispatchRays(&Desc);
 }
 
-void RenderContext::SetGraphicsPSO(GraphicsPipelineState* pGraphicsPipelineState)
+void RenderContext::SetPipelineState(PipelineState* pPipelineState)
 {
-	SV_pCommandContext->SetPipelineState(pGraphicsPipelineState);
-	SV_pCommandContext->SetGraphicsRootSignature(pGraphicsPipelineState->pRootSignature);
+	m_PipelineStateType = pPipelineState->GetType();
 
-	BindGraphicsShaderLayoutResource(pGraphicsPipelineState->pRootSignature);
+	SV_pCommandContext->SetPipelineState(pPipelineState);
+
+	switch (m_PipelineStateType)
+	{
+	case PipelineState::Type::Graphics:
+	{
+		SV_pCommandContext->SetGraphicsRootSignature(pPipelineState->pRootSignature);
+		BindGraphicsShaderLayoutResource(pPipelineState->pRootSignature);
+	}
+	break;
+
+	case PipelineState::Type::Compute:
+	{
+		SV_pCommandContext->SetComputeRootSignature(pPipelineState->pRootSignature);
+		BindComputeShaderLayoutResource(pPipelineState->pRootSignature);
+	}
+	break;
+	}
 }
 
-void RenderContext::SetComputePSO(ComputePipelineState* pComputePipelineState)
+void RenderContext::SetRaytracingPipelineState(RaytracingPipelineState* pRaytracingPipelineState)
 {
-	SV_pCommandContext->SetPipelineState(pComputePipelineState);
-	SV_pCommandContext->SetComputeRootSignature(pComputePipelineState->pRootSignature);
+	m_PipelineStateType = PipelineState::Type::Compute;
 
-	BindComputeShaderLayoutResource(pComputePipelineState->pRootSignature);
-}
-
-void RenderContext::SetRaytracingPSO(RaytracingPipelineState* pRaytracingPipelineState)
-{
 	SV_pCommandContext->SetRaytracingPipelineState(pRaytracingPipelineState);
 	SV_pCommandContext->SetComputeRootSignature(pRaytracingPipelineState->pGlobalRootSignature);
 

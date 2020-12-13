@@ -22,6 +22,7 @@ protected:
 	void Render() override;
 	bool Resize(uint32_t Width, uint32_t Height) override;
 	void Destroy() override;
+
 private:
 	void SetScene(Scene Scene);
 	void RenderGui();
@@ -29,6 +30,7 @@ private:
 	static DWORD WINAPI AsyncComputeThreadProc(_In_ PVOID pParameter);
 	static DWORD WINAPI AsyncCopyThreadProc(_In_ PVOID pParameter);
 	
+private:
 	RenderDevice*							m_pRenderDevice						= nullptr;
 	RenderGraph*							m_pRenderGraph						= nullptr;
 	RenderContext							m_GraphicsContext;

@@ -19,10 +19,10 @@ void ShadingComposition::InitializePipeline(RenderDevice* pRenderDevice)
 {
 	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
 
-	pRenderDevice->CreateComputePipelineState(ComputePSOs::ShadingComposition, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::ShadingComposition, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
-		proxy.pCS = &Shaders::CS::ShadingComposition;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
+		Builder.pCS = &Shaders::CS::ShadingComposition;
 	});
 }
 

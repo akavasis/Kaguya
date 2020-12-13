@@ -8,14 +8,14 @@
 template<typename TRootArguments>
 struct ShaderRecord
 {
-	ShaderIdentifier ShaderIdentifier;
-	TRootArguments RootArguments;
+	ShaderIdentifier	ShaderIdentifier;
+	TRootArguments		RootArguments;
 };
 
 template<>
 struct ShaderRecord<void>
 {
-	ShaderIdentifier ShaderIdentifier;
+	ShaderIdentifier	ShaderIdentifier;
 };
 
 template<typename TRootArguments>
@@ -25,6 +25,7 @@ public:
 	ShaderTable()
 		: m_ShaderRecordStride(0)
 	{
+
 	}
 
 	inline auto GetShaderRecordStride() const { return m_ShaderRecordStride; }
@@ -32,16 +33,16 @@ public:
 	void AddShaderRecord(ShaderIdentifier ShaderIdentifier, TRootArguments RootArguments)
 	{
 		constexpr UINT64 ShaderIdentiferSizeInBytes = sizeof(ShaderIdentifier);
-		UINT64 recordSizeInBytes = ShaderIdentiferSizeInBytes;
-		recordSizeInBytes += sizeof(TRootArguments);
-		recordSizeInBytes = Math::AlignUp<UINT64>(recordSizeInBytes, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+		UINT64 RecordSizeInBytes = ShaderIdentiferSizeInBytes;
+		RecordSizeInBytes += sizeof(TRootArguments);
+		RecordSizeInBytes = Math::AlignUp<UINT64>(RecordSizeInBytes, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
-		ShaderRecord<TRootArguments> shaderRecord = {};
-		shaderRecord.ShaderIdentifier = ShaderIdentifier;
-		shaderRecord.RootArguments = RootArguments;
+		ShaderRecord<TRootArguments> ShaderRecord = {};
+		ShaderRecord.ShaderIdentifier = ShaderIdentifier;
+		ShaderRecord.RootArguments = RootArguments;
 
-		m_ShaderRecords.push_back(shaderRecord);
-		m_ShaderRecordStride = std::max<UINT64>(m_ShaderRecordStride, recordSizeInBytes);
+		m_ShaderRecords.push_back(ShaderRecord);
+		m_ShaderRecordStride = std::max<UINT64>(m_ShaderRecordStride, RecordSizeInBytes);
 	}
 
 	void Reset()
@@ -52,33 +53,35 @@ public:
 
 	void ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) const
 	{
-		assert(pShaderTableSizeInBytes != nullptr);
+		if (pShaderTableSizeInBytes)
+		{
+			UINT64 ShaderTableSizeInBytes = 0;
+			ShaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
+			ShaderTableSizeInBytes = Math::AlignUp<UINT64>(ShaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
-		UINT64 shaderTableSizeInBytes = 0;
-		shaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
-		shaderTableSizeInBytes = Math::AlignUp<UINT64>(shaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-
-		*pShaderTableSizeInBytes = shaderTableSizeInBytes;
+			*pShaderTableSizeInBytes = ShaderTableSizeInBytes;
+		}
 	}
 
 	void Generate(Buffer* pShaderTableBuffer)
 	{
 		BYTE* pData = pShaderTableBuffer->Map();
 
-		for (const auto& shaderRecord : m_ShaderRecords)
+		for (const auto& ShaderRecord : m_ShaderRecords)
 		{
 			// Copy the shader identifier
-			memcpy(pData, shaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
+			memcpy(pData, ShaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
 			// Copy all its resources pointers or values in bulk
-			memcpy(pData + sizeof(ShaderIdentifier), &shaderRecord.RootArguments, sizeof(TRootArguments));
+			memcpy(pData + sizeof(ShaderIdentifier), &ShaderRecord.RootArguments, sizeof(TRootArguments));
 
 			pData += m_ShaderRecordStride;
 		}
 
 		pShaderTableBuffer->Unmap();
 	}
+
 private:
-	std::vector<ShaderRecord<TRootArguments>> m_ShaderRecords;
+	std::vector<ShaderRecord<TRootArguments>>	m_ShaderRecords;
 	// The stride of a shader record type, this is the maximum record size for each type
 	UINT64 m_ShaderRecordStride;
 };
@@ -90,21 +93,22 @@ public:
 	ShaderTable()
 		: m_ShaderRecordStride(0)
 	{
+
 	}
 
 	inline auto GetShaderRecordStride() const { return m_ShaderRecordStride; }
 
 	void AddShaderRecord(ShaderIdentifier ShaderIdentifier)
 	{
-		constexpr UINT64 ShaderIdentiferSizeInBytes = sizeof(ShaderIdentifier);
-		UINT64 recordSizeInBytes = ShaderIdentiferSizeInBytes;
-		recordSizeInBytes = Math::AlignUp<UINT64>(recordSizeInBytes, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+		constexpr auto ShaderIdentiferSizeInBytes = sizeof(ShaderIdentifier);
+		UINT64 RecordSizeInBytes = ShaderIdentiferSizeInBytes;
+		RecordSizeInBytes = Math::AlignUp<UINT64>(RecordSizeInBytes, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
-		ShaderRecord<void> shaderRecord = {};
-		shaderRecord.ShaderIdentifier = ShaderIdentifier;
+		ShaderRecord<void> ShaderRecord = {};
+		ShaderRecord.ShaderIdentifier = ShaderIdentifier;
 
-		m_ShaderRecords.push_back(shaderRecord);
-		m_ShaderRecordStride = std::max<UINT64>(m_ShaderRecordStride, recordSizeInBytes);
+		m_ShaderRecords.push_back(ShaderRecord);
+		m_ShaderRecordStride = std::max<UINT64>(m_ShaderRecordStride, RecordSizeInBytes);
 	}
 
 	void Reset()
@@ -115,29 +119,31 @@ public:
 
 	void ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) const
 	{
-		assert(pShaderTableSizeInBytes != nullptr);
+		if (pShaderTableSizeInBytes)
+		{
+			UINT64 ShaderTableSizeInBytes = 0;
+			ShaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
+			ShaderTableSizeInBytes = Math::AlignUp<UINT64>(ShaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
-		UINT64 shaderTableSizeInBytes = 0;
-		shaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
-		shaderTableSizeInBytes = Math::AlignUp<UINT64>(shaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-
-		*pShaderTableSizeInBytes = shaderTableSizeInBytes;
+			*pShaderTableSizeInBytes = ShaderTableSizeInBytes;
+		}
 	}
 
 	void Generate(Buffer* pShaderTableBuffer)
 	{
 		BYTE* pData = pShaderTableBuffer->Map();
 
-		for (const auto& shaderRecord : m_ShaderRecords)
+		for (const auto& ShaderRecord : m_ShaderRecords)
 		{
 			// Copy the shader identifier
-			memcpy(pData, shaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
+			memcpy(pData, ShaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
 
 			pData += m_ShaderRecordStride;
 		}
 
 		pShaderTableBuffer->Unmap();
 	}
+
 private:
 	std::vector<ShaderRecord<void>> m_ShaderRecords;
 	// The stride of a shader record type, this is the maximum record size for each type

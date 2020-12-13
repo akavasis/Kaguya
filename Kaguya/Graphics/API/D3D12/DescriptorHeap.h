@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d12.h>
+#include "d3dx12.h"
 #include <wrl/client.h>
 #include <optional>
 #include <vector>
@@ -14,12 +15,12 @@ class DescriptorHeap;
 //----------------------------------------------------------------------------------------------------
 struct Descriptor
 {
-	inline bool IsValid() const { return CpuHandle.ptr != NULL; }
-	inline bool IsReferencedByShader() const { return GpuHandle.ptr != NULL; }
-
 	D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle = { NULL };
 	D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle = { NULL };
-	UINT HeapIndex = 0;
+	UINT						HeapIndex = 0;
+
+	inline bool IsValid() const { return CpuHandle.ptr != NULL; }
+	inline bool IsReferencedByShader() const { return GpuHandle.ptr != NULL; }
 };
 
 //----------------------------------------------------------------------------------------------------
@@ -27,7 +28,7 @@ class DescriptorHeap
 {
 public:
 	DescriptorHeap() = default;
-	DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type);
+	DescriptorHeap(ID3D12Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type);
 
 	inline auto GetApiHandle() const { return m_pDescriptorHeap.Get(); }
 	inline auto GetDescriptorFromStart() const { return m_StartDescriptor; }
@@ -43,7 +44,8 @@ protected:
 		UINT NumDescriptors;
 	};
 
-	Device* m_pDevice;
+	ID3D12Device* m_pDevice;
+
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
 	Descriptor m_StartDescriptor;
 	UINT m_DescriptorIncrementSize;
@@ -64,7 +66,7 @@ public:
 	};
 
 	CBSRUADescriptorHeap() = default;
-	CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible);
+	CBSRUADescriptorHeap(ID3D12Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible);
 
 	// Returns a hash value that can be used for indexing Descriptor into hash tables
 	UINT64 AssignCBDescriptor(UINT HeapIndex, Buffer* pBuffer) { __debugbreak(); return 0; } // TODO: Implement 
@@ -95,19 +97,19 @@ public:
 	class Entry
 	{
 	public:
-		Entry(Device* pDevice, Descriptor DestDescriptor)
+		Entry(ID3D12Device* pDevice, Descriptor DestDescriptor)
 			: pDevice(pDevice), DestDescriptor(DestDescriptor)
 		{
 		}
 
 		// void operator=(Sampler* pSampler);
 	private:
-		Device* pDevice;
+		ID3D12Device* pDevice;
 		Descriptor DestDescriptor;
 	};
 
 	SamplerDescriptorHeap() = default;
-	SamplerDescriptorHeap(Device* pDevice, UINT NumDescriptors, bool ShaderVisible);
+	SamplerDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors, bool ShaderVisible);
 };
 
 //----------------------------------------------------------------------------------------------------
@@ -117,7 +119,7 @@ public:
 	class Entry
 	{
 	public:
-		Entry(Device* pDevice, Descriptor DestDescriptor)
+		Entry(ID3D12Device* pDevice, Descriptor DestDescriptor)
 			: pDevice(pDevice), DestDescriptor(DestDescriptor), HashValue(0)
 		{
 		}
@@ -129,13 +131,13 @@ public:
 		std::optional<UINT> MipSlice;
 		std::optional<UINT> ArraySize;
 	private:
-		Device* pDevice;
+		ID3D12Device* pDevice;
 		Descriptor DestDescriptor;
 		UINT64 HashValue;
 	};
 
 	RenderTargetDescriptorHeap() = default;
-	RenderTargetDescriptorHeap(Device* pDevice, UINT NumDescriptors);
+	RenderTargetDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors);
 
 	Entry operator[](UINT Index)
 	{
@@ -158,8 +160,8 @@ public:
 	class Entry
 	{
 	public:
-		Entry(Device* pDevice, Descriptor DestDescriptor)
-			: pDevice(pDevice), DestDescriptor(DestDescriptor)
+		Entry(ID3D12Device* pDevice, Descriptor DestDescriptor)
+			: pDevice(pDevice), DestDescriptor(DestDescriptor), HashValue(0)
 		{
 		}
 
@@ -170,13 +172,13 @@ public:
 		std::optional<UINT> MipSlice;
 		std::optional<UINT> ArraySize;
 	private:
-		Device* pDevice;
+		ID3D12Device* pDevice;
 		Descriptor DestDescriptor;
 		UINT64 HashValue;
 	};
 
 	DepthStencilDescriptorHeap() = default;
-	DepthStencilDescriptorHeap(Device* pDevice, UINT NumDescriptors);
+	DepthStencilDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors);
 
 	Entry operator[](UINT Index)
 	{

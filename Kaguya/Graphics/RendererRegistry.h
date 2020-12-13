@@ -4,8 +4,6 @@
 static constexpr size_t SizeOfBuiltInTriangleIntersectionAttributes = 2 * sizeof(float);
 static constexpr size_t SizeOfHLSLBooleanType = sizeof(int);
 
-#define ENUM_TO_LSTR(Enum) L#Enum
-
 enum CubemapConvolution
 {
 	Irradiance,
@@ -129,6 +127,7 @@ struct Libraries
 	inline static Library Pathtracing;
 	inline static Library AmbientOcclusion;
 	inline static Library Shading;
+	inline static Library Picking;
 
 	static void Register(RenderDevice* pRenderDevice);
 };
@@ -203,6 +202,7 @@ struct RaytracingPSOs
 	inline static RenderResourceHandle Pathtracing;
 	inline static RenderResourceHandle AmbientOcclusion;
 	inline static RenderResourceHandle Shading;
+	inline static RenderResourceHandle Picking;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

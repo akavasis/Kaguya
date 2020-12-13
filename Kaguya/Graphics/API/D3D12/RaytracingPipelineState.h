@@ -7,8 +7,7 @@
 #include "ShaderTable.h"
 
 //----------------------------------------------------------------------------------------------------
-class Device;
-class RaytracingPipelineStateProxy;
+class RaytracingPipelineStateBuilder;
 
 //----------------------------------------------------------------------------------------------------
 struct DXILLibrary
@@ -44,14 +43,14 @@ class RaytracingPipelineState
 {
 public:
 	RaytracingPipelineState() = default;
-	RaytracingPipelineState(const Device* pDevice, RaytracingPipelineStateProxy& Proxy);
+	RaytracingPipelineState(ID3D12Device5* pDevice, RaytracingPipelineStateBuilder& Builder);
 
 	inline auto GetApiHandle() const { return m_StateObject.Get(); }
-	inline auto GetD3DPipelineStateProperties() const { return m_StateObjectProperties.Get(); }
 
 	ShaderIdentifier GetShaderIdentifier(LPCWSTR pExportName);
 
 	const RootSignature*								pGlobalRootSignature;
+
 private:
 	Microsoft::WRL::ComPtr<ID3D12StateObject>			m_StateObject;
 	Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> m_StateObjectProperties;

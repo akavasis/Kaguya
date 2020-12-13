@@ -1,18 +1,10 @@
 #pragma once
 #include "../RenderPass.h"
 
-class Shading : public RenderPass
+class Picking : public RenderPass
 {
 public:
-	enum EResources
-	{
-		AnalyticUnshadowed,
-		StochasticUnshadowed,
-		StochasticShadowed,
-		NumResources
-	};
-
-	Shading(UINT Width, UINT Height);
+	Picking();
 
 protected:
 	void InitializePipeline(RenderDevice* pRenderDevice) override;
@@ -28,4 +20,7 @@ private:
 	RenderResourceHandle m_RayGenerationShaderTable;
 	RenderResourceHandle m_MissShaderTable;
 	RenderResourceHandle m_HitGroupShaderTable;
+
+	RenderResourceHandle m_PickingResult;
+	RenderResourceHandle m_PickingResultReadBack;
 };

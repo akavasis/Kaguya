@@ -15,12 +15,11 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestCommandAllocator(UINT64 Com
 
 	if (!m_ReadyCommandAllocators.empty())
 	{
-		auto iter = m_ReadyCommandAllocators.front();
-
 		// First indicates the fence value of the command allocator that was being used
 		// if that value is less than the CompletedFenceValue then that allocator is ready to
 		// be used again
-		if (iter.first <= CompletedFenceValue)
+		if (auto iter = m_ReadyCommandAllocators.front();
+			iter.first <= CompletedFenceValue)
 		{
 			pCommandAllocator = iter.second;
 			ThrowCOMIfFailed(pCommandAllocator->Reset());

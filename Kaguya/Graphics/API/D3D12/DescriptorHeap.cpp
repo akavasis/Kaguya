@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "DescriptorHeap.h"
-#include "Device.h"
 
 namespace std
 {
@@ -225,7 +224,7 @@ namespace std
 	};
 }
 
-DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type)
+DescriptorHeap::DescriptorHeap(ID3D12Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type)
 	: m_pDevice(pDevice)
 {
 	// If you recorded a CPU descriptor handle into the command list (render target or depth stencil) then that descriptor can be reused immediately after the Set call, 
@@ -240,8 +239,8 @@ DescriptorHeap::DescriptorHeap(Device* pDevice, std::vector<UINT> Ranges, bool S
 		.NodeMask		= 0
 	};
 
-	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&m_pDescriptorHeap)));
-	m_DescriptorIncrementSize = pDevice->GetDescriptorIncrementSize(Type);
+	ThrowCOMIfFailed(pDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&m_pDescriptorHeap)));
+	m_DescriptorIncrementSize = pDevice->GetDescriptorHandleIncrementSize(Type);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE StartCpuHandle = m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE StartGpuHandle = {};
@@ -277,7 +276,7 @@ Descriptor DescriptorHeap::GetDescriptorAt(INT PartitionIndex, UINT HeapIndex) c
 }
 
 //----------------------------------------------------------------------------------------------------
-CBSRUADescriptorHeap::CBSRUADescriptorHeap(Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible)
+CBSRUADescriptorHeap::CBSRUADescriptorHeap(ID3D12Device* pDevice, UINT NumCBDescriptors, UINT NumSRDescriptors, UINT NumUADescriptors, bool ShaderVisible)
 	: DescriptorHeap(pDevice, { NumCBDescriptors, NumSRDescriptors, NumUADescriptors }, ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 {
 
@@ -289,11 +288,11 @@ UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Buffer* pBuffer)
 	auto Desc			= GetShaderResourceViewDesc(pBuffer);
 	if (EnumMaskBitSet(pBuffer->GetBindFlags(), Resource::Flags::AccelerationStructure))
 	{
-		m_pDevice->GetApiHandle()->CreateShaderResourceView(nullptr, &Desc, DestDescriptor.CpuHandle);
+		m_pDevice->CreateShaderResourceView(nullptr, &Desc, DestDescriptor.CpuHandle);
 	}
 	else
 	{
-		m_pDevice->GetApiHandle()->CreateShaderResourceView(pBuffer->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
+		m_pDevice->CreateShaderResourceView(pBuffer->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
 	}
 	return GetHashValue(Desc);
 }
@@ -302,7 +301,7 @@ UINT64 CBSRUADescriptorHeap::AssignSRDescriptor(UINT HeapIndex, Texture* pTextur
 {
 	auto DestDescriptor = GetDescriptorAt(ShaderResource, HeapIndex);
 	auto Desc			= GetShaderResourceViewDesc(pTexture, MostDetailedMip, MipLevels);
-	m_pDevice->GetApiHandle()->CreateShaderResourceView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
+	m_pDevice->CreateShaderResourceView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
 	return GetHashValue(Desc);
 }
 
@@ -310,7 +309,7 @@ UINT64 CBSRUADescriptorHeap::AssignUADescriptor(UINT HeapIndex, Texture* pTextur
 {
 	auto DestDescriptor = GetDescriptorAt(UnorderedAccess, HeapIndex);
 	auto Desc			= GetUnorderedAccessViewDesc(pTexture, ArraySlice, MipSlice);
-	m_pDevice->GetApiHandle()->CreateUnorderedAccessView(pTexture->GetApiHandle(), nullptr, &Desc, DestDescriptor.CpuHandle);
+	m_pDevice->CreateUnorderedAccessView(pTexture->GetApiHandle(), nullptr, &Desc, DestDescriptor.CpuHandle);
 	return GetHashValue(Desc);
 }
 
@@ -494,14 +493,14 @@ UINT64 CBSRUADescriptorHeap::GetHashValue(const D3D12_UNORDERED_ACCESS_VIEW_DESC
 }
 
 //----------------------------------------------------------------------------------------------------
-SamplerDescriptorHeap::SamplerDescriptorHeap(Device* pDevice, UINT NumDescriptors, bool ShaderVisible)
+SamplerDescriptorHeap::SamplerDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors, bool ShaderVisible)
 	: DescriptorHeap(pDevice, { NumDescriptors }, ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 {
 
 }
 
 //----------------------------------------------------------------------------------------------------
-RenderTargetDescriptorHeap::RenderTargetDescriptorHeap(Device* pDevice, UINT NumDescriptors)
+RenderTargetDescriptorHeap::RenderTargetDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors)
 	: DescriptorHeap(pDevice, { NumDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 {
 
@@ -577,11 +576,11 @@ void RenderTargetDescriptorHeap::Entry::operator=(Texture* pTexture)
 {
 	auto Desc = RenderTargetDescriptorHeap::GetRenderTargetViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
 	HashValue = RenderTargetDescriptorHeap::GetHashValue(Desc);
-	pDevice->GetApiHandle()->CreateRenderTargetView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
+	pDevice->CreateRenderTargetView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
 }
 
 //----------------------------------------------------------------------------------------------------
-DepthStencilDescriptorHeap::DepthStencilDescriptorHeap(Device* pDevice, UINT NumDescriptors)
+DepthStencilDescriptorHeap::DepthStencilDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors)
 	: DescriptorHeap(pDevice, { NumDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
 {
 
@@ -648,7 +647,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 
 	case Resource::Type::Texture3D:
 	{
-		throw std::logic_error("Cannot create DSV for Texture3D resource type");
+		// Cannot create DSV for Texture3D resource type
 	}
 	break;
 	}
@@ -664,5 +663,5 @@ void DepthStencilDescriptorHeap::Entry::operator=(Texture* pTexture)
 {
 	auto Desc = DepthStencilDescriptorHeap::GetDepthStencilViewDesc(pTexture, ArraySlice, MipSlice, ArraySize);
 	HashValue = DepthStencilDescriptorHeap::GetHashValue(Desc);
-	pDevice->GetApiHandle()->CreateDepthStencilView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
+	pDevice->CreateDepthStencilView(pTexture->GetApiHandle(), &Desc, DestDescriptor.CpuHandle);
 }

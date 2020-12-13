@@ -6,6 +6,17 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
+namespace
+{
+	// Symbols
+	const LPCWSTR RayGeneration		= L"RayGeneration";
+	const LPCWSTR Miss				= L"Miss";
+	const LPCWSTR ClosestHit		= L"ClosestHit";
+
+	// HitGroup Exports
+	const LPCWSTR HitGroupExport	= L"Default";
+}
+
 AmbientOcclusion::AmbientOcclusion(UINT Width, UINT Height)
 	: RenderPass("Ambient Occlusion",
 		{ Width, Height },
@@ -21,44 +32,18 @@ void AmbientOcclusion::InitializePipeline(RenderDevice* pRenderDevice)
 	m_MissShaderTable			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Miss Shader Table");
 	m_HitGroupShaderTable		= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Hit Group Shader Table");
 
-	pRenderDevice->CreateRaytracingPipelineState(RaytracingPSOs::AmbientOcclusion, [&](RaytracingPipelineStateProxy& proxy)
+	pRenderDevice->CreateRaytracingPipelineState(RaytracingPSOs::AmbientOcclusion, [&](RaytracingPipelineStateBuilder& Builder)
 	{
-		enum Symbols
-		{
-			RayGeneration,
-			Miss,
-			ClosestHit,
-			NumSymbols
-		};
-
-		const LPCWSTR symbols[NumSymbols] =
-		{
-			ENUM_TO_LSTR(RayGeneration),
-			ENUM_TO_LSTR(Miss),
-			ENUM_TO_LSTR(ClosestHit)
-		};
-
-		enum HitGroups
-		{
-			Default,
-			NumHitGroups
-		};
-
-		const LPCWSTR hitGroups[NumHitGroups] =
-		{
-			ENUM_TO_LSTR(Default)
-		};
-
 		const Library* pRaytraceLibrary = &Libraries::AmbientOcclusion;
 
-		proxy.AddLibrary(pRaytraceLibrary,
+		Builder.AddLibrary(pRaytraceLibrary,
 			{
-				symbols[RayGeneration],
-				symbols[Miss],
-				symbols[ClosestHit]
+				RayGeneration,
+				Miss,
+				ClosestHit
 			});
 
-		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ClosestHit], nullptr);
+		Builder.AddHitGroup(HitGroupExport, nullptr, ClosestHit, nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local);
@@ -68,17 +53,17 @@ void AmbientOcclusion::InitializePipeline(RenderDevice* pRenderDevice)
 		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
 		// to as hit groups, meaning that the underlying intersection, any-hit and
 		// closest-hit shaders share the same root signature.
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
+		Builder.AddRootSignatureAssociation(pEmptyLocalRootSignature,
 			{
-				symbols[RayGeneration],
-				symbols[Miss],
-				hitGroups[Default]
+				RayGeneration,
+				Miss,
+				HitGroupExport
 			});
 
-		proxy.SetGlobalRootSignature(pGlobalRootSignature);
+		Builder.SetGlobalRootSignature(pGlobalRootSignature);
 
-		proxy.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
-		proxy.SetRaytracingPipelineConfig(2);
+		Builder.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
+		Builder.SetRaytracingPipelineConfig(2);
 	});
 }
 
@@ -98,7 +83,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 {
 	this->pGpuScene = pGpuScene;
 
-	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::AmbientOcclusion);
+	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPipelineState(RaytracingPSOs::AmbientOcclusion);
 
 	// Ray Generation Shader Table
 	{

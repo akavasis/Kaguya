@@ -26,12 +26,6 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 	CheckRaytracingSupport();
 	CheckMeshShaderSupport();
 
-	// Query descriptor size (descriptor size vary based on GPU vendor)
-	for (UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-	{
-		m_DescriptorHandleIncrementSizeCache[i] = m_ApiHandle->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE(i));
-	}
-
 #if defined(_DEBUG)
 	Microsoft::WRL::ComPtr<ID3D12InfoQueue> pInfoQueue;
 	ThrowCOMIfFailed(m_ApiHandle->QueryInterface(IID_PPV_ARGS(pInfoQueue.ReleaseAndGetAddressOf())));

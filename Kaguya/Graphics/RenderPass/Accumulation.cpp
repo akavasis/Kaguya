@@ -22,10 +22,10 @@ void Accumulation::InitializePipeline(RenderDevice* pRenderDevice)
 {
 	Resources[RenderTarget] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
 
-	pRenderDevice->CreateComputePipelineState(ComputePSOs::Accumulation, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::Accumulation, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
-		proxy.pCS = &Shaders::CS::Accumulation;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Default);
+		Builder.pCS = &Shaders::CS::Accumulation;
 	});
 }
 

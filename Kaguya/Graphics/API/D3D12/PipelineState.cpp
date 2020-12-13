@@ -1,39 +1,34 @@
 #include "pch.h"
 #include "PipelineState.h"
-#include "Device.h"
-#include "../Proxy/PipelineStateProxy.h"
+#include "PipelineStateBuilder.h"
 
-PipelineState::PipelineState(PipelineStateProxy& Proxy)
-	: m_Type(Proxy.m_Type)
+PipelineState::PipelineState(ID3D12Device2* pDevice, GraphicsPipelineStateBuilder& Builder)
+	: m_Type(PipelineState::Type::Graphics)
 {
-	Proxy.Link();
+	pRootSignature = Builder.pRootSignature;
 
-	pRootSignature = Proxy.pRootSignature;
-}
-
-GraphicsPipelineState::GraphicsPipelineState(const Device* pDevice, GraphicsPipelineStateProxy& Proxy)
-	: PipelineState(Proxy)
-{
-	if (!Proxy.pMS)
+	if (!Builder.pMS)
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc = Proxy.BuildD3DDesc();
-		ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc = Builder.Build();
+		ThrowCOMIfFailed(pDevice->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 	}
 	else
 	{
-		auto PSOStream = CD3DX12_PIPELINE_MESH_STATE_STREAM(Proxy.BuildMSPSODesc());
+		auto PSOStream = CD3DX12_PIPELINE_MESH_STATE_STREAM(Builder.BuildMSPSODesc());
 
-		D3D12_PIPELINE_STATE_STREAM_DESC Desc;
+		D3D12_PIPELINE_STATE_STREAM_DESC Desc = {};
 		Desc.pPipelineStateSubobjectStream = &PSOStream;
 		Desc.SizeInBytes = sizeof(PSOStream);
 
-		ThrowCOMIfFailed(pDevice->GetApiHandle()->CreatePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+		ThrowCOMIfFailed(pDevice->CreatePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 	}
 }
 
-ComputePipelineState::ComputePipelineState(const Device* pDevice, ComputePipelineStateProxy& Proxy)
-	: PipelineState(Proxy)
+PipelineState::PipelineState(ID3D12Device2* pDevice, ComputePipelineStateBuilder& Builder)
+	: m_Type(PipelineState::Type::Compute)
 {
-	D3D12_COMPUTE_PIPELINE_STATE_DESC Desc = Proxy.BuildD3DDesc();
-	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateComputePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+	pRootSignature = Builder.pRootSignature;
+
+	D3D12_COMPUTE_PIPELINE_STATE_DESC Desc = Builder.Build();
+	ThrowCOMIfFailed(pDevice->CreateComputePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 }

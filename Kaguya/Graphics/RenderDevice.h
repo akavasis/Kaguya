@@ -19,14 +19,14 @@
 #include "API/D3D12/CommandContext.h"
 #include "API/D3D12/RaytracingAccelerationStructure.h"
 
-#include "API/D3D12/RootSignatureBuilder.h"
-
 #include "API/Proxy/BufferProxy.h"
 #include "API/Proxy/TextureProxy.h"
-#include "API/Proxy/PipelineStateProxy.h"
-#include "API/Proxy/RaytracingPipelineStateProxy.h"
 
 #include "API/D3D12/Heap.h"
+
+#include "API/D3D12/RootSignatureBuilder.h"
+#include "API/D3D12/PipelineStateBuilder.h"
+#include "API/D3D12/RaytracingPipelineStateBuilder.h"
 
 struct RootParameters
 {
@@ -108,9 +108,9 @@ public:
 
 	void CreateRootSignature(RenderResourceHandle Handle, std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters = true);
 	
-	void CreateGraphicsPipelineState(RenderResourceHandle Handle, std::function<void(GraphicsPipelineStateProxy&)> Configurator);
-	void CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateProxy&)> Configurator);
-	void CreateRaytracingPipelineState(RenderResourceHandle Handle, std::function<void(RaytracingPipelineStateProxy&)> Configurator);
+	void CreateGraphicsPipelineState(RenderResourceHandle Handle, std::function<void(GraphicsPipelineStateBuilder&)> Configurator);
+	void CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateBuilder&)> Configurator);
+	void CreateRaytracingPipelineState(RenderResourceHandle Handle, std::function<void(RaytracingPipelineStateBuilder&)> Configurator);
 
 	void Destroy(RenderResourceHandle Handle);
 
@@ -124,9 +124,8 @@ public:
 	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle)		{ return m_Buffers.GetResource(Handle); }
 	[[nodiscard]] inline auto GetTexture(RenderResourceHandle Handle)		{ return m_Textures.GetResource(Handle); }
 	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle Handle)	{ return m_RootSignatures.GetResource(Handle); }
-	[[nodiscard]] inline auto GetGraphicsPSO(RenderResourceHandle Handle)	{ return m_GraphicsPipelineStates.GetResource(Handle); }
-	[[nodiscard]] inline auto GetComputePSO(RenderResourceHandle Handle)	{ return m_ComputePipelineStates.GetResource(Handle); }
-	[[nodiscard]] inline auto GetRaytracingPSO(RenderResourceHandle Handle)	{ return m_RaytracingPipelineStates.GetResource(Handle); }
+	[[nodiscard]] inline auto GetPipelineState(RenderResourceHandle Handle)	{ return m_PipelineStates.GetResource(Handle); }
+	[[nodiscard]] inline auto GetRaytracingPipelineState(RenderResourceHandle Handle)	{ return m_RaytracingPipelineStates.GetResource(Handle); }
 
 	Descriptor GetShaderResourceView(RenderResourceHandle Handle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const;
 	Descriptor GetUnorderedAccessView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;
@@ -169,16 +168,14 @@ private:
 	RenderResourceHandleRegistry								m_TextureHandleRegistry;
 	RenderResourceHandleRegistry								m_HeapHandleRegistry;
 	RenderResourceHandleRegistry								m_RootSignatureHandleRegistry;
-	RenderResourceHandleRegistry								m_GraphicsPipelineStateHandleRegistry;
-	RenderResourceHandleRegistry								m_ComputePipelineStateHandleRegistry;
+	RenderResourceHandleRegistry								m_PipelineStateHandleRegistry;
 	RenderResourceHandleRegistry								m_RaytracingPipelineStateHandleRegistry;
 
 	RenderResourceContainer<Buffer>								m_Buffers;
 	RenderResourceContainer<Texture>							m_Textures;
 	RenderResourceContainer<Heap>								m_Heaps;
 	RenderResourceContainer<RootSignature>						m_RootSignatures;
-	RenderResourceContainer<GraphicsPipelineState>				m_GraphicsPipelineStates;
-	RenderResourceContainer<ComputePipelineState>				m_ComputePipelineStates;
+	RenderResourceContainer<PipelineState>						m_PipelineStates;
 	RenderResourceContainer<RaytracingPipelineState>			m_RaytracingPipelineStates;
 
 	CBSRUADescriptorHeap										m_NonShaderVisibleCBSRUADescriptorHeap;

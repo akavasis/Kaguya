@@ -76,6 +76,11 @@ float3 NDCDepthToWorldPosition(float NDCDepth, float2 ScreenSpaceUV, Camera Came
 	return worldSpacePosition.xyz;
 }
 
+float3 GenerateWorldCameraRayDirection(float2 ScreenSpaceUV, Camera Camera)
+{
+	return normalize(NDCDepthToWorldPosition(1.0f, ScreenSpaceUV, Camera) - Camera.Position.xyz);
+}
+
 float3 EncodeNormal(float3 n)
 {
 	return n * 0.5f + 0.5f;

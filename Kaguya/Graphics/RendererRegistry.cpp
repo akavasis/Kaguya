@@ -3,14 +3,14 @@
 #include <Core/Application.h>
 
 #define InitRootSignature(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::RootSignature, "Root Signature["#Handle"]")
-#define InitGraphicsPSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::GraphicsPSO, "Graphics PSO["#Handle"]")
-#define InitComputePSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::ComputePSO, "Compute PSO["#Handle"]")
-#define InitRaytracingPSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::RaytracingPSO, "Raytracing PSO["#Handle"]")
+#define InitGraphicsPSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::PipelineState, "Graphics PSO["#Handle"]")
+#define InitComputePSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::PipelineState, "Compute PSO["#Handle"]")
+#define InitRaytracingPSO(Handle) Handle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::RaytracingPipelineState, "Raytracing PSO["#Handle"]")
 
-const wchar_t* VSEntryPoint = L"VSMain";
-const wchar_t* MSEntryPoint = L"MSMain";
-const wchar_t* PSEntryPoint = L"PSMain";
-const wchar_t* CSEntryPoint = L"CSMain";
+const LPCWSTR VSEntryPoint = L"VSMain";
+const LPCWSTR MSEntryPoint = L"MSMain";
+const LPCWSTR PSEntryPoint = L"PSMain";
+const LPCWSTR CSEntryPoint = L"CSMain";
 
 void Shaders::Register(RenderDevice* pRenderDevice)
 {
@@ -67,6 +67,7 @@ void Libraries::Register(RenderDevice* pRenderDevice)
 	//Pathtracing			= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
 	//AmbientOcclusion	= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
 	Shading				= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Shading.hlsl");
+	Picking				= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)
@@ -216,16 +217,16 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 		case Prefilter:  RootSignatureHandle = ConvolutionPrefilter; break;
 		}
 
-		pRenderDevice->CreateGraphicsPipelineState(RootSignatureHandle, [=](GraphicsPipelineStateProxy& proxy)
+		pRenderDevice->CreateGraphicsPipelineState(RootSignatureHandle, [=](GraphicsPipelineStateBuilder& Builder)
 		{
-			proxy.pRootSignature = pRS;
-			proxy.pVS = pVS;
-			proxy.pPS = pPS;
+			Builder.pRootSignature = pRS;
+			Builder.pVS = pVS;
+			Builder.pPS = pPS;
 
-			proxy.RasterizerState.SetCullMode(RasterizerState::CullMode::None);
+			Builder.RasterizerState.SetCullMode(RasterizerState::CullMode::None);
 
-			proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-			proxy.AddRenderTargetFormat(rtvFormat);
+			Builder.PrimitiveTopology = PrimitiveTopology::Triangle;
+			Builder.AddRenderTargetFormat(rtvFormat);
 		});
 	}
 }
@@ -249,16 +250,16 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 	InitComputePSO(PostProcess_BloomUpsampleBlurAccumulation);
 	InitComputePSO(PostProcess_BloomComposition);
 
-	pRenderDevice->CreateComputePipelineState(GenerateMips, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(GenerateMips, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GenerateMips);
-		proxy.pCS = &Shaders::CS::GenerateMips;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GenerateMips);
+		Builder.pCS = &Shaders::CS::GenerateMips;
 	});
 
-	pRenderDevice->CreateComputePipelineState(EquirectangularToCubemap, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(EquirectangularToCubemap, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap);
-		proxy.pCS = &Shaders::CS::EquirectangularToCubemap;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap);
+		Builder.pCS = &Shaders::CS::EquirectangularToCubemap;
 	});
 }
 
@@ -267,4 +268,5 @@ void RaytracingPSOs::Register(RenderDevice* pRenderDevice)
 	InitRaytracingPSO(Pathtracing);
 	InitRaytracingPSO(AmbientOcclusion);
 	InitRaytracingPSO(Shading);
+	InitRaytracingPSO(Picking);
 }

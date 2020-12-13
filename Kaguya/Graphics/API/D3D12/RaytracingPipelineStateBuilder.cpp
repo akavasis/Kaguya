@@ -1,14 +1,96 @@
 #include "pch.h"
-#include "RaytracingPipelineStateProxy.h"
+#include "RaytracingPipelineStateBuilder.h"
 
-RaytracingPipelineStateProxy::RaytracingPipelineStateProxy()
+RaytracingPipelineStateBuilder::RaytracingPipelineStateBuilder()
+	: m_Desc(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE),
+	m_pGlobalRootSignature(nullptr),
+	m_ShaderConfig(),
+	m_PipelineConfig()
 {
-	m_pGlobalRootSignature = nullptr;
-	m_ShaderConfig = {};
-	m_PipelineConfig = {};
+
 }
 
-void RaytracingPipelineStateProxy::AddLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols)
+D3D12_STATE_OBJECT_DESC RaytracingPipelineStateBuilder::Build()
+{
+	// Add all the DXIL libraries
+	for (const auto& library : m_Libraries)
+	{
+		auto pLibrarySubobject = m_Desc.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+
+		D3D12_SHADER_BYTECODE shaderByteCode = library.pLibrary->GetD3DShaderBytecode();
+		pLibrarySubobject->SetDXILLibrary(&shaderByteCode);
+
+		for (const auto& symbol : library.Symbols)
+		{
+			pLibrarySubobject->DefineExport(symbol.data());
+		}
+	}
+
+	// Add all the hit group declarations
+	for (const auto& hitGroup : m_HitGroups)
+	{
+		auto pHitgroupSubobject = m_Desc.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+
+		pHitgroupSubobject->SetHitGroupExport(hitGroup.HitGroupName.data());
+		pHitgroupSubobject->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
+		LPCWSTR pAnyHitSymbolImport = hitGroup.AnyHitSymbol.empty() ? nullptr : hitGroup.AnyHitSymbol.data();
+		pHitgroupSubobject->SetAnyHitShaderImport(pAnyHitSymbolImport);
+
+		LPCWSTR pClosestHitShaderImport = hitGroup.ClosestHitSymbol.empty() ? nullptr : hitGroup.ClosestHitSymbol.data();
+		pHitgroupSubobject->SetClosestHitShaderImport(pClosestHitShaderImport);
+
+		LPCWSTR pIntersectionShaderImport = hitGroup.IntersectionSymbol.empty() ? nullptr : hitGroup.IntersectionSymbol.data();
+		pHitgroupSubobject->SetIntersectionShaderImport(pIntersectionShaderImport);
+	}
+
+	// Add 2 subobjects for every root signature association
+	for (auto& rootSignatureAssociation : m_RootSignatureAssociations)
+	{
+		// The root signature association requires two objects for each: one to declare the root
+		// signature, and another to associate that root signature to a set of symbols
+
+		// Add a subobject to declare the local root signature
+		auto pLocalRootSignatureSubobject = m_Desc.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+
+		pLocalRootSignatureSubobject->SetRootSignature(rootSignatureAssociation.pRootSignature->GetApiHandle());
+
+		// Add a subobject for the association between the exported shader symbols and the local root signature
+		auto pAssociationSubobject = m_Desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+
+		for (const auto& symbols : rootSignatureAssociation.Symbols)
+		{
+			pAssociationSubobject->AddExport(symbols.data());
+		}
+		pAssociationSubobject->SetSubobjectToAssociate(*pLocalRootSignatureSubobject);
+	}
+
+	// Add a subobject for global root signature
+	auto pGlobalRootSignatureSubobject = m_Desc.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+	pGlobalRootSignatureSubobject->SetRootSignature(m_pGlobalRootSignature->GetApiHandle());
+
+	// Add a subobject for the raytracing shader config
+	auto pShaderConfigSubobject = m_Desc.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+	pShaderConfigSubobject->Config(m_ShaderConfig.MaxPayloadSizeInBytes, m_ShaderConfig.MaxAttributeSizeInBytes);
+
+	// Add a subobject for the association between shaders and the payload
+	std::vector<std::wstring> exportedSymbols = BuildShaderExportList();
+	auto pAssociationSubobject = m_Desc.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+
+	for (const auto& symbols : exportedSymbols)
+	{
+		pAssociationSubobject->AddExport(symbols.data());
+	}
+	pAssociationSubobject->SetSubobjectToAssociate(*pShaderConfigSubobject);
+
+	// Add a subobject for the raytracing pipeline configuration
+	auto pPipelineConfigSubobject = m_Desc.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+	pPipelineConfigSubobject->Config(m_PipelineConfig.MaxTraceRecursionDepth);
+
+	return m_Desc;
+}
+
+void RaytracingPipelineStateBuilder::AddLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols)
 {
 	// Add a DXIL library to the pipeline. Note that this library has to be
 	// compiled with dxc, using a lib_6_3 target. The exported symbols must correspond exactly to the
@@ -16,7 +98,7 @@ void RaytracingPipelineStateProxy::AddLibrary(const Library* pLibrary, const std
 	m_Libraries.emplace_back(DXILLibrary(pLibrary, Symbols));
 }
 
-void RaytracingPipelineStateProxy::AddHitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol)
+void RaytracingPipelineStateBuilder::AddHitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol)
 {
 	// In DXR the hit-related shaders are grouped into hit groups. Such shaders are:
 	// - The intersection shader, which can be used to intersect custom geometry, and is called upon
@@ -44,34 +126,28 @@ void RaytracingPipelineStateProxy::AddHitGroup(LPCWSTR pHitGroupName, LPCWSTR pA
 	// name.
 }
 
-void RaytracingPipelineStateProxy::AddRootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
+void RaytracingPipelineStateBuilder::AddRootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
 {
 	m_RootSignatureAssociations.emplace_back(RootSignatureAssociation(pRootSignature, Symbols));
 }
 
-void RaytracingPipelineStateProxy::SetGlobalRootSignature(const RootSignature* pGlobalRootSignature)
+void RaytracingPipelineStateBuilder::SetGlobalRootSignature(const RootSignature* pGlobalRootSignature)
 {
 	m_pGlobalRootSignature = pGlobalRootSignature;
 }
 
-void RaytracingPipelineStateProxy::SetRaytracingShaderConfig(UINT MaxPayloadSizeInBytes, UINT MaxAttributeSizeInBytes)
+void RaytracingPipelineStateBuilder::SetRaytracingShaderConfig(UINT MaxPayloadSizeInBytes, UINT MaxAttributeSizeInBytes)
 {
 	m_ShaderConfig.MaxPayloadSizeInBytes = MaxPayloadSizeInBytes;
 	m_ShaderConfig.MaxAttributeSizeInBytes = MaxAttributeSizeInBytes;
 }
 
-void RaytracingPipelineStateProxy::SetRaytracingPipelineConfig(UINT MaxTraceRecursionDepth)
+void RaytracingPipelineStateBuilder::SetRaytracingPipelineConfig(UINT MaxTraceRecursionDepth)
 {
 	m_PipelineConfig.MaxTraceRecursionDepth = MaxTraceRecursionDepth;
 }
 
-void RaytracingPipelineStateProxy::Link()
-{
-	assert(m_pGlobalRootSignature != nullptr);
-	assert(m_PipelineConfig.MaxTraceRecursionDepth >= 0 && m_PipelineConfig.MaxTraceRecursionDepth < 31);
-}
-
-std::vector<std::wstring> RaytracingPipelineStateProxy::BuildShaderExportList()
+std::vector<std::wstring> RaytracingPipelineStateBuilder::BuildShaderExportList()
 {
 	// Get all names from libraries
 	// Get names associated to hit groups
@@ -145,14 +221,17 @@ std::vector<std::wstring> RaytracingPipelineStateProxy::BuildShaderExportList()
 		{
 			exports.erase(hitGroup.ClosestHitSymbol);
 		}
+
 		if (!hitGroup.AnyHitSymbol.empty())
 		{
 			exports.erase(hitGroup.AnyHitSymbol);
 		}
+
 		if (!hitGroup.IntersectionSymbol.empty())
 		{
 			exports.erase(hitGroup.IntersectionSymbol);
 		}
+
 		exports.insert(hitGroup.HitGroupName);
 	}
 

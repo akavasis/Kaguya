@@ -8,6 +8,17 @@
 
 #include "GBuffer.h"
 
+namespace
+{
+	// Symbols
+	const LPCWSTR RayGeneration		= L"RayGeneration";
+	const LPCWSTR ShadowMiss		= L"ShadowMiss";
+	const LPCWSTR ShadowClosestHit	= L"ShadowClosestHit";
+
+	// HitGroup Exports
+	const LPCWSTR HitGroupExport	= L"Default";
+}
+
 Shading::Shading(UINT Width, UINT Height)
 	: RenderPass("Shading",  { Width, Height }, NumResources)
 {
@@ -25,44 +36,18 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 	m_MissShaderTable				= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Miss Shader Table");
 	m_HitGroupShaderTable			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Hit Group Shader Table");
 
-	pRenderDevice->CreateRaytracingPipelineState(RaytracingPSOs::Shading, [&](RaytracingPipelineStateProxy& proxy)
+	pRenderDevice->CreateRaytracingPipelineState(RaytracingPSOs::Shading, [&](RaytracingPipelineStateBuilder& Builder)
 	{
-		enum Symbols
-		{
-			RayGeneration,
-			ShadowMiss,
-			ShadowClosestHit,
-			NumSymbols
-		};
-
-		const LPCWSTR symbols[NumSymbols] =
-		{
-			ENUM_TO_LSTR(RayGeneration),
-			ENUM_TO_LSTR(ShadowMiss),
-			ENUM_TO_LSTR(ShadowClosestHit),
-		};
-
-		enum HitGroups
-		{
-			Default,
-			NumHitGroups
-		};
-
-		const LPCWSTR hitGroups[NumHitGroups] =
-		{
-			ENUM_TO_LSTR(Default)
-		};
-
 		const Library* pRaytraceLibrary = &Libraries::Shading;
 
-		proxy.AddLibrary(pRaytraceLibrary,
+		Builder.AddLibrary(pRaytraceLibrary,
 			{
-				symbols[RayGeneration],
-				symbols[ShadowMiss],
-				symbols[ShadowClosestHit]
+				RayGeneration,
+				ShadowMiss,
+				ShadowClosestHit
 			});
 
-		proxy.AddHitGroup(hitGroups[Default], nullptr, symbols[ShadowClosestHit], nullptr);
+		Builder.AddHitGroup(HitGroupExport, nullptr, ShadowClosestHit, nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
@@ -72,17 +57,17 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
 		// to as hit groups, meaning that the underlying intersection, any-hit and
 		// closest-hit shaders share the same root signature.
-		proxy.AddRootSignatureAssociation(pEmptyLocalRootSignature,
+		Builder.AddRootSignatureAssociation(pEmptyLocalRootSignature,
 			{
-				symbols[RayGeneration],
-				symbols[ShadowMiss],
-				symbols[ShadowClosestHit],
+				RayGeneration,
+				ShadowMiss,
+				ShadowClosestHit
 			});
 
-		proxy.SetGlobalRootSignature(pGlobalRootSignature);
+		Builder.SetGlobalRootSignature(pGlobalRootSignature);
 
-		proxy.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
-		proxy.SetRaytracingPipelineConfig(1);
+		Builder.SetRaytracingShaderConfig(SizeOfHLSLBooleanType, SizeOfBuiltInTriangleIntersectionAttributes);
+		Builder.SetRaytracingPipelineConfig(1);
 	});
 }
 
@@ -105,7 +90,7 @@ void Shading::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 {
 	this->pGpuScene = pGpuScene;
 
-	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPSO(RaytracingPSOs::Shading);
+	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPipelineState(RaytracingPSOs::Shading);
 
 	// Ray Generation Shader Table
 	{
@@ -195,7 +180,7 @@ void Shading::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		int AnalyticUnshadowed;
 		int StochasticUnshadowed;
 		int StochasticShadowed;
-	} g_RenderPassData;
+	} g_RenderPassData = {};
 
 	g_RenderPassData.Albedo									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Albedo]).HeapIndex;
 	g_RenderPassData.Normal									= RenderContext.GetShaderResourceView(pGBufferRenderPass->Resources[GBuffer::EResources::Normal]).HeapIndex;

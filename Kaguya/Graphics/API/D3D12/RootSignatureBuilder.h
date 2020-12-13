@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d12.h>
+#include "d3dx12.h"
 #include <vector>
 #include "RootSignature.h"
 
@@ -22,6 +23,9 @@ class RootSignatureBuilder
 public:
 	RootSignatureBuilder();
 
+	/*
+		Ensure the instance of RootSignatureBuilder alive until you create the actual RootSignature
+	*/
 	D3D12_ROOT_SIGNATURE_DESC1 Build();
 
 	void AddRootDescriptorTableParameter(const RootDescriptorTable& RootDescriptorTable);
@@ -75,6 +79,7 @@ public:
 	void SetAsLocalRootSignature();
 	void DenyASAccess();
 	void DenyMSAccess();
+
 private:
 	std::vector<D3D12_ROOT_PARAMETER1>					m_Parameters;
 	std::vector<D3D12_STATIC_SAMPLER_DESC>				m_StaticSamplers;
@@ -82,4 +87,5 @@ private:
 
 	std::vector<UINT>									m_DescriptorRangeIndices;
 	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE1>>	m_DescriptorRanges;
+
 };

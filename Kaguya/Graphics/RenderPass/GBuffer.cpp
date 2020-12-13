@@ -40,22 +40,22 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferMeshes, [=](GraphicsPipelineStateProxy& proxy)
+	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferMeshes, [=](GraphicsPipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GBufferMeshes);
-		proxy.pMS = &Shaders::MS::GBufferMeshes;
-		proxy.pPS = &Shaders::PS::GBufferMeshes;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GBufferMeshes);
+		Builder.pMS = &Shaders::MS::GBufferMeshes;
+		Builder.pPS = &Shaders::PS::GBufferMeshes;
 
-		proxy.DepthStencilState.SetDepthEnable(true);
+		Builder.DepthStencilState.SetDepthEnable(true);
 
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_LinearZ
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_Compact
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_LinearZ
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_Compact
 
-		proxy.SetDepthStencilFormat(RenderDevice::DepthFormat);
+		Builder.SetDepthStencilFormat(RenderDevice::DepthFormat);
 	});
 
 	pRenderDevice->CreateRootSignature(RootSignatures::GBufferLights, [](RootSignatureBuilder& Builder)
@@ -66,22 +66,22 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferLights, [=](GraphicsPipelineStateProxy& proxy)
+	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::GBufferLights, [=](GraphicsPipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GBufferLights);
-		proxy.pMS = &Shaders::MS::GBufferLights;
-		proxy.pPS = &Shaders::PS::GBufferLights;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GBufferLights);
+		Builder.pMS = &Shaders::MS::GBufferLights;
+		Builder.pPS = &Shaders::PS::GBufferLights;
 
-		proxy.DepthStencilState.SetDepthEnable(true);
+		Builder.DepthStencilState.SetDepthEnable(true);
 
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_LinearZ
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
-		proxy.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_Compact
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Albedo
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM);		// Normal
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R8_UINT);				// TypeAndIndex
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_LinearZ
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);	// SVGF_MotionVector
+		Builder.AddRenderTargetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);	// SVGF_Compact
 
-		proxy.SetDepthStencilFormat(RenderDevice::DepthFormat);
+		Builder.SetDepthStencilFormat(RenderDevice::DepthFormat);
 	});
 }
 

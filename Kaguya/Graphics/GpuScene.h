@@ -36,9 +36,11 @@ public:
 	Scene* pScene;
 	BufferManager BufferManager;
 	TextureManager TextureManager;
+
 private:
 	void CreateBottomLevelAS(RenderContext& RenderContext);
 
+private:
 	struct RTTLAS
 	{
 		RenderResourceHandle Scratch;
@@ -58,6 +60,8 @@ private:
 	RenderResourceHandle	m_LightTable;
 	RenderResourceHandle	m_MaterialTable;
 	RenderResourceHandle	m_MeshTable;
+	RenderResourceHandle	m_PickingResult;
+	RenderResourceHandle	m_PickingResultReadback;
 
 	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS					m_RaytracingTopLevelAccelerationStructure;

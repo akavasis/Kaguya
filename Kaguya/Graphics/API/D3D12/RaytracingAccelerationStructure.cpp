@@ -82,7 +82,6 @@ void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext,
 	// hierarchy may be called right afterwards, before executing the command
 	// list.
 	pCommandContext->UAVBarrier(pResult);
-	pCommandContext->FlushResourceBarriers();
 }
 
 TopLevelAccelerationStructure::TopLevelAccelerationStructure()
@@ -183,5 +182,4 @@ void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Bu
 	// buffer. This can be important in case the rendering is triggered
 	// immediately afterwards, without executing the command list
 	pCommandContext->UAVBarrier(pResult);
-	pCommandContext->FlushResourceBarriers();
 }

@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "RootSignatureBuilder.h"
 
-#include "d3dx12.h"
-
 RootSignatureBuilder::RootSignatureBuilder()
 {
 	m_Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;

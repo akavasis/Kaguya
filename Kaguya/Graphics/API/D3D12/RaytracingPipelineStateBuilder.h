@@ -1,16 +1,17 @@
 #pragma once
 #include <d3d12.h>
-#include "Proxy.h"
-#include "../D3D12/RaytracingPipelineState.h"
+#include "d3dx12.h"
+#include <vector>
+#include "RaytracingPipelineState.h"
 
-class RootSignature;
-class Library;
-
-class RaytracingPipelineStateProxy : public Proxy
+class RaytracingPipelineStateBuilder
 {
 public:
-	friend class RaytracingPipelineState;
-	RaytracingPipelineStateProxy();
+	RaytracingPipelineStateBuilder();
+
+	D3D12_STATE_OBJECT_DESC Build();
+
+	inline auto GetGlobalRootSignature() const { return m_pGlobalRootSignature; }
 
 	void AddLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols);
 	void AddHitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol);
@@ -19,10 +20,12 @@ public:
 
 	void SetRaytracingShaderConfig(UINT MaxPayloadSizeInBytes, UINT MaxAttributeSizeInBytes);
 	void SetRaytracingPipelineConfig(UINT MaxTraceRecursionDepth);
-protected:
-	void Link() override;
+
 private:
 	std::vector<std::wstring> BuildShaderExportList();
+
+private:
+	CD3DX12_STATE_OBJECT_DESC				m_Desc;
 
 	std::vector<DXILLibrary>				m_Libraries;
 	std::vector<HitGroup>					m_HitGroups;

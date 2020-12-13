@@ -3,10 +3,9 @@
 #include <wrl/client.h>
 #include "RootSignature.h"
 
-class Device;
-class PipelineStateProxy;
-class GraphicsPipelineStateProxy;
-class ComputePipelineStateProxy;
+class PipelineStateBuilder;
+class GraphicsPipelineStateBuilder;
+class ComputePipelineStateBuilder;
 
 class PipelineState
 {
@@ -19,27 +18,15 @@ public:
 	};
 
 	PipelineState() = default;
-	PipelineState(PipelineStateProxy& Proxy);
+	PipelineState(ID3D12Device2* pDevice, GraphicsPipelineStateBuilder& Builder);
+	PipelineState(ID3D12Device2* pDevice, ComputePipelineStateBuilder& Builder);
 
 	inline auto GetApiHandle() const { return m_PipelineState.Get(); }
 	inline auto GetType() const { return m_Type; }
 
 	const RootSignature* pRootSignature;
+
 protected:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
 	Type m_Type;
-};
-
-class GraphicsPipelineState : public PipelineState
-{
-public:
-	GraphicsPipelineState() = default;
-	GraphicsPipelineState(const Device* pDevice, GraphicsPipelineStateProxy& Proxy);
-};
-
-class ComputePipelineState : public PipelineState
-{
-public:
-	ComputePipelineState() = default;
-	ComputePipelineState(const Device* pDevice, ComputePipelineStateProxy& Proxy);
 };

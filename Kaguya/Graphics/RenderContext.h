@@ -79,9 +79,8 @@ public:
 
 	auto operator->() const { return SV_pCommandContext; }
 private:
-	void SetGraphicsPSO(GraphicsPipelineState* pGraphicsPipelineState);
-	void SetComputePSO(ComputePipelineState* pComputePipelineState);
-	void SetRaytracingPSO(RaytracingPipelineState* pRaytracingPipelineState);
+	void SetPipelineState(PipelineState* pPipelineState);
+	void SetRaytracingPipelineState(RaytracingPipelineState* pRaytracingPipelineState);
 
 	void BindGraphicsShaderLayoutResource(const RootSignature* pRootSignature);
 	void BindComputeShaderLayoutResource(const RootSignature* pRootSignature);
@@ -93,5 +92,6 @@ private:
 	RenderDevice*			SV_pRenderDevice		= nullptr;
 	CommandContext*			SV_pCommandContext		= nullptr;
 
-	RenderResourceHandle	m_PipelineStateHandle;
+	RenderResourceHandle	m_PipelineStateHandle	= {};
+	PipelineState::Type		m_PipelineStateType		= PipelineState::Type::Unknown;
 };

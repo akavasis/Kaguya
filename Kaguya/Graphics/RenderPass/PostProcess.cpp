@@ -87,44 +87,44 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.DenyGSAccess();
 	});
 
-	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::PostProcess_Tonemapping, [=](GraphicsPipelineStateProxy& proxy)
+	pRenderDevice->CreateGraphicsPipelineState(GraphicsPSOs::PostProcess_Tonemapping, [=](GraphicsPipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemapping);
-		proxy.pVS = &Shaders::VS::Quad;
-		proxy.pPS = &Shaders::PS::PostProcess_Tonemapping;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_Tonemapping);
+		Builder.pVS = &Shaders::VS::Quad;
+		Builder.pPS = &Shaders::PS::PostProcess_Tonemapping;
 
-		proxy.PrimitiveTopology = PrimitiveTopology::Triangle;
-		proxy.AddRenderTargetFormat(RenderDevice::SwapChainBufferFormat);
+		Builder.PrimitiveTopology = PrimitiveTopology::Triangle;
+		Builder.AddRenderTargetFormat(RenderDevice::SwapChainBufferFormat);
 	});
 
-	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomMask, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomMask, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomMask);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomMask;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomMask);
+		Builder.pCS = &Shaders::CS::PostProcess_BloomMask;
 	});
 
-	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomDownsample, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomDownsample, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomDownsample);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomDownsample;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomDownsample);
+		Builder.pCS = &Shaders::CS::PostProcess_BloomDownsample;
 	});
 
-	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomBlur, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomBlur, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomBlur);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomBlur;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomBlur);
+		Builder.pCS = &Shaders::CS::PostProcess_BloomBlur;
 	});
 
-	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomUpsampleBlurAccumulation;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomUpsampleBlurAccumulation);
+		Builder.pCS = &Shaders::CS::PostProcess_BloomUpsampleBlurAccumulation;
 	});
 
-	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomComposition, [=](ComputePipelineStateProxy& proxy)
+	pRenderDevice->CreateComputePipelineState(ComputePSOs::PostProcess_BloomComposition, [=](ComputePipelineStateBuilder& Builder)
 	{
-		proxy.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomComposition);
-		proxy.pCS = &Shaders::CS::PostProcess_BloomComposition;
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::PostProcess_BloomComposition);
+		Builder.pCS = &Shaders::CS::PostProcess_BloomComposition;
 	});
 }
 

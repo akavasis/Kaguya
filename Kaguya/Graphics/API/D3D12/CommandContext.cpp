@@ -8,6 +8,7 @@ CommandContext::CommandContext(ID3D12Device4* pDevice, Type Type)
 	auto CommandListFlags	= D3D12_COMMAND_LIST_FLAG_NONE;
 	ThrowCOMIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
 	ThrowCOMIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
+	m_Closed = true;
 }
 
 bool CommandContext::Close(ResourceStateTracker* pGlobalResourceStateTracker)
@@ -18,6 +19,7 @@ bool CommandContext::Close(ResourceStateTracker* pGlobalResourceStateTracker)
 	UINT numPendingBarriers = m_ResourceStateTracker.FlushPendingResourceBarriers(*pGlobalResourceStateTracker, m_pPendingCommandList.Get());
 	pGlobalResourceStateTracker->UpdateResourceStates(m_ResourceStateTracker);
 	ThrowCOMIfFailed(m_pPendingCommandList->Close());
+	m_Closed = true;
 	return numPendingBarriers > 0;
 }
 
@@ -36,6 +38,7 @@ void CommandContext::Reset(UINT64 FenceValue, UINT64 CompletedValue, CommandQueu
 
 	// Reset resource state tracking and resource barriers 
 	m_ResourceStateTracker.Reset();
+	m_Closed = false;
 }
 
 void CommandContext::SetPipelineState(const PipelineState* pPipelineState)

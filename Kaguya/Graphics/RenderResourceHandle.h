@@ -10,9 +10,8 @@ enum class RenderResourceType : UINT64
 	Texture,
 	Heap,
 	RootSignature,
-	GraphicsPSO,
-	ComputePSO,
-	RaytracingPSO
+	PipelineState,
+	RaytracingPipelineState
 };
 
 constexpr auto MAX_UID = (1ull << 28ull);
