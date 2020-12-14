@@ -29,6 +29,11 @@ Renderer::Renderer()
 
 }
 
+void Renderer::RequestCapture()
+{
+	Screenshot = true;
+}
+
 //----------------------------------------------------------------------------------------------------
 bool Renderer::Initialize()
 {
@@ -73,15 +78,15 @@ bool Renderer::Initialize()
 	m_pRenderDevice->FlushGraphicsQueue();
 	m_pGpuScene->TextureManager.DisposeResources();
 
-	SetScene(GenerateScene(SampleScene::PlaneWithLights));
+	SetScene(GenerateScene(SampleScene::CornellBox));
 
-	m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
-	m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
-	m_pRenderGraph->AddRenderPass(new SVGFReproject(Width, Height));
-	m_pRenderGraph->AddRenderPass(new SVGFFilterMoments(Width, Height));
-	m_pRenderGraph->AddRenderPass(new SVGFAtrous(Width, Height));
-	m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
-	//m_RenderGraph.AddRenderPass(new Pathtracing(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new SVGFReproject(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new SVGFFilterMoments(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new SVGFAtrous(Width, Height));
+	//m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
+	m_pRenderGraph->AddRenderPass(new Pathtracing(Width, Height));
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
 	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
 	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
@@ -133,7 +138,8 @@ void Renderer::Render()
 
 	RenderGui();
 
-	m_Scene.Camera.RelativeAperture = 0.8f;
+	//m_Scene.Camera.RelativeAperture = 0.8f;
+	m_Scene.Camera.RelativeAperture = 0.0f;
 	m_Scene.Camera.ShutterTime = 1.0f / 125.0f;
 	m_Scene.Camera.SensorSensitivity = 200.0f;
 

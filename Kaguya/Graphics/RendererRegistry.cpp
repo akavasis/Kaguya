@@ -64,7 +64,7 @@ void Libraries::Register(RenderDevice* pRenderDevice)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 
-	//Pathtracing			= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
+	Pathtracing			= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
 	//AmbientOcclusion	= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
 	Shading				= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Shading.hlsl");
 	Picking				= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");

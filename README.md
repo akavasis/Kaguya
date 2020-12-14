@@ -20,6 +20,8 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - Experiment with DirectX 12 Ultimate features: DirectX Raytracing 1.1, Variable Rate Shading, Mesh Shaders, and Sampler Feedback
 - Implement multiple anti-aliasing techniques
 - Resume reading ray tracing books to implement a fully functional path tracer while maintaining the deferred renderer
+- Implement memory aliasing between render passes in the render graph
+- Implement compaction to acceleration structures
 
 # Build
 - Visual Studio 2019
@@ -39,6 +41,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - assimp (https://github.com/assimp/assimp)
 - DirectXMesh (https://github.com/microsoft/DirectXMesh)
 - DirectXTex (https://github.com/microsoft/DirectXTex)
+- DirectXTK12 (https://github.com/microsoft/DirectXTK12)
 - DirectX Shader Compiler (https://github.com/microsoft/DirectXShaderCompiler)
 - imgui (https://github.com/ocornut/imgui)
 - spdlog (https://github.com/gabime/spdlog)

@@ -61,7 +61,7 @@ void Shading::InitializePipeline(RenderDevice* pRenderDevice)
 			{
 				RayGeneration,
 				ShadowMiss,
-				ShadowClosestHit
+				HitGroupExport
 			});
 
 		Builder.SetGlobalRootSignature(pGlobalRootSignature);
@@ -75,7 +75,7 @@ void Shading::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 {
 	for (UINT i = 0; i < NumResources; ++i)
 	{
-		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [=](TextureProxy& proxy)
 		{
 			proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 			proxy.SetWidth(Properties.Width);

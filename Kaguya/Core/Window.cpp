@@ -259,6 +259,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 
+	// Clear key state to avoid zombie keys when main window is out of focus
 	case WM_KILLFOCUS:
 	{
 		Keyboard.ResetKeyState();

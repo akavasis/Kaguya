@@ -43,8 +43,9 @@ void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
 
 		Builder.AddHitGroup(HitGroupExport, nullptr, ClosestHit, nullptr);
 
-		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local);
+		auto pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
+		auto pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
+		auto pLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
@@ -54,7 +55,11 @@ void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.AddRootSignatureAssociation(pEmptyLocalRootSignature,
 			{
 				RayGeneration,
-				Miss,
+				Miss
+			});
+
+		Builder.AddRootSignatureAssociation(pLocalRootSignature,
+			{
 				HitGroupExport
 			});
 
@@ -67,7 +72,7 @@ void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
 
 void Pathtracing::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
-	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
+	pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [=](TextureProxy& proxy)
 	{
 		proxy.SetFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
 		proxy.SetWidth(Properties.Width);
@@ -125,15 +130,29 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 
 	// Hit Group Shader Table
 	{
-		ShaderTable<void> shaderTable;
+		struct RootArgument
+		{
+			D3D12_GPU_VIRTUAL_ADDRESS VertexBuffer;
+			D3D12_GPU_VIRTUAL_ADDRESS IndexBuffer;
+		};
+
+		ShaderTable<RootArgument> shaderTable;
 
 		ShaderIdentifier hitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
 
 		for (const auto& modelInstance : pGpuScene->pScene->ModelInstances)
 		{
+			auto pVertexBuffer = pRenderDevice->GetBuffer(modelInstance.pModel->VertexResource);
+			auto pIndexBuffer = pRenderDevice->GetBuffer(modelInstance.pModel->IndexResource);
+
 			for (const auto& meshInstance : modelInstance.MeshInstances)
 			{
-				shaderTable.AddShaderRecord(hitGroupSID);
+				RootArgument argument = 
+				{
+					.VertexBuffer = pVertexBuffer->GetGpuVirtualAddress(),
+					.IndexBuffer = pIndexBuffer->GetGpuVirtualAddress()
+				};
+				shaderTable.AddShaderRecord(hitGroupSID, argument);
 			}
 		}
 
@@ -179,10 +198,17 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 {
 	struct RenderPassData
 	{
-		uint OutputIndex;
-	} g_RenderPassData;
+		uint NumSamplesPerPixel;
+		uint MaxDepth;
 
-	g_RenderPassData.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+		uint RenderTarget;
+	} g_RenderPassData = {};
+
+	g_RenderPassData.NumSamplesPerPixel = settings.NumSamplesPerPixel;
+	g_RenderPassData.MaxDepth			= settings.MaxDepth;
+
+	g_RenderPassData.RenderTarget		= RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(RaytracingPSOs::Pathtracing);
@@ -201,4 +227,5 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 
 void Pathtracing::StateRefresh()
 {
+
 }

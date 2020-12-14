@@ -27,10 +27,12 @@ public:
 	void OnExecute(RenderContext& RenderContext, RenderGraph* pRenderGraph);
 	void OnStateRefresh();
 
-	bool Enabled;
-	bool Refresh;
-	bool ExplicitResourceTransition;	// If this is true, then the render pass is responsible for handling resource transitions, by default, this is false
-	bool UseRayTracing;					// If this is true, then the render pass will wait until async compute is done generating the acceleration structure
+	UINT SV_Index;						// Given by the render graph
+
+	std::atomic<bool> Enabled;
+	std::atomic<bool> Refresh;
+	std::atomic<bool> ExplicitResourceTransition;	// If this is true, then the render pass is responsible for handling resource transitions, by default, this is false
+	std::atomic<bool> UseRayTracing;				// If this is true, then the render pass will wait until async compute is done generating the acceleration structure
 	std::string Name;
 	RenderTargetProperties Properties;
 	std::vector<RenderResourceHandle> Resources;

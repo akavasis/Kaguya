@@ -247,7 +247,9 @@ void RenderDevice::CreateTexture(RenderResourceHandle Handle, Resource::Type Typ
 
 void RenderDevice::CreateHeap(RenderResourceHandle Handle, const D3D12_HEAP_DESC& Desc)
 {
-	m_Heaps.CreateResource(Handle, Device.GetApiHandle(), Desc);
+	auto pHeap = m_Heaps.CreateResource(Handle, Device.GetApiHandle(), Desc);
+	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
+	pHeap->GetApiHandle()->SetName(Name.data());
 }
 
 void RenderDevice::CreateRootSignature(RenderResourceHandle Handle, std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters)
@@ -398,7 +400,6 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle Handle, std::op
 		{
 			// First-time request
 			Buffer* pBuffer = GetBuffer(Handle);
-			assert(pBuffer && "Could not find buffer given the handle");
 
 			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
 			m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pBuffer);
@@ -439,7 +440,6 @@ void RenderDevice::CreateShaderResourceView(RenderResourceHandle Handle, std::op
 		{
 			// First-time request
 			Texture* pTexture = GetTexture(Handle);
-			assert(pTexture && "Could not find texture given the handle");
 
 			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
 			UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pTexture, MostDetailedMip, MipLevels);
@@ -484,7 +484,6 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle Handle, std::o
 		{
 			// First-time request
 			Buffer* pBuffer = GetBuffer(Handle);
-			assert(pBuffer && "Could not find buffer given the handle");
 
 			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
 			m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pBuffer);
@@ -525,7 +524,6 @@ void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle Handle, std::o
 		{
 			// First-time request
 			Texture* pTexture = GetTexture(Handle);
-			assert(pTexture && "Could not find texture given the handle");
 
 			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
 			UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pTexture, ArraySlice, MipSlice);
@@ -577,7 +575,6 @@ void RenderDevice::CreateRenderTargetView(RenderResourceHandle Handle, std::opti
 	{
 		// First-time request
 		Texture* pTexture = GetTexture(Handle);
-		assert(pTexture && "Could not find texture given the handle");
 
 		size_t HeapIndex = m_RenderTargetDescriptorIndexPool.Allocate();
 		auto entry = m_RenderTargetDescriptorHeap[HeapIndex];
@@ -632,7 +629,6 @@ void RenderDevice::CreateDepthStencilView(RenderResourceHandle Handle, std::opti
 	{
 		// First-time request
 		Texture* pTexture = GetTexture(Handle);
-		assert(pTexture && "Could not find texture given the handle");
 
 		size_t HeapIndex = m_DepthStencilDescriptorIndexPool.Allocate();
 		auto entry = m_DepthStencilDescriptorHeap[HeapIndex];
@@ -811,7 +807,7 @@ void RenderDevice::InitializeDXGISwapChain(const Window* pWindow)
 	Desc.Height					= pWindow->GetWindowHeight();
 	Desc.Format					= SwapChainBufferFormat;
 	Desc.Stereo					= FALSE;
-	Desc.SampleDesc				= { 1, 0 };
+	Desc.SampleDesc				= DefaultSampleDesc();
 	Desc.BufferUsage			= DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	Desc.BufferCount			= NumSwapChainBuffers;
 	Desc.Scaling				= DXGI_SCALING_NONE;

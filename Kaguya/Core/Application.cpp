@@ -104,6 +104,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 		LOG_INFO("Joining render thread");
 		ExitRenderThread = true;
 		::WaitForSingleObject(RenderThread.get(), INFINITE);
+		delete pRenderSystem;
 		LOG_INFO("Render thread joined");
 	}
 

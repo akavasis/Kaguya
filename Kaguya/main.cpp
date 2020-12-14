@@ -22,6 +22,5 @@ int main(int argc, char* argv[])
 	SET_LEAK_BREAKPOINT(-1);
 #endif
 	Application::Initialize(L"Kaguya", 1280, 720);
-	Renderer Renderer;
-	return Application::Run(&Renderer);
+	return Application::Run(new Renderer());
 }

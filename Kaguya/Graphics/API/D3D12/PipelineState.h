@@ -28,5 +28,5 @@ public:
 
 protected:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
-	Type m_Type;
+	Type										m_Type				= Type::Unknown;
 };

@@ -53,14 +53,14 @@ void Accumulation::RenderGui()
 
 void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	//auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
-	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);
+	auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
+	Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);
 
 	//auto pAmbientOcclusionRenderPass = pRenderGraph->GetRenderPass<AmbientOcclusion>();
 	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAmbientOcclusionRenderPass->Resources[AmbientOcclusion::EResources::RenderTarget]);
 
-	auto pShadingCompositionRenderPass = pRenderGraph->GetRenderPass<ShadingComposition>();
-	Descriptor InputSRV = RenderContext.GetShaderResourceView(pShadingCompositionRenderPass->Resources[ShadingComposition::EResources::RenderTarget]);
+	//auto pShadingCompositionRenderPass = pRenderGraph->GetRenderPass<ShadingComposition>();
+	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pShadingCompositionRenderPass->Resources[ShadingComposition::EResources::RenderTarget]);
 
 	struct RenderPassData
 	{
@@ -68,7 +68,7 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 
 		uint Input;
 		uint RenderTarget;
-	} g_RenderPassData;
+	} g_RenderPassData = {};
 
 	g_RenderPassData.AccumulationCount = Settings.AccumulationCount++;
 

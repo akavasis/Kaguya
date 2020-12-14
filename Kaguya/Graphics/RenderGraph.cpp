@@ -26,6 +26,7 @@ RenderPass* RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 
 	m_ResourceScheduler.m_pCurrentRenderPass = renderPass.get();
 
+	renderPass->SV_Index = m_RenderPasses.size();
 	renderPass->OnInitializePipeline(SV_pRenderDevice);
 	renderPass->OnScheduleResource(&m_ResourceScheduler, this);
 
@@ -182,61 +183,63 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 		}
 
 		RenderContext RenderContext(ThreadID, pSystemConstants, pGpuData, pRenderDevice, pCommandContext);
-		PIXScopedEvent(RenderContext->GetApiHandle(), 0, Name.data());
-
-		pRenderDevice->BindGpuDescriptorHeap(pCommandContext);
-
-		if (!pRenderPass->ExplicitResourceTransition)
 		{
-			for (auto& resource : pRenderPass->Resources)
+			PIXScopedEvent(RenderContext->GetApiHandle(), 0, Name.data());
+
+			pRenderDevice->BindGpuDescriptorHeap(pCommandContext);
+
+			if (!pRenderPass->ExplicitResourceTransition)
 			{
-				auto pTexture = pRenderDevice->GetTexture(resource);
-
-				if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::RenderTarget))
+				for (auto& resource : pRenderPass->Resources)
 				{
-					RenderContext.TransitionBarrier(resource, Resource::State::RenderTarget);
-				}
+					auto pTexture = pRenderDevice->GetTexture(resource);
 
-				if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::DepthStencil))
-				{
-					RenderContext.TransitionBarrier(resource, Resource::State::DepthWrite);
-				}
+					if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::RenderTarget))
+					{
+						RenderContext.TransitionBarrier(resource, Resource::State::RenderTarget);
+					}
 
-				// Transition any UAVs to UnorderedAccess state
-				if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::UnorderedAccess))
-				{
-					RenderContext.TransitionBarrier(resource, Resource::State::UnorderedAccess);
+					if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::DepthStencil))
+					{
+						RenderContext.TransitionBarrier(resource, Resource::State::DepthWrite);
+					}
+
+					// Transition any UAVs to UnorderedAccess state
+					if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::UnorderedAccess))
+					{
+						RenderContext.TransitionBarrier(resource, Resource::State::UnorderedAccess);
+					}
 				}
 			}
-		}
 
-		if (pRenderPass->UseRayTracing)
-		{
-			::WaitForSingleObject(ASBuildEvent, INFINITE);
-		}
-
-		pRenderPass->OnExecute(RenderContext, pRenderGraph);
-
-		if (!pRenderPass->ExplicitResourceTransition)
-		{
-			for (auto& resource : pRenderPass->Resources)
+			if (pRenderPass->UseRayTracing)
 			{
-				auto pTexture = pRenderDevice->GetTexture(resource);
+				::WaitForSingleObject(ASBuildEvent, INFINITE);
+			}
 
-				if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::RenderTarget))
-				{
-					RenderContext.TransitionBarrier(resource, Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
-				}
+			pRenderPass->OnExecute(RenderContext, pRenderGraph);
 
-				if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::DepthStencil))
+			if (!pRenderPass->ExplicitResourceTransition)
+			{
+				for (auto& resource : pRenderPass->Resources)
 				{
-					RenderContext.TransitionBarrier(resource, Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
-				}
+					auto pTexture = pRenderDevice->GetTexture(resource);
 
-				// Ensure UAV writes are complete
-				if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::UnorderedAccess))
-				{
-					RenderContext.UAVBarrier(resource);
+					if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::RenderTarget))
+					{
+						RenderContext.TransitionBarrier(resource, Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
+					}
+
+					if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::DepthStencil))
+					{
+						RenderContext.TransitionBarrier(resource, Resource::State::NonPixelShaderResource | Resource::State::PixelShaderResource);
+					}
+
+					// Ensure UAV writes are complete
+					if (EnumMaskBitSet(pTexture->GetBindFlags(), Resource::Flags::UnorderedAccess))
+					{
+						RenderContext.UAVBarrier(resource);
+					}
 				}
 			}
 		}

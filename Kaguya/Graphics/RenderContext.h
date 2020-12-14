@@ -1,9 +1,6 @@
 #pragma once
 #include "RenderDevice.h"
 
-/*
-	High level command context
-*/
 class RenderContext
 {
 public:

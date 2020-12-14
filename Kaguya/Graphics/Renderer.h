@@ -1,5 +1,4 @@
 #pragma once
-#include <wrl/client.h>
 #include <wil/resource.h>
 #include <atomic>
 #include "Core/RenderSystem.h"
@@ -13,6 +12,8 @@ class Renderer : public RenderSystem
 {
 public:
 	Renderer();
+
+	void RequestCapture();
 
 protected:
 	bool Initialize() override;
