@@ -244,8 +244,8 @@ void RayGeneration()
 [shader("miss")]
 void Miss(inout RayPayload rayPayload)
 {
-	//rayPayload.Radiance += TextureCubeTable[RenderPassData.GlobalConstants.SkyboxIndex].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
-	rayPayload.Throughput *= float3(0.0f, 0.0f, 0.0f);
+	rayPayload.Radiance += g_TextureCubeTable[g_SystemConstants.Skybox].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
+	//rayPayload.Throughput *= float3(0.0f, 0.0f, 0.0f);
 }
 
 [shader("closesthit")]

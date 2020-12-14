@@ -21,26 +21,27 @@ void TextureManager::Stage(Scene& Scene, RenderContext& RenderContext)
 {
 	if (!Status::SkyboxGenerated && !Scene.Skybox.Path.empty())
 	{
-		//Status::SkyboxGenerated = true;
+		Status::SkyboxGenerated = true;
 
-		//m_SystemReservedTextures[SkyboxEquirectangularMap] = LoadFromFile(Scene.Skybox.Path, false, true);
-		//auto& stagingTexture = m_UnstagedTextures[m_SystemReservedTextures[SkyboxEquirectangularMap]];
-		//StageTexture(m_SystemReservedTextures[SkyboxEquirectangularMap], stagingTexture, RenderContext);
+		m_SkyboxEquirectangular = LoadFromFile(Scene.Skybox.Path, false, true);
+		m_Skybox = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Scene.Skybox.Path.string());
+		auto& stagingTexture = m_UnstagedTextures[m_SkyboxEquirectangular];
+		StageTexture(m_SkyboxEquirectangular, stagingTexture, RenderContext);
 
-		//// Generate cubemap for equirectangular map
-		//DeviceTexture* pEquirectangularMap = SV_pRenderDevice->GetTexture(m_SystemReservedTextures[SkyboxEquirectangularMap]);
-		//m_SystemReservedTextures[SkyboxCubemap] = SV_pRenderDevice->CreateDeviceTexture(DeviceResource::Type::TextureCube, [&](DeviceTextureProxy& proxy)
-		//{
-		//	proxy.SetFormat(pEquirectangularMap->GetFormat());
-		//	proxy.SetWidth(1024);
-		//	proxy.SetHeight(1024);
-		//	proxy.SetMipLevels(0);
-		//	proxy.BindFlags = DeviceResource::BindFlags::UnorderedAccess;
-		//	proxy.InitialState = DeviceResource::State::Common;
-		//});
+		// Generate cubemap for equirectangular map
+		auto pEquirectangularMap = pRenderDevice->GetTexture(m_SkyboxEquirectangular);
+		pRenderDevice->CreateTexture(m_Skybox, Resource::Type::TextureCube, [&](TextureProxy& proxy)
+		{
+			proxy.SetFormat(pEquirectangularMap->GetFormat());
+			proxy.SetWidth(1024);
+			proxy.SetHeight(1024);
+			proxy.SetMipLevels(0);
+			proxy.BindFlags = Resource::Flags::UnorderedAccess;
+			proxy.InitialState = Resource::State::Common;
+		});
 
-		//EquirectangularToCubemap(m_SystemReservedTextures[SkyboxEquirectangularMap], m_SystemReservedTextures[SkyboxCubemap], RenderContext);
-		//SV_pRenderDevice->CreateShaderResourceView(m_SystemReservedTextures[SkyboxCubemap]);
+		EquirectangularToCubemap(Scene.Skybox.Path.string(), m_SkyboxEquirectangular, m_Skybox, RenderContext);
+		pRenderDevice->CreateShaderResourceView(m_Skybox);
 	}
 
 	for (auto& material : Scene.Materials)
@@ -436,6 +437,7 @@ void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTex
 
 	// Stage texture
 	RenderContext->TransitionBarrier(pTexture, Resource::State::CopyDest);
+	RenderContext->FlushResourceBarriers();
 	for (size_t subresourceIndex = 0; subresourceIndex < StagingTexture.NumSubresources; ++subresourceIndex)
 	{
 		D3D12_TEXTURE_COPY_LOCATION Destination = {};

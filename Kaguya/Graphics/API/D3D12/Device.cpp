@@ -5,6 +5,15 @@
 
 void Device::Create(IDXGIAdapter4* pAdapter)
 {
+	/*
+		ID3D12Device1					Windows 10 Anniversary Update	(14393)
+		ID3D12Device2					Windows 10 Creators Update		(15063)
+		ID3D12Device3					Windows 10 Fall Creators Update (16299)
+		ID3D12Device4					Windows 10 April 2018 Update	(17134)
+		ID3D12Device5					Windows 10 October 2018			(17763)
+		ID3D12Device6					Windows 10 May 2019				(18362)
+		ID3D12Device7, ID3D12Device8	Windows 10 May 2020 Update		(19041)
+	*/
 #if defined(_DEBUG)
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
 	Microsoft::WRL::ComPtr<ID3D12Debug1> pDebug1;

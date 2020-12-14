@@ -129,7 +129,7 @@ void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGr
 		uint RenderTarget1;
 		uint Moments;
 		uint HistoryLength;
-	} g_RenderPassData;
+	} g_RenderPassData = {};
 
 	g_RenderPassData.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
 
@@ -237,7 +237,7 @@ void SVGFFilterMoments::Execute(RenderContext& RenderContext, RenderGraph* pRend
 		// Output Textures
 		uint RenderTarget0;
 		uint RenderTarget1;
-	} g_RenderPassData;
+	} g_RenderPassData = {};
 
 	g_RenderPassData.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
 
@@ -333,7 +333,7 @@ void SVGFAtrous::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph
 		// Output Textures
 		uint RenderTarget0;
 		uint RenderTarget1;
-	} g_RenderPassData;
+	} g_RenderPassData = {};
 
 	g_RenderPassData.RenderTargetDimension	= { float(Properties.Width), float(Properties.Height) };
 

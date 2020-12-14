@@ -149,6 +149,7 @@ void Renderer::Render()
 	HLSLSystemConstants.OutputSize				= { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
 	HLSLSystemConstants.TotalFrameCount			= static_cast<unsigned int>(Statistics::TotalFrameCount);
 	HLSLSystemConstants.NumPolygonalLights		= m_Scene.Lights.size();
+	HLSLSystemConstants.Skybox					= m_pRenderDevice->GetShaderResourceView(m_pGpuScene->TextureManager.GetSkybox()).HeapIndex;
 
 	m_pGpuScene->RenderGui();
 	bool Refresh = m_pGpuScene->Update(AspectRatio);
@@ -244,7 +245,7 @@ void Renderer::SetScene(Scene Scene)
 {
 	PIXCapture();
 	m_Scene				= std::move(Scene);
-	//m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
+	m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
 
 	m_Scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
 	m_Scene.Camera.SetAspectRatio(AspectRatio);

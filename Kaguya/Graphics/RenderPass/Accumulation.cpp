@@ -74,6 +74,7 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 
 	g_RenderPassData.Input = InputSRV.HeapIndex;
 	g_RenderPassData.RenderTarget = RenderContext.GetUnorderedAccessView(Resources[EResources::RenderTarget]).HeapIndex;
+	
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::Accumulation);

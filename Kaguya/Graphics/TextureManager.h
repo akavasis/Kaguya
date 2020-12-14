@@ -25,6 +25,8 @@ public:
 
 	inline auto GetBlueNoise()									{ return m_NoiseTextures[AssetTextures::BlueNoise]; }
 
+	inline auto GetSkybox()										{ return m_Skybox; }
+
 	void StageAssetTextures(RenderContext& RenderContext);
 	void Stage(Scene& Scene, RenderContext& RenderContext);
 	void DisposeResources();
@@ -91,6 +93,8 @@ private:
 	RenderResourceHandle										m_NoiseTextureHeap;
 	RenderResourceHandle										m_NoiseTextures[AssetTextures::NumNoiseTextures];
 
+	RenderResourceHandle										m_SkyboxEquirectangular;
+	RenderResourceHandle										m_Skybox;
 	std::unordered_map<std::string, RenderResourceHandle>		m_TextureCache;
 
 	std::unordered_map<RenderResourceHandle, StagingTexture>	m_UnstagedTextures;

@@ -55,8 +55,7 @@ public:
 	{
 		if (pShaderTableSizeInBytes)
 		{
-			UINT64 ShaderTableSizeInBytes = 0;
-			ShaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
+			UINT64 ShaderTableSizeInBytes = static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
 			ShaderTableSizeInBytes = Math::AlignUp<UINT64>(ShaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
 			*pShaderTableSizeInBytes = ShaderTableSizeInBytes;
@@ -121,8 +120,7 @@ public:
 	{
 		if (pShaderTableSizeInBytes)
 		{
-			UINT64 ShaderTableSizeInBytes = 0;
-			ShaderTableSizeInBytes += static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
+			UINT64 ShaderTableSizeInBytes = static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
 			ShaderTableSizeInBytes = Math::AlignUp<UINT64>(ShaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
 			*pShaderTableSizeInBytes = ShaderTableSizeInBytes;

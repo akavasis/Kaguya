@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "RenderDevice.h"
 
+using Microsoft::WRL::ComPtr;
+
 RenderDevice::RenderDevice(const Window* pWindow)
 {
 	InitializeDXGIObjects();
@@ -87,7 +89,7 @@ void RenderDevice::Resize(UINT Width, UINT Height)
 		// Recreate descriptors
 		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
-			Microsoft::WRL::ComPtr<ID3D12Resource> pBackBuffer;
+			ComPtr<ID3D12Resource> pBackBuffer;
 			ThrowCOMIfFailed(m_DXGISwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
 			CreateTexture(m_BackBufferHandle[i], pBackBuffer, Resource::State::Common);
 			CreateRenderTargetView(m_BackBufferHandle[i]);
@@ -774,7 +776,7 @@ void RenderDevice::InitializeDXGIObjects()
 
 	// Enumerate hardware for an adapter that supports DX12
 	// Enumerating iGPU, dGPU, xGPU
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> pAdapter4;
+	ComPtr<IDXGIAdapter4> pAdapter4;
 	UINT AdapterID = 0;
 	while (m_DXGIFactory->EnumAdapterByGpuPreference(AdapterID, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(pAdapter4.ReleaseAndGetAddressOf())) != DXGI_ERROR_NOT_FOUND)
 	{
@@ -814,7 +816,7 @@ void RenderDevice::InitializeDXGISwapChain(const Window* pWindow)
 	Desc.SwapEffect				= DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 	Desc.AlphaMode				= DXGI_ALPHA_MODE_UNSPECIFIED;
 	Desc.Flags					= m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	Microsoft::WRL::ComPtr<IDXGISwapChain1> pSwapChain1;
+	ComPtr<IDXGISwapChain1> pSwapChain1;
 	ThrowCOMIfFailed(m_DXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetApiHandle(), pWindow->GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
 	ThrowCOMIfFailed(m_DXGIFactory->MakeWindowAssociation(pWindow->GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
 	ThrowCOMIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(m_DXGISwapChain.ReleaseAndGetAddressOf())));

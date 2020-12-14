@@ -93,7 +93,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 		ShaderTable<void> shaderTable;
 		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"RayGeneration"));
 
-		UINT64 shaderTableSizeInBytes; UINT stride;
+		UINT64 shaderTableSizeInBytes, stride;
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
@@ -113,7 +113,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 		ShaderTable<void> shaderTable;
 		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"Miss"));
 
-		UINT64 shaderTableSizeInBytes; UINT stride;
+		UINT64 shaderTableSizeInBytes, stride;
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
@@ -156,7 +156,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 			}
 		}
 
-		UINT64 shaderTableSizeInBytes; UINT stride;
+		UINT64 shaderTableSizeInBytes, stride;
 		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
 		stride = shaderTable.GetShaderRecordStride();
 
@@ -217,12 +217,14 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetLightTable());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMaterialTable());
 
-	RenderContext.DispatchRays(
+	RenderContext.DispatchRays
+	(
 		m_RayGenerationShaderTable,
 		m_MissShaderTable,
 		m_HitGroupShaderTable,
 		Properties.Width,
-		Properties.Height);
+		Properties.Height
+	);
 }
 
 void Pathtracing::StateRefresh()

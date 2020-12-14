@@ -76,5 +76,7 @@ namespace HLSL
 		uint TotalFrameCount;
 
 		int NumPolygonalLights;
+
+		uint Skybox;
 	};
 }

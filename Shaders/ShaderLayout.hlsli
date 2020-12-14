@@ -19,6 +19,8 @@ struct SystemConstants
 	uint TotalFrameCount;
 
 	int NumPolygonalLights;
+
+	uint Skybox;
 };
 
 struct DummyStructure
