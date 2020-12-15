@@ -38,6 +38,7 @@ private:
 
 	Scene									m_Scene;
 	GpuScene*								m_pGpuScene							= nullptr;
+	INT										InstanceID;
 
 	wil::unique_event						BuildAccelerationStructureEvent;
 	wil::unique_event						AccelerationStructureCompleteEvent;

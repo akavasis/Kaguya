@@ -17,6 +17,7 @@
 #include "RenderPass/AmbientOcclusion.h"
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
+#include "RenderPass/Picking.h"
 
 #include "Scene/SampleScene.h"
 
@@ -90,6 +91,7 @@ bool Renderer::Initialize()
 	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
 	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
 	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
+	m_pRenderGraph->AddRenderPass(new Picking());
 	m_pRenderGraph->Initialize(AccelerationStructureCompleteEvent.get());
 
 	m_pRenderGraph->InitializeScene(m_pGpuScene);
@@ -171,6 +173,9 @@ void Renderer::Render()
 	ThrowCOMIfFailed(m_pRenderDevice->GraphicsQueue.GetApiHandle()->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
 	ThrowCOMIfFailed(m_pRenderDevice->GraphicsFence->SetEventOnCompletion(Value, m_pRenderDevice->GraphicsFenceCompletionEvent.get()));
 	m_pRenderDevice->GraphicsFenceCompletionEvent.wait();
+
+	auto PickingRenderPass = m_pRenderGraph->GetRenderPass<Picking>();
+	InstanceID = PickingRenderPass->GetInstanceID(m_pRenderDevice);
 
 	if (Screenshot)
 	{
@@ -282,6 +287,9 @@ void Renderer::RenderGui()
 		ImGui::Text("Total Frame Count: %d", Statistics::TotalFrameCount);
 		ImGui::Text("FPS: %f", Statistics::FPS);
 		ImGui::Text("FPMS: %f", Statistics::FPMS);
+
+		ImGui::Text("");
+		ImGui::Text("InstanceID: %i", InstanceID);
 
 		if (ImGui::Button("Screenshot"))
 		{

@@ -23,6 +23,7 @@ SamplerState						SamplerLinearClamp	: register(s1, space0);
 #include <ShaderLayout.hlsli>
 
 // Local Root Signature
+// ====================
 StructuredBuffer<Vertex>			VertexBuffer		: register(t0, space1);
 StructuredBuffer<uint>				IndexBuffer			: register(t1, space1);
 

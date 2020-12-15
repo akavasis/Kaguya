@@ -15,3 +15,4 @@
 #define int2 DirectX::XMINT2
 
 #define uint unsigned int
+#define uint2 DirectX::XMUINT2

@@ -154,6 +154,12 @@ struct RootSignatures
 
 	struct Raytracing
 	{
+		struct Local
+		{
+			inline static RenderResourceHandle Picking;
+		};
+
+		// TODO: Move local rs to the local struct below
 		inline static RenderResourceHandle Local;
 		inline static RenderResourceHandle EmptyLocal;
 		inline static RenderResourceHandle Global;

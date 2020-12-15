@@ -1,5 +1,3 @@
-RWStructuredBuffer<int> PickingResult : register(u0, space0);
-
 struct RenderPassData
 {
     uint2 MousePosition;
@@ -17,6 +15,10 @@ enum RayType
 	RayTypePrimary,
     NumRayTypes
 };
+
+// Local Root Signature
+// ====================
+RWStructuredBuffer<int> PickingResult : register(u0, space0);
 
 [shader("raygeneration")]
 void RayGeneration()

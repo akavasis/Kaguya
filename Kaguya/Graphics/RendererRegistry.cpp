@@ -94,6 +94,8 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	InitRootSignature(Raytracing::EmptyLocal);
 	InitRootSignature(Raytracing::Global);
 
+	InitRootSignature(Raytracing::Local::Picking);
+
 	pRenderDevice->CreateRootSignature(Default, [](RootSignatureBuilder& Builder)
 	{
 		Builder.DenyTessellationShaderAccess();
@@ -161,6 +163,15 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		Builder.DenyTessellationShaderAccess();
 		Builder.DenyGSAccess();
 	});
+
+	// Local Picking RS
+	pRenderDevice->CreateRootSignature(Raytracing::Local::Picking, [](RootSignatureBuilder& Builder)
+	{
+		Builder.AddRootUAVParameter(RootUAV(0, 0));	// PickingResult,			u0 | space0
+
+		Builder.SetAsLocalRootSignature();
+	},
+		false);
 
 	// Local RS
 	pRenderDevice->CreateRootSignature(Raytracing::Local, [](RootSignatureBuilder& Builder)
