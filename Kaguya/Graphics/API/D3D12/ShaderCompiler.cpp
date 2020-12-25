@@ -52,7 +52,7 @@ void ShaderCompiler::SetIncludeDirectory(const std::filesystem::path& pPath)
 	m_IncludeDirectory = pPath;
 }
 
-Shader ShaderCompiler::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines)
+Shader ShaderCompiler::CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines) const
 {
 	auto ProfileString	= ShaderProfileString(Type, ShaderCompiler::Profile::Profile_6_5);
 	auto pDxcBlob		= Compile(Path, pEntryPoint, ProfileString.data(), ShaderDefines);
@@ -67,7 +67,7 @@ Shader ShaderCompiler::CompileShader(Shader::Type Type, const std::filesystem::p
 	return Shader(Type, pDxcBlob, pShaderReflection);
 }
 
-Library ShaderCompiler::CompileLibrary(const std::filesystem::path& Path)
+Library ShaderCompiler::CompileLibrary(const std::filesystem::path& Path) const
 {
 	auto ProfileString	= LibraryProfileString(ShaderCompiler::Profile::Profile_6_5);
 	auto pDxcBlob		= Compile(Path, L"", ProfileString.data(), {});
@@ -82,7 +82,7 @@ Library ShaderCompiler::CompileLibrary(const std::filesystem::path& Path)
 	return Library(pDxcBlob, pLibraryReflection);
 }
 
-Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(const std::filesystem::path& Path, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines)
+Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(const std::filesystem::path& Path, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines) const
 {
 	assert(std::filesystem::exists(Path) && "File Not Found");
 

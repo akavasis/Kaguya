@@ -26,7 +26,7 @@ void Application::Initialize(LPCWSTR WindowName,
 		LocalFree(argv);
 	}
 
-	pWindow = new Window(WindowName, Width, Height, X, Y);
+	Window.Create(WindowName, Width, Height, X, Y);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -57,29 +57,34 @@ int Application::Run(RenderSystem* pRenderSystem)
 			}
 			else
 			{
-				while (!pWindow->Keyboard.KeyBufferIsEmpty())
+				while (!Window.Keyboard.KeyBufferIsEmpty())
 				{
-					auto e = pWindow->Keyboard.ReadKey();
+					auto e = Window.Keyboard.ReadKey();
 					if (e.type != Keyboard::Event::Type::Press)
 						continue;
 					switch (e.data.Code)
 					{
 					case VK_ESCAPE:
 					{
-						if (pWindow->CursorEnabled())
+						if (Window.CursorEnabled())
 						{
-							pWindow->DisableCursor();
-							pWindow->Mouse.EnableRawInput();
+							Window.DisableCursor();
+							Window.Mouse.EnableRawInput();
 						}
 						else
 						{
-							pWindow->EnableCursor();
-							pWindow->Mouse.DisableRawInput();
+							Window.EnableCursor();
+							Window.Mouse.DisableRawInput();
 						}
 					}
 					break;
 					}
 				}
+			}
+
+			if (QuitApplication)
+			{
+				break;
 			}
 		}
 
@@ -108,14 +113,13 @@ int Application::Run(RenderSystem* pRenderSystem)
 		LOG_INFO("Render thread joined");
 	}
 
-	if (pWindow)
-	{
-		delete pWindow;
-		pWindow = nullptr;
-	}
-
 	CoUninitialize();
 	return ExitCode;
+}
+
+void Application::Quit()
+{
+	QuitApplication = true;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -134,7 +138,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 
 	while (!ExitRenderThread)
 	{
-		if (!pWindow->IsFocused())
+		if (!Window.IsFocused())
 			continue;
 
 		Time.Signal();
@@ -143,7 +147,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 		{
 			Window::Message messsage;
 			Window::Message resizeMessage(Window::Message::Type::None, {});
-			while (pWindow->MessageQueue.pop(messsage, 0))
+			while (Window.MessageQueue.pop(messsage, 0))
 			{
 				if (messsage.type == Window::Message::Type::Resize)
 				{
@@ -160,7 +164,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 				if (!HandleRenderMessage(pRenderSystem, resizeMessage))
 				{
 					// Requeue this message if it failed to resize
-					pWindow->MessageQueue.push(resizeMessage);
+					Window.MessageQueue.push(resizeMessage);
 				}
 			}
 		}
@@ -171,20 +175,20 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 		// Process mouse & keyboard events
 		{
 			// Handle render system mouse events
-			while (!pWindow->Mouse.RawDeltaBufferIsEmpty())
+			while (!Window.Mouse.RawDeltaBufferIsEmpty())
 			{
-				auto delta = pWindow->Mouse.ReadRawDelta();
+				auto delta = Window.Mouse.ReadRawDelta();
 
-				if (!pWindow->CursorEnabled())
+				if (!Window.CursorEnabled())
 				{
 					pRenderSystem->OnHandleMouse(delta.X, delta.Y, Time.DeltaTime());
 				}
 			}
 
 			// Handle render system keyboard events
-			if (!pWindow->CursorEnabled())
+			if (!Window.CursorEnabled())
 			{
-				pRenderSystem->OnHandleKeyboard(pWindow->Keyboard, Time.DeltaTime());
+				pRenderSystem->OnHandleKeyboard(Window.Keyboard, Time.DeltaTime());
 			}
 		}
 		
@@ -194,6 +198,8 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 Error:
 	pRenderSystem->OnDestroy();
 	CoUninitialize();
+
+	Application::Quit();
 
 	return EXIT_SUCCESS;
 }

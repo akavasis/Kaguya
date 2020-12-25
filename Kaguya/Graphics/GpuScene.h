@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <Core/Allocator/VariableSizedAllocator.h>
 
 #include "Scene/Scene.h"
 #include "BufferManager.h"
@@ -33,12 +32,13 @@ public:
 	HLSL::Camera GetHLSLCamera() const;
 	HLSL::Camera GetHLSLPreviousCamera() const;
 
+private:
+	void CreateBottomLevelAS(RenderContext& RenderContext);
+
+public:
 	Scene* pScene;
 	BufferManager BufferManager;
 	TextureManager TextureManager;
-
-private:
-	void CreateBottomLevelAS(RenderContext& RenderContext);
 
 private:
 	struct RTTLAS

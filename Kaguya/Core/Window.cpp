@@ -5,17 +5,25 @@
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-Window::Window(LPCWSTR WindowName,
+Window::~Window()
+{
+	if (!m_WindowName.empty())
+	{
+		::UnregisterClass(m_WindowName.data(), GetModuleHandle(NULL));
+	}
+}
+
+void Window::Create(LPCWSTR WindowName,
 	int Width /*= CW_USEDEFAULT*/, int Height /*= CW_USEDEFAULT*/,
 	int X /*= CW_USEDEFAULT*/, int Y /*= CW_USEDEFAULT*/)
-	: m_WindowName(WindowName),
-	m_WindowWidth(Width),
-	m_WindowHeight(Height)
 {
+	m_WindowName	= WindowName;
+	m_WindowWidth	= Width;
+	m_WindowHeight	= Height;
+	m_CursorEnabled = true;
+
 	m_Icon.reset((HICON)::LoadImage(0, (Application::ExecutableFolderPath / "Assets/Kaguya.ico").generic_wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
 	m_Cursor.reset(::LoadCursor(nullptr, IDC_ARROW));
-
-	m_CursorEnabled = true;
 
 	// Register RID for handling input
 	RAWINPUTDEVICE rid	= {};
@@ -64,11 +72,6 @@ Window::Window(LPCWSTR WindowName,
 	{
 		LOG_ERROR("CreateWindowW Error: {}", ::GetLastError());
 	}
-}
-
-Window::~Window()
-{
-	::UnregisterClass(m_WindowName.data(), GetModuleHandle(NULL));
 }
 
 void Window::EnableCursor()

@@ -68,8 +68,7 @@ float3 CosineSampleHemisphere(in float2 u)
 
 float CosineHemispherePdf(float cosTheta)
 {
-    // Clamp this to 0.001f to avoid NAN values when dividing by pdf
-    return max(0.001f, cosTheta * s_1DIVPI);
+    return cosTheta * s_1DIVPI;
 }
 
 // ONB: Orthonormal basis

@@ -25,7 +25,7 @@
 
 //----------------------------------------------------------------------------------------------------
 Renderer::Renderer()
-	: RenderSystem(Application::pWindow->GetWindowWidth(), Application::pWindow->GetWindowHeight())
+	: RenderSystem(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight())
 {
 
 }
@@ -40,14 +40,14 @@ bool Renderer::Initialize()
 {
 	try
 	{
-		m_pRenderDevice	= new RenderDevice(Application::pWindow);
+		m_pRenderDevice	= new RenderDevice(Application::Window);
 		m_pRenderDevice->ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
 
 		m_pRenderGraph	= new RenderGraph(m_pRenderDevice);
 		m_pGpuScene		= new GpuScene(m_pRenderDevice);
 
-		Shaders::Register(m_pRenderDevice);
-		Libraries::Register(m_pRenderDevice);
+		Shaders::Register(m_pRenderDevice->ShaderCompiler);
+		Libraries::Register(m_pRenderDevice->ShaderCompiler);
 		RootSignatures::Register(m_pRenderDevice);
 		GraphicsPSOs::Register(m_pRenderDevice);
 		ComputePSOs::Register(m_pRenderDevice);
@@ -134,11 +134,13 @@ void Renderer::Render()
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+	ImGuizmo::BeginFrame();
 #if SHOW_IMGUI_DEMO_WINDOW
 	ImGui::ShowDemoWindow();
 #endif
 
 	RenderGui();
+	m_pGpuScene->RenderGui();
 
 	//m_Scene.Camera.RelativeAperture = 0.8f;
 	m_Scene.Camera.RelativeAperture = 0.0f;
@@ -153,7 +155,6 @@ void Renderer::Render()
 	HLSLSystemConstants.NumPolygonalLights		= m_Scene.Lights.size();
 	HLSLSystemConstants.Skybox					= m_pRenderDevice->GetShaderResourceView(m_pGpuScene->TextureManager.GetSkybox()).HeapIndex;
 
-	m_pGpuScene->RenderGui();
 	bool Refresh = m_pGpuScene->Update(AspectRatio);
 	BuildAccelerationStructureEvent.SetEvent(); // Tell the AsyncComputeThreadProc to build our TLAS after we have updated any scene objects
 
@@ -349,7 +350,7 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 		pRenderer->AccelerationStructureCompleteEvent.SetEvent(); // Set the event after AS build is complete
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
@@ -372,5 +373,5 @@ DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
 		// TODO: Add async upload for resources
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }

@@ -119,7 +119,7 @@ struct Shaders
 		inline static Shader PostProcess_BloomComposition;
 	};
 
-	static void Register(RenderDevice* pRenderDevice);
+	static void Register(const ShaderCompiler& ShaderCompiler);
 };
 
 struct Libraries
@@ -129,7 +129,7 @@ struct Libraries
 	inline static Library Shading;
 	inline static Library Picking;
 
-	static void Register(RenderDevice* pRenderDevice);
+	static void Register(const ShaderCompiler& ShaderCompiler);
 };
 
 struct RootSignatures

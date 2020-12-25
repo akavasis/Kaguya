@@ -12,62 +12,62 @@ const LPCWSTR MSEntryPoint = L"MSMain";
 const LPCWSTR PSEntryPoint = L"PSMain";
 const LPCWSTR CSEntryPoint = L"CSMain";
 
-void Shaders::Register(RenderDevice* pRenderDevice)
+void Shaders::Register(const ShaderCompiler& ShaderCompiler)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 
 	// Load VS
 	{
-		VS::Quad										= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",		VSEntryPoint, {});
-		VS::Skybox										= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Skybox.hlsli",		VSEntryPoint, {});
+		VS::Quad										= ShaderCompiler.CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",		VSEntryPoint, {});
+		VS::Skybox										= ShaderCompiler.CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Skybox.hlsli",		VSEntryPoint, {});
 	}
 
 	// Load MS
 	{
-		MS::GBufferMeshes								= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl", MSEntryPoint, {});
-		MS::GBufferLights								= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl", MSEntryPoint, {});
+		MS::GBufferMeshes								= ShaderCompiler.CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl", MSEntryPoint, {});
+		MS::GBufferLights								= ShaderCompiler.CompileShader(Shader::Type::Mesh, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl", MSEntryPoint, {});
 	}
 
 	// Load PS
 	{
-		PS::ConvolutionIrradiance						= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionIrradiance.hlsl",	PSEntryPoint, {});
-		PS::ConvolutionPrefilter						= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",		PSEntryPoint, {});
+		PS::ConvolutionIrradiance						= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionIrradiance.hlsl",	PSEntryPoint, {});
+		PS::ConvolutionPrefilter						= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",		PSEntryPoint, {});
 
-		PS::GBufferMeshes								= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			PSEntryPoint, {});
-		PS::GBufferLights								= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",			PSEntryPoint, {});
+		PS::GBufferMeshes								= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			PSEntryPoint, {});
+		PS::GBufferLights								= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",			PSEntryPoint, {});
 
-		PS::PostProcess_Tonemapping						= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl",	PSEntryPoint, {});
+		PS::PostProcess_Tonemapping						= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl",	PSEntryPoint, {});
 	}
 
 	// Load CS
 	{
-		CS::EquirectangularToCubemap					= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/EquirectangularToCubemap.hlsl",	CSEntryPoint, {});
-		CS::GenerateMips								= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/GenerateMips.hlsl",				CSEntryPoint, {});
+		CS::EquirectangularToCubemap					= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/EquirectangularToCubemap.hlsl",	CSEntryPoint, {});
+		CS::GenerateMips								= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/GenerateMips.hlsl",				CSEntryPoint, {});
 
-		CS::SVGF_Reproject								= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_Reproject.hlsl",		CSEntryPoint, {});
-		CS::SVGF_FilterMoments							= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_FilterMoments.hlsl",	CSEntryPoint, {});
-		CS::SVGF_Atrous									= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_Atrous.hlsl",			CSEntryPoint, {});
+		CS::SVGF_Reproject								= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_Reproject.hlsl",		CSEntryPoint, {});
+		CS::SVGF_FilterMoments							= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_FilterMoments.hlsl",	CSEntryPoint, {});
+		CS::SVGF_Atrous									= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_Atrous.hlsl",			CSEntryPoint, {});
 
-		CS::ShadingComposition							= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/ShadingComposition.hlsl",			CSEntryPoint, {});
+		CS::ShadingComposition							= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/ShadingComposition.hlsl",			CSEntryPoint, {});
 
-		CS::Accumulation								= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Accumulation.hlsl",				CSEntryPoint, {});
+		CS::Accumulation								= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/Accumulation.hlsl",				CSEntryPoint, {});
 
-		CS::PostProcess_BloomMask						= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl",						CSEntryPoint, {});
-		CS::PostProcess_BloomDownsample					= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl",				CSEntryPoint, {});
-		CS::PostProcess_BloomBlur						= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl",						CSEntryPoint, {});
-		CS::PostProcess_BloomUpsampleBlurAccumulation	= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl",	CSEntryPoint, {});
-		CS::PostProcess_BloomComposition				= pRenderDevice->ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl",				CSEntryPoint, {});
+		CS::PostProcess_BloomMask						= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl",						CSEntryPoint, {});
+		CS::PostProcess_BloomDownsample					= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl",				CSEntryPoint, {});
+		CS::PostProcess_BloomBlur						= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl",						CSEntryPoint, {});
+		CS::PostProcess_BloomUpsampleBlurAccumulation	= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl",	CSEntryPoint, {});
+		CS::PostProcess_BloomComposition				= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl",				CSEntryPoint, {});
 	}
 }
 
-void Libraries::Register(RenderDevice* pRenderDevice)
+void Libraries::Register(const ShaderCompiler& ShaderCompiler)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 
-	Pathtracing			= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
-	//AmbientOcclusion	= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
-	Shading				= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Shading.hlsl");
-	Picking				= pRenderDevice->ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");
+	Pathtracing			= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
+	//AmbientOcclusion	= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/AmbientOcclusion.hlsl");
+	Shading				= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Shading.hlsl");
+	Picking				= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");
 }
 
 void RootSignatures::Register(RenderDevice* pRenderDevice)

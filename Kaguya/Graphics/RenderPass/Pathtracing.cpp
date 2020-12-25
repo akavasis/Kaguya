@@ -222,8 +222,7 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 		m_RayGenerationShaderTable,
 		m_MissShaderTable,
 		m_HitGroupShaderTable,
-		Properties.Width,
-		Properties.Height
+		Properties.Width, Properties.Height
 	);
 }
 

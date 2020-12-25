@@ -32,9 +32,16 @@ file(GLOB_RECURSE External_SourceList
 ../External/*.cpp
 )
 
-file(GLOB_RECURSE GLM_Submodule
-../Submodules/glm/*.h
-../Submodules/glm/*.hpp
+set(IMGUIZMO_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo)
+set(IMGUIZMO 	${IMGUIZMO_FILE_PATH}/ImCurveEdit.cpp
+		${IMGUIZMO_FILE_PATH}/ImCurveEdit.h
+		${IMGUIZMO_FILE_PATH}/ImGradient.cpp
+		${IMGUIZMO_FILE_PATH}/ImGradient.h
+		${IMGUIZMO_FILE_PATH}/ImGuizmo.cpp
+		${IMGUIZMO_FILE_PATH}/ImGuizmo.h
+		${IMGUIZMO_FILE_PATH}/ImSequencer.cpp
+		${IMGUIZMO_FILE_PATH}/ImSequencer.h
+		${IMGUIZMO_FILE_PATH}/ImZoomSlider.h
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${Main})
@@ -44,7 +51,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${HeaderList})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SourceList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_HeaderList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_SourceList})
-source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${GLM_Submodule})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${IMGUIZMO})
 
 foreach(Source IN LISTS SourceList)
     set_source_files_properties("${Source}" PROPERTIES COMPILE_FLAGS "/Yupch.h")
@@ -56,15 +63,16 @@ add_executable(${PROJECTNAME}
 ${Main}
 ${PCH_Header}
 ${PCH_Source}
-${HeaderList} 
+${HeaderList}
 ${SourceList}
 ${External_HeaderList}
 ${External_SourceList}
-${GLM_Submodule}
+${IMGUIZMO}
 )
 
 # Submodules
 include_directories("../Submodules/glm")
+include_directories("../Submodules/ImGuizmo")
 include_directories("../Submodules/wil/include")
 
 include_directories("../External/assimp/include")

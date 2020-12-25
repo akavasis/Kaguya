@@ -513,8 +513,6 @@ Scene GenerateScene(SampleScene SampleScene)
 	case SampleScene::PlaneWithTransparentSpheres:	return PlaneWithTransparentSpheres(materialLoader, modelLoader);
 
 	case SampleScene::PlaneWithLights:				return PlaneWithLights(materialLoader, modelLoader);
-
-	default:										assert(false && "Unknown Sample Scene");
 	}
 	return Scene();
 }

@@ -14,12 +14,18 @@ public:
 
 	static int Run(RenderSystem* pRenderSystem);
 
-	inline static std::filesystem::path			ExecutableFolderPath;
-	inline static Window*						pWindow					= nullptr;
+	static void Quit();
+
 private:
 	static DWORD WINAPI RenderThreadProc(_In_ PVOID pParameter);
 	static bool HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message);
 
+public:
+	inline static std::filesystem::path			ExecutableFolderPath;
+	inline static Window						Window;
+
+private:
+	inline static std::atomic<bool>				QuitApplication			= false;
 	inline static wil::unique_handle			RenderThread;
 	inline static std::atomic<bool>				ExitRenderThread		= false;
 };

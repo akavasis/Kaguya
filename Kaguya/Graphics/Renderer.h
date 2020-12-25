@@ -38,7 +38,7 @@ private:
 
 	Scene									m_Scene;
 	GpuScene*								m_pGpuScene							= nullptr;
-	INT										InstanceID;
+	INT										InstanceID							= -1; // Temporary, used to debug picking results
 
 	wil::unique_event						BuildAccelerationStructureEvent;
 	wil::unique_event						AccelerationStructureCompleteEvent;

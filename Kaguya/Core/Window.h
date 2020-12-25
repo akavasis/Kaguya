@@ -29,10 +29,12 @@ public:
 		}
 	};
 
-	Window(LPCWSTR WindowName,
+	Window() = default;
+	~Window();
+
+	void Create(LPCWSTR WindowName,
 		int Width = CW_USEDEFAULT, int Height = CW_USEDEFAULT,
 		int X = CW_USEDEFAULT, int Y = CW_USEDEFAULT);
-	~Window();
 
 	void EnableCursor();
 	void DisableCursor();
@@ -47,9 +49,6 @@ public:
 	void SetTitle(std::wstring Title);
 	void AppendToTitle(std::wstring Message);
 
-	Mouse						Mouse;
-	Keyboard					Keyboard;
-	ThreadSafeQueue<Message>	MessageQueue;
 private:
 	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -66,14 +65,20 @@ private:
 		~ImGuiContextManager();
 	};
 
+public:
+	Mouse						Mouse;
+	Keyboard					Keyboard;
+	ThreadSafeQueue<Message>	MessageQueue;
+
+private:
+	std::wstring				m_WindowName;
+	unsigned int				m_WindowWidth	= 0;
+	unsigned int				m_WindowHeight	= 0;
+	bool						m_CursorEnabled = true;
+
 	wil::unique_hicon			m_Icon;
 	wil::unique_hcursor			m_Cursor;
 	wil::unique_hwnd			m_WindowHandle;
-
-	std::wstring				m_WindowName;
-	unsigned int				m_WindowWidth;
-	unsigned int				m_WindowHeight;
-	bool						m_CursorEnabled;
 
 	ImGuiContextManager			m_ImGuiContextManager;
 };

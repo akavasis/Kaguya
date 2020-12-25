@@ -39,8 +39,7 @@ float3x3 GetTBNMatrix(float3 Normal)
 	return float3x3(Tangent, Bitangent, Normal);
 }
 
-// Returns a relative luminance of an input linear RGB color in the ITU-R BT.709 color space
-// \param RGB linear HDR RGB color in the ITU-R BT.709 color space
+// Returns a relative luminance of an input linear RGB color in the Rec. 709 color space
 float RGBToCIELuminance(float3 RGB)
 {
 	return dot(RGB, float3(0.212671f, 0.715160f, 0.072169f));

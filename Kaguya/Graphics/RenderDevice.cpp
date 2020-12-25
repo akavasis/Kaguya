@@ -3,22 +3,32 @@
 
 using Microsoft::WRL::ComPtr;
 
-RenderDevice::RenderDevice(const Window* pWindow)
+namespace D3D12Utility
+{
+	void FlushCommandQueue(UINT64 Value, ID3D12Fence* pFence, ID3D12CommandQueue* pCommandQueue, wil::unique_event& Event)
+	{
+		ThrowCOMIfFailed(pCommandQueue->Signal(pFence, Value));
+		ThrowCOMIfFailed(pFence->SetEventOnCompletion(Value, Event.get()));
+		Event.wait();
+	}
+}
+
+RenderDevice::RenderDevice(const Window& Window)
 {
 	InitializeDXGIObjects();
 
 	Device.Create(m_DXGIAdapter.Get());
-	GraphicsQueue.Create(Device.GetApiHandle(), D3D12_COMMAND_LIST_TYPE_DIRECT);
-	ComputeQueue.Create(Device.GetApiHandle(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
-	CopyQueue.Create(Device.GetApiHandle(), D3D12_COMMAND_LIST_TYPE_COPY);
+	GraphicsQueue.Create(Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	ComputeQueue.Create(Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	CopyQueue.Create(Device, D3D12_COMMAND_LIST_TYPE_COPY);
 
-	InitializeDXGISwapChain(pWindow);
+	InitializeDXGISwapChain(Window);
 
-	m_NonShaderVisibleCBSRUADescriptorHeap	= { Device.GetApiHandle(), NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false };
-	m_ShaderVisibleCBSRUADescriptorHeap		= { Device.GetApiHandle(), NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true };
-	m_SamplerDescriptorHeap					= { Device.GetApiHandle(), NumSamplerDescriptors, true };
-	m_RenderTargetDescriptorHeap			= { Device.GetApiHandle(), NumRenderTargetDescriptors };
-	m_DepthStencilDescriptorHeap			= { Device.GetApiHandle(), NumDepthStencilDescriptors };
+	m_NonShaderVisibleCBSRUADescriptorHeap	= { Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false };
+	m_ShaderVisibleCBSRUADescriptorHeap		= { Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true };
+	m_SamplerDescriptorHeap					= { Device, NumSamplerDescriptors, true };
+	m_RenderTargetDescriptorHeap			= { Device, NumRenderTargetDescriptors };
+	m_DepthStencilDescriptorHeap			= { Device, NumDepthStencilDescriptors };
 
 	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 0;
 
@@ -34,7 +44,7 @@ RenderDevice::RenderDevice(const Window* pWindow)
 	Descriptor ImGuiDescriptor = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
 
 	// Initialize ImGui for d3d12
-	ImGui_ImplDX12_Init(Device.GetApiHandle(), 1,
+	ImGui_ImplDX12_Init(Device, 1,
 		RenderDevice::SwapChainBufferFormat, m_ShaderVisibleCBSRUADescriptorHeap.GetApiHandle(),
 		ImGuiDescriptor.CpuHandle,
 		ImGuiDescriptor.GpuHandle);
@@ -103,7 +113,7 @@ void RenderDevice::Resize(UINT Width, UINT Height)
 
 CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
 {
-	m_CommandContexts[Type].push_back(std::make_unique<CommandContext>(Device.GetApiHandle(), Type));
+	m_CommandContexts[Type].push_back(std::make_unique<CommandContext>(Device, Type));
 	return m_CommandContexts[Type].back().get();
 }
 
@@ -135,25 +145,19 @@ void RenderDevice::ExecuteCommandContexts(CommandContext::Type Type, UINT NumCom
 void RenderDevice::FlushGraphicsQueue()
 {
 	UINT64 Value = ++GraphicsFenceValue;
-	ThrowCOMIfFailed(GraphicsQueue.GetApiHandle()->Signal(GraphicsFence.Get(), Value));
-	ThrowCOMIfFailed(GraphicsFence->SetEventOnCompletion(Value, GraphicsFenceCompletionEvent.get()));
-	GraphicsFenceCompletionEvent.wait();
+	D3D12Utility::FlushCommandQueue(Value, GraphicsFence.Get(), GraphicsQueue.GetApiHandle(), GraphicsFenceCompletionEvent);
 }
 
 void RenderDevice::FlushComputeQueue()
 {
 	UINT64 Value = ++ComputeFenceValue;
-	ThrowCOMIfFailed(ComputeQueue.GetApiHandle()->Signal(ComputeFence.Get(), Value));
-	ThrowCOMIfFailed(ComputeFence->SetEventOnCompletion(Value, ComputeFenceCompletionEvent.get()));
-	ComputeFenceCompletionEvent.wait();
+	D3D12Utility::FlushCommandQueue(Value, ComputeFence.Get(), ComputeQueue.GetApiHandle(), ComputeFenceCompletionEvent);
 }
 
 void RenderDevice::FlushCopyQueue()
 {
 	UINT64 Value = ++CopyFenceValue;
-	ThrowCOMIfFailed(CopyQueue.GetApiHandle()->Signal(CopyFence.Get(), Value));
-	ThrowCOMIfFailed(CopyFence->SetEventOnCompletion(Value, CopyFenceCompletionEvent.get()));
-	CopyFenceCompletionEvent.wait();
+	D3D12Utility::FlushCommandQueue(Value, CopyFence.Get(), CopyQueue.GetApiHandle(), CopyFenceCompletionEvent);
 }
 
 RenderResourceHandle RenderDevice::InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name)
@@ -249,7 +253,7 @@ void RenderDevice::CreateTexture(RenderResourceHandle Handle, Resource::Type Typ
 
 void RenderDevice::CreateHeap(RenderResourceHandle Handle, const D3D12_HEAP_DESC& Desc)
 {
-	auto pHeap = m_Heaps.CreateResource(Handle, Device.GetApiHandle(), Desc);
+	auto pHeap = m_Heaps.CreateResource(Handle, Device, Desc);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pHeap->GetApiHandle()->SetName(Name.data());
 }
@@ -261,7 +265,7 @@ void RenderDevice::CreateRootSignature(RenderResourceHandle Handle, std::functio
 	if (AddShaderLayoutRootParameters)
 		AddShaderLayoutRootParameterToBuilder(Builder);
 
-	auto pRootSignature = m_RootSignatures.CreateResource(Handle, Device.GetApiHandle(), Builder);
+	auto pRootSignature = m_RootSignatures.CreateResource(Handle, Device, Builder);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pRootSignature->GetApiHandle()->SetName(Name.data());
 }
@@ -271,7 +275,7 @@ void RenderDevice::CreateGraphicsPipelineState(RenderResourceHandle Handle, std:
 	GraphicsPipelineStateBuilder Builder = {};
 	Configurator(Builder);
 
-	auto pGraphicsPSO = m_PipelineStates.CreateResource(Handle, Device.GetApiHandle(), Builder);
+	auto pGraphicsPSO = m_PipelineStates.CreateResource(Handle, Device, Builder);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pGraphicsPSO->GetApiHandle()->SetName(Name.data());
 }
@@ -281,7 +285,7 @@ void RenderDevice::CreateComputePipelineState(RenderResourceHandle Handle, std::
 	ComputePipelineStateBuilder Builder = {};
 	Configurator(Builder);
 
-	auto pComputePSO = m_PipelineStates.CreateResource(Handle, Device.GetApiHandle(), Builder);
+	auto pComputePSO = m_PipelineStates.CreateResource(Handle, Device, Builder);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pComputePSO->GetApiHandle()->SetName(Name.data());
 }
@@ -291,7 +295,7 @@ void RenderDevice::CreateRaytracingPipelineState(RenderResourceHandle Handle, st
 	RaytracingPipelineStateBuilder Builder = {};
 	Configurator(Builder);
 
-	auto pRaytracingPSO = m_RaytracingPipelineStates.CreateResource(Handle, Device.GetApiHandle(), Builder);
+	auto pRaytracingPSO = m_RaytracingPipelineStates.CreateResource(Handle, Device, Builder);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pRaytracingPSO->GetApiHandle()->SetName(Name.data());
 }
@@ -801,12 +805,12 @@ void RenderDevice::InitializeDXGIObjects()
 	}
 }
 
-void RenderDevice::InitializeDXGISwapChain(const Window* pWindow)
+void RenderDevice::InitializeDXGISwapChain(const Window& Window)
 {
 	// Create DXGISwapChain
 	DXGI_SWAP_CHAIN_DESC1 Desc	= {};
-	Desc.Width					= pWindow->GetWindowWidth();
-	Desc.Height					= pWindow->GetWindowHeight();
+	Desc.Width					= Window.GetWindowWidth();
+	Desc.Height					= Window.GetWindowHeight();
 	Desc.Format					= SwapChainBufferFormat;
 	Desc.Stereo					= FALSE;
 	Desc.SampleDesc				= DefaultSampleDesc();
@@ -817,8 +821,8 @@ void RenderDevice::InitializeDXGISwapChain(const Window* pWindow)
 	Desc.AlphaMode				= DXGI_ALPHA_MODE_UNSPECIFIED;
 	Desc.Flags					= m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	ComPtr<IDXGISwapChain1> pSwapChain1;
-	ThrowCOMIfFailed(m_DXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetApiHandle(), pWindow->GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
-	ThrowCOMIfFailed(m_DXGIFactory->MakeWindowAssociation(pWindow->GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
+	ThrowCOMIfFailed(m_DXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetApiHandle(), Window.GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
+	ThrowCOMIfFailed(m_DXGIFactory->MakeWindowAssociation(Window.GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
 	ThrowCOMIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(m_DXGISwapChain.ReleaseAndGetAddressOf())));
 
 	m_BackBufferIndex = m_DXGISwapChain->GetCurrentBackBufferIndex();
@@ -862,6 +866,7 @@ void RenderDevice::AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& R
 
 		UnorderedAccessDescriptorTable.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, Flags, 0)); // g_RWTexture2DTable
 		UnorderedAccessDescriptorTable.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 101, Flags, 0)); // g_RWTexture2DArrayTable
+		UnorderedAccessDescriptorTable.AddDescriptorRange(DescriptorRange::Type::UAV, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 102, Flags, 0)); // g_RWByteAddressBufferTable
 	}
 	RootSignatureBuilder.AddRootDescriptorTableParameter(UnorderedAccessDescriptorTable);
 

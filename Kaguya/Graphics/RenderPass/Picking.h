@@ -7,6 +7,7 @@ public:
 	Picking();
 
 	INT GetInstanceID(RenderDevice* pRenderDevice);
+
 protected:
 	void InitializePipeline(RenderDevice* pRenderDevice) override;
 	void ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph) override;

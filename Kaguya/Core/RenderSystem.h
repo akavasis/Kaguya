@@ -20,7 +20,7 @@ public:
 
 	struct Settings
 	{
-		inline static bool		VSync				= false;
+		inline static bool		VSync				= true;
 	};
 
 	RenderSystem(uint32_t Width, uint32_t Height);
@@ -33,6 +33,7 @@ public:
 	void OnRender();
 	bool OnResize(uint32_t Width, uint32_t Height);
 	void OnDestroy();
+
 protected:
 	virtual bool Initialize() = 0;
 	virtual void Update(const Time& Time) = 0;
@@ -42,8 +43,9 @@ protected:
 	virtual bool Resize(uint32_t Width, uint32_t Height) = 0;
 	virtual void Destroy() = 0;
 
-	uint32_t Width;
-	uint32_t Height;
-	float AspectRatio;
-	bool Screenshot;
+protected:
+	uint32_t	Width;
+	uint32_t	Height;
+	float		AspectRatio;
+	bool		Screenshot;
 };

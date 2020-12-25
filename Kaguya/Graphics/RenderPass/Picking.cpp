@@ -211,8 +211,8 @@ void Picking::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		uint2 MousePosition;
 	} g_RenderPassData = {};
 
-	g_RenderPassData.MousePosition.x = Application::pWindow->Mouse.X();
-	g_RenderPassData.MousePosition.y = Application::pWindow->Mouse.Y();
+	g_RenderPassData.MousePosition.x = Application::Window.Mouse.X();
+	g_RenderPassData.MousePosition.y = Application::Window.Mouse.Y();
 
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
@@ -227,8 +227,7 @@ void Picking::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		m_RayGenerationShaderTable,
 		m_MissShaderTable,
 		m_HitGroupShaderTable,
-		1,
-		1
+		1, 1
 	);
 
 	RenderContext.CopyResource(m_PickingResultReadBack, m_PickingResult);

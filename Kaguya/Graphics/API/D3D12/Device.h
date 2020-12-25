@@ -7,6 +7,8 @@
 class Device
 {
 public:
+	operator auto() const { return m_ApiHandle.Get(); }
+
 	void Create(IDXGIAdapter4* pAdapter);
 
 	inline auto GetApiHandle() const { return m_ApiHandle.Get(); }

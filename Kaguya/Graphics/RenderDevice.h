@@ -68,7 +68,7 @@ public:
 	static constexpr DXGI_FORMAT DepthFormat			= DXGI_FORMAT_D32_FLOAT;
 	static constexpr DXGI_FORMAT DepthStencilFormat		= DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	RenderDevice(const Window* pWindow);
+	RenderDevice(const Window& pWindow);
 	~RenderDevice();
 
 	const std::wstring& GetAdapterDescription() const { return m_AdapterDescription; }
@@ -134,7 +134,7 @@ public:
 
 private:
 	void InitializeDXGIObjects();
-	void InitializeDXGISwapChain(const Window* pWindow);
+	void InitializeDXGISwapChain(const Window& pWindow);
 
 	CommandQueue& GetApiCommandQueue(CommandContext::Type Type);
 	void AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder);

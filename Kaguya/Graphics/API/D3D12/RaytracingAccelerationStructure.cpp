@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "RaytracingAccelerationStructure.h"
-#include "Device.h"
 #include "Buffer.h"
 #include "CommandContext.h"
 
@@ -27,7 +26,7 @@ void BottomLevelAccelerationStructure::AddGeometry(const RaytracingGeometryDesc&
 	RaytracingGeometryDescs.push_back(ApiDesc);
 }
 
-void BottomLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes)
+void BottomLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes)
 {
 	assert(pScratchSizeInBytes != nullptr);
 	assert(pResultSizeInBytes != nullptr);
@@ -40,7 +39,7 @@ void BottomLevelAccelerationStructure::ComputeMemoryRequirements(const Device* p
 	Desc.pGeometryDescs											= RaytracingGeometryDescs.data();
 
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO PrebuildInfo = {};
-	pDevice->GetApiHandle()->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
+	pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
 
 	// Buffer sizes need to be 256-byte-aligned
 	ScratchSizeInBytes		= Math::AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
@@ -82,6 +81,7 @@ void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext,
 	// hierarchy may be called right afterwards, before executing the command
 	// list.
 	pCommandContext->UAVBarrier(pResult);
+	pCommandContext->FlushResourceBarriers();
 }
 
 TopLevelAccelerationStructure::TopLevelAccelerationStructure()
@@ -104,7 +104,7 @@ void TopLevelAccelerationStructure::AddInstance(const RaytracingInstanceDesc& De
 	RaytracingInstanceDescs.push_back(ApiDesc);
 }
 
-void TopLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes)
+void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes)
 {
 	// Describe the work being requested, in this case the construction of a
 	// (possibly dynamic) top-level hierarchy, with the given instance descriptors
@@ -122,7 +122,7 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(const Device* pDev
 	// well as space to store the resulting structure This function computes a
 	// conservative estimate of the memory requirements for both, based on the
 	// number of bottom-level instances.
-	pDevice->GetApiHandle()->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
+	pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
 
 	// Buffer sizes need to be 256-byte-aligned
 	ScratchSizeInBytes			= Math::AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
@@ -182,4 +182,5 @@ void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Bu
 	// buffer. This can be important in case the rendering is triggered
 	// immediately afterwards, without executing the command list
 	pCommandContext->UAVBarrier(pResult);
+	pCommandContext->FlushResourceBarriers();
 }

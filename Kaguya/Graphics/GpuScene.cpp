@@ -356,7 +356,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	}
 
 	UINT64 ScratchSizeInBytes, ResultSizeInBytes, InstanceDescsSizeInBytes;
-	TopLevelAccelerationStructure.ComputeMemoryRequirements(&pRenderDevice->Device, &ScratchSizeInBytes, &ResultSizeInBytes, &InstanceDescsSizeInBytes);
+	TopLevelAccelerationStructure.ComputeMemoryRequirements(pRenderDevice->Device, &ScratchSizeInBytes, &ResultSizeInBytes, &InstanceDescsSizeInBytes);
 
 	Buffer* pScratch = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch);
 	Buffer* pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
@@ -452,7 +452,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
 		UINT64 scratchSizeInBytes, resultSizeInBytes;
-		rtblas.BLAS.ComputeMemoryRequirements(&pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
+		rtblas.BLAS.ComputeMemoryRequirements(pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
 
 		// BLAS Scratch
 		pRenderDevice->CreateBuffer(rtblas.Scratch, [=](BufferProxy& proxy)

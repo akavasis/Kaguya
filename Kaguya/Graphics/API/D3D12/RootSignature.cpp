@@ -40,6 +40,7 @@ void RootDescriptorTable::AddDescriptorRange(DescriptorRange::Type Type, const D
 
 	m_DescriptorRanges.push_back(Range1);
 
+	// Revalidate pointers in case of reallocation of memory
 	m_RootParameter.DescriptorTable.NumDescriptorRanges = m_DescriptorRanges.size();
 	m_RootParameter.DescriptorTable.pDescriptorRanges	= m_DescriptorRanges.data();
 }
