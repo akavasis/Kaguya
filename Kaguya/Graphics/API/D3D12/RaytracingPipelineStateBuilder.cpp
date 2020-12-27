@@ -111,10 +111,9 @@ void RaytracingPipelineStateBuilder::AddHitGroup(LPCWSTR pHitGroupName, LPCWSTR 
 	m_HitGroups.emplace_back(HitGroup(pHitGroupName, pAnyHitSymbol, pClosestHitSymbol, pIntersectionSymbol));
 
 	// 3 different shaders can be invoked to obtain an intersection: an
-	// intersection shader is called
-	// when hitting the bounding box of non-triangular geometry. This is beyond
-	// the scope of this tutorial. An any-hit shader is called on potential
-	// intersections. This shader can, for example, perform alpha-testing and
+	// intersection shader is called when hitting the bounding box of non-triangular geometry.
+	// An any-hit shader is called on potential intersections. 
+	// This shader can, for example, perform alpha-testing and
 	// discard some intersections. Finally, the closest-hit program is invoked on
 	// the intersection point closest to the ray origin. Those 3 shaders are bound
 	// together into a hit group.

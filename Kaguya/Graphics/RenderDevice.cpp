@@ -75,6 +75,7 @@ void RenderDevice::Present(bool VSync)
 	HRESULT hr				= m_DXGISwapChain->Present(SyncInterval, PresentFlags);
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
+		// TODO: Handle device removal
 		LOG_ERROR("DXGI_ERROR_DEVICE_REMOVED");
 	}
 

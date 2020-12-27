@@ -3,6 +3,8 @@
 #include "Buffer.h"
 #include "CommandContext.h"
 
+using namespace DirectX;
+
 BottomLevelAccelerationStructure::BottomLevelAccelerationStructure()
 {
 	ScratchSizeInBytes = ResultSizeInBytes = 0;
@@ -93,8 +95,7 @@ TopLevelAccelerationStructure::TopLevelAccelerationStructure()
 void TopLevelAccelerationStructure::AddInstance(const RaytracingInstanceDesc& Desc)
 {
 	D3D12_RAYTRACING_INSTANCE_DESC ApiDesc		= {};
-	auto Transform = DirectX::XMMatrixTranspose(Desc.Transform);
-	memcpy(ApiDesc.Transform, &Transform, sizeof(ApiDesc.Transform));
+	XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(ApiDesc.Transform), Desc.Transform);
 	ApiDesc.InstanceID							= Desc.InstanceID;
 	ApiDesc.InstanceMask						= Desc.InstanceMask;
 	ApiDesc.InstanceContributionToHitGroupIndex = Desc.InstanceContributionToHitGroupIndex;

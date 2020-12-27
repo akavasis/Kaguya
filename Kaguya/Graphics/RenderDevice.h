@@ -1,14 +1,16 @@
 #pragma once
+
 #include <wil/resource.h>
 #include <wrl/client.h>
 #include <d3d12.h>
 
 #include <functional>
+#include <unordered_map>
+
 #include <Template/Pool.h>
+
 #include "RenderResourceHandle.h"
 #include "RenderResourceHandleRegistry.h"
-#include "RenderBuffer.h"
-#include "RenderTexture.h"
 #include "RenderResourceContainer.h"
 
 #include "API/D3D12/Device.h"
@@ -42,6 +44,22 @@ struct RootParameters
 			NumRootParameters
 		};
 	};
+};
+
+struct RenderBuffer
+{
+	Buffer* pBuffer;
+	Descriptor ShaderResourceView;
+	Descriptor UnorderedAccessView;
+};
+
+struct RenderTexture
+{
+	Texture* pTexture;
+	std::unordered_map<UINT64, Descriptor> ShaderResourceViews;
+	std::unordered_map<UINT64, Descriptor> UnorderedAccessViews;
+	std::unordered_map<UINT64, Descriptor> RenderTargetViews;
+	std::unordered_map<UINT64, Descriptor> DepthStencilViews;
 };
 
 /*
@@ -191,6 +209,7 @@ private:
 	Pool<void, NumRenderTargetDescriptors>						m_RenderTargetDescriptorIndexPool;
 	Pool<void, NumDepthStencilDescriptors>						m_DepthStencilDescriptorIndexPool;
 
+	// Resource descriptor containers
 	std::unordered_map<RenderResourceHandle, RenderBuffer>		m_RenderBuffers;
 	std::unordered_map<RenderResourceHandle, RenderTexture>		m_RenderTextures;
 };
