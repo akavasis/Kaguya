@@ -7,3 +7,6 @@
 [submodule "Submodules/ImGuizmo"]
 	path = Submodules/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "Submodules/spdlog"]
+	path = Submodules/spdlog
+	url = https://github.com/gabime/spdlog.git
