@@ -3,8 +3,8 @@
 #include "Core/Window.h"
 #include "Core/Time.h"
 
-#include <wincodec.h>
-#include <ScreenGrab.h>
+#include <wincodec.h> // GUID_ContainerFormatJpeg, needed for ScreenGrab
+#include <ScreenGrab.h> // DirectX::SaveWICTextureToFile
 
 #include "RendererRegistry.h"
 

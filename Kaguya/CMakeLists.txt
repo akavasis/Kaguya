@@ -32,16 +32,39 @@ file(GLOB_RECURSE External_SourceList
 ../External/*.cpp
 )
 
+set(IMGUI_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/imgui)
+set(IMGUI 		${IMGUI_FILE_PATH}/imconfig.h
+				${IMGUI_FILE_PATH}/imgui.cpp
+				${IMGUI_FILE_PATH}/imgui.h
+				${IMGUI_FILE_PATH}/imgui_demo.cpp
+				${IMGUI_FILE_PATH}/imgui_draw.cpp
+				${IMGUI_FILE_PATH}/imgui_internal.h
+				${IMGUI_FILE_PATH}/imgui_tables.cpp
+				${IMGUI_FILE_PATH}/imgui_widgets.cpp
+				${IMGUI_FILE_PATH}/imstb_rectpack.h
+				${IMGUI_FILE_PATH}/imstb_textedit.h
+				${IMGUI_FILE_PATH}/imstb_truetype.h
+				# Backend
+				${IMGUI_FILE_PATH}/backends/imgui_impl_dx12.cpp
+				${IMGUI_FILE_PATH}/backends/imgui_impl_dx12.h
+				${IMGUI_FILE_PATH}/backends/imgui_impl_win32.cpp
+				${IMGUI_FILE_PATH}/backends/imgui_impl_win32.h
+)
+
 set(IMGUIZMO_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo)
 set(IMGUIZMO 	${IMGUIZMO_FILE_PATH}/ImCurveEdit.cpp
-		${IMGUIZMO_FILE_PATH}/ImCurveEdit.h
-		${IMGUIZMO_FILE_PATH}/ImGradient.cpp
-		${IMGUIZMO_FILE_PATH}/ImGradient.h
-		${IMGUIZMO_FILE_PATH}/ImGuizmo.cpp
-		${IMGUIZMO_FILE_PATH}/ImGuizmo.h
-		${IMGUIZMO_FILE_PATH}/ImSequencer.cpp
-		${IMGUIZMO_FILE_PATH}/ImSequencer.h
-		${IMGUIZMO_FILE_PATH}/ImZoomSlider.h
+				${IMGUIZMO_FILE_PATH}/ImCurveEdit.h
+				${IMGUIZMO_FILE_PATH}/ImGradient.cpp
+				${IMGUIZMO_FILE_PATH}/ImGradient.h
+				${IMGUIZMO_FILE_PATH}/ImGuizmo.cpp
+				${IMGUIZMO_FILE_PATH}/ImGuizmo.h
+				${IMGUIZMO_FILE_PATH}/ImSequencer.cpp
+				${IMGUIZMO_FILE_PATH}/ImSequencer.h
+				${IMGUIZMO_FILE_PATH}/ImZoomSlider.h
+)
+
+set(SPDLOG_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/spdlog)
+set(SPDLOG 	${SPDLOG_FILE_PATH}/include/spdlog/spdlog.h
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${Main})
@@ -52,6 +75,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SourceList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_HeaderList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_SourceList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${IMGUIZMO})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${IMGUI})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SPDLOG})
 
 foreach(Source IN LISTS SourceList)
     set_source_files_properties("${Source}" PROPERTIES COMPILE_FLAGS "/Yupch.h")
@@ -67,13 +92,17 @@ ${HeaderList}
 ${SourceList}
 ${External_HeaderList}
 ${External_SourceList}
+${IMGUI}
 ${IMGUIZMO}
+${SPDLOG}
 )
 
 # Submodules
-include_directories("../Submodules/glm")
-include_directories("../Submodules/ImGuizmo")
-include_directories("../Submodules/wil/include")
+include_directories("${CMAKE_SOURCE_DIR}/Submodules/glm")
+include_directories("${CMAKE_SOURCE_DIR}/Submodules/imgui")
+include_directories("${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo")
+include_directories("${CMAKE_SOURCE_DIR}/Submodules/spdlog/include")
+include_directories("${CMAKE_SOURCE_DIR}/Submodules/wil/include")
 
 include_directories("../External/assimp/include")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/assimp/lib/Release/assimp-vc142-mt.lib)

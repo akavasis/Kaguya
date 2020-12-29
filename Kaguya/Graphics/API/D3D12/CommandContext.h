@@ -105,7 +105,6 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pCommandList;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pPendingCommandList;
-	std::atomic<bool>									m_Closed;
 	Type												m_Type;
 
 	// Resource state tracker for this command list

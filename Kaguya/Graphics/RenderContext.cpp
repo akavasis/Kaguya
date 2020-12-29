@@ -114,31 +114,29 @@ void RenderContext::DispatchRays
 )
 {
 	D3D12_DISPATCH_RAYS_DESC Desc = {};
+	auto pRayGenerationShaderTable					= SV_pRenderDevice->GetBuffer(RayGenerationShaderTable);
+	Desc.RayGenerationShaderRecord.StartAddress		= pRayGenerationShaderTable->GetGpuVirtualAddress();
+	Desc.RayGenerationShaderRecord.SizeInBytes		= pRayGenerationShaderTable->GetMemoryRequested();
+
+	if (MissShaderTable)
 	{
-		auto pRayGenerationShaderTable					= SV_pRenderDevice->GetBuffer(RayGenerationShaderTable);
-		Desc.RayGenerationShaderRecord.StartAddress		= pRayGenerationShaderTable->GetGpuVirtualAddress();
-		Desc.RayGenerationShaderRecord.SizeInBytes		= pRayGenerationShaderTable->GetMemoryRequested();
-
-		if (MissShaderTable)
-		{
-			auto pMissShaderTable						= SV_pRenderDevice->GetBuffer(MissShaderTable);
-			Desc.MissShaderTable.StartAddress			= pMissShaderTable->GetGpuVirtualAddress();
-			Desc.MissShaderTable.SizeInBytes			= pMissShaderTable->GetMemoryRequested();
-			Desc.MissShaderTable.StrideInBytes			= pMissShaderTable->GetStride();
-		}
-
-		if (HitGroupShaderTable)
-		{
-			auto pHitGroupShaderTable					= SV_pRenderDevice->GetBuffer(HitGroupShaderTable);
-			Desc.HitGroupTable.StartAddress				= pHitGroupShaderTable->GetGpuVirtualAddress();
-			Desc.HitGroupTable.SizeInBytes				= pHitGroupShaderTable->GetMemoryRequested();
-			Desc.HitGroupTable.StrideInBytes			= pHitGroupShaderTable->GetStride();
-		}
-
-		Desc.Width = Width;
-		Desc.Height = Height;
-		Desc.Depth = Depth;
+		auto pMissShaderTable						= SV_pRenderDevice->GetBuffer(MissShaderTable);
+		Desc.MissShaderTable.StartAddress			= pMissShaderTable->GetGpuVirtualAddress();
+		Desc.MissShaderTable.SizeInBytes			= pMissShaderTable->GetMemoryRequested();
+		Desc.MissShaderTable.StrideInBytes			= pMissShaderTable->GetStride();
 	}
+
+	if (HitGroupShaderTable)
+	{
+		auto pHitGroupShaderTable					= SV_pRenderDevice->GetBuffer(HitGroupShaderTable);
+		Desc.HitGroupTable.StartAddress				= pHitGroupShaderTable->GetGpuVirtualAddress();
+		Desc.HitGroupTable.SizeInBytes				= pHitGroupShaderTable->GetMemoryRequested();
+		Desc.HitGroupTable.StrideInBytes			= pHitGroupShaderTable->GetStride();
+	}
+
+	Desc.Width	= Width;
+	Desc.Height = Height;
+	Desc.Depth	= Depth;
 	SV_pCommandContext->DispatchRays(&Desc);
 }
 

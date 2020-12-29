@@ -26,6 +26,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 # Build
 - Visual Studio 2019
 - Windows SDK Version 10.0.19041.0
+- Windows 10 Version: 20H2
 - CMake Version 3.15
 
 # Bibliography

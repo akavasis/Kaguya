@@ -9,10 +9,9 @@ namespace Kaguya
 	{
 		PIXCapture::PIXCapture()
 		{
-			HRESULT hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphicsAnalysis));
+			::DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphicsAnalysis));
 			if (graphicsAnalysis)
 			{
-				LOG_INFO("PIX Capture begin");
 				graphicsAnalysis->BeginCapture();
 			}
 		}
@@ -21,7 +20,6 @@ namespace Kaguya
 		{
 			if (graphicsAnalysis)
 			{
-				LOG_INFO("PIX Capture end");
 				graphicsAnalysis->EndCapture();
 			}
 		}
