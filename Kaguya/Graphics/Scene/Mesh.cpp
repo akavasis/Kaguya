@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Model.h"
-#include <string>
+#include "Mesh.h"
+
 using namespace DirectX;
 
 void GenerateMeshletData(const std::vector<Vertex>& Vertices, const std::vector<uint32_t>& Indices, Mesh* pMesh)
@@ -59,29 +59,26 @@ void GenerateMeshletData(const std::vector<Vertex>& Vertices, const std::vector<
 	}
 }
 
-Model CreateFromProceduralGeometryData(std::string Name, std::vector<Vertex> Vertices, std::vector<uint32_t> Indices)
+Mesh CreateFromProceduralGeometryData(std::string Name, std::vector<Vertex> Vertices, std::vector<uint32_t> Indices)
 {
-	Model model = {};
-	model.Name = std::move(Name);
-	DirectX::BoundingBox::CreateFromPoints(model.BoundingBox, Vertices.size(), &Vertices[0].Position, sizeof(Vertex));
-	model.Vertices = std::move(Vertices);
-	model.Indices = std::move(Indices);
-
 	// Create mesh
-	Mesh mesh = {};
-	mesh.BoundingBox = model.BoundingBox;
-	mesh.IndexCount = model.Indices.size();
+	auto mesh = Mesh(Name);
+	BoundingBox::CreateFromPoints(mesh.BoundingBox, Vertices.size(), &Vertices[0].Position, sizeof(Vertex));
+
+	mesh.IndexCount = Indices.size();
 	mesh.StartIndexLocation = 0;
-	mesh.VertexCount = model.Vertices.size();
+	mesh.VertexCount = Vertices.size();
 	mesh.BaseVertexLocation = 0;
 
-	GenerateMeshletData(model.Vertices, model.Indices, &mesh);
+	mesh.Vertices = std::move(Vertices);
+	mesh.Indices = std::move(Indices);
 
-	model.Meshes.push_back(std::move(mesh));
-	return model;
+	GenerateMeshletData(mesh.Vertices, mesh.Indices, &mesh);
+
+	return mesh;
 }
 
-Model CreateBox(float Width, float Height, float Depth)
+Mesh CreateBox(float Width, float Height, float Depth)
 {
 	std::vector<Vertex> Vertices;
 	std::vector<uint32_t> Indices;
@@ -160,7 +157,7 @@ Model CreateBox(float Width, float Height, float Depth)
 	return CreateFromProceduralGeometryData("Box " + std::to_string(BOX_ID++), Vertices, Indices);
 }
 
-Model CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
+Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 {
 	assert(M != 1);
 	assert(N != 1);

@@ -175,12 +175,9 @@ void Picking::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 
 		ShaderIdentifier hitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
 
-		for (const auto& modelInstance : pGpuScene->pScene->ModelInstances)
+		for (const auto& meshInstance : pGpuScene->pScene->MeshInstances)
 		{
-			for (const auto& meshInstance : modelInstance.MeshInstances)
-			{
-				shaderTable.AddShaderRecord(hitGroupSID);
-			}
+			shaderTable.AddShaderRecord(hitGroupSID);
 		}
 
 		UINT64 shaderTableSizeInBytes, stride;

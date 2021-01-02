@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "ModelLoader.h"
+#include "SceneLoader.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -8,13 +8,13 @@
 
 static Assimp::Importer Importer;
 
-ModelLoader::ModelLoader(std::filesystem::path ExecutableFolderPath)
+SceneLoader::SceneLoader(std::filesystem::path ExecutableFolderPath)
 	: m_ExecutableFolderPath(ExecutableFolderPath)
 {
 
 }
 
-Model ModelLoader::LoadFromFile(const std::filesystem::path& Path) const
+Scene SceneLoader::LoadFromFile(const std::filesystem::path& Path) const
 {
 	std::filesystem::path filePath = m_ExecutableFolderPath / Path;
 	assert(std::filesystem::exists(filePath) && "File does not exist");
@@ -31,16 +31,14 @@ Model ModelLoader::LoadFromFile(const std::filesystem::path& Path) const
 		assert(false && "Assimp::Importer::ReadFile failed, check Assimp::Importer::GetErrorString for more info");
 	}
 
-	Model model = {};
-	model.Name = filePath.string();
+	Scene scene;
 
 	// Load meshes
-	model.Meshes.reserve(paiScene->mNumMeshes);
+	scene.Meshes.reserve(paiScene->mNumMeshes);
 	for (unsigned int meshIndex = 0; meshIndex < paiScene->mNumMeshes; ++meshIndex)
 	{
 		const aiMesh* paiMesh = paiScene->mMeshes[meshIndex];
-
-		Mesh mesh = {};
+		Mesh mesh = Mesh(paiMesh->mName.C_Str());
 
 		// Parse vertex data
 		std::vector<Vertex> vertices;
@@ -136,18 +134,16 @@ Model ModelLoader::LoadFromFile(const std::filesystem::path& Path) const
 
 		// Parse mesh indices
 		mesh.VertexCount = vertices.size();
-		mesh.BaseVertexLocation = model.Vertices.empty() ? 0 : model.Vertices.size();
+		mesh.BaseVertexLocation = 0;
 		mesh.IndexCount = indices.size();
-		mesh.StartIndexLocation = model.Indices.empty() ? 0 : model.Indices.size();
+		mesh.StartIndexLocation = 0;
 
 		// Insert data into model
-		model.Vertices.insert(model.Vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
-		model.Indices.insert(model.Indices.end(), std::make_move_iterator(indices.begin()), std::make_move_iterator(indices.end()));
+		mesh.Vertices = std::move(vertices);
+		mesh.Indices = std::move(indices);
 
-		model.Meshes.push_back(std::move(mesh));
+		DirectX::BoundingBox::CreateFromPoints(mesh.BoundingBox, mesh.Vertices.size(), &mesh.Vertices[0].Position, sizeof(Vertex));
 	}
 
-	DirectX::BoundingBox::CreateFromPoints(model.BoundingBox, model.Vertices.size(), &model.Vertices[0].Position, sizeof(Vertex));
-
-	return model;
+	return scene;
 }

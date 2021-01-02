@@ -9,9 +9,9 @@ BufferManager::BufferManager(RenderDevice* pRenderDevice)
 
 void BufferManager::Stage(Scene& Scene, RenderContext& RenderContext)
 {
-	for (auto& model : Scene.Models)
+	for (auto& Mesh : Scene.Meshes)
 	{
-		LoadModel(model);
+		LoadMesh(Mesh);
 	}
 
 	for (auto& [handle, stagingBuffer] : m_UnstagedBuffers)
@@ -46,142 +46,90 @@ BufferManager::StagingBuffer BufferManager::CreateStagingBuffer(D3D12_RESOURCE_D
 	return StagingBuffer;
 }
 
-void BufferManager::LoadModel(Model& Model)
+void BufferManager::LoadMesh(Mesh& Mesh)
 {
-	StageVertexResource(Model);
-	StageIndexResource(Model);
+	StageVertexResource(Mesh);
+	StageIndexResource(Mesh);
 
-	Model.MeshletHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + " [Meshlet Heap]");
-	Model.VertexIndexHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + " [Vertex Index Heap]");
-	Model.PrimitiveIndexHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Model.Name + " [Primitive Index Heap]");
+	Mesh.MeshletResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Mesh.Name + " [Meshlet Resource]");
+	Mesh.VertexIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Mesh.Name + " [Vertex Index Resource]");
+	Mesh.PrimitiveIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Mesh.Name + " [Primitive Index Resource]");
 
-	std::vector<D3D12_RESOURCE_DESC> MeshletDescs;
-	std::vector<D3D12_RESOURCE_DESC> VertexIndexDescs;
-	std::vector<D3D12_RESOURCE_DESC> PrimitiveIndexDescs;
+	UINT64 MeshletResourceSizeInBytes = Mesh.Meshlets.size() * sizeof(Meshlet);
+	UINT64 VertexIndexResourceSizeInBytes = Mesh.VertexIndices.size() * sizeof(uint32_t);
+	UINT64 PrimitiveIndexResourceSizeInBytes = Mesh.PrimitiveIndices.size() * sizeof(MeshletPrimitive);
 
-	for (const auto& mesh : Model)
+	D3D12_RESOURCE_DESC MeshletDesc = CD3DX12_RESOURCE_DESC::Buffer(MeshletResourceSizeInBytes);
+	D3D12_RESOURCE_DESC VertexIndexDesc = CD3DX12_RESOURCE_DESC::Buffer(VertexIndexResourceSizeInBytes);
+	D3D12_RESOURCE_DESC PrimitiveIndexDesc = CD3DX12_RESOURCE_DESC::Buffer(PrimitiveIndexResourceSizeInBytes);
+
+	// Create MeshletResource
 	{
-		UINT64 MeshletResourceSizeInBytes = mesh.Meshlets.size() * sizeof(Meshlet);
-		UINT64 VertexIndexResourceSizeInBytes = mesh.VertexIndices.size() * sizeof(uint32_t);
-		UINT64 PrimitiveIndexResourceSizeInBytes = mesh.PrimitiveIndices.size() * sizeof(MeshletPrimitive);
-
-		MeshletDescs.push_back(CD3DX12_RESOURCE_DESC::Buffer(MeshletResourceSizeInBytes));
-		VertexIndexDescs.push_back(CD3DX12_RESOURCE_DESC::Buffer(VertexIndexResourceSizeInBytes));
-		PrimitiveIndexDescs.push_back(CD3DX12_RESOURCE_DESC::Buffer(PrimitiveIndexResourceSizeInBytes));
-	}
-
-	// Create MeshletHeap and MeshletResource
-	{
-		std::vector<D3D12_RESOURCE_ALLOCATION_INFO1> ResourceAllocationInfo1(MeshletDescs.size());
-		auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, MeshletDescs.size(), MeshletDescs.data(), ResourceAllocationInfo1.data());
-
-		auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS);
-		pRenderDevice->CreateHeap(Model.MeshletHeap, HeapDesc);
-
-		for (size_t i = 0; i < Model.Meshes.size(); ++i)
+		pRenderDevice->CreateBuffer(Mesh.MeshletResource, [&](BufferProxy& proxy)
 		{
-			auto& mesh = Model.Meshes[i];
+			proxy.SetSizeInBytes(MeshletResourceSizeInBytes);
+			proxy.SetStride(sizeof(Meshlet));
+			proxy.InitialState = Resource::State::CopyDest;
+		});
 
-			mesh.MeshletResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + " Mesh[" + std::to_string(i) + "]" + " [Meshlet Resource]");
-
-			UINT64 HeapOffset = ResourceAllocationInfo1[i].Offset;
-			UINT64 SizeInBytes = ResourceAllocationInfo1[i].SizeInBytes;
-			pRenderDevice->CreateBuffer(mesh.MeshletResource, Model.MeshletHeap, HeapOffset, [&](BufferProxy& proxy)
-			{
-				proxy.SetSizeInBytes(SizeInBytes);
-				proxy.SetStride(sizeof(Meshlet));
-				proxy.InitialState = Resource::State::CopyDest;
-			});
-
-			m_UnstagedBuffers[mesh.MeshletResource] = CreateStagingBuffer(MeshletDescs[i], mesh.Meshlets.data());
-		}
+		m_UnstagedBuffers[Mesh.MeshletResource] = CreateStagingBuffer(MeshletDesc, Mesh.Meshlets.data());
 	}
 
 	// Create VertexIndexHeap and VertexIndexResource
 	{
-		std::vector<D3D12_RESOURCE_ALLOCATION_INFO1> ResourceAllocationInfo1(VertexIndexDescs.size());
-		auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, VertexIndexDescs.size(), VertexIndexDescs.data(), ResourceAllocationInfo1.data());
-
-		auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS);
-		pRenderDevice->CreateHeap(Model.VertexIndexHeap, HeapDesc);
-
-		for (size_t i = 0; i < Model.Meshes.size(); ++i)
+		pRenderDevice->CreateBuffer(Mesh.VertexIndexResource, [&](BufferProxy& proxy)
 		{
-			auto& mesh = Model.Meshes[i];
+			proxy.SetSizeInBytes(VertexIndexResourceSizeInBytes);
+			proxy.SetStride(sizeof(uint32_t));
+			proxy.InitialState = Resource::State::CopyDest;
+		});
 
-			mesh.VertexIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + " Mesh[" + std::to_string(i) + "]" + " [Vertex Index Resource]");
-
-			UINT64 HeapOffset = ResourceAllocationInfo1[i].Offset;
-			UINT64 SizeInBytes = ResourceAllocationInfo1[i].SizeInBytes;
-			pRenderDevice->CreateBuffer(mesh.VertexIndexResource, Model.VertexIndexHeap, HeapOffset, [&](BufferProxy& proxy)
-			{
-				proxy.SetSizeInBytes(SizeInBytes);
-				proxy.SetStride(sizeof(uint32_t));
-				proxy.InitialState = Resource::State::CopyDest;
-			});
-
-			m_UnstagedBuffers[mesh.VertexIndexResource] = CreateStagingBuffer(VertexIndexDescs[i], mesh.VertexIndices.data());
-		}
+		m_UnstagedBuffers[Mesh.VertexIndexResource] = CreateStagingBuffer(VertexIndexDesc, Mesh.VertexIndices.data());
 	}
 
 	// Create PrimitiveIndexHeap and PrimitiveIndexResource
 	{
-		std::vector<D3D12_RESOURCE_ALLOCATION_INFO1> ResourceAllocationInfo1(PrimitiveIndexDescs.size());
-		auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, PrimitiveIndexDescs.size(), PrimitiveIndexDescs.data(), ResourceAllocationInfo1.data());
-
-		auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS);
-		pRenderDevice->CreateHeap(Model.PrimitiveIndexHeap, HeapDesc);
-
-		for (size_t i = 0; i < Model.Meshes.size(); ++i)
+		pRenderDevice->CreateBuffer(Mesh.PrimitiveIndexResource, [&](BufferProxy& proxy)
 		{
-			auto& mesh = Model.Meshes[i];
+			proxy.SetSizeInBytes(PrimitiveIndexResourceSizeInBytes);
+			proxy.SetStride(sizeof(MeshletPrimitive));
+			proxy.InitialState = Resource::State::CopyDest;
+		});
 
-			mesh.PrimitiveIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + " Mesh[" + std::to_string(i) + "]" + " [Primitive Index Resource]");
-
-			UINT64 HeapOffset = ResourceAllocationInfo1[i].Offset;
-			UINT64 SizeInBytes = ResourceAllocationInfo1[i].SizeInBytes;
-			pRenderDevice->CreateBuffer(mesh.PrimitiveIndexResource, Model.PrimitiveIndexHeap, HeapOffset, [&](BufferProxy& proxy)
-			{
-				proxy.SetSizeInBytes(SizeInBytes);
-				proxy.SetStride(sizeof(MeshletPrimitive));
-				proxy.InitialState = Resource::State::CopyDest;
-			});
-
-			m_UnstagedBuffers[mesh.PrimitiveIndexResource] = CreateStagingBuffer(PrimitiveIndexDescs[i], mesh.PrimitiveIndices.data());
-		}
+		m_UnstagedBuffers[Mesh.PrimitiveIndexResource] = CreateStagingBuffer(PrimitiveIndexDesc, Mesh.PrimitiveIndices.data());
 	}
 }
 
-void BufferManager::StageVertexResource(Model& Model)
+void BufferManager::StageVertexResource(Mesh& Mesh)
 {
-	Model.VertexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + "[Vertex Resource]");
-	UINT64 VertexResourceSizeInBytes = Model.Vertices.size() * sizeof(Vertex);
+	Mesh.VertexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Mesh.Name + "[Vertex Resource]");
+	UINT64 VertexResourceSizeInBytes = Mesh.Vertices.size() * sizeof(Vertex);
 
-	pRenderDevice->CreateBuffer(Model.VertexResource, [=](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(Mesh.VertexResource, [=](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(VertexResourceSizeInBytes);
 		proxy.SetStride(sizeof(Vertex));
 		proxy.InitialState = Resource::State::CopyDest;
 	});
 
-	Buffer* pBuffer = pRenderDevice->GetBuffer(Model.VertexResource);
-	m_UnstagedBuffers[Model.VertexResource] = CreateStagingBuffer(pBuffer->GetApiHandle()->GetDesc(), Model.Vertices.data());
+	Buffer* pBuffer = pRenderDevice->GetBuffer(Mesh.VertexResource);
+	m_UnstagedBuffers[Mesh.VertexResource] = CreateStagingBuffer(pBuffer->GetApiHandle()->GetDesc(), Mesh.Vertices.data());
 }
 
-void BufferManager::StageIndexResource(Model& Model)
+void BufferManager::StageIndexResource(Mesh& Mesh)
 {
-	Model.IndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + "[Index Resource]");
-	UINT64 IndexResourceSizeInBytes = Model.Indices.size() * sizeof(uint32_t);
+	Mesh.IndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Mesh.Name + "[Index Resource]");
+	UINT64 IndexResourceSizeInBytes = Mesh.Indices.size() * sizeof(uint32_t);
 
-	pRenderDevice->CreateBuffer(Model.IndexResource, [=](BufferProxy& proxy)
+	pRenderDevice->CreateBuffer(Mesh.IndexResource, [=](BufferProxy& proxy)
 	{
 		proxy.SetSizeInBytes(IndexResourceSizeInBytes);
 		proxy.SetStride(sizeof(uint32_t));
 		proxy.InitialState = Resource::State::CopyDest;
 	});
 
-	Buffer* pBuffer = pRenderDevice->GetBuffer(Model.IndexResource);
-	m_UnstagedBuffers[Model.IndexResource] = CreateStagingBuffer(pBuffer->GetApiHandle()->GetDesc(), Model.Indices.data());
+	Buffer* pBuffer = pRenderDevice->GetBuffer(Mesh.IndexResource);
+	m_UnstagedBuffers[Mesh.IndexResource] = CreateStagingBuffer(pBuffer->GetApiHandle()->GetDesc(), Mesh.Indices.data());
 }
 
 void BufferManager::StageBuffer(RenderResourceHandle Handle, StagingBuffer& StagingBuffer, RenderContext& RenderContext)

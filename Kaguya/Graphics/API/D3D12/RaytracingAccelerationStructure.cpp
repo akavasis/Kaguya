@@ -30,9 +30,6 @@ void BottomLevelAccelerationStructure::AddGeometry(const RaytracingGeometryDesc&
 
 void BottomLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes)
 {
-	assert(pScratchSizeInBytes != nullptr);
-	assert(pResultSizeInBytes != nullptr);
-
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS Desc	= {};
 	Desc.Type													= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
 	Desc.Flags													= BuildFlags;

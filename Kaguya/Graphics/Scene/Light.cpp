@@ -1,17 +1,14 @@
 #include "pch.h"
 #include "Light.h"
 
-PolygonalLight::PolygonalLight(const char* pName)
+PolygonalLight::PolygonalLight(const std::string& Name)
+	: Name(Name),
+	Dirty(false)
 {
-	Name = pName;
-	Dirty = false;
-
 	Transform = {};
 	Color = { 1.0f, 1.0f, 1.0f };
 	SetDimension(1.0f, 1.0f);
 	SetLuminousPower(1000.0f);
-
-	GpuLightIndex = -1;
 }
 
 void PolygonalLight::RenderGui()
@@ -20,8 +17,8 @@ void PolygonalLight::RenderGui()
 	{
 		Dirty |= ImGui::DragFloat3("Position", &Transform.Position.x, 0.01f, -Math::Infinity, Math::Infinity);
 
-		Dirty |= ImGui::DragFloat3("Orientation", &EulerAngles.x, 0.01f, -Math::Infinity, Math::Infinity);
-		XMStoreFloat4(&Transform.Orientation, DirectX::XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&EulerAngles)));
+		//Dirty |= ImGui::DragFloat3("Orientation", &EulerAngles.x, 0.01f, -Math::Infinity, Math::Infinity);
+		//XMStoreFloat4(&Transform.Orientation, DirectX::XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&EulerAngles)));
 
 		Dirty |= ImGui::ColorEdit3("Color", &Color.x);
 		Dirty |= ImGui::DragFloat("Luminous Power", &LuminousPower, 5, 0, Math::Infinity, "%.3f lm");
@@ -50,9 +47,4 @@ void PolygonalLight::SetLuminousPower(Lumen LuminousPower)
 	// The luminance due to a point on a Lambertian emitter, emitted in any direction, is equal to its total
 	// luminous power divided by the emitter area A and the projected solid angle (Pi)
 	Luminance = LuminousPower / (Area * DirectX::XM_PI);
-}
-
-void PolygonalLight::SetGpuLightIndex(size_t GpuLightIndex)
-{
-	this->GpuLightIndex = GpuLightIndex;
 }

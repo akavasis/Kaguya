@@ -2,13 +2,6 @@
 #include <string>
 #include "SharedDefines.h"
 
-enum class TextureFlags
-{
-	Unknown,
-	Disk,
-	Embedded
-};
-
 enum MaterialModel
 {
 	LambertianModel,
@@ -35,6 +28,9 @@ enum TextureTypes
 
 struct Material
 {
+	Material(const std::string& Name);
+	void RenderGui();
+
 	std::string Name;
 	bool		Dirty;
 
@@ -47,8 +43,8 @@ struct Material
 	float		Metallic;
 	float		Fuzziness;
 	float		IndexOfRefraction;
-	uint		Model;
-	uint		UseAttributeAsValues; // If this is true, then the attributes above will be used rather than actual textures
+	int			Model;
+	bool		UseAttributes; // If this is true, then the attributes above will be used rather than actual textures
 
 	int			TextureIndices[NumTextureTypes];
 	int			TextureChannel[NumTextureTypes];
@@ -56,12 +52,6 @@ struct Material
 	struct Texture
 	{
 		std::string				Path;
-		std::size_t				EmbeddedIndex;
-		TextureFlags			Flag;
 	};
 	Texture Textures[NumTextureTypes];
-	size_t GpuMaterialIndex;
-
-	Material();
-	void RenderGui();
 };

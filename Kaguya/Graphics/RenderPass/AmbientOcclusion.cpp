@@ -131,12 +131,9 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 
 		ShaderIdentifier hitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
 
-		for (const auto& modelInstance : pGpuScene->pScene->ModelInstances)
+		for (const auto& meshInstance : pGpuScene->pScene->MeshInstances)
 		{
-			for (const auto& meshInstance : modelInstance.MeshInstances)
-			{
-				shaderTable.AddShaderRecord(hitGroupSID);
-			}
+			shaderTable.AddShaderRecord(hitGroupSID);
 		}
 
 		UINT64 shaderTableSizeInBytes; UINT stride;

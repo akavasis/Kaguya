@@ -401,27 +401,13 @@ void TextureManager::LoadMaterial(Material& Material)
 
 	for (unsigned int i = 0; i < NumTextureTypes; ++i)
 	{
-		switch (Material.Textures[i].Flag)
-		{
-		case TextureFlags::Unknown:
-		case TextureFlags::Disk:
-		{
-			bool SRGB = i == AlbedoIdx || i == EmissiveIdx;
+		bool SRGB = i == AlbedoIdx || i == EmissiveIdx;
 
-			RenderResourceHandle TextureHandle = Material.Textures[i].Path.empty() ? 
-				GetDefaultTextureHandleIfNoFilePathIsProvided(TextureTypes(i)) :
-				LoadFromFile(Material.Textures[i].Path, SRGB, true);
+		RenderResourceHandle TextureHandle = Material.Textures[i].Path.empty() ?
+			GetDefaultTextureHandleIfNoFilePathIsProvided(TextureTypes(i)) :
+			LoadFromFile(Material.Textures[i].Path, SRGB, true);
 
-			Material.TextureIndices[i] = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
-		}
-		break;
-
-		case TextureFlags::Embedded:
-		{
-			assert(false && "Embedded Texture currently not supported"); // Currently not supported
-		}
-		break;
-		}
+		Material.TextureIndices[i] = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
 	}
 }
 

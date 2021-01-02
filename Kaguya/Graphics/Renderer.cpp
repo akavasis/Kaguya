@@ -21,7 +21,7 @@
 
 #include "Scene/SampleScene.h"
 
-#define SHOW_IMGUI_DEMO_WINDOW 0
+#define SHOW_IMGUI_DEMO_WINDOW 1
 
 //----------------------------------------------------------------------------------------------------
 Renderer::Renderer()

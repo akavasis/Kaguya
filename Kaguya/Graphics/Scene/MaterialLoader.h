@@ -6,14 +6,17 @@
 class MaterialLoader
 {
 public:
-	MaterialLoader(std::filesystem::path ExecutableFolderPath);
+	MaterialLoader(const std::filesystem::path& ExecutableFolderPath);
 
-	[[nodiscard]] Material LoadMaterial(
+	[[nodiscard]] Material LoadMaterial
+	(
+		const std::string& Name,
 		const char* pAlbedoMapPath,
 		const char* pNormalMapPath,
 		const char* pRoughnessMapPath,
 		const char* pMetallicMapPath,
-		const char* pEmissiveMapPath) const;
+		const char* pEmissiveMapPath
+	) const;
 private:
 	std::filesystem::path m_ExecutableFolderPath;
 };

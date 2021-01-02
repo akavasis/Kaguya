@@ -22,9 +22,9 @@ private:
 
 	StagingBuffer CreateStagingBuffer(D3D12_RESOURCE_DESC Desc, const void* pData);
 
-	void LoadModel(Model& Model);
-	void StageVertexResource(Model& Model);
-	void StageIndexResource(Model& Model);
+	void LoadMesh(Mesh& Mesh);
+	void StageVertexResource(Mesh& Mesh);
+	void StageIndexResource(Mesh& Mesh);
 	void StageBuffer(RenderResourceHandle Handle, StagingBuffer& StagingBuffer, RenderContext& RenderContext);
 
 	RenderDevice*											pRenderDevice;

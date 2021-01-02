@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "GpuScene.h"
 
+using namespace DirectX;
+
 #define RAYTRACING_INSTANCEMASK_ALL 	(0xff)
 #define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
 #define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
@@ -17,15 +19,15 @@ namespace
 
 HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
 {
-	using namespace DirectX;
-
 	XMMATRIX Transform = Light.Transform.Matrix();
 
-	matrix World; XMStoreFloat4x4(&World, XMMatrixTranspose(Transform));
-	float4 Orientation; XMStoreFloat4(&Orientation, DirectX::XMVector3Normalize(Light.Transform.Forward()));
+	matrix World;
+	XMStoreFloat4x4(&World, XMMatrixTranspose(Transform));
+	float4 Orientation;
+	XMStoreFloat4(&Orientation, DirectX::XMVector3Normalize(Light.Transform.Forward()));
 	float3 Points[4];
-	float halfWidth = Light.GetWidth() * 0.5f;
-	float halfHeight = Light.GetHeight() * 0.5f;
+	float halfWidth = Light.Width * 0.5f;
+	float halfHeight = Light.Height * 0.5f;
 	// Get billboard points at the origin
 	XMVECTOR p0 = XMVectorSet(+halfWidth, -halfHeight, 0, 1);
 	XMVECTOR p1 = XMVectorSet(+halfWidth, +halfHeight, 0, 1);
@@ -48,9 +50,9 @@ HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
 		.Orientation	= Orientation,
 		.World			= World,
 		.Color			= Light.Color,
-		.Luminance		= Light.GetLuminance(),
-		.Width			= Light.GetWidth(),
-		.Height			= Light.GetHeight(),
+		.Luminance		= Light.Luminance,
+		.Width			= Light.Width,
+		.Height			= Light.Height,
 		.Points =
 		{
 			points[0],
@@ -74,8 +76,8 @@ HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 		.Metallic				= Material.Metallic,
 		.Fuzziness				= Material.Fuzziness,
 		.IndexOfRefraction		= Material.IndexOfRefraction,
-		.Model					= Material.Model,
-		.UseAttributeAsValues	= Material.UseAttributeAsValues, // If this is true, then the attributes above will be used rather than actual textures
+		.Model					= (uint)Material.Model,
+		.UseAttributeAsValues	= (uint)Material.UseAttributes, // If this is true, then the attributes above will be used rather than actual textures
 		.TextureIndices			=
 		{
 			Material.TextureIndices[0],
@@ -95,15 +97,17 @@ HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 	};
 }
 
-HLSL::Mesh GetHLSLMeshDesc(size_t MaterialIndex, const MeshInstance& MeshInstance)
+HLSL::Mesh GetHLSLMeshDesc(const Mesh& Mesh, const Material& Material, const MeshInstance& MeshInstance)
 {
-	matrix World;			XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
-	matrix PreviousWorld;	XMStoreFloat4x4(&PreviousWorld, XMMatrixTranspose(MeshInstance.PreviousTransform.Matrix()));
+	matrix World;
+	XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
+	matrix PreviousWorld;
+	XMStoreFloat4x4(&PreviousWorld, XMMatrixTranspose(MeshInstance.PreviousTransform.Matrix()));
 	return
 	{
-		.VertexOffset = MeshInstance.pMesh->BaseVertexLocation,
-		.IndexOffset = MeshInstance.pMesh->StartIndexLocation,
-		.MaterialIndex = (uint32_t)MaterialIndex,
+		.VertexOffset = Mesh.BaseVertexLocation,
+		.IndexOffset = Mesh.StartIndexLocation,
+		.MaterialIndex = (uint32_t)MeshInstance.MaterialIndex,
 		.World = World,
 		.PreviousWorld = PreviousWorld
 	};
@@ -217,11 +221,11 @@ void GpuScene::UploadLights()
 {
 	auto pLightTable = pRenderDevice->GetBuffer(m_LightTable);
 
-	std::vector<HLSL::PolygonalLight> hlslLights; hlslLights.reserve(pScene->Lights.size());
-	for (auto& light : pScene->Lights)
-	{
-		light.SetGpuLightIndex(hlslLights.size());
+	std::vector<HLSL::PolygonalLight> hlslLights;
+	hlslLights.reserve(pScene->Lights.size());
 
+	for (auto [i, light] : enumerate(pScene->Lights))
+	{
 		hlslLights.push_back(GetHLSLLightDesc(light));
 	}
 
@@ -234,12 +238,11 @@ void GpuScene::UploadMaterials()
 {
 	auto pMaterialTable = pRenderDevice->GetBuffer(m_MaterialTable);
 
-	std::vector<HLSL::Material> hlslMaterials; hlslMaterials.reserve(pScene->Materials.size());
-	for (auto& material : pScene->Materials)
-	{
-		material.GpuMaterialIndex = hlslMaterials.size();
+	std::vector<HLSL::Material> hlslMaterials(pScene->Materials.size());
 
-		hlslMaterials.push_back(GetHLSLMaterialDesc(material));
+	for (auto [i, material] : enumerate(pScene->Materials))
+	{
+		hlslMaterials[i] = GetHLSLMaterialDesc(material);
 	}
 
 	auto pGPU = pMaterialTable->Map();
@@ -251,16 +254,17 @@ void GpuScene::UploadMeshes()
 {
 	auto pMeshTable = pRenderDevice->GetBuffer(m_MeshTable);
 
-	std::vector<HLSL::Mesh> hlslMeshes;
-	for (auto& modelInstance : pScene->ModelInstances)
-	{
-		for (auto& meshInstance : modelInstance.MeshInstances)
-		{
-			// InstanceID will be used to find the data for this instance in shader
-			meshInstance.InstanceID = hlslMeshes.size();
+	std::vector<HLSL::Mesh> hlslMeshes(pScene->MeshInstances.size());
 
-			hlslMeshes.push_back(GetHLSLMeshDesc(modelInstance.pMaterial->GpuMaterialIndex, meshInstance));
-		}
+	for (auto [i, meshInstance] : enumerate(pScene->MeshInstances))
+	{
+		// InstanceID will be used to find the data for this instance in shader
+		meshInstance.InstanceID = i;
+
+		const auto& mesh = pScene->Meshes[meshInstance.MeshIndex];
+		const auto& material = pScene->Materials[meshInstance.MaterialIndex];
+
+		hlslMeshes[i] = GetHLSLMeshDesc(mesh, material, meshInstance);
 	}
 
 	auto pGPU = pMeshTable->Map();
@@ -292,21 +296,21 @@ bool GpuScene::Update(float AspectRatio)
 	bool Refresh = false;
 
 	auto pLightTable = pRenderDevice->GetBuffer(m_LightTable);
-	for (auto& light : pScene->Lights)
+	for (auto [i, light] : enumerate(pScene->Lights))
 	{
-		if (light.IsDirty())
+		if (light.Dirty)
 		{
 			Refresh |= true;
 
-			light.ResetDirtyFlag();
+			light.Dirty = false;
 
 			HLSL::PolygonalLight hlslPolygonalLight = GetHLSLLightDesc(light);
-			pLightTable->Update<HLSL::PolygonalLight>(light.GetGpuLightIndex(), hlslPolygonalLight);
+			pLightTable->Update<HLSL::PolygonalLight>(i, hlslPolygonalLight);
 		}
 	}
 
 	auto pMaterialTable = pRenderDevice->GetBuffer(m_MaterialTable);
-	for (auto& material : pScene->Materials)
+	for (auto [i, material] : enumerate(pScene->Materials))
 	{
 		if (material.Dirty)
 		{
@@ -315,7 +319,7 @@ bool GpuScene::Update(float AspectRatio)
 			material.Dirty = false;
 
 			HLSL::Material hlslMaterial = GetHLSLMaterialDesc(material);
-			pMaterialTable->Update<HLSL::Material>(material.GpuMaterialIndex, hlslMaterial);
+			pMaterialTable->Update<HLSL::Material>(i, hlslMaterial);
 		}
 	}
 
@@ -334,25 +338,24 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
 
 	size_t HitGroupIndex = 0;
-	for (const auto& modelInstance : pScene->ModelInstances)
+	for (const auto& meshInstance : pScene->MeshInstances)
 	{
-		for (const auto& meshInstance : modelInstance.MeshInstances)
-		{
-			RTBLAS& RTBLAS = m_RaytracingBottomLevelAccelerationStructures[meshInstance.pMesh->BottomLevelAccelerationStructureIndex];
-			Buffer* pBLAS = pRenderDevice->GetBuffer(RTBLAS.Result);
+		const auto& mesh = pScene->Meshes[meshInstance.MeshIndex];
 
-			RaytracingInstanceDesc Desc					= {};
-			Desc.AccelerationStructure					= pBLAS->GetGpuVirtualAddress();
-			Desc.Transform								= meshInstance.Transform.Matrix();
-			Desc.InstanceID								= meshInstance.InstanceID;
-			Desc.InstanceMask							= RAYTRACING_INSTANCEMASK_ALL;
+		RTBLAS& RTBLAS = m_RaytracingBottomLevelAccelerationStructures[mesh.BottomLevelAccelerationStructureIndex];
+		Buffer* pBLAS = pRenderDevice->GetBuffer(RTBLAS.Result);
 
-			Desc.InstanceContributionToHitGroupIndex	= HitGroupIndex;
+		RaytracingInstanceDesc Desc					= {};
+		Desc.AccelerationStructure					= pBLAS->GetGpuVirtualAddress();
+		Desc.Transform								= meshInstance.Transform.Matrix();
+		Desc.InstanceID								= meshInstance.InstanceID;
+		Desc.InstanceMask							= RAYTRACING_INSTANCEMASK_ALL;
 
-			TopLevelAccelerationStructure.AddInstance(Desc);
+		Desc.InstanceContributionToHitGroupIndex	= HitGroupIndex;
 
-			HitGroupIndex++;
-		}
+		TopLevelAccelerationStructure.AddInstance(Desc);
+
+		HitGroupIndex++;
 	}
 
 	UINT64 ScratchSizeInBytes, ResultSizeInBytes, InstanceDescsSizeInBytes;
@@ -418,32 +421,31 @@ HLSL::Camera GpuScene::GetHLSLPreviousCamera() const
 
 void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 {
-	for (auto& Model : pScene->Models)
+	for (auto& Mesh : pScene->Meshes)
 	{
-		auto pVertexBuffer = pRenderDevice->GetBuffer(Model.VertexResource);
-		auto pIndexBuffer = pRenderDevice->GetBuffer(Model.IndexResource);
+		auto pVertexBuffer = pRenderDevice->GetBuffer(Mesh.VertexResource);
+		auto pIndexBuffer = pRenderDevice->GetBuffer(Mesh.IndexResource);
 
 		RTBLAS rtblas;
-		rtblas.Scratch = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + " (Scratch)");
-		rtblas.Result = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Model.Name + " (Result)");
-		for (auto& mesh : Model)
-		{
-			// Update mesh's BLAS Index
-			mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
+		rtblas.Scratch = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Mesh.Name + " (Scratch)");
+		rtblas.Result = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Mesh.Name + " (Result)");
 
-			RaytracingGeometryDesc Desc = {};
-			Desc.pVertexBuffer			= pVertexBuffer;
-			Desc.VertexStride			= sizeof(Vertex);
-			Desc.pIndexBuffer			= pIndexBuffer;
-			Desc.IndexStride			= sizeof(unsigned int);
-			Desc.IsOpaque				= true;
-			Desc.NumVertices			= mesh.VertexCount;
-			Desc.VertexOffset			= mesh.BaseVertexLocation;
-			Desc.NumIndices				= mesh.IndexCount;
-			Desc.IndexOffset			= mesh.StartIndexLocation;
+		// Update mesh's BLAS Index
+		Mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
 
-			rtblas.BLAS.AddGeometry(Desc);
-		}
+		RaytracingGeometryDesc Desc = {};
+		Desc.pVertexBuffer			= pVertexBuffer;
+		Desc.VertexStride			= sizeof(Vertex);
+		Desc.pIndexBuffer			= pIndexBuffer;
+		Desc.IndexStride			= sizeof(unsigned int);
+		Desc.IsOpaque				= true;
+		Desc.NumVertices			= Mesh.VertexCount;
+		Desc.VertexOffset			= Mesh.BaseVertexLocation;
+		Desc.NumIndices				= Mesh.IndexCount;
+		Desc.IndexOffset			= Mesh.StartIndexLocation;
+
+		rtblas.BLAS.AddGeometry(Desc);
+
 		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
 	}
 

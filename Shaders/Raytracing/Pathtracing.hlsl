@@ -244,8 +244,13 @@ void RayGeneration()
 [shader("miss")]
 void Miss(inout RayPayload rayPayload)
 {
-	rayPayload.Radiance += g_TextureCubeTable[g_SystemConstants.Skybox].SampleLevel(SamplerLinearWrap, WorldRayDirection(), 0.0f).rgb * rayPayload.Throughput;
-	//rayPayload.Throughput *= float3(0.0f, 0.0f, 0.0f);
+	float3 d = WorldRayDirection();
+
+	float3 sky = g_TextureCubeTable[g_SystemConstants.Skybox].SampleLevel(SamplerLinearWrap, d, 0.0f).rgb;
+	float3 sunDir = normalize(float3(.8, .55, 1.));
+	float3 sun = pow(abs(dot(d, sunDir)), 5000);
+	
+	rayPayload.Radiance += (sky + sun) * rayPayload.Throughput;
 }
 
 [shader("closesthit")]
@@ -320,7 +325,7 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	
 	// Path trace
 	if (shouldScatter &&
-		rayPayload.Depth + 1 < g_RenderPassData.MaxDepth)
+		rayPayload.Depth < g_RenderPassData.MaxDepth)
 	{
 		rayPayload.Depth = rayPayload.Depth + 1;
 		

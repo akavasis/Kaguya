@@ -140,20 +140,19 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 
 		ShaderIdentifier hitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
 
-		for (const auto& modelInstance : pGpuScene->pScene->ModelInstances)
+		for (const auto& MeshInstance : pGpuScene->pScene->MeshInstances)
 		{
-			auto pVertexBuffer = pRenderDevice->GetBuffer(modelInstance.pModel->VertexResource);
-			auto pIndexBuffer = pRenderDevice->GetBuffer(modelInstance.pModel->IndexResource);
+			const auto& Mesh = pGpuScene->pScene->Meshes[MeshInstance.MeshIndex];
 
-			for (const auto& meshInstance : modelInstance.MeshInstances)
+			auto pVertexBuffer = pRenderDevice->GetBuffer(Mesh.VertexResource);
+			auto pIndexBuffer = pRenderDevice->GetBuffer(Mesh.IndexResource);
+
+			RootArgument argument =
 			{
-				RootArgument argument = 
-				{
-					.VertexBuffer = pVertexBuffer->GetGpuVirtualAddress(),
-					.IndexBuffer = pIndexBuffer->GetGpuVirtualAddress()
-				};
-				shaderTable.AddShaderRecord(hitGroupSID, argument);
-			}
+				.VertexBuffer = pVertexBuffer->GetGpuVirtualAddress(),
+				.IndexBuffer = pIndexBuffer->GetGpuVirtualAddress()
+			};
+			shaderTable.AddShaderRecord(hitGroupSID, argument);
 		}
 
 		UINT64 shaderTableSizeInBytes, stride;

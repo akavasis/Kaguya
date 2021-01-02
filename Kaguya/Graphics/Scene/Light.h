@@ -6,37 +6,25 @@ using Lumen = float;
 using Nit = float;
 
 // Current this is a rect light
-class PolygonalLight
+struct PolygonalLight
 {
-public:
-	PolygonalLight(const char* pName);
-
+	PolygonalLight(const std::string& Name);
 	void RenderGui();
 
-	inline bool IsDirty() const { return Dirty; }
-	inline void ResetDirtyFlag() { Dirty = false; }
-
-	inline auto GetWidth() const { return Width; }
-	inline auto GetHeight() const { return Height; }
-	inline auto GetLuminance() const { return Luminance; }
-	inline auto GetGpuLightIndex() const { return GpuLightIndex; }
-
+	// These method should be used to configure attributes of light
 	void SetDimension(float Width, float Height);
 	void SetLuminousPower(Lumen LuminousPower);
-	void SetGpuLightIndex(size_t GpuLightIndex);
+
+	std::string				Name;
+	bool					Dirty;
 
 	Transform				Transform;
 	DirectX::XMFLOAT3		Color;
-private:
-	std::string				Name;
-	bool					Dirty;
+
 	float					Width;
 	float					Height;
 	float					Area;
 
 	Lumen					LuminousPower;
 	Nit						Luminance;
-
-	size_t					GpuLightIndex;
-	DirectX::XMFLOAT3		EulerAngles = { 0, 0, 0 };
 };

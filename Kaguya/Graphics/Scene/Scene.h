@@ -1,38 +1,54 @@
 #pragma once
 #include <cstdint>
 #include <list>
-#include "Skybox.h"
+#include <filesystem>
 #include "Camera.h"
 #include "Light.h"
 #include "Material.h"
-#include "Model.h"
-#include "ModelInstance.h"
-#include "MaterialLoader.h"
-#include "ModelLoader.h"
+#include "Mesh.h"
+#include "MeshInstance.h"
 
 #include "SharedTypes.h"
 
-struct Scene
+struct Skybox
 {
-	using LightList			= std::list<PolygonalLight>;
-	using MaterialList		= std::list<Material>;
-	using ModelList			= std::list<Model>;
-	using ModelInstanceList = std::list<ModelInstance>;
-
-	Skybox				Skybox;
-	PerspectiveCamera	Camera, PreviousCamera;
-	LightList			Lights;
-	MaterialList		Materials;
-	ModelList			Models;
-	ModelInstanceList	ModelInstances;
-
-	PolygonalLight&	AddLight();
-	Material&		AddMaterial(Material&& Material);
-	Model&			AddModel(Model&& Model);
-	ModelInstance&	AddModelInstance(ModelInstance&& ModelInstance);
+	std::filesystem::path Path;
 };
 
-uint32_t CullModels(const Camera* pCamera, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices);
-uint32_t CullModelsOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const Scene::ModelInstanceList& ModelInstances, std::vector<const ModelInstance*>& Indices);
-uint32_t CullMeshes(const Camera* pCamera, const std::vector<MeshInstance>& MeshInstances, std::vector<uint32_t>& Indices);
-uint32_t CullMeshesOrthographic(const OrthographicCamera& Camera, bool IgnoreNearZ, const std::vector<MeshInstance>& MeshInstances, std::vector<uint32_t>& Indices);
+struct Scene
+{
+	Skybox				Skybox;
+	PerspectiveCamera	Camera, PreviousCamera;
+
+	std::vector<PolygonalLight> Lights;
+	std::vector<Material>		Materials;
+	std::vector<Mesh>			Meshes;
+	std::vector<MeshInstance>	MeshInstances;
+
+	void AddLight(PolygonalLight Light)
+	{
+		Lights.push_back(Light);
+	}
+
+	size_t AddMaterial(Material Material)
+	{
+		size_t Index = Materials.size();
+		Materials.push_back(Material);
+		return Index;
+	}
+
+	size_t AddMesh(Mesh Mesh)
+	{
+		size_t Index = Meshes.size();
+		Meshes.push_back(Mesh);
+		return Index;
+	}
+
+	// These are the ones going to be rendered
+	size_t AddMeshInstance(MeshInstance MeshInstance)
+	{
+		size_t Index = MeshInstances.size();
+		MeshInstances.push_back(MeshInstance);
+		return Index;
+	}
+};

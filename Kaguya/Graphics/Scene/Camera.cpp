@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Camera.h"
+
 using namespace DirectX;
 
 static constexpr float s_TranslateSpeed = 15.0f;

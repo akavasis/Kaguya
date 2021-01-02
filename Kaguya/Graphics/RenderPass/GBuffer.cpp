@@ -175,20 +175,19 @@ void GBuffer::RenderMeshes(RenderContext& RenderContext)
 	RenderContext.SetRootShaderResourceView(5, pGpuScene->GetMaterialTable());
 	RenderContext.SetRootShaderResourceView(6, pGpuScene->GetMeshTable());
 
-	for (auto& modelInstance : pGpuScene->pScene->ModelInstances)
+	for (const auto& MeshInstance : pGpuScene->pScene->MeshInstances)
 	{
-		RenderContext.SetRootShaderResourceView(4, modelInstance.pModel->VertexResource);
+		const auto& Mesh = pGpuScene->pScene->Meshes[MeshInstance.MeshIndex];
 
-		for (auto& meshInstance : modelInstance)
-		{
-			RenderContext.SetRoot32BitConstants(0, 1, &meshInstance.InstanceID, 0);
+		RenderContext.SetRootShaderResourceView(4, Mesh.VertexResource);
 
-			RenderContext.SetRootShaderResourceView(1, meshInstance.pMesh->MeshletResource);
-			RenderContext.SetRootShaderResourceView(2, meshInstance.pMesh->VertexIndexResource);
-			RenderContext.SetRootShaderResourceView(3, meshInstance.pMesh->PrimitiveIndexResource);
+		RenderContext.SetRoot32BitConstants(0, 1, &MeshInstance.InstanceID, 0);
 
-			RenderContext->DispatchMesh(meshInstance.pMesh->Meshlets.size(), 1, 1);
-		}
+		RenderContext.SetRootShaderResourceView(1, Mesh.MeshletResource);
+		RenderContext.SetRootShaderResourceView(2, Mesh.VertexIndexResource);
+		RenderContext.SetRootShaderResourceView(3, Mesh.PrimitiveIndexResource);
+
+		RenderContext->DispatchMesh(Mesh.Meshlets.size(), 1, 1);
 	}
 }
 

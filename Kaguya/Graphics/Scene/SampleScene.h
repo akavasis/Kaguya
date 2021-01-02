@@ -3,11 +3,7 @@
 
 enum class SampleScene
 {
-	Random,
 	CornellBox,
-	CornellBoxLambertianSpheres,
-	CornellBoxGlossySpheres,
-	PlaneWithTransparentSpheres,
 
 	PlaneWithLights,
 };
