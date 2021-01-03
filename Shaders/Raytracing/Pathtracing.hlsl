@@ -22,8 +22,18 @@ struct RayPayload
 {
 	float3 Radiance;
 	float3 Throughput;
+	float3 Position;
+	float3 Direction;
 	uint Seed;
 	uint Depth;
+};
+
+struct ScatterRecord
+{
+	RayDesc SpecularRay;
+	bool IsSpecular;
+	float3 Attenuation;
+	float Pdf;
 };
 
 enum RayType
@@ -36,7 +46,7 @@ struct Lambertian
 {
 	float3 Albedo;
 	
-	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay, out float pdf)
+	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out ScatterRecord scatterRecord)
 	{
 		float2 u;
 		u[0] = RandomFloat01(rayPayload.Seed);
@@ -44,11 +54,13 @@ struct Lambertian
 
 		ONB onb = InitONB(si.normal);
 		float3 direction = onb.InverseTransform(CosineSampleHemisphere(u));
-		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
 		
-		attenuation = Albedo;
-		scatteredRay = ray;
-		pdf = CosineHemispherePdf(dot(onb.normal, scatteredRay.Direction));
+		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
+		scatterRecord.SpecularRay = ray;
+		scatterRecord.IsSpecular = false;
+		scatterRecord.Attenuation = Albedo;
+		scatterRecord.Pdf = CosineHemispherePdf(dot(onb.normal, ray.Direction));
+		
 		return true;
 	}
 
@@ -56,6 +68,11 @@ struct Lambertian
 	{
 		float cosTheta = dot(si.normal, normalize(scatteredRay.Direction));
 		return cosTheta < 0.0f ? 0.0f : cosTheta / s_PI;
+	}
+	
+	float3 Emitted(in SurfaceInteraction si)
+	{
+		return 0.0.xxx;
 	}
 };
 
@@ -66,7 +83,7 @@ struct Glossy
 	float Roughness;
 	float3 Specular;
 	
-	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay, out float pdf)
+	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out ScatterRecord scatterRecord)
 	{
 		float doSpecular = RandomFloat01(rayPayload.Seed) < SpecularChance ? 1.0f : 0.0f;
 		
@@ -77,99 +94,115 @@ struct Glossy
 		float3 direction = lerp(diffuse, reflected, doSpecular);
 		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
 		
-		attenuation = lerp(Albedo, Specular, doSpecular);
-		scatteredRay = ray;
-		pdf = 1.0f;
+		scatterRecord.SpecularRay = ray;
+		scatterRecord.IsSpecular = true;
+		scatterRecord.Attenuation = lerp(Albedo, Specular, doSpecular);
+		scatterRecord.Pdf = 0.0f;
+		
 		return true;
 	}
 
 	float ScatteringPDF(in SurfaceInteraction si, in RayDesc scatteredRay)
 	{
-		return 1.0f;
+		return 0.0f;
+	}
+	
+	float3 Emitted(in SurfaceInteraction si)
+	{
+		return 0.0.xxx;
 	}
 };
 
 struct Metal
 {
-	float3 Albedo;
-	float Fuzziness;
-	
-	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay, out float pdf)
+	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out ScatterRecord scatterRecord)
 	{
 		Fuzziness = Fuzziness < 1.0f ? Fuzziness : 1.0f;
 		
 		float3 reflected = reflect(WorldRayDirection(), si.normal) + Fuzziness * RandomInUnitSphere(rayPayload.Seed);
-		RayDesc ray = { si.position, 0.0001f, reflected, 100000.0f };
 		
-		attenuation = Albedo;
-		scatteredRay = ray;
-		pdf = 1.0f;
-		return dot(ray.Direction, si.normal) > 0.0f;
-	}
-
-	float ScatteringPDF(in SurfaceInteraction si, in RayDesc scatteredRay)
-	{
-		return 1.0f;
-	}
-};
-
-struct Dielectric
-{
-	float IndexOfRefraction;
-	float3 Specular;
-	float3 Refraction;
-	
-	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay, out float pdf)
-	{
-		attenuation = float3(1.0f, 1.0f, 1.0f);
-		RayDesc ray = { si.position, 0.0001f, float3(0.0f, 0.0f, 0.0f), 100000.0f };
+		RayDesc ray = { si.position, 0.0001f, normalize(reflected), 100000.0f };
+		scatterRecord.SpecularRay = ray;
+		scatterRecord.IsSpecular = true;
+		scatterRecord.Attenuation = Albedo;
+		scatterRecord.Pdf = 0.0f;
 		
-		si.normal = si.frontFace ? si.normal : -si.normal;
-		float etaI_Over_etaT = si.frontFace ? (1.0f / IndexOfRefraction) : IndexOfRefraction;
-	
-		float cosTheta = min(dot(-WorldRayDirection(), si.normal), 1.0f);
-		float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
-	
-		// Total internal reflection
-		if ((etaI_Over_etaT * sinTheta) > 1.0f ||
-			RandomFloat01(rayPayload.Seed) < F_Schlick(etaI_Over_etaT, cosTheta))
-		{
-			float3 reflected = reflect(WorldRayDirection(), si.normal);
-			ray.Direction = reflected;
-			attenuation = Specular;
-		}
-		else
-		{
-			float3 refracted = refract(WorldRayDirection(), si.normal, etaI_Over_etaT);
-			ray.Direction = refracted;
-			// do absorption if we are hitting from inside the object
-			if (!si.frontFace)
-			{
-				attenuation *= exp(-Refraction * RayTCurrent());
-			}
-		}
-		
-		scatteredRay = ray;
-		pdf = 1.0f;
 		return true;
 	}
 
 	float ScatteringPDF(in SurfaceInteraction si, in RayDesc scatteredRay)
 	{
-		return 1.0f;
+		return 0.0f;
 	}
+	
+	float3 Emitted(in SurfaceInteraction si)
+	{
+		return 0.0.xxx;
+	}
+	
+	float3 Albedo;
+	float Fuzziness;
+};
+
+struct Dielectric
+{
+	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out ScatterRecord scatterRecord)
+	{
+		si.normal = si.frontFace ? si.normal : -si.normal;
+		float etaI_Over_etaT = si.frontFace ? (1.0f / IndexOfRefraction) : IndexOfRefraction;
+	
+		float cosTheta = min(dot(-WorldRayDirection(), si.normal), 1.0f);
+		float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+		
+		// Total internal reflection
+		bool cannotRefract = (etaI_Over_etaT * sinTheta) > 1.0f;
+		float3 direction;
+	
+		if (cannotRefract ||
+			RandomFloat01(rayPayload.Seed) < F_Schlick(etaI_Over_etaT, cosTheta))
+		{
+			direction = reflect(WorldRayDirection(), si.normal);
+		}
+		else
+		{
+			direction = refract(WorldRayDirection(), si.normal, etaI_Over_etaT);
+		}
+		
+		RayDesc ray = { si.position, 0.0001f, direction, 100000.0f };
+		scatterRecord.SpecularRay = ray;
+		scatterRecord.IsSpecular = true;
+		scatterRecord.Attenuation = float3(1.0f, 1.0f, 1.0f);
+		scatterRecord.Pdf = 0.0f;
+		
+		return true;
+	}
+
+	float ScatteringPDF(in SurfaceInteraction si, in RayDesc scatteredRay)
+	{
+		return 0.0f;
+	}
+	
+	float3 Emitted(in SurfaceInteraction si)
+	{
+		return 0.0.xxx;
+	}
+	
+	float IndexOfRefraction;
+	float3 Specular;
+	float3 Refraction;
 };
 
 struct DiffuseLight
 {
-	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out float3 attenuation, out RayDesc scatteredRay, out float pdf)
+	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out ScatterRecord scatterRecord)
 	{
 		// Need to provide initialized value here or DXC complains
 		RayDesc ray = { float3(0.0f, 0.0f, 0.0f), 0.0f, float3(0.0f, 0.0f, 0.0f), 0.0f };
-
-		attenuation = float3(0.0f, 0.0f, 0.0f);
-		scatteredRay = ray;
-		pdf = 1.0f;
+		scatterRecord.SpecularRay = ray;
+		scatterRecord.IsSpecular = false;
+		scatterRecord.Attenuation = float3(1.0f, 1.0f, 1.0f);
+		scatterRecord.Pdf = 0.0f;
+		
 		return false;
 	}
 
@@ -177,6 +210,13 @@ struct DiffuseLight
 	{
 		return 0.0f;
 	}
+	
+	float3 Emitted(in SurfaceInteraction si)
+	{
+		return Emissive;
+	}
+	
+	float3 Emissive;
 };
 
 struct CosinePdf
@@ -205,6 +245,35 @@ CosinePdf InitCosinePdf(in float3 w)
 	return cosinePdf;
 }
 
+void TerminateRay(inout RayPayload rayPayload)
+{
+	rayPayload.Depth = g_RenderPassData.MaxDepth;
+}
+
+float3 PathTrace(RayDesc Ray, inout uint Seed)
+{
+	RayPayload RayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, 0.0f), Seed, 0 };
+	
+	while (RayPayload.Depth < g_RenderPassData.MaxDepth)
+	{
+		// Trace the ray
+		const uint flags = RAY_FLAG_NONE;
+		const uint mask = 0xffffffff;
+		const uint hitGroupIndex = RayTypePrimary;
+		const uint hitGroupIndexMultiplier = NumRayTypes;
+		const uint missShaderIndex = RayTypePrimary;
+		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, Ray, RayPayload);
+		
+		Ray.Origin = RayPayload.Position;
+		Ray.TMin = 0.0001f;
+		Ray.Direction = RayPayload.Direction;
+		
+		RayPayload.Depth++;
+	}
+
+	return RayPayload.Radiance;
+}
+
 [shader("raygeneration")]
 void RayGeneration()
 {
@@ -223,17 +292,8 @@ void RayGeneration()
 
 		// Initialize ray
 		RayDesc ray = GenerateCameraRay(ndc, seed);
-		// Initialize payload
-		RayPayload rayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), seed, 0 };
-		// Trace the ray
-		const uint flags = RAY_FLAG_NONE;
-		const uint mask = 0xffffffff;
-		const uint hitGroupIndex = RayTypePrimary;
-		const uint hitGroupIndexMultiplier = NumRayTypes;
-		const uint missShaderIndex = RayTypePrimary;
-		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 	
-		color += rayPayload.Radiance;
+		color += PathTrace(ray, seed);
 	}
 	color /= (float) g_RenderPassData.NumSamplesPerPixel;
 
@@ -251,6 +311,7 @@ void Miss(inout RayPayload rayPayload)
 	float3 sun = pow(abs(dot(d, sunDir)), 5000);
 	
 	rayPayload.Radiance += (sky + sun) * rayPayload.Throughput;
+	TerminateRay(rayPayload);
 }
 
 [shader("closesthit")]
@@ -258,9 +319,8 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 {
 	SurfaceInteraction si = GetSurfaceInteraction(attrib);
 	
-	float3 attentuation;
-	RayDesc ray;
-	float pdf;
+	ScatterRecord scatterRecord;
+	float3 emitted;
 	float scatteringPDF;
 	bool shouldScatter;
 	switch (si.material.Model)
@@ -268,72 +328,70 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 		case LambertianModel:
 		{
 			Lambertian lambertian = { si.material.Albedo };
-			shouldScatter = lambertian.Scatter(si, rayPayload, attentuation, ray, pdf);
-			scatteringPDF = lambertian.ScatteringPDF(si, ray);
+			shouldScatter = lambertian.Scatter(si, rayPayload, scatterRecord);
+			emitted = lambertian.Emitted(si);
+			scatteringPDF = lambertian.ScatteringPDF(si, scatterRecord.SpecularRay);
 		}
 		break;
 		
 		case GlossyModel:
 		{
 			Glossy glossy = { si.material.Albedo, si.material.SpecularChance, si.material.Roughness, si.material.Specular };
-			shouldScatter = glossy.Scatter(si, rayPayload, attentuation, ray, pdf);
-			scatteringPDF = glossy.ScatteringPDF(si, ray);
+			shouldScatter = glossy.Scatter(si, rayPayload, scatterRecord);
+			emitted = glossy.Emitted(si);
+			scatteringPDF = glossy.ScatteringPDF(si, scatterRecord.SpecularRay);
 		}
 		break;
 		
 		case MetalModel:
 		{
 			Metal metal = { si.material.Albedo, si.material.Fuzziness };
-			shouldScatter = metal.Scatter(si, rayPayload, attentuation, ray, pdf);
-			scatteringPDF = metal.ScatteringPDF(si, ray);
+			shouldScatter = metal.Scatter(si, rayPayload, scatterRecord);
+			emitted = metal.Emitted(si);
+			scatteringPDF = metal.ScatteringPDF(si, scatterRecord.SpecularRay);
 		}
 		break;
 		
 		case DielectricModel:
 		{
 			Dielectric dielectric = { si.material.IndexOfRefraction, si.material.Specular, si.material.Refraction };
-			shouldScatter = dielectric.Scatter(si, rayPayload, attentuation, ray, pdf);
-			scatteringPDF = dielectric.ScatteringPDF(si, ray);
+			shouldScatter = dielectric.Scatter(si, rayPayload, scatterRecord);
+			emitted = dielectric.Emitted(si);
+			scatteringPDF = dielectric.ScatteringPDF(si, scatterRecord.SpecularRay);
 		}
 		break;
 		
 		case DiffuseLightModel:
 		{
-			DiffuseLight diffuseLight;
-			shouldScatter = diffuseLight.Scatter(si, rayPayload, attentuation, ray, pdf);
-			scatteringPDF = diffuseLight.ScatteringPDF(si, ray);
+			DiffuseLight diffuseLight = { si.material.Emissive };
+			shouldScatter = diffuseLight.Scatter(si, rayPayload, scatterRecord);
+			emitted = diffuseLight.Emitted(si);
+			scatteringPDF = diffuseLight.ScatteringPDF(si, scatterRecord.SpecularRay);
 		}
 		break;
 		
 		default:
 		{
-			rayPayload.Radiance = float3(5000.0f, 0.0f, 0.0f);
+			// Debug color here if in host side we didnt set any material model for materials
+			const float3 DEBUG_COLOR = float3(5000.0f, 0.0f, 0.0f);
+			rayPayload.Radiance = DEBUG_COLOR;
 			return;
 		}
 		break;
 	}
-
+	
+	rayPayload.Radiance += emitted * rayPayload.Throughput;
+	
 	if (shouldScatter)
-	{
-		CosinePdf cosinePdf = InitCosinePdf(si.normal);
-		ray.Direction = cosinePdf.Generate(rayPayload.Seed);
-		pdf = cosinePdf.Value(ray.Direction);
-	}
-	
-	rayPayload.Radiance += si.material.Emissive * rayPayload.Throughput / pdf;
-	rayPayload.Throughput *= attentuation;
-	
-	// Path trace
-	if (shouldScatter &&
-		rayPayload.Depth < g_RenderPassData.MaxDepth)
-	{
-		rayPayload.Depth = rayPayload.Depth + 1;
+	{	
+		rayPayload.Throughput *= scatterRecord.Attenuation;
 		
-		const uint flags = RAY_FLAG_NONE;
-		const uint mask = 0xffffffff;
-		const uint hitGroupIndex = RayTypePrimary;
-		const uint hitGroupIndexMultiplier = NumRayTypes;
-		const uint missShaderIndex = RayTypePrimary;
-		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
+		rayPayload.Position = scatterRecord.SpecularRay.Origin;
+		rayPayload.Direction = scatterRecord.SpecularRay.Direction;
+	}
+	else
+	{
+		rayPayload.Radiance += emitted * rayPayload.Throughput;
+		TerminateRay(rayPayload);
 	}
 }

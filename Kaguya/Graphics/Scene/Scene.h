@@ -17,14 +17,6 @@ struct Skybox
 
 struct Scene
 {
-	Skybox				Skybox;
-	PerspectiveCamera	Camera, PreviousCamera;
-
-	std::vector<PolygonalLight> Lights;
-	std::vector<Material>		Materials;
-	std::vector<Mesh>			Meshes;
-	std::vector<MeshInstance>	MeshInstances;
-
 	void AddLight(PolygonalLight Light)
 	{
 		Lights.push_back(Light);
@@ -51,4 +43,12 @@ struct Scene
 		MeshInstances.push_back(MeshInstance);
 		return Index;
 	}
+
+	Skybox				Skybox;
+	PerspectiveCamera	Camera, PreviousCamera;
+
+	std::vector<PolygonalLight> Lights;
+	std::vector<Material>		Materials;
+	std::vector<Mesh>			Meshes;
+	std::vector<MeshInstance>	MeshInstances;
 };

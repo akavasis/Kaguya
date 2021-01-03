@@ -1,6 +1,8 @@
 #pragma once
-#include <wil/resource.h>
+
+#include <memory>
 #include <atomic>
+#include <wil/resource.h>
 #include "Core/RenderSystem.h"
 
 #include "RenderDevice.h"
@@ -32,12 +34,12 @@ private:
 	static DWORD WINAPI AsyncCopyThreadProc(_In_ PVOID pParameter);
 	
 private:
-	RenderDevice*							m_pRenderDevice						= nullptr;
-	RenderGraph*							m_pRenderGraph						= nullptr;
+	std::unique_ptr<RenderDevice>			m_pRenderDevice;
+	std::unique_ptr<RenderGraph>			m_pRenderGraph;
 	RenderContext							m_GraphicsContext;
 
 	Scene									m_Scene;
-	GpuScene*								m_pGpuScene							= nullptr;
+	std::unique_ptr<GpuScene>				m_pGpuScene;
 	INT										InstanceID							= -1; // Temporary, used to debug picking results
 
 	wil::unique_event						BuildAccelerationStructureEvent;

@@ -65,8 +65,8 @@ void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
 
 		Builder.SetGlobalRootSignature(pGlobalRootSignature);
 
-		Builder.SetRaytracingShaderConfig(6 * sizeof(float) + 2 * sizeof(unsigned int), SizeOfBuiltInTriangleIntersectionAttributes);
-		Builder.SetRaytracingPipelineConfig(8);
+		Builder.SetRaytracingShaderConfig(12 * sizeof(float) + 2 * sizeof(unsigned int), SizeOfBuiltInTriangleIntersectionAttributes);
+		Builder.SetRaytracingPipelineConfig(1);
 	});
 }
 

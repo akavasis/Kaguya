@@ -1,5 +1,5 @@
 #pragma once
-// Disable warnings
+
 #pragma warning(disable : 26812) // prefer enum class over enum warning
 
 // Win32 APIs

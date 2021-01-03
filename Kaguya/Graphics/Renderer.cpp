@@ -21,7 +21,7 @@
 
 #include "Scene/SampleScene.h"
 
-#define SHOW_IMGUI_DEMO_WINDOW 1
+#define SHOW_IMGUI_DEMO_WINDOW 0
 
 //----------------------------------------------------------------------------------------------------
 Renderer::Renderer()
@@ -40,18 +40,18 @@ bool Renderer::Initialize()
 {
 	try
 	{
-		m_pRenderDevice	= new RenderDevice(Application::Window);
+		m_pRenderDevice	= std::make_unique<RenderDevice>(Application::Window);
 		m_pRenderDevice->ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
 
-		m_pRenderGraph	= new RenderGraph(m_pRenderDevice);
-		m_pGpuScene		= new GpuScene(m_pRenderDevice);
+		m_pRenderGraph = std::make_unique<RenderGraph>(m_pRenderDevice.get());
+		m_pGpuScene = std::make_unique<GpuScene>(m_pRenderDevice.get());
 
 		Shaders::Register(m_pRenderDevice->ShaderCompiler);
 		Libraries::Register(m_pRenderDevice->ShaderCompiler);
-		RootSignatures::Register(m_pRenderDevice);
-		GraphicsPSOs::Register(m_pRenderDevice);
-		ComputePSOs::Register(m_pRenderDevice);
-		RaytracingPSOs::Register(m_pRenderDevice);
+		RootSignatures::Register(m_pRenderDevice.get());
+		GraphicsPSOs::Register(m_pRenderDevice.get());
+		ComputePSOs::Register(m_pRenderDevice.get());
+		RaytracingPSOs::Register(m_pRenderDevice.get());
 	}
 	catch (std::exception& e)
 	{
@@ -64,7 +64,7 @@ bool Renderer::Initialize()
 		return false;
 	}
 
-	m_GraphicsContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice, m_pRenderDevice->AllocateContext(CommandContext::Graphics));
+	m_GraphicsContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice.get(), m_pRenderDevice->AllocateContext(CommandContext::Graphics));
 	m_GraphicsContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
 
 	BuildAccelerationStructureEvent.create();
@@ -94,7 +94,7 @@ bool Renderer::Initialize()
 	m_pRenderGraph->AddRenderPass(new Picking());
 	m_pRenderGraph->Initialize(AccelerationStructureCompleteEvent.get());
 
-	m_pRenderGraph->InitializeScene(m_pGpuScene);
+	m_pRenderGraph->InitializeScene(m_pGpuScene.get());
 
 	return true;
 }
@@ -176,7 +176,7 @@ void Renderer::Render()
 	m_pRenderDevice->GraphicsFenceCompletionEvent.wait();
 
 	auto PickingRenderPass = m_pRenderGraph->GetRenderPass<Picking>();
-	InstanceID = PickingRenderPass->GetInstanceID(m_pRenderDevice);
+	InstanceID = PickingRenderPass->GetInstanceID(m_pRenderDevice.get());
 
 	if (Screenshot)
 	{
@@ -216,26 +216,17 @@ void Renderer::Destroy()
 
 	::WaitForMultipleObjects(ARRAYSIZE(Handles), Handles, TRUE, INFINITE);
 
-	if (m_pGpuScene)
-	{
-		delete m_pGpuScene;
-		m_pGpuScene = nullptr;
-	}
-
-	if (m_pRenderGraph)
-	{
-		delete m_pRenderGraph;
-		m_pRenderGraph = nullptr;
-	}
+	m_pGpuScene.reset();
+	m_pRenderGraph.reset();
 
 	if (m_pRenderDevice)
 	{
 		m_pRenderDevice->FlushGraphicsQueue();
 		m_pRenderDevice->FlushComputeQueue();
 		m_pRenderDevice->FlushCopyQueue();
-		delete m_pRenderDevice;
-		m_pRenderDevice = nullptr;
 	}
+
+	m_pRenderDevice.reset();
 
 #ifdef _DEBUG
 	Microsoft::WRL::ComPtr<IDXGIDebug> DXGIDebug;
@@ -322,7 +313,7 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
 
 	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
-	auto pRenderDevice = pRenderer->m_pRenderDevice;
+	auto pRenderDevice = pRenderer->m_pRenderDevice.get();
 
 	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->AllocateContext(CommandContext::Compute));
 
@@ -358,7 +349,7 @@ DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
 	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
 
 	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
-	auto pRenderDevice = pRenderer->m_pRenderDevice;
+	auto pRenderDevice = pRenderer->m_pRenderDevice.get();
 
 	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->AllocateContext(CommandContext::Copy));
 
