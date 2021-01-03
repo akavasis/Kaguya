@@ -244,8 +244,7 @@ void Renderer::SetScene(Scene Scene)
 	m_Scene				= std::move(Scene);
 	m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
 
-	m_Scene.Camera.SetLens(DirectX::XM_PIDIV4, 1.0f, 0.1f, 500.0f);
-	m_Scene.Camera.SetAspectRatio(AspectRatio);
+	m_Scene.Camera = Camera(DirectX::XM_PIDIV4, AspectRatio, 0.1f, 500.0f);
 	m_Scene.Camera.Transform.Position = { 0.0f, 5.0f, -20.0f };
 
 	m_pGpuScene->pScene = &m_Scene;

@@ -113,7 +113,7 @@ HLSL::Mesh GetHLSLMeshDesc(const Mesh& Mesh, const Material& Material, const Mes
 	};
 }
 
-HLSL::Camera GetHLSLCameraDesc(const PerspectiveCamera& Camera)
+HLSL::Camera GetHLSLCameraDesc(const Camera& Camera)
 {
 	DirectX::XMFLOAT4 Position = { Camera.Transform.Position.x, Camera.Transform.Position.y, Camera.Transform.Position.z, 1.0f };
 	DirectX::XMFLOAT4 U, V, W;
@@ -132,8 +132,8 @@ HLSL::Camera GetHLSLCameraDesc(const PerspectiveCamera& Camera)
 
 	return
 	{
-		.NearZ						= Camera.NearZ(),
-		.FarZ						= Camera.FarZ(),
+		.NearZ						= Camera.NearZ,
+		.FarZ						= Camera.FarZ,
 		.ExposureValue100			= Camera.ExposureValue100(),
 		._padding1					= 0.0f,
 
@@ -291,7 +291,7 @@ void GpuScene::RenderGui()
 
 bool GpuScene::Update(float AspectRatio)
 {
-	pScene->Camera.SetAspectRatio(AspectRatio);
+	pScene->Camera.AspectRatio = AspectRatio;
 
 	bool Refresh = false;
 
@@ -335,6 +335,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 {
 	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Top Level Acceleration Structure Generation");
 
+	// TODO: Generate InstanceDescs on CS
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
 
 	size_t HitGroupIndex = 0;

@@ -31,7 +31,12 @@ void Material::RenderGui()
 	{
 		ImGui::Text("Attributes");
 		Dirty |= (int)ImGui::ColorEdit3("Albedo", &Albedo.x);
-		Dirty |= (int)ImGui::DragFloat3("Emissive", &Emissive.x, 0.5f, 0, 10000);
+
+		if (Model == MaterialModel::DiffuseLightModel)
+		{
+			Dirty |= (int)ImGui::DragFloat3("Emissive", &Emissive.x, 0.25f, 0, 10000);
+		}
+
 		Dirty |= (int)ImGui::ColorEdit3("Specular", &Specular.x);
 		Dirty |= (int)ImGui::ColorEdit3("Refraction", &Refraction.x);
 		Dirty |= (int)ImGui::SliderFloat("Specular Chance", &SpecularChance, 0, 1);

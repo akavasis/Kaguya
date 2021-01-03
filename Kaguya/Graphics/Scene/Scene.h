@@ -1,7 +1,10 @@
 #pragma once
+
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <filesystem>
+
 #include "Camera.h"
 #include "Light.h"
 #include "Material.h"
@@ -17,6 +20,8 @@ struct Skybox
 
 struct Scene
 {
+	void LoadFromFile(const std::filesystem::path& Path);
+
 	void AddLight(PolygonalLight Light)
 	{
 		Lights.push_back(Light);
@@ -44,11 +49,21 @@ struct Scene
 		return Index;
 	}
 
-	Skybox				Skybox;
-	PerspectiveCamera	Camera, PreviousCamera;
+	Skybox						Skybox;
+	Camera						Camera, PreviousCamera;
 
 	std::vector<PolygonalLight> Lights;
 	std::vector<Material>		Materials;
 	std::vector<Mesh>			Meshes;
 	std::vector<MeshInstance>	MeshInstances;
 };
+
+Material LoadMaterial
+(
+	const std::string& Name,
+	std::optional<std::filesystem::path> AlbedoMapPath,
+	std::optional<std::filesystem::path> NormalMapPath,
+	std::optional<std::filesystem::path> RoughnessMapPath,
+	std::optional<std::filesystem::path> MetallicMapPath,
+	std::optional<std::filesystem::path> EmissiveMapPath
+);

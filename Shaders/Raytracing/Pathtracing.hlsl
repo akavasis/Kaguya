@@ -306,11 +306,15 @@ void Miss(inout RayPayload rayPayload)
 {
 	float3 d = WorldRayDirection();
 
-	float3 sky = g_TextureCubeTable[g_SystemConstants.Skybox].SampleLevel(SamplerLinearWrap, d, 0.0f).rgb;
-	float3 sunDir = normalize(float3(.8, .55, 1.));
-	float3 sun = pow(abs(dot(d, sunDir)), 5000);
+	//float3 sky = g_TextureCubeTable[g_SystemConstants.Skybox].SampleLevel(SamplerLinearWrap, d, 0.0f).rgb;
+	//float3 sunDir = normalize(float3(.8, .55, 1.));
+	//float3 sun = pow(abs(dot(d, sunDir)), 5000);
 	
-	rayPayload.Radiance += (sky + sun) * rayPayload.Throughput;
+	float t = 0.5f * (d.y + 1.0f);
+	float3 c = lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
+	
+	//rayPayload.Radiance += (sky + sun) * rayPayload.Throughput;
+	rayPayload.Radiance += c * rayPayload.Throughput;
 	TerminateRay(rayPayload);
 }
 
@@ -391,7 +395,6 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 	}
 	else
 	{
-		rayPayload.Radiance += emitted * rayPayload.Throughput;
 		TerminateRay(rayPayload);
 	}
 }

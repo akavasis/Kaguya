@@ -1,36 +1,26 @@
 #include "pch.h"
 #include "SampleScene.h"
-#include "Core/Application.h"
-
-#include "MaterialLoader.h"
-#include "SceneLoader.h"
 
 using namespace DirectX;
 
-void AddCornellBox(const MaterialLoader& MaterialLoader, const SceneLoader& ModelLoader, Scene* pScene)
-{
-	assert(pScene != nullptr);
-	
-}
-
-Scene CornellBox(const MaterialLoader& MaterialLoader, const SceneLoader& ModelLoader)
+Scene CornellBox()
 {
 	Scene scene;
 	{
 		// Materials
-		auto defaultMat = MaterialLoader.LoadMaterial("Default", 0, 0, 0, 0, 0);
+		auto defaultMat = LoadMaterial("Default", {}, {}, {}, {}, {});
 		defaultMat.Albedo = { 0.7f, 0.7f, 0.7f };
 		defaultMat.Model = LambertianModel;
 
-		auto leftWallMat = MaterialLoader.LoadMaterial("Red", 0, 0, 0, 0, 0);
+		auto leftWallMat = LoadMaterial("Red", {}, {}, {}, {}, {});
 		leftWallMat.Albedo = { 0.7f, 0.1f, 0.1f };
 		leftWallMat.Model = LambertianModel;
 
-		auto rightWallMat = MaterialLoader.LoadMaterial("Green", 0, 0, 0, 0, 0);
+		auto rightWallMat = LoadMaterial("Green", {}, {}, {}, {}, {});
 		rightWallMat.Albedo = { 0.1f, 0.7f, 0.1f };
 		rightWallMat.Model = LambertianModel;
 
-		auto lightMat = MaterialLoader.LoadMaterial("Light", 0, 0, 0, 0, 0);
+		auto lightMat = LoadMaterial("Light", {}, {}, {}, {}, {});
 		lightMat.Albedo = { 0.0f, 0.0f, 0.0f };
 		lightMat.Emissive = { 15.0f, 15.0f, 15.0f };
 		lightMat.Model = DiffuseLightModel;
@@ -89,7 +79,7 @@ Scene CornellBox(const MaterialLoader& MaterialLoader, const SceneLoader& ModelL
 	return scene;
 }
 
-Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const SceneLoader& ModelLoader)
+Scene PlaneWithLights()
 {
 	Scene Scene;
 	{
@@ -177,14 +167,11 @@ Scene PlaneWithLights(const MaterialLoader& MaterialLoader, const SceneLoader& M
 
 Scene GenerateScene(SampleScene SampleScene)
 {
-	auto materialLoader = MaterialLoader(Application::ExecutableFolderPath);
-	auto modelLoader = SceneLoader(Application::ExecutableFolderPath);
-
 	switch (SampleScene)
 	{
-	case SampleScene::CornellBox:					return CornellBox(materialLoader, modelLoader);
+	case SampleScene::CornellBox:					return CornellBox();
 
-	case SampleScene::PlaneWithLights:				return PlaneWithLights(materialLoader, modelLoader);
+	case SampleScene::PlaneWithLights:				return PlaneWithLights();
 	}
 	return Scene();
 }
