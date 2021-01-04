@@ -12,7 +12,8 @@ static Assimp::Importer Importer;
 
 void Scene::LoadFromFile(const std::filesystem::path& Path)
 {
-	// TODO: Add material
+	// TODO: Add materials to scene
+	// TODO: Add mesh instances for each mesh loaded
 	std::filesystem::path filePath = Application::ExecutableFolderPath / Path;
 	assert(std::filesystem::exists(filePath) && "File does not exist");
 
@@ -25,17 +26,16 @@ void Scene::LoadFromFile(const std::filesystem::path& Path)
 	if (paiScene == nullptr)
 	{
 		LOG_ERROR("Assimp::Importer error: {}", Importer.GetErrorString());
-		assert(false && "Assimp::Importer::ReadFile failed, check Assimp::Importer::GetErrorString for more info");
+		return;
 	}
 
-	for (unsigned int meshIndex = 0; meshIndex < paiScene->mNumMeshes; ++meshIndex)
+	for (unsigned int i = 0; i < paiScene->mNumMeshes; ++i)
 	{
-		const aiMesh* paiMesh = paiScene->mMeshes[meshIndex];
+		const aiMesh* paiMesh = paiScene->mMeshes[i];
 		Mesh mesh = Mesh(paiMesh->mName.C_Str());
 
 		// Parse vertex data
-		std::vector<Vertex> vertices;
-		vertices.reserve(paiMesh->mNumVertices);
+		std::vector<Vertex> vertices(paiMesh->mNumVertices);
 
 		// Parse vertex data
 		for (unsigned int vertexIndex = 0; vertexIndex < paiMesh->mNumVertices; ++vertexIndex)
@@ -51,7 +51,7 @@ void Scene::LoadFromFile(const std::filesystem::path& Path)
 			// Normal
 			v.Normal = DirectX::XMFLOAT3(paiMesh->mNormals[vertexIndex].x, paiMesh->mNormals[vertexIndex].y, paiMesh->mNormals[vertexIndex].z);
 
-			vertices.push_back(v);
+			vertices[vertexIndex] = v;
 		}
 
 		// Parse index data

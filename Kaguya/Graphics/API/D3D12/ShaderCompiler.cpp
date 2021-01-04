@@ -42,9 +42,9 @@ std::wstring LibraryProfileString(ShaderCompiler::Profile Profile)
 
 ShaderCompiler::ShaderCompiler()
 {
-	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(m_DxcCompiler.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(m_DxcLibrary.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(m_DxcUtils.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(m_DxcCompiler.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(m_DxcLibrary.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(m_DxcUtils.ReleaseAndGetAddressOf())));
 }
 
 void ShaderCompiler::SetIncludeDirectory(const std::filesystem::path& pPath)
@@ -62,7 +62,7 @@ Shader ShaderCompiler::CompileShader(Shader::Type Type, const std::filesystem::p
 	DxcBuffer.Size		= pDxcBlob->GetBufferSize();
 	DxcBuffer.Encoding	= CP_ACP;
 	ComPtr<ID3D12ShaderReflection> pShaderReflection;
-	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&DxcBuffer, IID_PPV_ARGS(pShaderReflection.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(m_DxcUtils->CreateReflection(&DxcBuffer, IID_PPV_ARGS(pShaderReflection.ReleaseAndGetAddressOf())));
 
 	return Shader(Type, pDxcBlob, pShaderReflection);
 }
@@ -77,7 +77,7 @@ Library ShaderCompiler::CompileLibrary(const std::filesystem::path& Path) const
 	DxcBuffer.Size		= pDxcBlob->GetBufferSize();
 	DxcBuffer.Encoding	= CP_ACP;
 	ComPtr<ID3D12LibraryReflection> pLibraryReflection;
-	ThrowCOMIfFailed(m_DxcUtils->CreateReflection(&DxcBuffer, IID_PPV_ARGS(pLibraryReflection.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(m_DxcUtils->CreateReflection(&DxcBuffer, IID_PPV_ARGS(pLibraryReflection.ReleaseAndGetAddressOf())));
 
 	return Library(pDxcBlob, pLibraryReflection);
 }
@@ -108,11 +108,11 @@ Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(const std::filesystem::
 	ComPtr<IDxcIncludeHandler>	pDxcIncludeHandler;
 	UINT32						CodePage = CP_ACP;
 
-	ThrowCOMIfFailed(m_DxcLibrary->CreateBlobFromFile(Path.c_str(), &CodePage, pSource.ReleaseAndGetAddressOf()));
-	ThrowCOMIfFailed(m_DxcLibrary->CreateIncludeHandler(pDxcIncludeHandler.ReleaseAndGetAddressOf()));
+	ThrowIfFailed(m_DxcLibrary->CreateBlobFromFile(Path.c_str(), &CodePage, pSource.ReleaseAndGetAddressOf()));
+	ThrowIfFailed(m_DxcLibrary->CreateIncludeHandler(pDxcIncludeHandler.ReleaseAndGetAddressOf()));
 
 	ComPtr<IDxcOperationResult> pDxcOperationResult;
-	ThrowCOMIfFailed(m_DxcCompiler->Compile(
+	ThrowIfFailed(m_DxcCompiler->Compile(
 		pSource.Get(),
 		Path.c_str(),
 		pEntryPoint,

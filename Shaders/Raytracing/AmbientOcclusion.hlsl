@@ -32,7 +32,7 @@ float TraceAmbientOcclusionRay(float3 origin, float tMin, float3 direction, floa
 	const uint hitGroupIndex = RayTypePrimary;
 	const uint hitGroupIndexMultiplier = NumRayTypes;
 	const uint missShaderIndex = RayTypePrimary;
-	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
+	TraceRay(Scene, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 
 	return rayPayload.Visibility;
 }

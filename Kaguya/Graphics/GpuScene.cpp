@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "GpuScene.h"
 
+#include <cstdio>
+
 using namespace DirectX;
 
 #define RAYTRACING_INSTANCEMASK_ALL 	(0xff)
@@ -276,14 +278,44 @@ void GpuScene::RenderGui()
 {
 	if (ImGui::Begin("Scene"))
 	{
-		for (auto& light : pScene->Lights)
+		if (ImGui::TreeNode("Lights"))
 		{
-			light.RenderGui();
+			for (auto& light : pScene->Lights)
+			{
+				light.RenderGui();
+			}
+
+			ImGui::TreePop();
 		}
 
-		for (auto& material : pScene->Materials)
+		if (ImGui::TreeNode("Materials"))
 		{
-			material.RenderGui();
+			for (auto& material : pScene->Materials)
+			{
+				material.RenderGui();
+			}
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Meshes"))
+		{
+			for (auto& mesh : pScene->Meshes)
+			{
+				mesh.RenderGui();
+			}
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Mesh Instances"))
+		{
+			for (auto& meshInstance : pScene->MeshInstances)
+			{
+				meshInstance.RenderGui(pScene->Meshes.size(), pScene->Materials.size());
+			}
+
+			ImGui::TreePop();
 		}
 	}
 	ImGui::End();
@@ -304,7 +336,7 @@ bool GpuScene::Update(float AspectRatio)
 
 			light.Dirty = false;
 
-			HLSL::PolygonalLight hlslPolygonalLight = GetHLSLLightDesc(light);
+			auto hlslPolygonalLight = GetHLSLLightDesc(light);
 			pLightTable->Update<HLSL::PolygonalLight>(i, hlslPolygonalLight);
 		}
 	}
@@ -318,8 +350,25 @@ bool GpuScene::Update(float AspectRatio)
 
 			material.Dirty = false;
 
-			HLSL::Material hlslMaterial = GetHLSLMaterialDesc(material);
+			auto hlslMaterial = GetHLSLMaterialDesc(material);
 			pMaterialTable->Update<HLSL::Material>(i, hlslMaterial);
+		}
+	}
+
+	auto pMeshTable = pRenderDevice->GetBuffer(m_MeshTable);
+	for (auto [i, meshInstance] : enumerate(pScene->MeshInstances))
+	{
+		if (meshInstance.Dirty)
+		{
+			Refresh |= true;
+
+			meshInstance.Dirty = false;
+
+			const auto& mesh = pScene->Meshes[meshInstance.MeshIndex];
+			const auto& material = pScene->Materials[meshInstance.MaterialIndex];
+
+			auto hlslMesh = GetHLSLMeshDesc(mesh, material, meshInstance);
+			pMeshTable->Update<HLSL::Mesh>(i, hlslMesh);
 		}
 	}
 

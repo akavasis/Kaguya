@@ -66,6 +66,6 @@ RootSignature::RootSignature(ID3D12Device* pDevice, RootSignatureBuilder& Builde
 	}
 
 	// Create the root signature.
-	ThrowCOMIfFailed(pDevice->CreateRootSignature(0, pSerializedRootSignatureBlob->GetBufferPointer(),
+	ThrowIfFailed(pDevice->CreateRootSignature(0, pSerializedRootSignatureBlob->GetBufferPointer(),
 		pSerializedRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
 }

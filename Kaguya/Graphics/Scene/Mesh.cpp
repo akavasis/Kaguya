@@ -3,6 +3,33 @@
 
 using namespace DirectX;
 
+Mesh::Mesh(const std::string& Name)
+	: Name(Name)
+{
+	IndexCount = 0;
+	StartIndexLocation = 0;
+	VertexCount = 0;
+	BaseVertexLocation = 0;
+
+	BottomLevelAccelerationStructureIndex = -1;
+}
+
+void Mesh::RenderGui()
+{
+	if (ImGui::TreeNode(Name.data()))
+	{
+		ImGui::Text("Attributes");
+		ImGui::Text("Index Count: %u", IndexCount);
+		ImGui::Text("Start Index Location: %u", StartIndexLocation);
+		ImGui::Text("Vertex Count: %u", VertexCount);
+		ImGui::Text("Base Vertex Location: %u", BaseVertexLocation);
+
+		ImGui::Text("BLAS Index: %u", BottomLevelAccelerationStructureIndex);
+
+		ImGui::TreePop();
+	}
+}
+
 void GenerateMeshletData(const std::vector<Vertex>& Vertices, const std::vector<uint32_t>& Indices, Mesh* pMesh)
 {
 	std::vector<DirectX::Meshlet> meshlets;

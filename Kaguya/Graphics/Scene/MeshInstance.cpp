@@ -1,11 +1,27 @@
 #include "pch.h"
 #include "MeshInstance.h"
 
-MeshInstance::MeshInstance(size_t MeshIndex, size_t MaterialIndex)
-	: MeshIndex(MeshIndex),
+MeshInstance::MeshInstance(const std::string& Name, size_t MeshIndex, size_t MaterialIndex)
+	: Name(Name),
+	Dirty(false),
+	MeshIndex(MeshIndex),
 	MaterialIndex(MaterialIndex)
 {
 
+}
+
+void MeshInstance::RenderGui(int NumMeshes, int NumMaterials)
+{
+	if (ImGui::TreeNode(Name.data()))
+	{
+		NumMeshes = std::max(0, NumMeshes - 1);
+		NumMaterials = std::max(0, NumMaterials - 1);
+
+		Dirty |= ImGui::SliderInt("Mesh Index", (int*)&MeshIndex, 0, NumMeshes);
+		Dirty |= ImGui::SliderInt("Material Index", (int*)&MaterialIndex, 0, NumMaterials);
+
+		ImGui::TreePop();
+	}
 }
 
 void MeshInstance::Translate(float DeltaX, float DeltaY, float DeltaZ)

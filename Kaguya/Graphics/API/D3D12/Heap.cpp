@@ -3,5 +3,5 @@
 
 Heap::Heap(ID3D12Device* pDevice, const D3D12_HEAP_DESC& Desc)
 {
-	ThrowCOMIfFailed(pDevice->CreateHeap(&Desc, IID_PPV_ARGS(m_ApiHandle.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateHeap(&Desc, IID_PPV_ARGS(m_ApiHandle.ReleaseAndGetAddressOf())));
 }

@@ -239,7 +239,7 @@ DescriptorHeap::DescriptorHeap(ID3D12Device* pDevice, std::vector<UINT> Ranges, 
 		.NodeMask		= 0
 	};
 
-	ThrowCOMIfFailed(pDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&m_pDescriptorHeap)));
+	ThrowIfFailed(pDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&m_pDescriptorHeap)));
 	m_DescriptorIncrementSize = pDevice->GetDescriptorHandleIncrementSize(Type);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE StartCpuHandle = m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();

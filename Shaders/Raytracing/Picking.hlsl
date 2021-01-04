@@ -41,7 +41,7 @@ void RayGeneration()
 	const uint hitGroupIndex = RayTypePrimary;
 	const uint hitGroupIndexMultiplier = NumRayTypes;
 	const uint missShaderIndex = RayTypePrimary;
-	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
+	TraceRay(Scene, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 
     PickingResult[0] = rayPayload.InstanceID;
 }

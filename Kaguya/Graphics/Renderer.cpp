@@ -171,8 +171,8 @@ void Renderer::Render()
 	m_pRenderDevice->Present(Settings::VSync);
 
 	UINT64 Value = ++m_pRenderDevice->GraphicsFenceValue;
-	ThrowCOMIfFailed(m_pRenderDevice->GraphicsQueue.GetApiHandle()->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
-	ThrowCOMIfFailed(m_pRenderDevice->GraphicsFence->SetEventOnCompletion(Value, m_pRenderDevice->GraphicsFenceCompletionEvent.get()));
+	ThrowIfFailed(m_pRenderDevice->GraphicsQueue.GetApiHandle()->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
+	ThrowIfFailed(m_pRenderDevice->GraphicsFence->SetEventOnCompletion(Value, m_pRenderDevice->GraphicsFenceCompletionEvent.get()));
 	m_pRenderDevice->GraphicsFenceCompletionEvent.wait();
 
 	auto PickingRenderPass = m_pRenderGraph->GetRenderPass<Picking>();

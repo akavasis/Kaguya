@@ -30,24 +30,24 @@ void Material::RenderGui()
 	if (ImGui::TreeNode(Name.data()))
 	{
 		ImGui::Text("Attributes");
-		Dirty |= (int)ImGui::ColorEdit3("Albedo", &Albedo.x);
+		Dirty |= ImGui::ColorEdit3("Albedo", &Albedo.x);
 
 		if (Model == MaterialModel::DiffuseLightModel)
 		{
-			Dirty |= (int)ImGui::DragFloat3("Emissive", &Emissive.x, 0.25f, 0, 10000);
+			Dirty |= ImGui::DragFloat3("Emissive", &Emissive.x, 0.25f, 0, 10000);
 		}
 
-		Dirty |= (int)ImGui::ColorEdit3("Specular", &Specular.x);
-		Dirty |= (int)ImGui::ColorEdit3("Refraction", &Refraction.x);
-		Dirty |= (int)ImGui::SliderFloat("Specular Chance", &SpecularChance, 0, 1);
-		Dirty |= (int)ImGui::SliderFloat("Roughness", &Roughness, 0, 1);
-		Dirty |= (int)ImGui::SliderFloat("Metallic", &Metallic, 0, 1);
-		Dirty |= (int)ImGui::SliderFloat("Fuzziness", &Fuzziness, 0, 1);
-		Dirty |= (int)ImGui::SliderFloat("Index Of Refraction", &IndexOfRefraction, 1, 3);
+		Dirty |= ImGui::ColorEdit3("Specular", &Specular.x);
+		Dirty |= ImGui::ColorEdit3("Refraction", &Refraction.x);
+		Dirty |= ImGui::SliderFloat("Specular Chance", &SpecularChance, 0, 1);
+		Dirty |= ImGui::SliderFloat("Roughness", &Roughness, 0, 1);
+		Dirty |= ImGui::SliderFloat("Metallic", &Metallic, 0, 1);
+		Dirty |= ImGui::SliderFloat("Fuzziness", &Fuzziness, 0, 1);
+		Dirty |= ImGui::SliderFloat("Index Of Refraction", &IndexOfRefraction, 1, 3);
 
 		const char* MaterialModels[] = { "Lambertian", "Glossy", "Metal", "Dielectric", "Light" };
-		Dirty |= (int)ImGui::Combo("Model", &Model, MaterialModels, ARRAYSIZE(MaterialModels), ARRAYSIZE(MaterialModels));
-		Dirty |= (int)ImGui::Checkbox("Use Attributes", &UseAttributes);
+		Dirty |= ImGui::Combo("Model", &Model, MaterialModels, ARRAYSIZE(MaterialModels), ARRAYSIZE(MaterialModels));
+		Dirty |= ImGui::Checkbox("Use Attributes", &UseAttributes);
 
 		ImGui::Text("");
 		ImGui::Text("Albedo Map: %s", Textures[AlbedoIdx].Path.empty() ? "[NULL]" : Textures[AlbedoIdx].Path.data());

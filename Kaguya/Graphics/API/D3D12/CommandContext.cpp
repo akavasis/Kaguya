@@ -6,18 +6,18 @@ CommandContext::CommandContext(ID3D12Device4* pDevice, Type Type)
 {
 	auto CommandListType	= GetD3DCommandListType(Type);
 	auto CommandListFlags	= D3D12_COMMAND_LIST_FLAG_NONE;
-	ThrowCOMIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
 }
 
 bool CommandContext::Close(ResourceStateTracker* pGlobalResourceStateTracker)
 {
 	FlushResourceBarriers();
-	ThrowCOMIfFailed(m_pCommandList->Close());
+	ThrowIfFailed(m_pCommandList->Close());
 
 	UINT numPendingBarriers = m_ResourceStateTracker.FlushPendingResourceBarriers(*pGlobalResourceStateTracker, m_pPendingCommandList.Get());
 	pGlobalResourceStateTracker->UpdateResourceStates(m_ResourceStateTracker);
-	ThrowCOMIfFailed(m_pPendingCommandList->Close());
+	ThrowIfFailed(m_pPendingCommandList->Close());
 	return numPendingBarriers > 0;
 }
 
@@ -31,8 +31,8 @@ void CommandContext::Reset(UINT64 FenceValue, UINT64 CompletedValue, CommandQueu
 	pAllocator			= pCommandQueue->RequestAllocator(CompletedValue);
 	pPendingAllocator	= pCommandQueue->RequestAllocator(CompletedValue);
 
-	ThrowCOMIfFailed(m_pCommandList->Reset(pAllocator, nullptr));
-	ThrowCOMIfFailed(m_pPendingCommandList->Reset(pPendingAllocator, nullptr));
+	ThrowIfFailed(m_pCommandList->Reset(pAllocator, nullptr));
+	ThrowIfFailed(m_pPendingCommandList->Reset(pPendingAllocator, nullptr));
 
 	// Reset resource state tracking and resource barriers 
 	m_ResourceStateTracker.Reset();

@@ -155,7 +155,7 @@ void TextureManager::LoadSystemTextures()
 		
 		DirectX::TexMetadata TexMetadata;
 		DirectX::ScratchImage ScratchImage;
-		ThrowCOMIfFailed(DirectX::LoadFromDDSFile(AssetPaths[i].c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
+		ThrowIfFailed(DirectX::LoadFromDDSFile(AssetPaths[i].c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
 
 		m_SystemTextures[i] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Path.string());
 
@@ -234,7 +234,7 @@ void TextureManager::LoadNoiseTextures()
 
 		DirectX::TexMetadata TexMetadata;
 		DirectX::ScratchImage ScratchImage;
-		ThrowCOMIfFailed(DirectX::LoadFromDDSFile(AssetPaths[i].c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
+		ThrowIfFailed(DirectX::LoadFromDDSFile(AssetPaths[i].c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
 
 		m_NoiseTextures[i] = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Path.string());
 
@@ -294,19 +294,19 @@ RenderResourceHandle TextureManager::LoadFromFile(const std::filesystem::path& P
 	DirectX::TexMetadata	TexMetadata;
 	if (Extension == ".dds")
 	{
-		ThrowCOMIfFailed(DirectX::LoadFromDDSFile(Path.c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
+		ThrowIfFailed(DirectX::LoadFromDDSFile(Path.c_str(), DirectX::DDS_FLAGS::DDS_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
 	}
 	else if (Extension == ".tga")
 	{
-		ThrowCOMIfFailed(DirectX::LoadFromTGAFile(Path.c_str(), &TexMetadata, ScratchImage));
+		ThrowIfFailed(DirectX::LoadFromTGAFile(Path.c_str(), &TexMetadata, ScratchImage));
 	}
 	else if (Extension == ".hdr")
 	{
-		ThrowCOMIfFailed(DirectX::LoadFromHDRFile(Path.c_str(), &TexMetadata, ScratchImage));
+		ThrowIfFailed(DirectX::LoadFromHDRFile(Path.c_str(), &TexMetadata, ScratchImage));
 	}
 	else
 	{
-		ThrowCOMIfFailed(DirectX::LoadFromWICFile(Path.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
+		ThrowIfFailed(DirectX::LoadFromWICFile(Path.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_FORCE_RGB, &TexMetadata, ScratchImage));
 	}
 	// if metadata mip levels is > 1 then is already generated, other wise the value is based on argument
 	GenerateMips = (TexMetadata.mipLevels > 1) ? false : GenerateMips;

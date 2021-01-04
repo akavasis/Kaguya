@@ -10,7 +10,7 @@ PipelineState::PipelineState(ID3D12Device2* pDevice, GraphicsPipelineStateBuilde
 	if (!Builder.pMS)
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc = Builder.Build();
-		ThrowCOMIfFailed(pDevice->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+		ThrowIfFailed(pDevice->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 	}
 	else
 	{
@@ -20,7 +20,7 @@ PipelineState::PipelineState(ID3D12Device2* pDevice, GraphicsPipelineStateBuilde
 		Desc.pPipelineStateSubobjectStream = &PSOStream;
 		Desc.SizeInBytes = sizeof(PSOStream);
 
-		ThrowCOMIfFailed(pDevice->CreatePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+		ThrowIfFailed(pDevice->CreatePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 	}
 }
 
@@ -30,5 +30,5 @@ PipelineState::PipelineState(ID3D12Device2* pDevice, ComputePipelineStateBuilder
 	pRootSignature = Builder.pRootSignature;
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC Desc = Builder.Build();
-	ThrowCOMIfFailed(pDevice->CreateComputePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateComputePipelineState(&Desc, IID_PPV_ARGS(m_PipelineState.ReleaseAndGetAddressOf())));
 }

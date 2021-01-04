@@ -22,7 +22,7 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestCommandAllocator(UINT64 Com
 			iter.first <= CompletedFenceValue)
 		{
 			pCommandAllocator = iter.second;
-			ThrowCOMIfFailed(pCommandAllocator->Reset());
+			ThrowIfFailed(pCommandAllocator->Reset());
 			m_ReadyCommandAllocators.pop();
 		}
 	}
@@ -31,7 +31,7 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestCommandAllocator(UINT64 Com
 	if (!pCommandAllocator)
 	{
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CommandAllocator;
-		ThrowCOMIfFailed(m_pDevice->CreateCommandAllocator(m_Type, IID_PPV_ARGS(CommandAllocator.ReleaseAndGetAddressOf())));
+		ThrowIfFailed(m_pDevice->CreateCommandAllocator(m_Type, IID_PPV_ARGS(CommandAllocator.ReleaseAndGetAddressOf())));
 		wchar_t AllocatorName[32];
 		swprintf(AllocatorName, 32, L"CommandAllocator %zu", m_CommandAllocatorPool.size());
 		CommandAllocator->SetName(AllocatorName);

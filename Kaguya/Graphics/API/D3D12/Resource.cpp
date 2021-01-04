@@ -49,7 +49,7 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 	m_SizeInBytes		= ResourceAllocationInfo.SizeInBytes;
 	m_Alignment			= ResourceAllocationInfo.Alignment;
 	m_HeapOffset		= 0;
-	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreateCommittedResource(
+	ThrowIfFailed(pDevice->GetApiHandle()->CreateCommittedResource(
 		&HeapProperties,
 		HeapFlags,
 		&ResourceDesc,
@@ -75,7 +75,7 @@ Resource::Resource(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, 
 	m_Alignment			= ResourceAllocationInfo.Alignment;
 	m_HeapOffset		= HeapOffset;
 
-	ThrowCOMIfFailed(pDevice->GetApiHandle()->CreatePlacedResource(
+	ThrowIfFailed(pDevice->GetApiHandle()->CreatePlacedResource(
 		pHeap,
 		HeapOffset,
 		&ResourceDesc,

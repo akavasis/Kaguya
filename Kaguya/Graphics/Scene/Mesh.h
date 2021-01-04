@@ -23,11 +23,8 @@ struct MeshletPrimitive
 
 struct Mesh
 {
-	Mesh(const std::string& Name)
-		: Name(Name)
-	{
-
-	}
+	Mesh(const std::string& Name);
+	void RenderGui();
 
 	auto begin() { return Meshlets.begin(); }
 	auto end() { return Meshlets.end(); }

@@ -262,10 +262,10 @@ float3 PathTrace(RayDesc Ray, inout uint Seed)
 		const uint hitGroupIndex = RayTypePrimary;
 		const uint hitGroupIndexMultiplier = NumRayTypes;
 		const uint missShaderIndex = RayTypePrimary;
-		TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, Ray, RayPayload);
+		TraceRay(Scene, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, Ray, RayPayload);
 		
 		Ray.Origin = RayPayload.Position;
-		Ray.TMin = 0.0001f;
+		Ray.TMin = 0.0001f; // Avoid self intersection
 		Ray.Direction = RayPayload.Direction;
 		
 		RayPayload.Depth++;
@@ -373,23 +373,13 @@ void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
 			scatteringPDF = diffuseLight.ScatteringPDF(si, scatterRecord.SpecularRay);
 		}
 		break;
-		
-		default:
-		{
-			// Debug color here if in host side we didnt set any material model for materials
-			const float3 DEBUG_COLOR = float3(5000.0f, 0.0f, 0.0f);
-			rayPayload.Radiance = DEBUG_COLOR;
-			return;
-		}
-		break;
 	}
 	
 	rayPayload.Radiance += emitted * rayPayload.Throughput;
+	rayPayload.Throughput *= scatterRecord.Attenuation;
 	
 	if (shouldScatter)
 	{	
-		rayPayload.Throughput *= scatterRecord.Attenuation;
-		
 		rayPayload.Position = scatterRecord.SpecularRay.Origin;
 		rayPayload.Direction = scatterRecord.SpecularRay.Direction;
 	}

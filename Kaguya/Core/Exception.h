@@ -34,8 +34,8 @@ private:
 	HRESULT m_HR;
 };
 
-#ifndef ThrowCOMIfFailed
-#define ThrowCOMIfFailed(HR)							\
+#ifndef ThrowIfFailed
+#define ThrowIfFailed(HR)							\
 do														\
 {														\
 	HRESULT hr = (HR);									\

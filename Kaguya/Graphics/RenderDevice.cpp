@@ -7,8 +7,8 @@ namespace D3D12Utility
 {
 	void FlushCommandQueue(UINT64 Value, ID3D12Fence* pFence, ID3D12CommandQueue* pCommandQueue, wil::unique_event& Event)
 	{
-		ThrowCOMIfFailed(pCommandQueue->Signal(pFence, Value));
-		ThrowCOMIfFailed(pFence->SetEventOnCompletion(Value, Event.get()));
+		ThrowIfFailed(pCommandQueue->Signal(pFence, Value));
+		ThrowIfFailed(pFence->SetEventOnCompletion(Value, Event.get()));
 		Event.wait();
 	}
 }
@@ -32,9 +32,9 @@ RenderDevice::RenderDevice(const Window& Window)
 
 	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 0;
 
-	ThrowCOMIfFailed(Device.GetApiHandle()->CreateFence(GraphicsFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(GraphicsFence.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(Device.GetApiHandle()->CreateFence(ComputeFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(ComputeFence.ReleaseAndGetAddressOf())));
-	ThrowCOMIfFailed(Device.GetApiHandle()->CreateFence(CopyFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(CopyFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device.GetApiHandle()->CreateFence(GraphicsFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(GraphicsFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device.GetApiHandle()->CreateFence(ComputeFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(ComputeFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device.GetApiHandle()->CreateFence(CopyFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(CopyFence.ReleaseAndGetAddressOf())));
 
 	GraphicsFenceCompletionEvent.create();
 	ComputeFenceCompletionEvent.create();
@@ -95,13 +95,13 @@ void RenderDevice::Resize(UINT Width, UINT Height)
 		// Resize backbuffer
 		// Note: Cannot use ResizeBuffers1 when debugging in Nsight Graphics, it will crash
 		uint32_t SwapChainFlags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		ThrowCOMIfFailed(m_DXGISwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
+		ThrowIfFailed(m_DXGISwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
 
 		// Recreate descriptors
 		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
 			ComPtr<ID3D12Resource> pBackBuffer;
-			ThrowCOMIfFailed(m_DXGISwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
+			ThrowIfFailed(m_DXGISwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
 			CreateTexture(m_BackBufferHandle[i], pBackBuffer, Resource::State::Common);
 			CreateRenderTargetView(m_BackBufferHandle[i]);
 		}
@@ -767,7 +767,7 @@ void RenderDevice::InitializeDXGIObjects()
 #if defined (_DEBUG)
 	FactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
-	ThrowCOMIfFailed(::CreateDXGIFactory2(FactoryFlags, IID_PPV_ARGS(m_DXGIFactory.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(::CreateDXGIFactory2(FactoryFlags, IID_PPV_ARGS(m_DXGIFactory.ReleaseAndGetAddressOf())));
 
 	// Check tearing support
 	BOOL AllowTearing = FALSE;
@@ -786,7 +786,7 @@ void RenderDevice::InitializeDXGIObjects()
 	while (m_DXGIFactory->EnumAdapterByGpuPreference(AdapterID, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(pAdapter4.ReleaseAndGetAddressOf())) != DXGI_ERROR_NOT_FOUND)
 	{
 		DXGI_ADAPTER_DESC3 Desc = {};
-		ThrowCOMIfFailed(pAdapter4->GetDesc3(&Desc));
+		ThrowIfFailed(pAdapter4->GetDesc3(&Desc));
 
 		if ((Desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
 		{
@@ -822,9 +822,9 @@ void RenderDevice::InitializeDXGISwapChain(const Window& Window)
 	Desc.AlphaMode				= DXGI_ALPHA_MODE_UNSPECIFIED;
 	Desc.Flags					= m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	ComPtr<IDXGISwapChain1> pSwapChain1;
-	ThrowCOMIfFailed(m_DXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetApiHandle(), Window.GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
-	ThrowCOMIfFailed(m_DXGIFactory->MakeWindowAssociation(Window.GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
-	ThrowCOMIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(m_DXGISwapChain.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(m_DXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetApiHandle(), Window.GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
+	ThrowIfFailed(m_DXGIFactory->MakeWindowAssociation(Window.GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
+	ThrowIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(m_DXGISwapChain.ReleaseAndGetAddressOf())));
 
 	m_BackBufferIndex = m_DXGISwapChain->GetCurrentBackBufferIndex();
 }

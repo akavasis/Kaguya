@@ -14,7 +14,7 @@ void Application::Initialize(LPCWSTR WindowName,
 {
 	Log::Create();
 
-	ThrowCOMIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
+	ThrowIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
 	SetProcessDpiAwareness(PROCESS_DPI_AWARENESS::PROCESS_SYSTEM_DPI_AWARE);
 
 	int argc;
@@ -33,6 +33,7 @@ void Application::Initialize(LPCWSTR WindowName,
 int Application::Run(RenderSystem* pRenderSystem)
 {
 	int ExitCode = EXIT_SUCCESS;
+	std::unique_ptr<RenderSystem> RenderSystem(pRenderSystem);
 
 	try
 	{
@@ -41,10 +42,11 @@ int Application::Run(RenderSystem* pRenderSystem)
 
 		// Begin our render thread
 		ExitRenderThread			= false;
-		RenderThread				= wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, pRenderSystem, 0, nullptr));
+		RenderThread				= wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, RenderSystem.get(), 0, nullptr));
 		if (!RenderThread)
 		{
 			LOG_ERROR("Failed to create thread (error={})", ::GetLastError());
+			Quit();
 		}
 
 		MSG msg = {};
@@ -109,7 +111,6 @@ int Application::Run(RenderSystem* pRenderSystem)
 		LOG_INFO("Joining render thread");
 		ExitRenderThread = true;
 		::WaitForSingleObject(RenderThread.get(), INFINITE);
-		delete pRenderSystem;
 		LOG_INFO("Render thread joined");
 	}
 
@@ -127,7 +128,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 {
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
 
-	ThrowCOMIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
+	ThrowIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
 	auto pRenderSystem = reinterpret_cast<RenderSystem*>(pParameter);
 	
 	Time Time;
@@ -144,28 +145,26 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 		Time.Signal();
 
 		// Process window messages
+		Window::Message messsage;
+		Window::Message resizeMessage(Window::Message::Type::None, {});
+		while (Window.MessageQueue.pop(messsage, 0))
 		{
-			Window::Message messsage;
-			Window::Message resizeMessage(Window::Message::Type::None, {});
-			while (Window.MessageQueue.pop(messsage, 0))
+			if (messsage.type == Window::Message::Type::Resize)
 			{
-				if (messsage.type == Window::Message::Type::Resize)
-				{
-					resizeMessage = messsage;
-					continue;
-				}
-
-				HandleRenderMessage(pRenderSystem, messsage);
+				resizeMessage = messsage;
+				continue;
 			}
 
-			// Now we process resize message
-			if (resizeMessage.type == Window::Message::Type::Resize)
+			HandleRenderMessage(pRenderSystem, messsage);
+		}
+
+		// Now we process resize message
+		if (resizeMessage.type == Window::Message::Type::Resize)
+		{
+			if (!HandleRenderMessage(pRenderSystem, resizeMessage))
 			{
-				if (!HandleRenderMessage(pRenderSystem, resizeMessage))
-				{
-					// Requeue this message if it failed to resize
-					Window.MessageQueue.push(resizeMessage);
-				}
+				// Requeue this message if it failed to resize
+				Window.MessageQueue.push(resizeMessage);
 			}
 		}
 
@@ -173,23 +172,21 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 		pRenderSystem->OnUpdate(Time);
 
 		// Process mouse & keyboard events
+		// Handle render system mouse events
+		while (!Window.Mouse.RawDeltaBufferIsEmpty())
 		{
-			// Handle render system mouse events
-			while (!Window.Mouse.RawDeltaBufferIsEmpty())
-			{
-				auto delta = Window.Mouse.ReadRawDelta();
+			auto delta = Window.Mouse.ReadRawDelta();
 
-				if (!Window.CursorEnabled())
-				{
-					pRenderSystem->OnHandleMouse(delta.X, delta.Y, Time.DeltaTime());
-				}
-			}
-
-			// Handle render system keyboard events
 			if (!Window.CursorEnabled())
 			{
-				pRenderSystem->OnHandleKeyboard(Window.Keyboard, Time.DeltaTime());
+				pRenderSystem->OnHandleMouse(delta.X, delta.Y, Time.DeltaTime());
 			}
+		}
+
+		// Handle render system keyboard events
+		if (!Window.CursorEnabled())
+		{
+			pRenderSystem->OnHandleKeyboard(Window.Keyboard, Time.DeltaTime());
 		}
 		
 		pRenderSystem->OnRender();

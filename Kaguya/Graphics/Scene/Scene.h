@@ -27,14 +27,14 @@ struct Scene
 		Lights.push_back(Light);
 	}
 
-	size_t AddMaterial(Material Material)
+	[[nodiscard]] size_t AddMaterial(Material Material)
 	{
 		size_t Index = Materials.size();
 		Materials.push_back(Material);
 		return Index;
 	}
 
-	size_t AddMesh(Mesh Mesh)
+	[[nodiscard]] size_t AddMesh(Mesh Mesh)
 	{
 		size_t Index = Meshes.size();
 		Meshes.push_back(Mesh);

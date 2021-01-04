@@ -30,9 +30,9 @@ RaytracingPipelineState::RaytracingPipelineState(ID3D12Device5* pDevice, Raytrac
 
 	auto Desc = Builder.Build();
 
-	ThrowCOMIfFailed(pDevice->CreateStateObject(&Desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateStateObject(&Desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
 	// Query the state object properties
-	ThrowCOMIfFailed(m_StateObject->QueryInterface(IID_PPV_ARGS(m_StateObjectProperties.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(m_StateObject->QueryInterface(IID_PPV_ARGS(m_StateObjectProperties.ReleaseAndGetAddressOf())));
 }
 
 ShaderIdentifier RaytracingPipelineState::GetShaderIdentifier(LPCWSTR pExportName)

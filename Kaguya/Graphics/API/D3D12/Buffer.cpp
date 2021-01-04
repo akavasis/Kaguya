@@ -45,7 +45,7 @@ BYTE* Buffer::Map()
 {
 	if (!m_pMappedData)
 	{
-		ThrowCOMIfFailed(m_pResource->Map(0, nullptr, (void**)&m_pMappedData));
+		ThrowIfFailed(m_pResource->Map(0, nullptr, (void**)&m_pMappedData));
 	}
 
 	return m_pMappedData;

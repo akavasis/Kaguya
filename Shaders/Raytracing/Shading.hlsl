@@ -149,7 +149,7 @@ float TraceShadowRay(float3 Origin, float TMin, float3 Direction, float TMax)
 	const uint hitGroupIndex = 0;
 	const uint hitGroupIndexMultiplier = 0;
 	const uint missShaderIndex = 0;
-	TraceRay(SceneBVH, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
+	TraceRay(Scene, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
 
 	return rayPayload.Visibility;
 }

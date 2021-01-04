@@ -12,7 +12,7 @@
 #define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
 #define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
-RaytracingAccelerationStructure		SceneBVH			: register(t0, space0);
+RaytracingAccelerationStructure		Scene				: register(t0, space0);
 StructuredBuffer<Mesh>				Meshes				: register(t1, space0);
 StructuredBuffer<PolygonalLight>	Lights				: register(t2, space0);
 StructuredBuffer<Material>			Materials			: register(t3, space0);

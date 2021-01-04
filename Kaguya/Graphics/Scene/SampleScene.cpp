@@ -36,35 +36,35 @@ Scene CornellBox()
 		auto lightIndex = scene.AddMesh(CreateGrid(3.0f, 3.0f, 2, 2));
 
 		// Model instances
-		auto leftboxInstance = MeshInstance(boxIndex, defaultMatIndex);
+		auto leftboxInstance = MeshInstance("Left box", boxIndex, defaultMatIndex);
 		leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
 		leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
 		leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
 
-		auto rightboxInstance = MeshInstance(boxIndex, defaultMatIndex);
+		auto rightboxInstance = MeshInstance("Right box", boxIndex, defaultMatIndex);
 		rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
 		rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
 		rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
 
-		auto floorInstance = MeshInstance(rectIndex, defaultMatIndex);
+		auto floorInstance = MeshInstance("Floor", rectIndex, defaultMatIndex);
 
-		auto ceilingInstance = MeshInstance(rectIndex, defaultMatIndex);
+		auto ceilingInstance = MeshInstance("Ceiling", rectIndex, defaultMatIndex);
 		ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
 		ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
 
-		auto backwallInstance = MeshInstance(rectIndex, defaultMatIndex);
+		auto backwallInstance = MeshInstance("Back wall", rectIndex, defaultMatIndex);
 		backwallInstance.Translate(0.0f, 5.0f, 5.0f);
 		backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
 
-		auto leftwallInstance = MeshInstance(rectIndex, leftWallMatIndex);
+		auto leftwallInstance = MeshInstance("Left wall", rectIndex, leftWallMatIndex);
 		leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
 		leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
 
-		auto rightwallInstance = MeshInstance(rectIndex, rightWallMatIndex);
+		auto rightwallInstance = MeshInstance("Right wall", rectIndex, rightWallMatIndex);
 		rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
 		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
 
-		auto lightInstance = MeshInstance(lightIndex, lightMatIndex);
+		auto lightInstance = MeshInstance("Light", lightIndex, lightMatIndex);
 		lightInstance.Translate(0.0f, 9.9f, 0.0f);
 
 		scene.AddMeshInstance(leftboxInstance);
