@@ -16,7 +16,9 @@ public:
 	void UploadModels(RenderContext& RenderContext);
 	void DisposeResources();
 
-	void RenderGui(bool Clicked, INT InstanceID);
+	void SetSelectedInstanceID(INT SelectedInstanceID);
+
+	void RenderGui();
 	bool Update(float AspectRatio);
 	void CreateTopLevelAS(CommandContext* pCommandContext);
 
@@ -61,4 +63,7 @@ private:
 
 	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS					m_RaytracingTopLevelAccelerationStructure;
+
+	INT						m_SelectedInstanceID	= -1;
+	MeshInstance*			m_SelectedMeshInstance	= nullptr;
 };

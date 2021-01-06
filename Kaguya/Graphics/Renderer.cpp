@@ -103,14 +103,20 @@ void Renderer::Update(const Time& Time)
 	m_Scene.PreviousCamera = m_Scene.Camera;
 }
 
-static bool Clicked = false;
-
 //----------------------------------------------------------------------------------------------------
-void Renderer::HandleMouse(int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime)
+void Renderer::HandleMouse(bool CursorEnabled, int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime)
 {
-	Clicked = Mouse.IsLMBPressed();
-
-	m_Scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
+	if (CursorEnabled)
+	{
+		if (Mouse.IsLMBPressed() && !ImGuizmo::IsUsing())
+		{
+			m_pGpuScene->SetSelectedInstanceID(InstanceID);
+		}
+	}
+	else
+	{
+		m_Scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
+	}
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -142,7 +148,7 @@ void Renderer::Render()
 #endif
 
 	RenderGui();
-	m_pGpuScene->RenderGui(Clicked, InstanceID);
+	m_pGpuScene->RenderGui();
 
 	HLSL::SystemConstants HLSLSystemConstants	= {};
 	HLSLSystemConstants.Camera					= m_pGpuScene->GetHLSLCamera();
@@ -274,6 +280,9 @@ void Renderer::RenderGui()
 		ImGui::Text("FPMS: %f", Statistics::FPMS);
 
 		ImGui::Text("");
+
+		// Debug gui here
+		ImGui::Text("InstanceID: %i", InstanceID);
 
 		if (ImGui::Button("Screenshot"))
 		{

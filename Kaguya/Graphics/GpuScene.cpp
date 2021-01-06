@@ -222,7 +222,6 @@ bool EditTransform(
 			break;
 		}
 	}
-	ImGuiIO& io = ImGui::GetIO();
 
 	return ImGuizmo::Manipulate(
 		pCameraView,
@@ -294,7 +293,12 @@ void GpuScene::DisposeResources()
 	TextureManager.DisposeResources();
 }
 
-void GpuScene::RenderGui(bool Clicked, INT InstanceID)
+void GpuScene::SetSelectedInstanceID(INT SelectedInstanceID)
+{
+	m_SelectedInstanceID = SelectedInstanceID;
+}
+
+void GpuScene::RenderGui()
 {
 	if (ImGui::Begin("Scene"))
 	{
@@ -341,16 +345,16 @@ void GpuScene::RenderGui(bool Clicked, INT InstanceID)
 		}
 
 		// Render ImGuizmo
-		if (Clicked && InstanceID != -1)
+		if (m_SelectedInstanceID != -1)
 		{
-			auto& meshInstance = pScene->MeshInstances[InstanceID];
+			m_SelectedMeshInstance = &pScene->MeshInstances[m_SelectedInstanceID];
 
 			DirectX::XMFLOAT4X4 World;
 			DirectX::XMFLOAT4X4 View, Projection;
 
-			XMStoreFloat4x4(&World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
-			XMStoreFloat4x4(&View, XMMatrixTranspose(pScene->Camera.ViewMatrix()));
-			XMStoreFloat4x4(&Projection, XMMatrixTranspose(pScene->Camera.ProjectionMatrix()));
+			XMStoreFloat4x4(&World, m_SelectedMeshInstance->Transform.Matrix());
+			XMStoreFloat4x4(&View, pScene->Camera.ViewMatrix());
+			XMStoreFloat4x4(&Projection, pScene->Camera.ProjectionMatrix());
 
 			ImGuiIO& io = ImGui::GetIO();
 			ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
@@ -367,7 +371,8 @@ void GpuScene::RenderGui(bool Clicked, INT InstanceID)
 
 			if (ImGuizmo::IsUsing())
 			{
-				meshInstance.Transform.SetTransform(XMLoadFloat4x4(&World));
+				m_SelectedMeshInstance->Transform.SetTransform(XMLoadFloat4x4(&World));
+				m_SelectedMeshInstance->Dirty = true;
 			}
 		}
 	}

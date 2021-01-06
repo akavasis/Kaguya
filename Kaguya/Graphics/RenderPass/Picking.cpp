@@ -208,8 +208,8 @@ void Picking::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		uint2 MousePosition;
 	} g_RenderPassData = {};
 
-	g_RenderPassData.MousePosition.x = Application::Window.Mouse.X();
-	g_RenderPassData.MousePosition.y = Application::Window.Mouse.Y();
+	g_RenderPassData.MousePosition.x = Application::InputHandler.Mouse.X();
+	g_RenderPassData.MousePosition.y = Application::InputHandler.Mouse.Y();
 
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 

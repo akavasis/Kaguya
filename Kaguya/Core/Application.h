@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "Window.h"
+#include "InputHandler.h"
 #include "RenderSystem.h"
 
 //----------------------------------------------------------------------------------------------------
@@ -25,6 +26,7 @@ private:
 public:
 	inline static std::filesystem::path			ExecutableFolderPath;
 	inline static Window						Window;
+	inline static InputHandler					InputHandler;
 
 private:
 	inline static std::atomic<bool>				QuitApplication			= false;

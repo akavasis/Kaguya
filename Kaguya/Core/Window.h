@@ -4,8 +4,6 @@
 #include <wil/resource.h>
 #include <string>
 
-#include "Mouse.h"
-#include "Keyboard.h"
 #include "ThreadSafeQueue.h"
 
 class Window
@@ -76,8 +74,6 @@ private:
 	};
 
 public:
-	Mouse						Mouse;
-	Keyboard					Keyboard;
 	ThreadSafeQueue<Message>	MessageQueue;
 
 private:

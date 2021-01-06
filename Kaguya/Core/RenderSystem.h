@@ -30,7 +30,7 @@ public:
 
 	bool OnInitialize();
 	void OnUpdate(const Time& Time);
-	void OnHandleMouse(int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime);
+	void OnHandleMouse(bool CursorEnabled, int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime);
 	void OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime);
 	void OnRender();
 	bool OnResize(uint32_t Width, uint32_t Height);
@@ -39,7 +39,7 @@ public:
 protected:
 	virtual bool Initialize() = 0;
 	virtual void Update(const Time& Time) = 0;
-	virtual void HandleMouse(int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime) = 0;
+	virtual void HandleMouse(bool CursorEnabled, int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime) = 0;
 	virtual void HandleKeyboard(const Keyboard& Keyboard, float DeltaTime) = 0;
 	virtual void Render() = 0;
 	virtual bool Resize(uint32_t Width, uint32_t Height) = 0;

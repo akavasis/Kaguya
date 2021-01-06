@@ -7,7 +7,6 @@
 #pragma comment(lib, "shcore.lib")
 
 #include "Time.h"
-#include "InputHandler.h"
 
 //----------------------------------------------------------------------------------------------------
 void Application::Initialize(LPCWSTR WindowName,
@@ -31,6 +30,7 @@ void Application::Initialize(LPCWSTR WindowName,
 	auto ImageFile = Application::ExecutableFolderPath / "Assets/Kaguya.ico";
 	Window.SetIcon(::LoadImage(0, ImageFile.wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
 	Window.Create(WindowName, Width, Height, X, Y);
+	InputHandler.Create(&Window);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -53,8 +53,6 @@ int Application::Run(RenderSystem* pRenderSystem)
 			Quit();
 		}
 
-		InputHandler InputHandler(&Window);
-
 		MSG msg = {};
 		while (msg.message != WM_QUIT)
 		{
@@ -63,32 +61,17 @@ int Application::Run(RenderSystem* pRenderSystem)
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 
-				//InputHandler.Handle(&msg);
-			}
-			else
-			{
-				while (!Window.Keyboard.KeyBufferIsEmpty())
+				InputHandler.Handle(&msg);
+
+				if (InputHandler.Mouse.IsRMBPressed())
 				{
-					auto e = Window.Keyboard.ReadKey();
-					if (e.Type != Keyboard::Event::EType::Press)
-						continue;
-					switch (e.Data.Code)
-					{
-					case VK_ESCAPE:
-					{
-						if (Window.CursorEnabled())
-						{
-							Window.DisableCursor();
-							Window.Mouse.EnableRawInput();
-						}
-						else
-						{
-							Window.EnableCursor();
-							Window.Mouse.DisableRawInput();
-						}
-					}
-					break;
-					}
+					Window.DisableCursor();
+					InputHandler.Mouse.EnableRawInput();
+				}
+				else
+				{
+					Window.EnableCursor();
+					InputHandler.Mouse.DisableRawInput();
 				}
 			}
 
@@ -181,20 +164,24 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 
 		// Process mouse & keyboard events
 		// Handle render system mouse events
-		while (!Window.Mouse.RawDeltaBufferIsEmpty())
+		while (!InputHandler.Mouse.RawDeltaBufferIsEmpty())
 		{
-			auto delta = Window.Mouse.ReadRawDelta();
+			auto delta = InputHandler.Mouse.ReadRawDelta();
 
 			if (!Window.CursorEnabled())
 			{
-				pRenderSystem->OnHandleMouse(delta.X, delta.Y, Window.Mouse, Time.DeltaTime());
+				pRenderSystem->OnHandleMouse(false, delta.X, delta.Y, InputHandler.Mouse, Time.DeltaTime());
+			}
+			else
+			{
+				pRenderSystem->OnHandleMouse(true, delta.X, delta.Y, InputHandler.Mouse, Time.DeltaTime());
 			}
 		}
 
 		// Handle render system keyboard events
 		if (!Window.CursorEnabled())
 		{
-			pRenderSystem->OnHandleKeyboard(Window.Keyboard, Time.DeltaTime());
+			pRenderSystem->OnHandleKeyboard(InputHandler.Keyboard, Time.DeltaTime());
 		}
 		
 		pRenderSystem->OnRender();
