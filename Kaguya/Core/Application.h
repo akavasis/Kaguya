@@ -1,6 +1,8 @@
 #pragma once
+
 #include <wil/resource.h>
 #include <filesystem>
+
 #include "Window.h"
 #include "RenderSystem.h"
 

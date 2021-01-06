@@ -1,5 +1,6 @@
 #pragma once
-#include <Windows.h>
+
+#include <synchapi.h>
 
 class ConditionVariable : public CONDITION_VARIABLE
 {

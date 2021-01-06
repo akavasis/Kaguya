@@ -23,6 +23,8 @@
 
 #define SHOW_IMGUI_DEMO_WINDOW 0
 
+using Microsoft::WRL::ComPtr;
+
 //----------------------------------------------------------------------------------------------------
 Renderer::Renderer()
 	: RenderSystem(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight())
@@ -64,22 +66,8 @@ bool Renderer::Initialize()
 		return false;
 	}
 
-	m_GraphicsContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice.get(), m_pRenderDevice->AllocateContext(CommandContext::Graphics));
-	m_GraphicsContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
-
 	BuildAccelerationStructureEvent.create();
 	AccelerationStructureCompleteEvent.create(wil::EventOptions::ManualReset);
-	AsyncComputeThread	= wil::unique_handle(::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr));
-	AsyncCopyThread		= wil::unique_handle(::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr));
-
-	m_pGpuScene->TextureManager.StageAssetTextures(m_GraphicsContext);
-
-	CommandContext* pCommandContexts[] = { m_GraphicsContext.GetCommandContext() };
-	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, 1, pCommandContexts);
-	m_pRenderDevice->FlushGraphicsQueue();
-	m_pGpuScene->TextureManager.DisposeResources();
-
-	SetScene(GenerateScene(SampleScene::CornellBox));
 
 	//m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
 	//m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
@@ -92,9 +80,19 @@ bool Renderer::Initialize()
 	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
 	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
 	m_pRenderGraph->AddRenderPass(new Picking());
+
+	m_pRenderDevice->CreateCommandContexts(m_pRenderGraph->NumRenderPass());
+
 	m_pRenderGraph->Initialize(AccelerationStructureCompleteEvent.get());
 
+	m_GraphicsContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice.get(), m_pRenderDevice->GetDefaultGraphicsContext());
+
+	SetScene(GenerateScene(SampleScene::CornellBox));
+
 	m_pRenderGraph->InitializeScene(m_pGpuScene.get());
+
+	AsyncComputeThread = wil::unique_handle(::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr));
+	AsyncCopyThread = wil::unique_handle(::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr));
 
 	return true;
 }
@@ -105,9 +103,13 @@ void Renderer::Update(const Time& Time)
 	m_Scene.PreviousCamera = m_Scene.Camera;
 }
 
+static bool Clicked = false;
+
 //----------------------------------------------------------------------------------------------------
-void Renderer::HandleMouse(int32_t X, int32_t Y, float DeltaTime)
+void Renderer::HandleMouse(int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime)
 {
+	Clicked = Mouse.IsLMBPressed();
+
 	m_Scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
 }
 
@@ -140,12 +142,7 @@ void Renderer::Render()
 #endif
 
 	RenderGui();
-	m_pGpuScene->RenderGui();
-
-	//m_Scene.Camera.RelativeAperture = 0.8f;
-	m_Scene.Camera.RelativeAperture = 0.0f;
-	m_Scene.Camera.ShutterTime = 1.0f / 125.0f;
-	m_Scene.Camera.SensorSensitivity = 200.0f;
+	m_pGpuScene->RenderGui(Clicked, InstanceID);
 
 	HLSL::SystemConstants HLSLSystemConstants	= {};
 	HLSLSystemConstants.Camera					= m_pGpuScene->GetHLSLCamera();
@@ -167,7 +164,7 @@ void Renderer::Render()
 	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
 	m_pRenderGraph->Execute(Refresh);
 
-	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, CommandContexts.size(), CommandContexts.data());
+	m_pRenderDevice->ExecuteGraphicsContexts(CommandContexts.size(), CommandContexts.data());
 	m_pRenderDevice->Present(Settings::VSync);
 
 	UINT64 Value = ++m_pRenderDevice->GraphicsFenceValue;
@@ -229,7 +226,7 @@ void Renderer::Destroy()
 	m_pRenderDevice.reset();
 
 #ifdef _DEBUG
-	Microsoft::WRL::ComPtr<IDXGIDebug> DXGIDebug;
+	ComPtr<IDXGIDebug> DXGIDebug;
 	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&DXGIDebug))))
 	{
 		DXGIDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
@@ -242,23 +239,20 @@ void Renderer::SetScene(Scene Scene)
 {
 	PIXCapture();
 	m_Scene				= std::move(Scene);
-	m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
+	//m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
 
-	m_Scene.Camera = Camera(DirectX::XM_PIDIV4, AspectRatio, 0.1f, 500.0f);
 	m_Scene.Camera.Transform.Position = { 0.0f, 5.0f, -20.0f };
 
 	m_pGpuScene->pScene = &m_Scene;
 
 	m_GraphicsContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+
 	m_pRenderDevice->BindGpuDescriptorHeap(m_GraphicsContext.GetCommandContext());
 	m_pGpuScene->UploadTextures(m_GraphicsContext);
 	m_pGpuScene->UploadModels(m_GraphicsContext);
-	m_pGpuScene->UploadLights();
-	m_pGpuScene->UploadMaterials();
-	m_pGpuScene->UploadMeshes();
 
 	CommandContext* pCommandContexts[] = { m_GraphicsContext.GetCommandContext() };
-	m_pRenderDevice->ExecuteCommandContexts(CommandContext::Graphics, ARRAYSIZE(pCommandContexts), pCommandContexts);
+	m_pRenderDevice->ExecuteGraphicsContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
 	m_pRenderDevice->FlushGraphicsQueue();
 	m_pGpuScene->DisposeResources();
 }
@@ -268,10 +262,10 @@ void Renderer::RenderGui()
 {
 	if (ImGui::Begin("Renderer"))
 	{
-		auto AdapterDescription = UTF16ToUTF8(m_pRenderDevice->GetAdapterDescription());
+		const auto& AdapterDesc = m_pRenderDevice->GetAdapterDesc();
 		auto LocalVideoMemoryInfo = m_pRenderDevice->QueryLocalVideoMemoryInfo();
 		auto UsageInMiB = ToMiB(LocalVideoMemoryInfo.CurrentUsage);
-		ImGui::Text("GPU: %s", AdapterDescription.data());
+		ImGui::Text("GPU: %ls", AdapterDesc.Description);
 		ImGui::Text("VRAM Usage: %d Mib", UsageInMiB);
 
 		ImGui::Text("");
@@ -280,7 +274,6 @@ void Renderer::RenderGui()
 		ImGui::Text("FPMS: %f", Statistics::FPMS);
 
 		ImGui::Text("");
-		ImGui::Text("InstanceID: %i", InstanceID);
 
 		if (ImGui::Button("Screenshot"))
 		{
@@ -314,7 +307,7 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
 	auto pRenderDevice = pRenderer->m_pRenderDevice.get();
 
-	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->AllocateContext(CommandContext::Compute));
+	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->GetDefaultAsyncComputeContext());
 
 	while (true)
 	{
@@ -331,10 +324,10 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 		{
 			RenderContext->Reset(pRenderDevice->ComputeFenceValue, pRenderDevice->ComputeFence->GetCompletedValue(), &pRenderDevice->ComputeQueue);
 
-			pRenderer->m_pGpuScene->CreateTopLevelAS(RenderContext);
+			pRenderer->m_pGpuScene->CreateTopLevelAS(RenderContext.GetCommandContext());
 
 			CommandContext* pCommandContexts[] = { RenderContext.GetCommandContext() };
-			pRenderDevice->ExecuteCommandContexts(CommandContext::Compute, 1, pCommandContexts);
+			pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
 			pRenderDevice->FlushComputeQueue();
 		}
 		pRenderer->AccelerationStructureCompleteEvent.SetEvent(); // Set the event after AS build is complete
@@ -350,7 +343,7 @@ DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
 	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
 	auto pRenderDevice = pRenderer->m_pRenderDevice.get();
 
-	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->AllocateContext(CommandContext::Copy));
+	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->GetDefaultCopyContext());
 
 	while (true)
 	{

@@ -239,13 +239,13 @@ DescriptorHeap::DescriptorHeap(ID3D12Device* pDevice, std::vector<UINT> Ranges, 
 		.NodeMask		= 0
 	};
 
-	ThrowIfFailed(pDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&m_pDescriptorHeap)));
+	ThrowIfFailed(pDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&m_DescriptorHeap)));
 	m_DescriptorIncrementSize = pDevice->GetDescriptorHandleIncrementSize(Type);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE StartCpuHandle = m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE StartCpuHandle = m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE StartGpuHandle = {};
 	if (m_ShaderVisible)
-		StartGpuHandle = m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+		StartGpuHandle = m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	m_StartDescriptor = { StartCpuHandle, StartGpuHandle, 0 };
 
 	UINT HeapIndex = 0;

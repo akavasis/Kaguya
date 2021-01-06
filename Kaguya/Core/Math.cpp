@@ -1,5 +1,6 @@
 #include "pch.h"
-#include "MathLibrary.h"
+#include "Math.h"
+
 #include <cstdlib>
 #include <random>
 

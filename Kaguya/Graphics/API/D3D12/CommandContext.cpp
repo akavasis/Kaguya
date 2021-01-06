@@ -1,10 +1,8 @@
 #include "pch.h"
 #include "CommandContext.h"
 
-CommandContext::CommandContext(ID3D12Device4* pDevice, Type Type)
-	: m_Type(Type)
+CommandContext::CommandContext(ID3D12Device4* pDevice, D3D12_COMMAND_LIST_TYPE CommandListType)
 {
-	auto CommandListType	= GetD3DCommandListType(Type);
 	auto CommandListFlags	= D3D12_COMMAND_LIST_FLAG_NONE;
 	ThrowIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pCommandList.ReleaseAndGetAddressOf())));
 	ThrowIfFailed(pDevice->CreateCommandList1(1, CommandListType, CommandListFlags, IID_PPV_ARGS(m_pPendingCommandList.ReleaseAndGetAddressOf())));
@@ -23,13 +21,11 @@ bool CommandContext::Close(ResourceStateTracker* pGlobalResourceStateTracker)
 
 void CommandContext::Reset(UINT64 FenceValue, UINT64 CompletedValue, CommandQueue* pCommandQueue)
 {
-	assert(pCommandQueue->GetType() == GetD3DCommandListType(m_Type));
-
 	pCommandQueue->DiscardCommandAllocator(FenceValue, pAllocator);
 	pCommandQueue->DiscardCommandAllocator(FenceValue, pPendingAllocator);
 
-	pAllocator			= pCommandQueue->RequestAllocator(CompletedValue);
-	pPendingAllocator	= pCommandQueue->RequestAllocator(CompletedValue);
+	pAllocator			= pCommandQueue->RequestCommandAllocator(CompletedValue);
+	pPendingAllocator	= pCommandQueue->RequestCommandAllocator(CompletedValue);
 
 	ThrowIfFailed(m_pCommandList->Reset(pAllocator, nullptr));
 	ThrowIfFailed(m_pPendingCommandList->Reset(pPendingAllocator, nullptr));
@@ -64,7 +60,6 @@ void CommandContext::SetDescriptorHeaps(CBSRUADescriptorHeap* pCBSRUADescriptorH
 
 void CommandContext::TransitionBarrier(Resource* pResource, Resource::State TransitionState, UINT Subresource /*= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES*/)
 {
-#define D3D12_RESOURCE_STATE_UNKNOWN (static_cast<D3D12_RESOURCE_STATES>(-1))
 	// Transition barriers indicate that a set of subresources transition between different usages.  
 	// The caller must specify the before and after usages of the subresources.  
 	// The D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES flag is used to transition all subresources in a resource at the same time. 
@@ -74,7 +69,6 @@ void CommandContext::TransitionBarrier(Resource* pResource, Resource::State Tran
 		D3D12_RESOURCE_STATES transitionState = GetD3D12ResourceStates(TransitionState);
 		m_ResourceStateTracker.ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_UNKNOWN, transitionState, Subresource));
 	}
-#undef D3D12_RESOURCE_STATE_UNKNOWN
 }
 
 void CommandContext::AliasingBarrier(Resource* pBeforeResource, Resource* pAfterResource)
@@ -170,15 +164,4 @@ void CommandContext::Dispatch3D(UINT ThreadGroupCountX, UINT ThreadGroupCountY, 
 void CommandContext::BuildRaytracingAccelerationStructure(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC* pDesc, UINT NumPostbuildInfoDescs, const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC* pPostbuildInfoDescs)
 {
 	m_pCommandList->BuildRaytracingAccelerationStructure(pDesc, NumPostbuildInfoDescs, pPostbuildInfoDescs);
-}
-
-D3D12_COMMAND_LIST_TYPE GetD3DCommandListType(CommandContext::Type Type)
-{
-	switch (Type)
-	{
-	case CommandContext::Type::Graphics:	return D3D12_COMMAND_LIST_TYPE_DIRECT;
-	case CommandContext::Type::Compute:		return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-	case CommandContext::Type::Copy:		return D3D12_COMMAND_LIST_TYPE_COPY;
-	default:								return D3D12_COMMAND_LIST_TYPE(-1);
-	}
 }

@@ -16,7 +16,6 @@ public:
 		ScopedWriteLock SWL(RWLock);
 
 		RenderResourceHandle Handle = {};
-
 		Handle.Type = Type;
 		Handle.UID = m_UIDCounter.fetch_add(1);
 		Handle.Ptr = m_ResourcePool.Allocate();
@@ -28,7 +27,6 @@ public:
 	void Free(RenderResourceHandle Handle)
 	{
 		ScopedWriteLock SWL(RWLock);
-
 		m_ResourcePool.Free(Handle.Ptr);
 	}
 

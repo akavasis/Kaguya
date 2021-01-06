@@ -19,13 +19,20 @@ Camera::Camera()
 	SensorSensitivity	= 200.0f;
 }
 
-Camera::Camera(float FoVY, float AspectRatio, float NearZ, float FarZ)
-	: FoVY(FoVY),
-	AspectRatio(AspectRatio),
-	NearZ(NearZ),
-	FarZ(FarZ)
+void Camera::RenderGui()
 {
+	if (ImGui::TreeNode("Camera"))
+	{
+		ImGui::SliderAngle("FoVY", &FoVY, 45.0f, 85.0f);
+		ImGui::Text("Aspect Ratio: %f", AspectRatio);
+		ImGui::SliderFloat("Near", &NearZ, 0.1f, 1.0f);
+		ImGui::SliderFloat("Far", &FarZ, 100.0f, 1000.0f);
 
+		ImGui::SliderFloat("Focal Length", &FocalLength, 1.0f, 100.0f);
+		ImGui::SliderFloat("Aperture", &RelativeAperture, 0.0f, 1.0f);
+
+		ImGui::TreePop();
+	}
 }
 
 DirectX::XMVECTOR Camera::GetUVector() const

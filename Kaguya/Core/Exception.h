@@ -1,6 +1,6 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+
+#include <winnt.h>
 #include <exception>
 #include <string>
 
@@ -15,11 +15,13 @@ public:
 	virtual std::string Type() const noexcept;
 	virtual std::string Error() const noexcept;
 	std::string Origin() const noexcept;
+
 protected:
 	mutable std::string m_ErrorMessage;
+
 private:
-	std::string m_File;
-	int m_Line;
+	std::string			m_File;
+	int					m_Line;
 };
 
 class COMException final : public Exception
@@ -35,7 +37,7 @@ private:
 };
 
 #ifndef ThrowIfFailed
-#define ThrowIfFailed(HR)							\
+#define ThrowIfFailed(HR)								\
 do														\
 {														\
 	HRESULT hr = (HR);									\

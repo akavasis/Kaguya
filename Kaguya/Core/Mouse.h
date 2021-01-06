@@ -1,10 +1,12 @@
 #pragma once
+
 #include "ThreadSafeQueue.h"
 
 class Mouse
 {
 public:
 	friend class Window;
+	friend class InputHandler;
 
 	enum
 	{
@@ -13,7 +15,7 @@ public:
 
 	struct Event
 	{
-		enum class Type
+		enum class EType
 		{
 			Invalid,
 			Move,
@@ -27,25 +29,29 @@ public:
 			RMBRelease,
 			WheelUp,
 			WheelDown
-		} type;
-		struct Data
+		};
+
+		struct SData
 		{
 			int X; int Y;
 			bool LeftMouseButtonIsPressed;
 			bool MiddleMouseButtonIsPressed;
 			bool RightMouseButtonIsPressed;
-		} data;
+		};
 
 		Event() = default;
-		Event(Type type, const Mouse& mouse)
-			: type(type)
+		Event(EType Type, const Mouse& Mouse)
+			: Type(Type)
 		{
-			data.X = mouse.m_X;
-			data.Y = mouse.m_Y;
-			data.LeftMouseButtonIsPressed = mouse.m_LeftMouseButtonIsPressed;
-			data.MiddleMouseButtonIsPressed = mouse.m_MiddleMouseButtonIsPressed;
-			data.RightMouseButtonIsPressed = mouse.m_RightMouseButtonIsPressed;
+			Data.X = Mouse.m_X;
+			Data.Y = Mouse.m_Y;
+			Data.LeftMouseButtonIsPressed = Mouse.m_IsLMBPressed;
+			Data.MiddleMouseButtonIsPressed = Mouse.m_IsMMBPressed;
+			Data.RightMouseButtonIsPressed = Mouse.m_IsRMBPressed;
 		}
+
+		EType Type = EType::Invalid;
+		SData Data = {};
 	};
 
 	struct RawDelta
@@ -62,9 +68,9 @@ public:
 	int X() const;
 	int Y() const;
 
-	bool LMBIsPressed() const;
-	bool MMBIsPressed() const;
-	bool RMBIsPressed() const;
+	bool IsLMBPressed() const;
+	bool IsMMBPressed() const;
+	bool IsRMBPressed() const;
 	bool IsInWindow() const;
 
 	Mouse::Event Read();
@@ -89,18 +95,19 @@ private:
 	template<class T>
 	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer)
 	{
-		while (QueueBuffer.size() > BufferSize)
+		while (QueueBuffer.Size() > BufferSize)
 		{
 			T item;
-			QueueBuffer.pop(item, 0);
+			QueueBuffer.Dequeue(item, 0);
 		}
 	}
 
+private:
 	int								m_X;
 	int								m_Y;
-	bool							m_LeftMouseButtonIsPressed;
-	bool							m_MiddleMouseButtonIsPressed;
-	bool							m_RightMouseButtonIsPressed;
+	bool							m_IsLMBPressed;
+	bool							m_IsMMBPressed;
+	bool							m_IsRMBPressed;
 	bool							m_IsInWindow;
 	int								m_WheelDeltaCarry;
 	bool							m_RawInputEnabled;

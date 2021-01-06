@@ -20,7 +20,7 @@ public:
 protected:
 	bool Initialize() override;
 	void Update(const Time& Time) override;
-	void HandleMouse(int32_t X, int32_t Y, float DeltaTime) override;
+	void HandleMouse(int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime) override;
 	void HandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
 	void Render() override;
 	bool Resize(uint32_t Width, uint32_t Height) override;

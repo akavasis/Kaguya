@@ -1,4 +1,5 @@
 #pragma once
+
 #include <basetsd.h>		// UINT64
 #include <compare>			// operator<=>
 #include "Core/Utility.h"	// hash_combine
@@ -19,10 +20,6 @@ constexpr auto MAX_PTR = (1ull << 32ull);
 
 struct RenderResourceHandle
 {
-	RenderResourceType	Type : 4ull;
-	UINT64				UID : 28ull;
-	UINT64				Ptr : 32ull;
-
 	RenderResourceHandle()
 	{
 		Type = RenderResourceType::Unknown;
@@ -36,6 +33,10 @@ struct RenderResourceHandle
 	{
 		return Type != RenderResourceType::Unknown && UID != MAX_UID && Ptr != MAX_PTR;
 	}
+
+	RenderResourceType	Type : 4ull;
+	UINT64				UID : 28ull;
+	UINT64				Ptr : 32ull;
 };
 
 static_assert(sizeof(RenderResourceHandle) == sizeof(UINT64));

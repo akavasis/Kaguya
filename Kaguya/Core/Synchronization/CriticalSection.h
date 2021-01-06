@@ -1,5 +1,6 @@
 #pragma once
-#include <Windows.h>
+
+#include <synchapi.h>
 
 class CriticalSection : public CRITICAL_SECTION
 {
@@ -43,6 +44,7 @@ public:
 	{
 		::LeaveCriticalSection(&CriticalSection);
 	}
+
 private:
 	CRITICAL_SECTION& CriticalSection;
 };

@@ -1,7 +1,9 @@
 #pragma once
+
 #include <Windows.h>
 #include <wil/resource.h>
 #include <string>
+
 #include "Mouse.h"
 #include "Keyboard.h"
 #include "ThreadSafeQueue.h"
@@ -11,26 +13,34 @@ class Window
 public:
 	struct Message
 	{
-		enum class Type
+		enum class EType
 		{
 			None,
 			Resize
-		} type;
+		};
 
-		struct Data
+		struct SData
 		{
 			UINT Width, Height;
-		} data;
+		};
 
 		Message() = default;
-		Message(Type Type, Data Data)
-			: type(Type), data(Data)
+		Message(EType Type, SData Data)
+			: Type(Type),
+			Data(Data)
 		{
+
 		}
+
+		EType Type;
+		SData Data;
 	};
 
 	Window() = default;
 	~Window();
+
+	void SetIcon(HANDLE Image);
+	void SetCursor(HCURSOR Cursor);
 
 	void Create(LPCWSTR WindowName,
 		int Width = CW_USEDEFAULT, int Height = CW_USEDEFAULT,
@@ -46,8 +56,8 @@ public:
 	inline auto GetWindowWidth() const { return m_WindowWidth; }
 	inline auto GetWindowHeight() const { return m_WindowHeight; }
 
-	void SetTitle(std::wstring Title);
-	void AppendToTitle(std::wstring Message);
+	void SetTitle(const std::wstring& Title);
+	void AppendToTitle(const std::wstring& Message);
 
 private:
 	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -72,8 +82,8 @@ public:
 
 private:
 	std::wstring				m_WindowName;
-	unsigned int				m_WindowWidth	= 0;
-	unsigned int				m_WindowHeight	= 0;
+	unsigned int				m_WindowWidth = 0;
+	unsigned int				m_WindowHeight = 0;
 	bool						m_CursorEnabled = true;
 
 	wil::unique_hicon			m_Icon;

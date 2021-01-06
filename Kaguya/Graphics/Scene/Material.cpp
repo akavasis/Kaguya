@@ -3,7 +3,7 @@
 
 Material::Material(const std::string& Name)
 	: Name(Name),
-	Dirty(false)
+	Dirty(true)
 {
 	Albedo					= { 0.0f, 0.0f, 0.0f };
 	Emissive				= { 0.0f, 0.0f, 0.0f };

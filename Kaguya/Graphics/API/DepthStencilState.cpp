@@ -14,6 +14,7 @@ DepthStencilState::Stencil::operator D3D12_DEPTH_STENCILOP_DESC() const noexcept
 
 DepthStencilState::DepthStencilState()
 {
+	// Default states https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_depth_stencil_desc#remarks
 	SetDepthEnable(true);
 	SetDepthWrite(true);
 	SetDepthFunc(ComparisonFunc::Less);

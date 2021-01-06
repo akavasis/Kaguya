@@ -1,6 +1,6 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+
+#include <winnt.h>
 
 class Time
 {
@@ -16,18 +16,15 @@ public:
 	void Signal();
 	void Restart();
 private:
-	struct Data
-	{
-		LARGE_INTEGER Frequency;
-		LARGE_INTEGER StartTime;
-		LARGE_INTEGER TotalTime;
-		LARGE_INTEGER PausedTime;
-		LARGE_INTEGER StopTime;
-		LARGE_INTEGER PreviousTime;
-		LARGE_INTEGER CurrentTime;
-		double Period; // Represents the amount of time it takes for 1 tick/oscilation
-		double DeltaTime;
-	} m_Data;
+	LARGE_INTEGER	m_Frequency		= {};
+	LARGE_INTEGER	m_StartTime		= {};
+	LARGE_INTEGER	m_TotalTime		= {};
+	LARGE_INTEGER	m_PausedTime	= {};
+	LARGE_INTEGER	m_StopTime		= {};
+	LARGE_INTEGER	m_PreviousTime	= {};
+	LARGE_INTEGER	m_CurrentTime	= {};
+	double			m_Period		= 0.0; // Represents the amount of time it takes for 1 tick/oscilation
+	double			m_DeltaTime		= 0.0;
 
-	bool m_Paused;
+	bool			m_Paused		= false;
 };

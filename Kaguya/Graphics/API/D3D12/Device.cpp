@@ -3,6 +3,8 @@
 
 #define GPU_BASED_VALIDATION 0
 
+using Microsoft::WRL::ComPtr;
+
 void Device::Create(IDXGIAdapter4* pAdapter)
 {
 	/*
@@ -16,9 +18,9 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 	*/
 #if defined(_DEBUG)
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
-	Microsoft::WRL::ComPtr<ID3D12Debug1> pDebug1;
-	ThrowIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(pDebug1.ReleaseAndGetAddressOf())));
-	pDebug1->EnableDebugLayer();
+	ComPtr<ID3D12Debug1> Debug1;
+	ThrowIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(Debug1.ReleaseAndGetAddressOf())));
+	Debug1->EnableDebugLayer();
 #if GPU_BASED_VALIDATION
 	pDebug1->SetEnableGPUBasedValidation(TRUE);
 #endif
@@ -26,7 +28,7 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 
 	constexpr D3D_FEATURE_LEVEL MinimumFeatureLevel = D3D_FEATURE_LEVEL_12_1;
 	// Create our virtual device used for interacting with the GPU so we can create resources
-	ThrowIfFailed(::D3D12CreateDevice(pAdapter, MinimumFeatureLevel, IID_PPV_ARGS(m_ApiHandle.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(::D3D12CreateDevice(pAdapter, MinimumFeatureLevel, IID_PPV_ARGS(m_Device5.ReleaseAndGetAddressOf())));
 
 	// Check for different features
 	CheckRootSignature_1_1Support();
@@ -35,10 +37,13 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 	CheckMeshShaderSupport();
 
 #if defined(_DEBUG)
-	Microsoft::WRL::ComPtr<ID3D12InfoQueue> pInfoQueue;
-	ThrowIfFailed(m_ApiHandle->QueryInterface(IID_PPV_ARGS(pInfoQueue.ReleaseAndGetAddressOf())));
-	ThrowIfFailed(pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE));
-	ThrowIfFailed(pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE));
+	ComPtr<ID3D12InfoQueue> InfoQueue;
+	if (SUCCEEDED(m_Device5.As(&InfoQueue)))
+	{
+		InfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+		InfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+		InfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+	}
 #endif
 
 	// Check for UAV format support
@@ -76,27 +81,28 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 		D3D12_FEATURE_DATA_FORMAT_SUPPORT FeatureDataFormatSupport = {};
 		FeatureDataFormatSupport.Format = OptionalFormats[i];
 
-		ThrowIfFailed(m_ApiHandle->CheckFeatureSupport(
+		if (SUCCEEDED(m_Device5->CheckFeatureSupport(
 			D3D12_FEATURE_FORMAT_SUPPORT,
 			&FeatureDataFormatSupport,
-			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
-
-		auto CheckFormatSupport1 = [&](D3D12_FORMAT_SUPPORT1 FormatSupport)
+			sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT))))
 		{
-			return (FeatureDataFormatSupport.Support1 & FormatSupport) != 0;
-		};
-		auto CheckFormatSupport2 = [&](D3D12_FORMAT_SUPPORT2 FormatSupport)
-		{
-			return (FeatureDataFormatSupport.Support2 & FormatSupport) != 0;
-		};
+			auto CheckFormatSupport1 = [&](D3D12_FORMAT_SUPPORT1 FormatSupport)
+			{
+				return (FeatureDataFormatSupport.Support1 & FormatSupport) != 0;
+			};
+			auto CheckFormatSupport2 = [&](D3D12_FORMAT_SUPPORT2 FormatSupport)
+			{
+				return (FeatureDataFormatSupport.Support2 & FormatSupport) != 0;
+			};
 
-		bool SupportUAV = CheckFormatSupport1(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) &&
-			CheckFormatSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) &&
-			CheckFormatSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
+			bool SupportUAV = CheckFormatSupport1(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) &&
+				CheckFormatSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) &&
+				CheckFormatSupport2(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
 
-		if (SupportUAV)
-		{
-			m_UAVSupportedFormats.insert(OptionalFormats[i]);
+			if (SupportUAV)
+			{
+				m_UAVSupportedFormats.insert(OptionalFormats[i]);
+			}
 		}
 	}
 }
@@ -134,31 +140,47 @@ void Device::CheckRootSignature_1_1Support()
 {
 	D3D12_FEATURE_DATA_ROOT_SIGNATURE RootSignature = {};
 	RootSignature.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-	ThrowIfFailed(m_ApiHandle->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &RootSignature, sizeof(RootSignature)));
-	if (RootSignature.HighestVersion < D3D_ROOT_SIGNATURE_VERSION_1_1)
-		throw std::runtime_error("RS 1.1 not supported on device");
+	if (SUCCEEDED(m_Device5->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &RootSignature, sizeof(RootSignature))))
+	{
+		if (RootSignature.HighestVersion < D3D_ROOT_SIGNATURE_VERSION_1_1)
+		{
+			throw std::runtime_error("RS 1.1 not supported on device");
+		}
+	}
 }
 
 void Device::CheckShaderModel6PlusSupport()
 {
 	D3D12_FEATURE_DATA_SHADER_MODEL ShaderModel = { D3D_SHADER_MODEL_6_5 };
-	ThrowIfFailed(m_ApiHandle->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &ShaderModel, sizeof(ShaderModel)));
-	if (ShaderModel.HighestShaderModel < D3D_SHADER_MODEL_6_0)
-		throw std::runtime_error("Shader Model 6+ not supported on device");
+	if (SUCCEEDED(m_Device5->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &ShaderModel, sizeof(ShaderModel))))
+	{
+		if (ShaderModel.HighestShaderModel < D3D_SHADER_MODEL_6_0)
+		{
+			throw std::runtime_error("Shader Model 6+ not supported on device");
+		}
+	}
 }
 
 void Device::CheckRaytracingSupport()
 {
 	D3D12_FEATURE_DATA_D3D12_OPTIONS5 D3D12Options5 = {};
-	ThrowIfFailed(m_ApiHandle->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &D3D12Options5, sizeof(D3D12Options5)));
-	if (D3D12Options5.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
-		throw std::runtime_error("Raytracing not supported on device");
+	if (SUCCEEDED(m_Device5->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &D3D12Options5, sizeof(D3D12Options5))))
+	{
+		if (D3D12Options5.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
+		{
+			throw std::runtime_error("Raytracing not supported on device");
+		}
+	}
 }
 
 void Device::CheckMeshShaderSupport()
 {
 	D3D12_FEATURE_DATA_D3D12_OPTIONS7 D3D12Options7 = {};
-	ThrowIfFailed(m_ApiHandle->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &D3D12Options7, sizeof(D3D12Options7)));
-	if (D3D12Options7.MeshShaderTier < D3D12_MESH_SHADER_TIER_1)
-		throw std::runtime_error("Mesh shader not supported on device");
+	if (SUCCEEDED(m_Device5->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &D3D12Options7, sizeof(D3D12Options7))))
+	{
+		if (D3D12Options7.MeshShaderTier < D3D12_MESH_SHADER_TIER_1)
+		{
+			throw std::runtime_error("Mesh shader not supported on device");
+		}
+	}
 }

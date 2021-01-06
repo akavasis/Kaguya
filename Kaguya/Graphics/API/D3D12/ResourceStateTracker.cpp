@@ -62,9 +62,9 @@ UINT ResourceStateTracker::FlushPendingResourceBarriers(const ResourceStateTrack
 			// subresources of the resource that are in a different state compared to
 			// the global resource state then we need to transition all of them
 			if (pendingTransition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES &&
-				!resourceState->SubresourceState.empty())
+				!resourceState->AreAllSubresourcesSame())
 			{
-				for (const auto& subresourceState : resourceState->SubresourceState)
+				for (auto subresourceState : *resourceState)
 				{
 					// If the subresource state is already the same as the transition state
 					if (pendingTransition.StateAfter == subresourceState.second)
@@ -128,10 +128,10 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& Barrier
 			auto& resourceState = iter->second;
 			// If the known final state of the resource is different...
 			if (Barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES &&
-				!resourceState.SubresourceState.empty())
+				!resourceState.AreAllSubresourcesSame())
 			{
 				// First transition all of the subresources if they are different than the StateAfter.
-				for (const auto& subresourceState : resourceState.SubresourceState)
+				for (const auto& subresourceState : resourceState)
 				{
 					if (Barrier.Transition.StateAfter != subresourceState.second)
 					{
@@ -175,7 +175,7 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& Barrier
 	}
 }
 
-std::optional<ResourceStateTracker::ResourceState> ResourceStateTracker::Find(ID3D12Resource* pResource) const
+std::optional<CResourceState> ResourceStateTracker::Find(ID3D12Resource* pResource) const
 {
 	if (auto iter = m_ResourceStates.find(pResource);
 		iter != m_ResourceStates.end())

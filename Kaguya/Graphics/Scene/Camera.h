@@ -1,5 +1,6 @@
 #pragma once
-#include "Math/Transform.h"
+
+#include "Transform.h"
 
 using FStop = float;
 using ISO = float;
@@ -8,7 +9,7 @@ using EV = float;
 struct Camera
 {
 	Camera();
-	Camera(float FoVY, float AspectRatio, float NearZ, float FarZ);
+	void RenderGui();
 
 	auto operator<=>(const Camera&) const = default;
 

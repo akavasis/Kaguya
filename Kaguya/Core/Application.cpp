@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "Application.h"
-#include "Time.h"
 
 #include <windowsx.h>
 #include <shellapi.h>
 #include <shellscalingapi.h>
 #pragma comment(lib, "shcore.lib")
+
+#include "Time.h"
+#include "InputHandler.h"
 
 //----------------------------------------------------------------------------------------------------
 void Application::Initialize(LPCWSTR WindowName,
@@ -26,6 +28,8 @@ void Application::Initialize(LPCWSTR WindowName,
 		LocalFree(argv);
 	}
 
+	auto ImageFile = Application::ExecutableFolderPath / "Assets/Kaguya.ico";
+	Window.SetIcon(::LoadImage(0, ImageFile.wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
 	Window.Create(WindowName, Width, Height, X, Y);
 }
 
@@ -49,6 +53,8 @@ int Application::Run(RenderSystem* pRenderSystem)
 			Quit();
 		}
 
+		InputHandler InputHandler(&Window);
+
 		MSG msg = {};
 		while (msg.message != WM_QUIT)
 		{
@@ -56,15 +62,17 @@ int Application::Run(RenderSystem* pRenderSystem)
 			{
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
+
+				//InputHandler.Handle(&msg);
 			}
 			else
 			{
 				while (!Window.Keyboard.KeyBufferIsEmpty())
 				{
 					auto e = Window.Keyboard.ReadKey();
-					if (e.type != Keyboard::Event::Type::Press)
+					if (e.Type != Keyboard::Event::EType::Press)
 						continue;
-					switch (e.data.Code)
+					switch (e.Data.Code)
 					{
 					case VK_ESCAPE:
 					{
@@ -146,10 +154,10 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 
 		// Process window messages
 		Window::Message messsage;
-		Window::Message resizeMessage(Window::Message::Type::None, {});
-		while (Window.MessageQueue.pop(messsage, 0))
+		Window::Message resizeMessage(Window::Message::EType::None, {});
+		while (Window.MessageQueue.Dequeue(messsage, 0))
 		{
-			if (messsage.type == Window::Message::Type::Resize)
+			if (messsage.Type == Window::Message::EType::Resize)
 			{
 				resizeMessage = messsage;
 				continue;
@@ -159,12 +167,12 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 		}
 
 		// Now we process resize message
-		if (resizeMessage.type == Window::Message::Type::Resize)
+		if (resizeMessage.Type == Window::Message::EType::Resize)
 		{
 			if (!HandleRenderMessage(pRenderSystem, resizeMessage))
 			{
 				// Requeue this message if it failed to resize
-				Window.MessageQueue.push(resizeMessage);
+				Window.MessageQueue.Enqueue(resizeMessage);
 			}
 		}
 
@@ -179,7 +187,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 
 			if (!Window.CursorEnabled())
 			{
-				pRenderSystem->OnHandleMouse(delta.X, delta.Y, Time.DeltaTime());
+				pRenderSystem->OnHandleMouse(delta.X, delta.Y, Window.Mouse, Time.DeltaTime());
 			}
 		}
 
@@ -204,11 +212,11 @@ Error:
 //----------------------------------------------------------------------------------------------------
 bool Application::HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message)
 {
-	switch (Message.type)
+	switch (Message.Type)
 	{
-	case Window::Message::Type::Resize:
+	case Window::Message::EType::Resize:
 	{
-		return pRenderSystem->OnResize(Message.data.Width, Message.data.Height);
+		return pRenderSystem->OnResize(Message.Data.Width, Message.Data.Height);
 	}
 	break;
 	}

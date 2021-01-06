@@ -30,9 +30,6 @@ void Shaders::Register(const ShaderCompiler& ShaderCompiler)
 
 	// Load PS
 	{
-		PS::ConvolutionIrradiance						= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionIrradiance.hlsl",	PSEntryPoint, {});
-		PS::ConvolutionPrefilter						= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/ConvolutionPrefilter.hlsl",		PSEntryPoint, {});
-
 		PS::GBufferMeshes								= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferMeshes.hlsl",			PSEntryPoint, {});
 		PS::GBufferLights								= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/GBufferLights.hlsl",			PSEntryPoint, {});
 
@@ -74,8 +71,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
 	InitRootSignature(Default);
 
-	InitRootSignature(ConvolutionIrradiace);
-	InitRootSignature(ConvolutionPrefilter);
 	InitRootSignature(GenerateMips);
 	InitRootSignature(EquirectangularToCubemap);
 
@@ -101,33 +96,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		Builder.DenyTessellationShaderAccess();
 		Builder.DenyGSAccess();
 	});
-
-	// Cubemap convolutions RS
-	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
-	{
-		RenderResourceHandle RootSignatureHandle;
-		switch (i)
-		{
-		case Irradiance: RootSignatureHandle = ConvolutionIrradiace; break;
-		case Prefilter:  RootSignatureHandle = ConvolutionPrefilter; break;
-		}
-
-		pRenderDevice->CreateRootSignature(RootSignatureHandle, [i](RootSignatureBuilder& Builder)
-		{
-			UINT Num32BitValues = i == Irradiance ? sizeof(ConvolutionIrradianceSettings) / 4 : sizeof(ConvolutionPrefilterSettings) / 4;
-
-			Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, Num32BitValues));	// Settings					b0 | space0
-			Builder.AddRootConstantsParameter(RootConstants<void>(1, 0, 1));				// RootConstants			b1 | space0
-			Builder.AddRootSRVParameter(RootSRV(0, 0));										// Vertex Buffer			t1 | space0
-			Builder.AddRootSRVParameter(RootSRV(1, 0));										// Index Buffer				t2 | space0
-			Builder.AddRootSRVParameter(RootSRV(2, 0));										// Geometry info Buffer		t3 | space0
-
-			Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
-
-			Builder.DenyTessellationShaderAccess();
-			Builder.DenyGSAccess();
-		});
-	}
 
 	// Generate mips RS
 	pRenderDevice->CreateRootSignature(GenerateMips, [](RootSignatureBuilder& Builder)
@@ -205,41 +173,10 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 {
-	InitGraphicsPSO(ConvolutionIrradiace);
-	InitGraphicsPSO(ConvolutionPrefilter);
-
 	InitGraphicsPSO(GBufferMeshes);
 	InitGraphicsPSO(GBufferLights);
 
 	InitGraphicsPSO(PostProcess_Tonemapping);
-
-	for (int i = 0; i < CubemapConvolution::NumCubemapConvolutions; ++i)
-	{
-		const RootSignature* pRS = i == CubemapConvolution::Irradiance ? pRenderDevice->GetRootSignature(RootSignatures::ConvolutionIrradiace)
-			: pRenderDevice->GetRootSignature(RootSignatures::ConvolutionPrefilter);
-		const Shader* pVS = &Shaders::VS::Skybox;
-		const Shader* pPS = i == CubemapConvolution::Irradiance ? &Shaders::PS::ConvolutionIrradiance : &Shaders::PS::ConvolutionPrefilter;
-		DXGI_FORMAT rtvFormat = i == CubemapConvolution::Irradiance ? RendererFormats::IrradianceFormat : RendererFormats::PrefilterFormat;
-
-		RenderResourceHandle RootSignatureHandle;
-		switch (i)
-		{
-		case Irradiance: RootSignatureHandle = ConvolutionIrradiace; break;
-		case Prefilter:  RootSignatureHandle = ConvolutionPrefilter; break;
-		}
-
-		pRenderDevice->CreateGraphicsPipelineState(RootSignatureHandle, [=](GraphicsPipelineStateBuilder& Builder)
-		{
-			Builder.pRootSignature = pRS;
-			Builder.pVS = pVS;
-			Builder.pPS = pPS;
-
-			Builder.RasterizerState.SetCullMode(RasterizerState::CullMode::None);
-
-			Builder.PrimitiveTopology = PrimitiveTopology::Triangle;
-			Builder.AddRenderTargetFormat(rtvFormat);
-		});
-	}
 }
 
 void ComputePSOs::Register(RenderDevice* pRenderDevice)

@@ -1,5 +1,6 @@
 #pragma once
-#include "MathLibrary.h"
+
+#include <DirectXMath.h>
 
 struct Transform
 {

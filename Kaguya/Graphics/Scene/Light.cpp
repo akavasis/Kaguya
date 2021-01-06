@@ -3,7 +3,7 @@
 
 PolygonalLight::PolygonalLight(const std::string& Name)
 	: Name(Name),
-	Dirty(false)
+	Dirty(true)
 {
 	Transform = {};
 	Color = { 1.0f, 1.0f, 1.0f };

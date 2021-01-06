@@ -1,26 +1,6 @@
 #include "pch.h"
 #include "Keyboard.h"
 
-Keyboard::Keyboard()
-{
-	m_AutoRepeat = false;
-}
-
-void Keyboard::EnableAutoRepeat()
-{
-	m_AutoRepeat = true;
-}
-
-void Keyboard::DisableAutoRepeat()
-{
-	m_AutoRepeat = false;
-}
-
-bool Keyboard::AutoRepeatEnabled() const
-{
-	return m_AutoRepeat;
-}
-
 bool Keyboard::IsKeyPressed(unsigned char KeyCode) const
 {
 	return m_KeyStates[KeyCode];
@@ -29,27 +9,27 @@ bool Keyboard::IsKeyPressed(unsigned char KeyCode) const
 Keyboard::Event Keyboard::ReadKey()
 {
 	if (Keyboard::Event e;
-		m_KeyBuffer.pop(e, 0))
+		m_KeyBuffer.Dequeue(e, 0))
 		return e;
-	return Keyboard::Event(Keyboard::Event::Type::Invalid, NULL);
+	return Keyboard::Event(Keyboard::Event::EType::Invalid, NULL);
 }
 
 bool Keyboard::KeyBufferIsEmpty() const
 {
-	return m_KeyBuffer.empty();
+	return m_KeyBuffer.IsEmpty();
 }
 
 unsigned char Keyboard::ReadChar()
 {
 	if (unsigned char e;
-		m_CharBuffer.pop(e, 0))
+		m_CharBuffer.Dequeue(e, 0))
 		return e;
 	return NULL;
 }
 
 bool Keyboard::CharBufferIsEmpty() const
 {
-	return m_CharBuffer.empty();
+	return m_CharBuffer.IsEmpty();
 }
 
 void Keyboard::ResetKeyState()
@@ -60,19 +40,19 @@ void Keyboard::ResetKeyState()
 void Keyboard::OnKeyPress(unsigned char KeyCode)
 {
 	m_KeyStates[KeyCode] = true;
-	m_KeyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Press, KeyCode));
+	m_KeyBuffer.Enqueue(Keyboard::Event(Keyboard::Event::EType::Press, KeyCode));
 	TrimBuffer(m_KeyBuffer);
 }
 
 void Keyboard::OnKeyRelease(unsigned char KeyCode)
 {
 	m_KeyStates[KeyCode] = false;
-	m_KeyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Release, KeyCode));
+	m_KeyBuffer.Enqueue(Keyboard::Event(Keyboard::Event::EType::Release, KeyCode));
 	TrimBuffer(m_KeyBuffer);
 }
 
 void Keyboard::OnChar(unsigned char Char)
 {
-	m_CharBuffer.push(Char);
+	m_CharBuffer.Enqueue(Char);
 	TrimBuffer(m_CharBuffer);
 }

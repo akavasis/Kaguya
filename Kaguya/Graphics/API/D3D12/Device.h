@@ -7,11 +7,11 @@
 class Device
 {
 public:
-	operator auto() const { return m_ApiHandle.Get(); }
+	operator auto() const { return m_Device5.Get(); }
 
 	void Create(IDXGIAdapter4* pAdapter);
 
-	inline auto GetApiHandle() const { return m_ApiHandle.Get(); }
+	inline auto GetApiHandle() const { return m_Device5.Get(); }
 
 	bool IsUAVCompatable(DXGI_FORMAT Format) const;
 private:
@@ -20,6 +20,6 @@ private:
 	void CheckRaytracingSupport();
 	void CheckMeshShaderSupport();
 
-	Microsoft::WRL::ComPtr<ID3D12Device5>	m_ApiHandle;
+	Microsoft::WRL::ComPtr<ID3D12Device5>	m_Device5;
 	std::unordered_set<DXGI_FORMAT>			m_UAVSupportedFormats;
 };

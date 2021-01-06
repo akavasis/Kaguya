@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "SharedDefines.h"
 
 enum MaterialModel

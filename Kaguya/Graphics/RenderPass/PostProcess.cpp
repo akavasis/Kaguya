@@ -93,6 +93,8 @@ void PostProcess::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.pVS = &Shaders::VS::Quad;
 		Builder.pPS = &Shaders::PS::PostProcess_Tonemapping;
 
+		Builder.DepthStencilState.SetDepthEnable(false);
+
 		Builder.PrimitiveTopology = PrimitiveTopology::Triangle;
 		Builder.AddRenderTargetFormat(RenderDevice::SwapChainBufferFormat);
 	});

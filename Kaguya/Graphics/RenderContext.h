@@ -52,6 +52,7 @@ public:
 		SV_pGpuData->Update<T>(SV_RenderPassIndex, Data);
 	}
 
+	void CopyBufferRegion(RenderResourceHandle DstBuffer, UINT64 DstOffset, RenderResourceHandle SrcBuffer, UINT64 SrcOffset, UINT64 NumBytes);
 	void CopyResource(RenderResourceHandle Dst, RenderResourceHandle Src);
 
 	void TransitionBarrier(RenderResourceHandle ResourceHandle, Resource::State TransitionState, UINT Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);

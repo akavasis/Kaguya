@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Window.h"
-#include "Application.h"
+
+#include <hidusage.h>
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -13,6 +14,16 @@ Window::~Window()
 	}
 }
 
+void Window::SetIcon(HANDLE Image)
+{
+	m_Icon.reset(reinterpret_cast<HICON>(Image));
+}
+
+void Window::SetCursor(HCURSOR Cursor)
+{
+	m_Cursor.reset(Cursor);
+}
+
 void Window::Create(LPCWSTR WindowName,
 	int Width /*= CW_USEDEFAULT*/, int Height /*= CW_USEDEFAULT*/,
 	int X /*= CW_USEDEFAULT*/, int Y /*= CW_USEDEFAULT*/)
@@ -21,20 +32,6 @@ void Window::Create(LPCWSTR WindowName,
 	m_WindowWidth	= Width;
 	m_WindowHeight	= Height;
 	m_CursorEnabled = true;
-
-	m_Icon.reset((HICON)::LoadImage(0, (Application::ExecutableFolderPath / "Assets/Kaguya.ico").generic_wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
-	m_Cursor.reset(::LoadCursor(nullptr, IDC_ARROW));
-
-	// Register RID for handling input
-	RAWINPUTDEVICE rid	= {};
-	rid.usUsagePage		= 0x01;		// mouse page
-	rid.usUsage			= 0x02l;	// mouse usage
-	rid.dwFlags			= 0;
-	rid.hwndTarget		= NULL;
-	if (!::RegisterRawInputDevices(&rid, 1, sizeof(rid)))
-	{
-		LOG_ERROR("RegisterRawInputDevices Error: {}", ::GetLastError());
-	}
 
 	// Register window class
 	WNDCLASSEXW windowClass		= {};
@@ -61,6 +58,17 @@ void Window::Create(LPCWSTR WindowName,
 		X, Y, Width, Height, NULL, NULL, GetModuleHandle(NULL), NULL));
 	if (m_WindowHandle)
 	{
+		// Register RID for handling input
+		RAWINPUTDEVICE RID[1]	= {};
+		RID[0].usUsagePage		= HID_USAGE_PAGE_GENERIC;
+		RID[0].usUsage			= HID_USAGE_GENERIC_MOUSE;
+		RID[0].dwFlags			= RIDEV_INPUTSINK;
+		RID[0].hwndTarget		= m_WindowHandle.get();
+		if (!::RegisterRawInputDevices(RID, 1, sizeof(RID[0])))
+		{
+			LOG_ERROR("RegisterRawInputDevices Error: {}", ::GetLastError());
+		}
+
 		// Initialize ImGui for win32
 		ImGui_ImplWin32_Init(m_WindowHandle.get());
 		::SetWindowLongPtr(m_WindowHandle.get(), GWLP_USERDATA, reinterpret_cast<LPARAM>(this));
@@ -100,12 +108,12 @@ bool Window::IsFocused() const
 	return GetForegroundWindow() == m_WindowHandle.get();
 }
 
-void Window::SetTitle(std::wstring Title)
+void Window::SetTitle(const std::wstring& Title)
 {
 	::SetWindowText(m_WindowHandle.get(), Title.data());
 }
 
-void Window::AppendToTitle(std::wstring Message)
+void Window::AppendToTitle(const std::wstring& Message)
 {
 	::SetWindowText(m_WindowHandle.get(), (m_WindowName + Message).data());
 }
@@ -135,14 +143,18 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		}
+
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
-			break;
-		const POINTS pt = MAKEPOINTS(lParam);
-		// Within the range of our window dimension -> log move, and log enter + capture mouse (if not previously in window)
-		if (pt.x >= 0 && pt.x < m_WindowWidth && pt.y >= 0 && pt.y < m_WindowHeight)
 		{
-			Mouse.OnMouseMove(pt.x, pt.y);
+			break;
+		}
+
+		const POINTS Points = MAKEPOINTS(lParam);
+		// Within the range of our window dimension -> log move, and log enter + capture mouse (if not previously in window)
+		if (Points.x >= 0 && Points.x < m_WindowWidth && Points.y >= 0 && Points.y < m_WindowHeight)
+		{
+			Mouse.OnMouseMove(Points.x, Points.y);
 			if (!Mouse.IsInWindow())
 			{
 				::SetCapture(m_WindowHandle.get());
@@ -154,7 +166,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			if (wParam & (MK_LBUTTON | MK_RBUTTON))
 			{
-				Mouse.OnMouseMove(pt.x, pt.y);
+				Mouse.OnMouseMove(Points.x, Points.y);
 			}
 			// button up -> release capture / log event for leaving
 			else
@@ -165,35 +177,41 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	break;
+
 	case WM_LBUTTONDOWN:
 	{
-		::SetForegroundWindow(m_WindowHandle.get());
-		if (!m_CursorEnabled)
-		{
-			ConfineCursor();
-			HideCursor();
-		}
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
+		{
 			break;
+		}
+
 		const POINTS Points = MAKEPOINTS(lParam);
 		Mouse.OnLMBPress(Points.x, Points.y);
 	}
 	break;
+
 	case WM_RBUTTONDOWN:
 	{
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
+		{
 			break;
+		}
+
 		const POINTS Points = MAKEPOINTS(lParam);
 		Mouse.OnRMBPress(Points.x, Points.y);
 	}
 	break;
+
 	case WM_LBUTTONUP:
 	{
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
+		{
 			break;
+		}
+
 		const POINTS Points = MAKEPOINTS(lParam);
 		Mouse.OnLMBRelease(Points.x, Points.y);
 		// Release mouse if outside of window
@@ -204,11 +222,15 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	break;
+
 	case WM_RBUTTONUP:
 	{
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
+		{
 			break;
+		}
+
 		const POINTS Points = MAKEPOINTS(lParam);
 		Mouse.OnRMBRelease(Points.x, Points.y);
 		// Release mouse if outside of window
@@ -219,11 +241,15 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	break;
+
 	case WM_MOUSEWHEEL:
 	{
 		// Stifle this mouse message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureMouse)
+		{
 			break;
+		}
+
 		const POINTS Points = MAKEPOINTS(lParam);
 		const int WheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 		Mouse.OnWheelDelta(Points.x, Points.y, WheelDelta);
@@ -236,22 +262,20 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (!Mouse.RawInputEnabled())
 			break;
-		UINT DataSize = 0;
-		// First get the size of the input data
-		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, nullptr, &DataSize, sizeof(RAWINPUTHEADER)) == -1)
-			break;
-		auto pData = (BYTE*)_malloca(DataSize);
-		// Read in the input data
-		if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, pData, &DataSize, sizeof(RAWINPUTHEADER)) != DataSize)
-			break;
-		// Process the raw input data
-		const auto& RawInput = reinterpret_cast<const RAWINPUT&>(*pData);
-		if (RawInput.header.dwType == RIM_TYPEMOUSE &&
-			(RawInput.data.mouse.lLastX != 0 || RawInput.data.mouse.lLastY != 0))
+
+		UINT dwSize = sizeof(RAWINPUT);
+		static BYTE lpb[sizeof(RAWINPUT)] = {};
+
+		GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+
+		auto pRawInput = (RAWINPUT*)lpb;
+
+		if (pRawInput->header.dwType == RIM_TYPEMOUSE)
 		{
-			Mouse.OnRawDelta(RawInput.data.mouse.lLastX, RawInput.data.mouse.lLastY);
+			int xPosRelative = pRawInput->data.mouse.lLastX;
+			int yPosRelative = pRawInput->data.mouse.lLastY;
+			Mouse.OnRawDelta(xPosRelative, yPosRelative);
 		}
-		_freea(pData);
 	}
 	break;
 #pragma endregion
@@ -269,23 +293,31 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 
-	case WM_KEYDOWN:
+	case WM_KEYDOWN: [[fallthrough]];
 	case WM_SYSKEYDOWN:
 	{
 		// Stifle this keyboard message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureKeyboard)
+		{
 			break;
-		if (!(lParam & (1 << 30)) || Keyboard.AutoRepeatEnabled())
+		}
+		
+		if (!(lParam & (1 << 30)) || Keyboard.AutoRepeat)
+		{
 			Keyboard.OnKeyPress(static_cast<unsigned char>(wParam));
+		}
 	}
 	break;
 
-	case WM_KEYUP:
+	case WM_KEYUP: [[fallthrough]];
 	case WM_SYSKEYUP:
 	{
 		// Stifle this keyboard message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureKeyboard)
+		{
 			break;
+		}
+		
 		Keyboard.OnKeyRelease(static_cast<unsigned char>(wParam));
 	}
 	break;
@@ -294,7 +326,10 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		// Stifle this keyboard message if imgui wants to capture
 		if (pImGuiIO && pImGuiIO->WantCaptureKeyboard)
+		{
 			break;
+		}
+		
 		Keyboard.OnChar(static_cast<unsigned char>(wParam));
 	}
 	break;
@@ -307,14 +342,14 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		RECT WindowRect = {};
 		::GetWindowRect(m_WindowHandle.get(), &WindowRect);
-		m_WindowWidth	= Math::Max<unsigned int>(1u, WindowRect.right - WindowRect.left);
-		m_WindowHeight	= Math::Max<unsigned int>(1u, WindowRect.bottom - WindowRect.top);
+		m_WindowWidth	= WindowRect.right - WindowRect.left;
+		m_WindowHeight	= WindowRect.bottom - WindowRect.top;
 
 		Window::Message WindowMessage	= {};
-		WindowMessage.type				= Message::Type::Resize;
-		WindowMessage.data.Width		= m_WindowWidth;
-		WindowMessage.data.Height		= m_WindowHeight;
-		MessageQueue.push(WindowMessage);
+		WindowMessage.Type				= Message::EType::Resize;
+		WindowMessage.Data.Width		= m_WindowWidth;
+		WindowMessage.Data.Height		= m_WindowHeight;
+		MessageQueue.Enqueue(WindowMessage);
 	}
 	break;
 #pragma endregion

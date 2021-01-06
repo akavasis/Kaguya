@@ -1,10 +1,13 @@
 #include "pch.h"
 #include "RenderContext.h"
-#include "RendererRegistry.h"
+
+void RenderContext::CopyBufferRegion(RenderResourceHandle DstBuffer, UINT64 DstOffset, RenderResourceHandle SrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
+{
+	SV_pCommandContext->CopyBufferRegion(SV_pRenderDevice->GetBuffer(DstBuffer), DstOffset, SV_pRenderDevice->GetBuffer(SrcBuffer), SrcOffset, NumBytes);
+}
 
 void RenderContext::CopyResource(RenderResourceHandle Dst, RenderResourceHandle Src)
 {
-	assert(Dst.Type == Src.Type);
 	switch (Dst.Type)
 	{
 	case RenderResourceType::Buffer:

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <bitset>
 #include "ThreadSafeQueue.h"
 
@@ -6,6 +7,7 @@ class Keyboard
 {
 public:
 	friend class Window;
+	friend class InputHandler;
 
 	enum
 	{
@@ -15,31 +17,28 @@ public:
 
 	struct Event
 	{
-		enum class Type
+		enum class EType
 		{
 			Invalid,
 			Press,
 			Release
-		} type;
-		struct Data
+		};
+
+		struct SData
 		{
 			unsigned char Code;
-		} data;
+		};
 
 		Event() = default;
-		Event(Type type, unsigned char code)
-			: type(type)
+		Event(EType Type, unsigned char Code)
+			: Type(Type)
 		{
-			data.Code = code;
+			Data.Code = Code;
 		}
+
+		EType Type = EType::Invalid;
+		SData Data = {};
 	};
-
-	Keyboard();
-	~Keyboard() = default;
-
-	void EnableAutoRepeat();
-	void DisableAutoRepeat();
-	bool AutoRepeatEnabled() const;
 
 	bool IsKeyPressed(unsigned char KeyCode) const;
 
@@ -48,6 +47,7 @@ public:
 
 	unsigned char ReadChar();
 	bool CharBufferIsEmpty() const;
+
 private:
 	void ResetKeyState();
 	void OnKeyPress(unsigned char KeyCode);
@@ -56,14 +56,17 @@ private:
 	template<class T>
 	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer)
 	{
-		while (QueueBuffer.size() > BufferSize)
+		while (QueueBuffer.Size() > BufferSize)
 		{
 			T item;
-			QueueBuffer.pop(item, 0);
+			QueueBuffer.Dequeue(item, 0);
 		}
 	}
 
-	bool								m_AutoRepeat;
+public:
+	bool								AutoRepeat = false;
+
+private:
 	std::bitset<NumKeyStates>			m_KeyStates;
 	ThreadSafeQueue<Keyboard::Event>	m_KeyBuffer;
 	ThreadSafeQueue<unsigned char>		m_CharBuffer;

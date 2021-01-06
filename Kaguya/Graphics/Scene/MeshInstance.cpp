@@ -3,7 +3,7 @@
 
 MeshInstance::MeshInstance(const std::string& Name, size_t MeshIndex, size_t MaterialIndex)
 	: Name(Name),
-	Dirty(false),
+	Dirty(true),
 	MeshIndex(MeshIndex),
 	MaterialIndex(MaterialIndex)
 {

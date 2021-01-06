@@ -1,7 +1,8 @@
 #pragma once
-#include <atomic>
+
 #include <d3d12.h>
 #include "d3dx12.h"
+
 #include "ResourceStateTracker.h"
 #include "DescriptorHeap.h"
 #include "CommandQueue.h"
@@ -14,19 +15,10 @@
 class CommandContext
 {
 public:
-	enum Type
-	{
-		Graphics,
-		Compute,
-		Copy,
-		NumTypes
-	};
-
-	CommandContext(ID3D12Device4* pDevice, Type Type);
+	CommandContext(ID3D12Device4* pDevice, D3D12_COMMAND_LIST_TYPE CommandListType);
 
 	inline auto GetApiHandle() const { return m_pCommandList.Get(); }
 	inline auto GetPendingCommandList() const { return m_pPendingCommandList.Get(); }
-	inline auto GetType() const { return m_Type; }
 
 	// These methods is internally used by the renderer
 	bool Close(ResourceStateTracker* pGlobalResourceStateTracker);
@@ -105,12 +97,9 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pCommandList;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6>	m_pPendingCommandList;
-	Type												m_Type;
 
 	// Resource state tracker for this command list
 	ResourceStateTracker								m_ResourceStateTracker;
 };
 
 #include "CommandContext.inl"
-
-D3D12_COMMAND_LIST_TYPE GetD3DCommandListType(CommandContext::Type Type);

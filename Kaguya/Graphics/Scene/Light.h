@@ -1,6 +1,9 @@
 #pragma once
+
 #include <string>
-#include "Math/Transform.h"
+
+#include "SharedDefines.h"
+#include "Transform.h"
 
 using Lumen = float;
 using Nit = float;
@@ -19,7 +22,7 @@ struct PolygonalLight
 	bool					Dirty;
 
 	Transform				Transform;
-	DirectX::XMFLOAT3		Color;
+	float3					Color;
 
 	float					Width;
 	float					Height;

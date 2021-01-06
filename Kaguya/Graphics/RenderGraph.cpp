@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "RenderGraph.h"
+
 #include "RenderPass.h"
 
 RenderGraph::RenderGraph(RenderDevice* pRenderDevice)
@@ -31,7 +32,6 @@ RenderPass* RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 	renderPass->OnScheduleResource(&m_ResourceScheduler, this);
 
 	m_RenderPasses.emplace_back(std::move(renderPass));
-	m_CommandContexts.emplace_back(SV_pRenderDevice->AllocateContext(CommandContext::Graphics));
 	return m_RenderPasses.back().get();
 }
 
@@ -39,10 +39,11 @@ void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
 {
 	m_AccelerationStructureCompleteSignal = AccelerationStructureCompleteSignal;
 
-	m_WorkerExecuteEvents.resize(m_RenderPasses.size());
-	m_WorkerCompleteEvents.resize(m_RenderPasses.size());
-	m_ThreadParameters.resize(m_RenderPasses.size());
-	m_Threads.resize(m_RenderPasses.size());
+	m_CommandContexts.resize(NumRenderPass());
+	m_WorkerExecuteEvents.resize(NumRenderPass());
+	m_WorkerCompleteEvents.resize(NumRenderPass());
+	m_ThreadParameters.resize(NumRenderPass());
+	m_Threads.resize(NumRenderPass());
 
 	// Create system constants
 	SV_pRenderDevice->CreateBuffer(m_SystemConstants, [](BufferProxy& Proxy)
@@ -69,6 +70,7 @@ void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
 	auto pGpuData					= SV_pRenderDevice->GetBuffer(m_GpuData);
 	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
 	{
+		m_CommandContexts[i] = SV_pRenderDevice->GetGraphicsContext(i + 1);
 		m_WorkerExecuteEvents[i].create();
 		m_WorkerCompleteEvents[i].create();
 

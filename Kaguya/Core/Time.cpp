@@ -3,17 +3,14 @@
 
 Time::Time()
 {
-	::ZeroMemory(&m_Data, sizeof(m_Data));
-	m_Paused = false;
-
-	QueryPerformanceFrequency(&m_Data.Frequency);
-	m_Data.Period = 1.0 / static_cast<double>(m_Data.Frequency.QuadPart);
-	QueryPerformanceCounter(&m_Data.StartTime);
+	::QueryPerformanceFrequency(&m_Frequency);
+	m_Period = 1.0 / static_cast<double>(m_Frequency.QuadPart);
+	::QueryPerformanceCounter(&m_StartTime);
 }
 
 double Time::DeltaTime() const
 {
-	return m_Data.DeltaTime;
+	return m_DeltaTime;
 }
 
 double Time::TotalTime() const
@@ -27,7 +24,7 @@ double Time::TotalTime() const
 	//  totalTime       stopTime        startTime     stopTime    currentTime
 	if (m_Paused)
 	{
-		return ((m_Data.StopTime.QuadPart - m_Data.PausedTime.QuadPart) - m_Data.TotalTime.QuadPart) * m_Data.Period;
+		return ((m_StopTime.QuadPart - m_PausedTime.QuadPart) - m_TotalTime.QuadPart) * m_Period;
 	}
 	// The distance currentTime - totalTime includes paused time,
 	// which we do not want to count.  
@@ -38,30 +35,30 @@ double Time::TotalTime() const
 	//  totalTime       stopTime        startTime     currentTime
 	else
 	{
-		return ((m_Data.CurrentTime.QuadPart - m_Data.PausedTime.QuadPart) - m_Data.TotalTime.QuadPart) * m_Data.Period;
+		return ((m_CurrentTime.QuadPart - m_PausedTime.QuadPart) - m_TotalTime.QuadPart) * m_Period;
 	}
 }
 
 double Time::TotalTimePrecise() const
 {
 	LARGE_INTEGER CurrentTime;
-	QueryPerformanceCounter(&CurrentTime);
-	return (CurrentTime.QuadPart - m_Data.StartTime.QuadPart) * m_Data.Period;
+	::QueryPerformanceCounter(&CurrentTime);
+	return (CurrentTime.QuadPart - m_StartTime.QuadPart) * m_Period;
 }
 
 void Time::Resume()
 {
-	QueryPerformanceCounter(&m_Data.CurrentTime);
+	::QueryPerformanceCounter(&m_CurrentTime);
 	// Accumulate the time elapsed between stop and start pairs.
 	//                     |<-------d------->|
 	// ----*---------------*-----------------*------------> time
 	//  totalTime       stopTime        startTime     
 	if (m_Paused)
 	{
-		m_Data.PausedTime.QuadPart += (m_Data.CurrentTime.QuadPart - m_Data.StopTime.QuadPart);
+		m_PausedTime.QuadPart += (m_CurrentTime.QuadPart - m_StopTime.QuadPart);
 
-		m_Data.PreviousTime = m_Data.CurrentTime;
-		m_Data.StopTime.QuadPart = 0;
+		m_PreviousTime = m_CurrentTime;
+		m_StopTime.QuadPart = 0;
 		m_Paused = false;
 	}
 }
@@ -70,8 +67,8 @@ void Time::Pause()
 {
 	if (!m_Paused)
 	{
-		QueryPerformanceCounter(&m_Data.CurrentTime);
-		m_Data.StopTime = m_Data.CurrentTime;
+		::QueryPerformanceCounter(&m_CurrentTime);
+		m_StopTime = m_CurrentTime;
 		m_Paused = true;
 	}
 }
@@ -80,31 +77,31 @@ void Time::Signal()
 {
 	if (m_Paused)
 	{
-		m_Data.DeltaTime = 0.0;
+		m_DeltaTime = 0.0;
 		return;
 	}
-	QueryPerformanceCounter(&m_Data.CurrentTime);
+	::QueryPerformanceCounter(&m_CurrentTime);
 	// Time difference between this frame and the previous.
-	m_Data.DeltaTime = (m_Data.CurrentTime.QuadPart - m_Data.PreviousTime.QuadPart) * m_Data.Period;
+	m_DeltaTime = (m_CurrentTime.QuadPart - m_PreviousTime.QuadPart) * m_Period;
 
 	// Prepare for next frame.
-	m_Data.PreviousTime = m_Data.CurrentTime;
+	m_PreviousTime = m_CurrentTime;
 
 	// Force nonnegative.  The DXSDK's CDXUTTimer mentions that if the 
 	// processor goes into a power save mode or we get shuffled to another
 	// processor, then deltaTime can be negative.
-	if (m_Data.DeltaTime < 0.0)
+	if (m_DeltaTime < 0.0)
 	{
-		m_Data.DeltaTime = 0.0;
+		m_DeltaTime = 0.0;
 	}
 }
 
 void Time::Restart()
 {
-	QueryPerformanceCounter(&m_Data.CurrentTime);
-	m_Data.TotalTime = m_Data.CurrentTime;
-	m_Data.PreviousTime = m_Data.CurrentTime;
-	m_Data.StopTime.QuadPart = 0;
+	::QueryPerformanceCounter(&m_CurrentTime);
+	m_TotalTime = m_CurrentTime;
+	m_PreviousTime = m_CurrentTime;
+	m_StopTime.QuadPart = 0;
 	m_Paused = false;
 	Resume();
 }

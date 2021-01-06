@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TextureManager.h"
+
 #include "RendererRegistry.h"
 
 TextureManager::TextureManager(RenderDevice* pRenderDevice)
@@ -7,14 +8,6 @@ TextureManager::TextureManager(RenderDevice* pRenderDevice)
 {
 	LoadSystemTextures();
 	LoadNoiseTextures();
-}
-
-void TextureManager::StageAssetTextures(RenderContext& RenderContext)
-{
-	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
-	{
-		StageTexture(handle, stagingTexture, RenderContext);
-	}
 }
 
 void TextureManager::Stage(Scene& Scene, RenderContext& RenderContext)

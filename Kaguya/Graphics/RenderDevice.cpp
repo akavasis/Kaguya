@@ -60,6 +60,33 @@ RenderDevice::~RenderDevice()
 	ImGui_ImplDX12_Shutdown();
 }
 
+void RenderDevice::CreateCommandContexts(UINT NumGraphicsContext)
+{
+	// + 1 for Default
+	NumGraphicsContext = NumGraphicsContext + 1;
+	constexpr UINT NumAsyncComputeContext = 1;
+	constexpr UINT NumCopyContext = 1;
+
+	m_GraphicsContexts.reserve(NumGraphicsContext);
+	m_AsyncComputeContexts.reserve(NumAsyncComputeContext);
+	m_CopyContexts.reserve(NumCopyContext);
+
+	for (UINT i = 0; i < NumGraphicsContext; ++i)
+	{
+		m_GraphicsContexts.push_back(std::make_unique<CommandContext>(Device, D3D12_COMMAND_LIST_TYPE_DIRECT));
+	}
+
+	for (UINT i = 0; i < NumAsyncComputeContext; ++i)
+	{
+		m_AsyncComputeContexts.push_back(std::make_unique<CommandContext>(Device, D3D12_COMMAND_LIST_TYPE_COMPUTE));
+	}
+
+	for (UINT i = 0; i < NumCopyContext; ++i)
+	{
+		m_CopyContexts.push_back(std::make_unique<CommandContext>(Device, D3D12_COMMAND_LIST_TYPE_COPY));
+	}
+}
+
 DXGI_QUERY_VIDEO_MEMORY_INFO RenderDevice::QueryLocalVideoMemoryInfo() const
 {
 	DXGI_QUERY_VIDEO_MEMORY_INFO LocalVideoMemoryInfo = {};
@@ -112,35 +139,9 @@ void RenderDevice::Resize(UINT Width, UINT Height)
 	FlushGraphicsQueue();
 }
 
-CommandContext* RenderDevice::AllocateContext(CommandContext::Type Type)
-{
-	m_CommandContexts[Type].push_back(std::make_unique<CommandContext>(Device, Type));
-	return m_CommandContexts[Type].back().get();
-}
-
 void RenderDevice::BindGpuDescriptorHeap(CommandContext* pCommandContext)
 {
 	pCommandContext->SetDescriptorHeaps(&m_ShaderVisibleCBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
-}
-
-void RenderDevice::ExecuteCommandContexts(CommandContext::Type Type, UINT NumCommandContexts, CommandContext* ppCommandContexts[])
-{
-	ScopedWriteLock SWL(m_GlobalResourceStateTrackerRWLock);
-
-	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
-	commandlistsToBeExecuted.reserve(size_t(NumCommandContexts) * 2);
-	for (UINT i = 0; i < NumCommandContexts; ++i)
-	{
-		CommandContext* pCommandContext = ppCommandContexts[i];
-		if (pCommandContext->Close(&m_GlobalResourceStateTracker))
-		{
-			commandlistsToBeExecuted.push_back(pCommandContext->GetPendingCommandList());
-		}
-		commandlistsToBeExecuted.push_back(pCommandContext->GetApiHandle());
-	}
-
-	CommandQueue& pCommandQueue = GetApiCommandQueue(Type);
-	pCommandQueue.GetApiHandle()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
 }
 
 void RenderDevice::FlushGraphicsQueue()
@@ -332,6 +333,7 @@ void RenderDevice::Destroy(RenderResourceHandle Handle)
 			}
 
 			// Finally, remove the actual resource
+			m_BufferHandleRegistry.Free(Handle);
 			m_Buffers.Destroy(Handle);
 		}
 	}
@@ -368,13 +370,15 @@ void RenderDevice::Destroy(RenderResourceHandle Handle)
 			}
 
 			// Finally, remove the actual resource
+			m_TextureHandleRegistry.Free(Handle);
 			m_Textures.Destroy(Handle);
 		}
 	}
 	break;
-	case RenderResourceType::RootSignature: m_RootSignatures.Destroy(Handle);						break;
-	case RenderResourceType::PipelineState:	m_PipelineStates.Destroy(Handle);						break;
-	case RenderResourceType::RaytracingPipelineState: m_RaytracingPipelineStates.Destroy(Handle);	break;
+	case RenderResourceType::Heap: m_HeapHandleRegistry.Free(Handle); m_Heaps.Destroy(Handle);															break;
+	case RenderResourceType::RootSignature: m_RootSignatureHandleRegistry.Free(Handle); m_RootSignatures.Destroy(Handle);								break;
+	case RenderResourceType::PipelineState:	m_PipelineStateHandleRegistry.Free(Handle); m_PipelineStates.Destroy(Handle);								break;
+	case RenderResourceType::RaytracingPipelineState: m_RaytracingPipelineStateHandleRegistry.Free(Handle); m_RaytracingPipelineStates.Destroy(Handle);	break;
 	}
 }
 
@@ -798,7 +802,7 @@ void RenderDevice::InitializeDXGIObjects()
 		{
 			m_DXGIAdapter			= pAdapter4;
 			m_AdapterID				= AdapterID;
-			m_AdapterDescription	= Desc.Description;
+			m_AdapterDesc			= Desc;
 			break;
 		}
 
@@ -829,13 +833,13 @@ void RenderDevice::InitializeDXGISwapChain(const Window& Window)
 	m_BackBufferIndex = m_DXGISwapChain->GetCurrentBackBufferIndex();
 }
 
-CommandQueue& RenderDevice::GetApiCommandQueue(CommandContext::Type Type)
+CommandQueue& RenderDevice::GetCommandQueue(D3D12_COMMAND_LIST_TYPE CommandListType)
 {
-	switch (Type)
+	switch (CommandListType)
 	{
-	case CommandContext::Type::Graphics:	return GraphicsQueue;
-	case CommandContext::Type::Compute:		return ComputeQueue;
-	case CommandContext::Type::Copy:		return CopyQueue;
+	case D3D12_COMMAND_LIST_TYPE_DIRECT:	return GraphicsQueue;
+	case D3D12_COMMAND_LIST_TYPE_COMPUTE:	return ComputeQueue;
+	case D3D12_COMMAND_LIST_TYPE_COPY:		return CopyQueue;
 	default:								return GraphicsQueue;
 	}
 }
@@ -879,4 +883,24 @@ void RenderDevice::AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& R
 		SamplerDescriptorTable.AddDescriptorRange(DescriptorRange::Type::Sampler, DescriptorRange(RootSignature::UnboundDescriptorSize, 0, 100, Flags, 0)); // g_SamplerTable
 	}
 	RootSignatureBuilder.AddRootDescriptorTableParameter(SamplerDescriptorTable);
+}
+
+void RenderDevice::ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE CommandListType, UINT NumCommandContexts, CommandContext* ppCommandContexts[])
+{
+	ScopedWriteLock SWL(m_GlobalResourceStateTrackerRWLock);
+
+	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
+	commandlistsToBeExecuted.reserve(size_t(NumCommandContexts) * 2);
+	for (UINT i = 0; i < NumCommandContexts; ++i)
+	{
+		CommandContext* pCommandContext = ppCommandContexts[i];
+		if (pCommandContext->Close(&m_GlobalResourceStateTracker))
+		{
+			commandlistsToBeExecuted.push_back(pCommandContext->GetPendingCommandList());
+		}
+		commandlistsToBeExecuted.push_back(pCommandContext->GetApiHandle());
+	}
+
+	CommandQueue& pCommandQueue = GetCommandQueue(CommandListType);
+	pCommandQueue.GetApiHandle()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
 }

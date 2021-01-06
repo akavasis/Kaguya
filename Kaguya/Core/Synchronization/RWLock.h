@@ -1,5 +1,6 @@
 #pragma once
-#include <Windows.h>
+
+#include <synchapi.h>
 
 class RWLock : public SRWLOCK
 {
@@ -48,6 +49,7 @@ public:
 	{
 		::ReleaseSRWLockShared(&Lock);
 	}
+
 private:
 	SRWLOCK& Lock;
 };
@@ -65,6 +67,7 @@ public:
 	{
 		::ReleaseSRWLockExclusive(&Lock);
 	}
+
 private:
 	SRWLOCK& Lock;
 };

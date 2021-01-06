@@ -1,5 +1,4 @@
-#include "../ShaderLayout.hlsli"
-#include "../Quad.hlsl"
+#include <ShaderLayout.hlsli>
 
 #include "GranTurismoOperator.hlsli"
 
@@ -15,34 +14,14 @@ float3 ACESFilm(float3 x)
 	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
 }
 
-float3 LessThan(float3 f, float value)
+float3 LinearTosRGB(float3 u)
 {
-	return float3(
-        (f.x < value) ? 1.0f : 0.0f,
-        (f.y < value) ? 1.0f : 0.0f,
-        (f.z < value) ? 1.0f : 0.0f);
+	return u <= 0.0031308 ? 12.92 * u : 1.055 * pow(u, 1.0 / 2.4) - 0.055;
 }
 
-float3 LinearToSRGB(float3 rgb)
+float3 sRGBToLinear(float3 u)
 {
-	rgb = clamp(rgb, 0.0f, 1.0f);
-     
-	return lerp(
-        pow(rgb, float3(1.0f / 2.4f, 1.0f / 2.4f, 1.0f / 2.4f)) * 1.055f - 0.055f,
-        rgb * 12.92f,
-        LessThan(rgb, 0.0031308f)
-    );
-}
- 
-float3 SRGBToLinear(float3 rgb)
-{
-	rgb = clamp(rgb, 0.0f, 1.0f);
-     
-	return lerp(
-        pow(((rgb + 0.055f) / 1.055f), float3(2.4f, 2.4f, 2.4f)),
-        rgb / 12.92f,
-        LessThan(rgb, 0.04045f)
-    );
+	return u <= 0.04045 ? u / 12.92 : pow((u + 0.055) / 1.055, 2.4);
 }
 
 cbuffer Settings : register(b0)
@@ -56,6 +35,9 @@ cbuffer Settings : register(b0)
 	float BlackTightness_C;
 	float BlackTightness_B;
 };
+
+// Include Quad VS entry point
+#include <Quad.hlsl>
 
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
@@ -74,6 +56,6 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	GTOperator.BlackTightness_B		= BlackTightness_B;
 		
 	color = ApplyGranTurismoOperator(color, GTOperator);
-	color = LinearToSRGB(color);
+	color = LinearTosRGB(color);
 	return float4(color, 1.0f);
 }

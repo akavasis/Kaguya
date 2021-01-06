@@ -1,6 +1,10 @@
 #ifndef GRAN_TURISMO_OPERATOR_HLSLI
 #define GRAN_TURISMO_OPERATOR_HLSLI
 
+// http://cdn2.gran-turismo.com/data/www/pdi_publications/PracticalHDRandWCGinGTS_20181222.pdf
+// https://github.com/tizian/tonemapper
+// https://www.desmos.com/calculator/gslcdxvipg
+
 struct GranTurismoOperator
 {
 	float MaximumBrightness;

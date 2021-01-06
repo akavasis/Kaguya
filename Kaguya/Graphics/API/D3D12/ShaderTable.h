@@ -1,6 +1,9 @@
 #pragma once
+
 #include <vector>
-#include <Math/MathLibrary.h>
+
+#include <Core/Math.h>
+
 #include "Shader.h"
 #include "Buffer.h"
 

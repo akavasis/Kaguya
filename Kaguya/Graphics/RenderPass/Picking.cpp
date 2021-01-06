@@ -227,7 +227,7 @@ void Picking::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		1, 1
 	);
 
-	RenderContext.CopyResource(m_PickingResultReadBack, m_PickingResult);
+	RenderContext.CopyBufferRegion(m_PickingResultReadBack, 0, m_PickingResult, 0, sizeof(int));
 }
 
 void Picking::StateRefresh()

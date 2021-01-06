@@ -158,6 +158,80 @@ HLSL::Camera GetHLSLCameraDesc(const Camera& Camera)
 	};
 }
 
+bool EditTransform(
+	const float* pCameraView,
+	float* pCameraProjection,
+	float* pMatrix,
+	bool EditTransformDecomposition,
+	bool AllowRotation)
+{
+	static bool mUseSnap = false;
+	static float mSnap[3] = { 1, 1, 1 };
+	static ImGuizmo::OPERATION CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+	static ImGuizmo::MODE CurrentGizmoMode = ImGuizmo::LOCAL;
+
+	if (EditTransformDecomposition)
+	{
+		if (ImGui::RadioButton("Translate", CurrentGizmoOperation == ImGuizmo::TRANSLATE))
+			CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+		ImGui::SameLine();
+
+		if (AllowRotation)
+		{
+			if (ImGui::RadioButton("Rotate", CurrentGizmoOperation == ImGuizmo::ROTATE))
+				CurrentGizmoOperation = ImGuizmo::ROTATE;
+		}
+
+		ImGui::SameLine();
+		if (ImGui::RadioButton("Scale", CurrentGizmoOperation == ImGuizmo::SCALE))
+			CurrentGizmoOperation = ImGuizmo::SCALE;
+		float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+		ImGuizmo::DecomposeMatrixToComponents(pMatrix, matrixTranslation, matrixRotation, matrixScale);
+		ImGui::InputFloat3("Tr", matrixTranslation);
+
+		if (AllowRotation)
+		{
+			ImGui::InputFloat3("Rt", matrixRotation);
+		}
+
+		ImGui::InputFloat3("Sc", matrixScale);
+		ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, pMatrix);
+
+		if (CurrentGizmoOperation != ImGuizmo::SCALE)
+		{
+			if (ImGui::RadioButton("Local", CurrentGizmoMode == ImGuizmo::LOCAL))
+				CurrentGizmoMode = ImGuizmo::LOCAL;
+			ImGui::SameLine();
+			if (ImGui::RadioButton("World", CurrentGizmoMode == ImGuizmo::WORLD))
+				CurrentGizmoMode = ImGuizmo::WORLD;
+		}
+
+		ImGui::Checkbox("", &mUseSnap);
+		ImGui::SameLine();
+
+		switch (CurrentGizmoOperation)
+		{
+		case ImGuizmo::TRANSLATE:
+			ImGui::InputFloat3("Snap", &mSnap[0]);
+			break;
+		case ImGuizmo::ROTATE:
+			ImGui::InputFloat("Angle Snap", &mSnap[0]);
+			break;
+		case ImGuizmo::SCALE:
+			ImGui::InputFloat("Scale Snap", &mSnap[0]);
+			break;
+		}
+	}
+	ImGuiIO& io = ImGui::GetIO();
+
+	return ImGuizmo::Manipulate(
+		pCameraView,
+		pCameraProjection,
+		CurrentGizmoOperation,
+		CurrentGizmoMode,
+		pMatrix);
+}
+
 GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice),
 	pScene(nullptr),
@@ -216,68 +290,16 @@ void GpuScene::DisposeResources()
 		pRenderDevice->Destroy(rtblas.Scratch);
 	}
 
+	BufferManager.DisposeResources();
 	TextureManager.DisposeResources();
 }
 
-void GpuScene::UploadLights()
-{
-	auto pLightTable = pRenderDevice->GetBuffer(m_LightTable);
-
-	std::vector<HLSL::PolygonalLight> hlslLights;
-	hlslLights.reserve(pScene->Lights.size());
-
-	for (auto [i, light] : enumerate(pScene->Lights))
-	{
-		hlslLights.push_back(GetHLSLLightDesc(light));
-	}
-
-	auto pGPU = pLightTable->Map();
-	auto pCPU = hlslLights.data();
-	memcpy(pGPU, pCPU, hlslLights.size() * sizeof(HLSL::PolygonalLight));
-}
-
-void GpuScene::UploadMaterials()
-{
-	auto pMaterialTable = pRenderDevice->GetBuffer(m_MaterialTable);
-
-	std::vector<HLSL::Material> hlslMaterials(pScene->Materials.size());
-
-	for (auto [i, material] : enumerate(pScene->Materials))
-	{
-		hlslMaterials[i] = GetHLSLMaterialDesc(material);
-	}
-
-	auto pGPU = pMaterialTable->Map();
-	auto pCPU = hlslMaterials.data();
-	memcpy(pGPU, pCPU, hlslMaterials.size() * sizeof(HLSL::Material));
-}
-
-void GpuScene::UploadMeshes()
-{
-	auto pMeshTable = pRenderDevice->GetBuffer(m_MeshTable);
-
-	std::vector<HLSL::Mesh> hlslMeshes(pScene->MeshInstances.size());
-
-	for (auto [i, meshInstance] : enumerate(pScene->MeshInstances))
-	{
-		// InstanceID will be used to find the data for this instance in shader
-		meshInstance.InstanceID = i;
-
-		const auto& mesh = pScene->Meshes[meshInstance.MeshIndex];
-		const auto& material = pScene->Materials[meshInstance.MaterialIndex];
-
-		hlslMeshes[i] = GetHLSLMeshDesc(mesh, material, meshInstance);
-	}
-
-	auto pGPU = pMeshTable->Map();
-	auto pCPU = hlslMeshes.data();
-	memcpy(pGPU, pCPU, hlslMeshes.size() * sizeof(HLSL::Mesh));
-}
-
-void GpuScene::RenderGui()
+void GpuScene::RenderGui(bool Clicked, INT InstanceID)
 {
 	if (ImGui::Begin("Scene"))
 	{
+		pScene->Camera.RenderGui();
+
 		if (ImGui::TreeNode("Lights"))
 		{
 			for (auto& light : pScene->Lights)
@@ -317,6 +339,37 @@ void GpuScene::RenderGui()
 
 			ImGui::TreePop();
 		}
+
+		// Render ImGuizmo
+		if (Clicked && InstanceID != -1)
+		{
+			auto& meshInstance = pScene->MeshInstances[InstanceID];
+
+			DirectX::XMFLOAT4X4 World;
+			DirectX::XMFLOAT4X4 View, Projection;
+
+			XMStoreFloat4x4(&World, XMMatrixTranspose(meshInstance.Transform.Matrix()));
+			XMStoreFloat4x4(&View, XMMatrixTranspose(pScene->Camera.ViewMatrix()));
+			XMStoreFloat4x4(&Projection, XMMatrixTranspose(pScene->Camera.ProjectionMatrix()));
+
+			ImGuiIO& io = ImGui::GetIO();
+			ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+			ImGui::Separator();
+
+			ImGuizmo::SetID(0);
+			EditTransform(
+				reinterpret_cast<float*>(&View),
+				reinterpret_cast<float*>(&Projection),
+				reinterpret_cast<float*>(&World),
+				true,
+				true
+			);
+
+			if (ImGuizmo::IsUsing())
+			{
+				meshInstance.Transform.SetTransform(XMLoadFloat4x4(&World));
+			}
+		}
 	}
 	ImGui::End();
 }
@@ -328,6 +381,7 @@ bool GpuScene::Update(float AspectRatio)
 	bool Refresh = false;
 
 	auto pLightTable = pRenderDevice->GetBuffer(m_LightTable);
+	pLightTable->Map();
 	for (auto [i, light] : enumerate(pScene->Lights))
 	{
 		if (light.Dirty)
@@ -342,6 +396,7 @@ bool GpuScene::Update(float AspectRatio)
 	}
 
 	auto pMaterialTable = pRenderDevice->GetBuffer(m_MaterialTable);
+	pMaterialTable->Map();
 	for (auto [i, material] : enumerate(pScene->Materials))
 	{
 		if (material.Dirty)
@@ -356,8 +411,11 @@ bool GpuScene::Update(float AspectRatio)
 	}
 
 	auto pMeshTable = pRenderDevice->GetBuffer(m_MeshTable);
+	pMeshTable->Map();
 	for (auto [i, meshInstance] : enumerate(pScene->MeshInstances))
 	{
+		meshInstance.InstanceID = i;
+
 		if (meshInstance.Dirty)
 		{
 			Refresh |= true;
@@ -380,9 +438,9 @@ bool GpuScene::Update(float AspectRatio)
 	return Refresh;
 }
 
-void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
+void GpuScene::CreateTopLevelAS(CommandContext* pCommandContext)
 {
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Top Level Acceleration Structure Generation");
+	PIXScopedEvent(pCommandContext->GetApiHandle(), 0, L"Top Level Acceleration Structure Generation");
 
 	// TODO: Generate InstanceDescs on CS
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
@@ -456,7 +514,7 @@ void GpuScene::CreateTopLevelAS(RenderContext& RenderContext)
 		pInstanceDescs = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
 	}
 
-	TopLevelAccelerationStructure.Generate(RenderContext.GetCommandContext(), pScratch, pResult, pInstanceDescs);
+	TopLevelAccelerationStructure.Generate(pCommandContext, pScratch, pResult, pInstanceDescs);
 }
 
 HLSL::Camera GpuScene::GetHLSLCamera() const

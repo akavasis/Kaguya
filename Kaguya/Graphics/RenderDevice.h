@@ -4,6 +4,7 @@
 #include <wrl/client.h>
 #include <d3d12.h>
 
+#include <memory>
 #include <functional>
 #include <unordered_map>
 
@@ -89,21 +90,32 @@ public:
 	RenderDevice(const Window& pWindow);
 	~RenderDevice();
 
-	const std::wstring& GetAdapterDescription() const { return m_AdapterDescription; }
+	void CreateCommandContexts(UINT NumGraphicsContext);
+
+	const auto& GetAdapterDesc() const { return m_AdapterDesc; }
 	DXGI_QUERY_VIDEO_MEMORY_INFO QueryLocalVideoMemoryInfo() const;
 
 	void Present(bool VSync);
 
 	void Resize(UINT Width, UINT Height);
 
-	[[nodiscard]] CommandContext* AllocateContext(CommandContext::Type Type);
+	CommandContext* GetGraphicsContext(UINT Index) const { return m_GraphicsContexts[Index].get(); }
+	CommandContext* GetAsyncComputeContext(UINT Index) const { return m_AsyncComputeContexts[Index].get(); }
+	CommandContext* GetCopyContext(UINT Index) const { return m_CopyContexts[Index].get(); }
+
+	CommandContext* GetDefaultGraphicsContext() const { return GetGraphicsContext(0); }
+	CommandContext* GetDefaultAsyncComputeContext() const { return GetAsyncComputeContext(0); }
+	CommandContext* GetDefaultCopyContext() const { return GetCopyContext(0); }
 
 	void BindGpuDescriptorHeap(CommandContext* pCommandContext);
 	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetCBDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
 	inline auto GetSamplerDescriptorHeapDescriptorFromStart() const { return m_SamplerDescriptorHeap.GetDescriptorFromStart(); }
-	void ExecuteCommandContexts(CommandContext::Type Type, UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
+
+	void ExecuteGraphicsContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]) { ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE_DIRECT, NumCommandContexts, ppCommandContexts); }
+	void ExecuteAsyncComputeContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]) { ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE_COMPUTE, NumCommandContexts, ppCommandContexts); }
+	void ExecuteCopyContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]) { ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE_COPY, NumCommandContexts, ppCommandContexts); }
 
 	void FlushGraphicsQueue();
 	void FlushComputeQueue();
@@ -154,14 +166,16 @@ private:
 	void InitializeDXGIObjects();
 	void InitializeDXGISwapChain(const Window& pWindow);
 
-	CommandQueue& GetApiCommandQueue(CommandContext::Type Type);
+	CommandQueue& GetCommandQueue(D3D12_COMMAND_LIST_TYPE CommandListType);
 	void AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder);
+
+	void ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE CommandListType, UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
 
 private:
 	Microsoft::WRL::ComPtr<IDXGIFactory6>						m_DXGIFactory;
 	Microsoft::WRL::ComPtr<IDXGIAdapter4>						m_DXGIAdapter;
 	UINT														m_AdapterID;
-	std::wstring												m_AdapterDescription;
+	DXGI_ADAPTER_DESC3											m_AdapterDesc;
 	bool														m_TearingSupport;
 	Microsoft::WRL::ComPtr<IDXGISwapChain4>						m_DXGISwapChain;
 	UINT														m_BackBufferIndex;
@@ -180,7 +194,9 @@ private:
 	ResourceStateTracker										m_GlobalResourceStateTracker;
 	RWLock														m_GlobalResourceStateTrackerRWLock;
 
-	std::vector<std::unique_ptr<CommandContext>>				m_CommandContexts[CommandContext::NumTypes];
+	std::vector<std::unique_ptr<CommandContext>>				m_GraphicsContexts;
+	std::vector<std::unique_ptr<CommandContext>>				m_AsyncComputeContexts;
+	std::vector<std::unique_ptr<CommandContext>>				m_CopyContexts;
 
 	RenderResourceHandleRegistry								m_BufferHandleRegistry;
 	RenderResourceHandleRegistry								m_TextureHandleRegistry;

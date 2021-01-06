@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Synchronization/CriticalSection.h"
 #include "Synchronization/ConditionVariable.h"
 #include <queue>
@@ -11,7 +12,14 @@ public:
 	ThreadSafeQueue(const ThreadSafeQueue&) = delete;
 	ThreadSafeQueue& operator=(const ThreadSafeQueue&) = delete;
 
-	bool pop(T& Item, int Milliseconds)
+	void Enqueue(const T& Item)
+	{
+		ScopedCriticalSection SCS(CriticalSection);
+		Queue.push(Item);
+		::WakeConditionVariable(&ConditionVariable);
+	}
+
+	bool Dequeue(T& Item, int Milliseconds)
 	{
 		ScopedCriticalSection SCS(CriticalSection);
 
@@ -28,24 +36,20 @@ public:
 		return true;
 	}
 
-	void push(const T& Item)
+	size_t Size() const
 	{
 		ScopedCriticalSection SCS(CriticalSection);
-		Queue.push(Item);
-		::WakeConditionVariable(&ConditionVariable);
-	}
-
-	size_t size() const
-	{
 		return Queue.size();
 	}
 
-	bool empty() const
+	bool IsEmpty() const
 	{
+		ScopedCriticalSection SCS(CriticalSection);
 		return Queue.empty();
 	}
+
 private:
-	CriticalSection		CriticalSection;
-	ConditionVariable	ConditionVariable;
-	std::queue<T>		Queue;
+	mutable CriticalSection		CriticalSection;
+	ConditionVariable			ConditionVariable;
+	std::queue<T>				Queue;
 };

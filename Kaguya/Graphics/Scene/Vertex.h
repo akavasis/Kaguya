@@ -1,5 +1,6 @@
-#ifndef __VERTEX_H__
-#define __VERTEX_H__
+#ifndef VERTEX_H
+#define VERTEX_H
+
 #include "SharedDefines.h"
 
 struct Vertex

@@ -74,11 +74,10 @@
 #include <Core/Application.h>
 #include <Core/Utility.h>
 #include <Core/Log.h>
+#include <Core/Math.h>
 #include <Core/Exception.h>
 #include <Core/Synchronization/RWLock.h>
 #include <Core/Synchronization/CriticalSection.h>
 #include <Core/Synchronization/ConditionVariable.h>
-
-#include <Math/MathLibrary.h>
 
 #include <Graphics/Debug/PIXCapture.h>

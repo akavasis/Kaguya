@@ -1,9 +1,11 @@
 #pragma once
+
 #include <memory>
 #include <atomic>
 #include <vector>
 #include <unordered_set>
 #include <string>
+
 #include "RenderDevice.h"
 #include "Scene/Scene.h"
 #include "GpuScene.h"
@@ -42,13 +44,17 @@ public:
 		for (size_t i = 0; i < m_RenderPasses.size(); ++i)
 		{
 			if (typeid(*m_RenderPasses[i].get()) == typeid(RenderPass))
+			{
 				return static_cast<RenderPass*>(m_RenderPasses[i].get());
+			}
 		}
-		assert(false && "Render pass not found");
+
 		return nullptr;
 	}
 
 	RenderPass* AddRenderPass(RenderPass* pRenderPass);
+
+	UINT NumRenderPass() const { return m_RenderPasses.size(); }
 
 	// Only call once
 	void Initialize(HANDLE AccelerationStructureCompleteSignal);
@@ -84,7 +90,8 @@ private:
 
 	RenderDevice*												SV_pRenderDevice;
 
-	HANDLE														m_AccelerationStructureCompleteSignal;
+	HANDLE														m_AccelerationStructureCompleteSignal = nullptr;
+	std::vector<CommandContext*>								m_CommandContexts;
 	std::vector<wil::unique_event>								m_WorkerExecuteEvents;
 	std::vector<wil::unique_event>								m_WorkerCompleteEvents;
 	std::vector<RenderPassThreadProcParameter>					m_ThreadParameters;
@@ -92,7 +99,6 @@ private:
 
 	ResourceScheduler											m_ResourceScheduler;
 	std::vector<std::unique_ptr<RenderPass>>					m_RenderPasses;
-	std::vector<CommandContext*>								m_CommandContexts;
 	RenderResourceHandle										m_SystemConstants;
 	RenderResourceHandle										m_GpuData;
 };

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <d3d12.h>
 #include <wrl/client.h>
+#include <d3d12.h>
+
 #include "CommandAllocatorPool.h"
 
 class CommandQueue
@@ -13,8 +14,8 @@ public:
 
 	inline auto GetType() const { return m_ApiHandle->GetDesc().Type; }
 
-	ID3D12CommandAllocator* RequestAllocator(UINT64 CompletedValue);
-	void DiscardCommandAllocator(UINT64 FenceValue, ID3D12CommandAllocator* Allocator);
+	ID3D12CommandAllocator* RequestCommandAllocator(UINT64 CompletedValue);
+	void DiscardCommandAllocator(UINT64 FenceValue, ID3D12CommandAllocator* pCommandAllocator);
 private:
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue>	m_ApiHandle;
 	CommandAllocatorPool						m_CommandAllocatorPool;

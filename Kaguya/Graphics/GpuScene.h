@@ -16,13 +16,9 @@ public:
 	void UploadModels(RenderContext& RenderContext);
 	void DisposeResources();
 
-	void UploadLights();
-	void UploadMaterials();
-	void UploadMeshes();
-
-	void RenderGui();
+	void RenderGui(bool Clicked, INT InstanceID);
 	bool Update(float AspectRatio);
-	void CreateTopLevelAS(RenderContext& RenderContext);
+	void CreateTopLevelAS(CommandContext* pCommandContext);
 
 	inline auto GetLightTable()						const { return m_LightTable; }
 	inline auto GetMaterialTable()					const { return m_MaterialTable; }

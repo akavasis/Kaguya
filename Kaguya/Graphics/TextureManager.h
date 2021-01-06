@@ -1,7 +1,9 @@
 #pragma once
+
 #include <d3d12.h>
 #include <vector>
 #include <unordered_map>
+
 #include <DirectXTex.h>
 
 #include "RenderDevice.h"
@@ -27,9 +29,9 @@ public:
 
 	inline auto GetSkybox()										{ return m_Skybox; }
 
-	void StageAssetTextures(RenderContext& RenderContext);
 	void Stage(Scene& Scene, RenderContext& RenderContext);
 	void DisposeResources();
+
 private:
 	struct AssetTextures
 	{

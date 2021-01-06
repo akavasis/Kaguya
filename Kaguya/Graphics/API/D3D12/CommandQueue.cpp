@@ -25,12 +25,12 @@ void CommandQueue::Create(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 	}
 }
 
-ID3D12CommandAllocator* CommandQueue::RequestAllocator(UINT64 CompletedValue)
+ID3D12CommandAllocator* CommandQueue::RequestCommandAllocator(UINT64 CompletedValue)
 {
 	return m_CommandAllocatorPool.RequestCommandAllocator(CompletedValue);
 }
 
-void CommandQueue::DiscardCommandAllocator(UINT64 FenceValue, ID3D12CommandAllocator* Allocator)
+void CommandQueue::DiscardCommandAllocator(UINT64 FenceValue, ID3D12CommandAllocator* pCommandAllocator)
 {
-	m_CommandAllocatorPool.DiscardCommandAllocator(FenceValue, Allocator);
+	m_CommandAllocatorPool.DiscardCommandAllocator(FenceValue, pCommandAllocator);
 }

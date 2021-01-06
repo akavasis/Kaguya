@@ -3,7 +3,6 @@
 #include <string>
 
 #include "Vertex.h"
-#include "Math/Transform.h"
 #include "Graphics/RenderResourceHandle.h"
 
 struct Meshlet

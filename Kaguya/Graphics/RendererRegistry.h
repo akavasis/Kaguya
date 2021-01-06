@@ -4,30 +4,6 @@
 static constexpr size_t SizeOfBuiltInTriangleIntersectionAttributes = 2 * sizeof(float);
 static constexpr size_t SizeOfHLSLBooleanType = sizeof(int);
 
-enum CubemapConvolution
-{
-	Irradiance,
-	Prefilter,
-	NumCubemapConvolutions
-};
-
-struct Resolutions
-{
-	static constexpr UINT64 Irradiance = 64;
-	static constexpr UINT64 Prefilter = 512;
-};
-
-struct ConvolutionIrradianceSettings
-{
-	int CubemapIndex;
-};
-
-struct ConvolutionPrefilterSettings
-{
-	float Roughness;
-	int CubemapIndex;
-};
-
 struct GenerateMipsData
 {
 	UINT SrcMipLevel;				// Texture level of source mip
@@ -64,12 +40,6 @@ struct EquirectangularToCubemapData
 	int Output5Index;
 };
 
-struct RendererFormats
-{
-	static constexpr DXGI_FORMAT IrradianceFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
-	static constexpr DXGI_FORMAT PrefilterFormat		= DXGI_FORMAT_R32G32B32A32_FLOAT;
-};
-
 struct Shaders
 {
 	// Vertex Shaders
@@ -89,9 +59,6 @@ struct Shaders
 	// Pixel Shaders
 	struct PS
 	{
-		inline static Shader ConvolutionIrradiance;
-		inline static Shader ConvolutionPrefilter;
-
 		inline static Shader GBufferMeshes;
 		inline static Shader GBufferLights;
 
@@ -136,8 +103,6 @@ struct RootSignatures
 {
 	inline static RenderResourceHandle Default;
 
-	inline static RenderResourceHandle ConvolutionIrradiace;
-	inline static RenderResourceHandle ConvolutionPrefilter;
 	inline static RenderResourceHandle GenerateMips;
 	inline static RenderResourceHandle EquirectangularToCubemap;
 
@@ -170,9 +135,6 @@ struct RootSignatures
 
 struct GraphicsPSOs
 {
-	inline static RenderResourceHandle ConvolutionIrradiace;
-	inline static RenderResourceHandle ConvolutionPrefilter;
-
 	inline static RenderResourceHandle GBufferMeshes;
 	inline static RenderResourceHandle GBufferLights;
 

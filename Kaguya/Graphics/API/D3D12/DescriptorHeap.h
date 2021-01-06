@@ -1,7 +1,8 @@
 #pragma once
+
+#include <wrl/client.h>
 #include <d3d12.h>
 #include "d3dx12.h"
-#include <wrl/client.h>
 #include <optional>
 #include <vector>
 
@@ -9,7 +10,6 @@
 #include "Buffer.h"
 
 //----------------------------------------------------------------------------------------------------
-class Device;
 class DescriptorHeap;
 
 //----------------------------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ public:
 	DescriptorHeap() = default;
 	DescriptorHeap(ID3D12Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type);
 
-	inline auto GetApiHandle() const { return m_pDescriptorHeap.Get(); }
+	inline auto GetApiHandle() const { return m_DescriptorHeap.Get(); }
 	inline auto GetDescriptorFromStart() const { return m_StartDescriptor; }
 protected:
 	auto& GetDescriptorPartitionAt(INT PartitionIndex) { return m_DescriptorPartitions[PartitionIndex]; }
@@ -44,13 +44,13 @@ protected:
 		UINT NumDescriptors;
 	};
 
-	ID3D12Device* m_pDevice;
+	ID3D12Device*									m_pDevice;
 
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDescriptorHeap;
-	Descriptor m_StartDescriptor;
-	UINT m_DescriptorIncrementSize;
-	bool m_ShaderVisible;
-	std::vector<DescriptorPartition> m_DescriptorPartitions;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_DescriptorHeap;
+	Descriptor										m_StartDescriptor;
+	UINT											m_DescriptorIncrementSize;
+	bool											m_ShaderVisible;
+	std::vector<DescriptorPartition>				m_DescriptorPartitions;
 };
 
 /*
