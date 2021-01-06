@@ -45,7 +45,6 @@ int Application::Run(RenderSystem* pRenderSystem)
 			throw std::exception("Null RenderSystem");
 
 		// Begin our render thread
-		ExitRenderThread			= false;
 		RenderThread				= wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, RenderSystem.get(), 0, nullptr));
 		if (!RenderThread)
 		{
@@ -74,6 +73,8 @@ int Application::Run(RenderSystem* pRenderSystem)
 					InputHandler.Mouse.DisableRawInput();
 				}
 			}
+
+			//InputHandler.Mouse.FinalizeMouseInput();
 
 			if (QuitApplication)
 			{

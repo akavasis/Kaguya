@@ -118,7 +118,6 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	switch (uMsg)
 	{
-#pragma region Resize Message
 	case WM_SIZE:
 	case WM_ENTERSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
 	case WM_EXITSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
@@ -135,7 +134,6 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		MessageQueue.Enqueue(WindowMessage);
 	}
 	break;
-#pragma endregion
 
 	case WM_ACTIVATE:
 	{
@@ -173,6 +171,7 @@ LRESULT CALLBACK Window::WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 	{
 		return pWindow->DispatchEvent(uMsg, wParam, lParam);
 	}
+
 	return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 

@@ -3,6 +3,8 @@
 
 #include <hidusage.h>
 
+#include "Window.h"
+
 void InputHandler::Create(Window* pWindow)
 {
 	m_pWindow = pWindow;
@@ -32,8 +34,6 @@ void InputHandler::Handle(const MSG* pMsg)
 	{
 		return;
 	}
-
-	bool WantCaptureMouse = ImGui::GetIO().WantCaptureMouse;
 
 	switch (pMsg->message)
 	{
@@ -66,13 +66,13 @@ void InputHandler::Handle(const MSG* pMsg)
 		{
 			const auto& mouse = pRawInput->data.mouse;
 
-			if ((mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)	)	Mouse.OnLMBPress(mouse.lLastX, mouse.lLastY);
-			if ((mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) )	Mouse.OnMMBPress(mouse.lLastX, mouse.lLastY);
-			if ((mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)	)	Mouse.OnRMBPress(mouse.lLastX, mouse.lLastY);
+			if ((mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN))		Mouse.OnLMBPress(mouse.lLastX, mouse.lLastY);
+			if ((mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN))	Mouse.OnMMBPress(mouse.lLastX, mouse.lLastY);
+			if ((mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN))		Mouse.OnRMBPress(mouse.lLastX, mouse.lLastY);
 
-			if ((mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)		)	Mouse.OnLMBRelease(mouse.lLastX, mouse.lLastY);
-			if ((mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)	)	Mouse.OnMMBRelease(mouse.lLastX, mouse.lLastY);
-			if ((mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)	)	Mouse.OnRMBRelease(mouse.lLastX, mouse.lLastY);
+			if ((mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP))		Mouse.OnLMBRelease(mouse.lLastX, mouse.lLastY);
+			if ((mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP))		Mouse.OnMMBRelease(mouse.lLastX, mouse.lLastY);
+			if ((mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP))		Mouse.OnRMBRelease(mouse.lLastX, mouse.lLastY);
 
 			Mouse.OnRawDelta(mouse.lLastX, mouse.lLastY);
 		}
