@@ -108,7 +108,7 @@ void Renderer::HandleMouse(bool CursorEnabled, int32_t X, int32_t Y, const Mouse
 {
 	if (CursorEnabled)
 	{
-		if (Mouse.IsLMBPressed() && !ImGuizmo::IsUsing())
+		if (Mouse.IsLMBPressed() && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver())
 		{
 			m_pGpuScene->SetSelectedInstanceID(InstanceID);
 		}

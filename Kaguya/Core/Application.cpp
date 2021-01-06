@@ -52,15 +52,15 @@ int Application::Run(RenderSystem* pRenderSystem)
 			Quit();
 		}
 
-		MSG msg = {};
-		while (msg.message != WM_QUIT)
+		MSG Msg = {};
+		while (Msg.message != WM_QUIT)
 		{
-			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			if (PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE))
 			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
+				TranslateMessage(&Msg);
+				DispatchMessage(&Msg);
 
-				InputHandler.Handle(&msg);
+				InputHandler.Handle(&Msg);
 
 				if (InputHandler.Mouse.IsRMBPressed())
 				{
@@ -74,15 +74,13 @@ int Application::Run(RenderSystem* pRenderSystem)
 				}
 			}
 
-			//InputHandler.Mouse.FinalizeMouseInput();
-
 			if (QuitApplication)
 			{
 				break;
 			}
 		}
 
-		ExitCode = (int)msg.wParam;
+		ExitCode = (int)Msg.wParam;
 	}
 	catch (std::exception& e)
 	{
@@ -95,18 +93,15 @@ int Application::Run(RenderSystem* pRenderSystem)
 		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
 	}
 
-	LOG_INFO("Shutting down...");
-
 	// Set ExitRenderThread to true and wait for it to join
 	if (RenderThread)
 	{
-		LOG_INFO("Joining render thread");
 		ExitRenderThread = true;
 		::WaitForSingleObject(RenderThread.get(), INFINITE);
-		LOG_INFO("Render thread joined");
 	}
 
 	CoUninitialize();
+	LOG_INFO("Exit Code: {}", ExitCode);
 	return ExitCode;
 }
 
