@@ -37,14 +37,14 @@ void Keyboard::ResetKeyState()
 	m_KeyStates.reset();
 }
 
-void Keyboard::OnKeyPress(unsigned char KeyCode)
+void Keyboard::OnKeyDown(unsigned char KeyCode)
 {
 	m_KeyStates[KeyCode] = true;
 	m_KeyBuffer.Enqueue(Keyboard::Event(Keyboard::Event::EType::Press, KeyCode));
 	TrimBuffer(m_KeyBuffer);
 }
 
-void Keyboard::OnKeyRelease(unsigned char KeyCode)
+void Keyboard::OnKeyUp(unsigned char KeyCode)
 {
 	m_KeyStates[KeyCode] = false;
 	m_KeyBuffer.Enqueue(Keyboard::Event(Keyboard::Event::EType::Release, KeyCode));

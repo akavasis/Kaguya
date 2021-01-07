@@ -15,7 +15,6 @@ public:
 	void Create(Window* pWindow);
 
 	void Handle(const MSG* pMsg);
-
 public:
 	Mouse		Mouse;
 	Keyboard	Keyboard;

@@ -28,6 +28,8 @@ public:
 	inline static Window						Window;
 	inline static InputHandler					InputHandler;
 
+	inline static int							MinimumWidth			= 0;
+	inline static int							MinimumHeight			= 0;
 private:
 	inline static std::atomic<bool>				QuitApplication			= false;
 	inline static wil::unique_handle			RenderThread;

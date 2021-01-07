@@ -32,11 +32,6 @@ Renderer::Renderer()
 
 }
 
-void Renderer::RequestCapture()
-{
-	Screenshot = true;
-}
-
 //----------------------------------------------------------------------------------------------------
 bool Renderer::Initialize()
 {
@@ -104,24 +99,24 @@ void Renderer::Update(const Time& Time)
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::HandleMouse(bool CursorEnabled, int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime)
+void Renderer::HandleInput(float DeltaTime)
 {
-	if (CursorEnabled)
+	auto& Mouse = Application::InputHandler.Mouse;
+
+	// If LMB is pressed and if we are not hovering over any imgui stuff then we update the
+	// instance id for editor
+	if (Mouse.IsLMBPressed() && !ImGui::GetIO().WantCaptureMouse)
 	{
-		if (Mouse.IsLMBPressed() && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver())
-		{
-			m_pGpuScene->SetSelectedInstanceID(InstanceID);
-		}
-	}
-	else
-	{
-		m_Scene.Camera.Rotate(Y * DeltaTime, X * DeltaTime);
+		m_pGpuScene->SetSelectedInstanceID(InstanceID);
 	}
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::HandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
+void Renderer::HandleRawInput(float DeltaTime)
 {
+	auto& Mouse = Application::InputHandler.Mouse;
+	auto& Keyboard = Application::InputHandler.Keyboard;
+
 	if (Keyboard.IsKeyPressed('W'))
 		m_Scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
 	if (Keyboard.IsKeyPressed('A'))
@@ -134,6 +129,11 @@ void Renderer::HandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
 		m_Scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
 	if (Keyboard.IsKeyPressed('E'))
 		m_Scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
+
+	while (const auto RawInput = Mouse.ReadRawInput())
+	{
+		m_Scene.Camera.Rotate(RawInput->Y * DeltaTime, RawInput->X * DeltaTime);
+	}
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -281,9 +281,6 @@ void Renderer::RenderGui()
 
 		ImGui::Text("");
 
-		// Debug gui here
-		ImGui::Text("InstanceID: %i", InstanceID);
-
 		if (ImGui::Button("Screenshot"))
 		{
 			Screenshot = true;
@@ -304,6 +301,16 @@ void Renderer::RenderGui()
 			m_pRenderGraph->RenderGui();
 			ImGui::TreePop();
 		}
+	}
+	ImGui::End();
+
+	if (ImGui::Begin("Debug"))
+	{
+		// Debug gui here
+		ImGui::Text("InstanceID: %i", InstanceID);
+		ImGui::Text("Mouse::X: %i Mouse::Y: %i", Application::InputHandler.Mouse.X, Application::InputHandler.Mouse.Y);
+		ImGui::Text("ImGui::X: %f ImGui::Y: %f", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+		ImGui::Text("ImGui::WantCaptureMouse: %i", ImGui::GetIO().WantCaptureMouse);
 	}
 	ImGui::End();
 }
@@ -345,6 +352,7 @@ DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
 	return EXIT_SUCCESS;
 }
 
+//----------------------------------------------------------------------------------------------------
 DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
 {
 	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);

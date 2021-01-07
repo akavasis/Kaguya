@@ -35,16 +35,14 @@ void RenderSystem::OnUpdate(const Time& Time)
 	return Update(Time);
 }
 
-void RenderSystem::OnHandleMouse(bool CursorEnabled, int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime)
+void RenderSystem::OnHandleInput(float DeltaTime)
 {
-	// X and Y are raw deltas, hence why we have a separate parameter for it rather than
-	// using the Mouse's X and Y
-	return HandleMouse(CursorEnabled, X, Y, Mouse, DeltaTime);
+	return HandleInput(DeltaTime);
 }
 
-void RenderSystem::OnHandleKeyboard(const Keyboard& Keyboard, float DeltaTime)
+void RenderSystem::OnHandleRawInput(float DeltaTime)
 {
-	return HandleKeyboard(Keyboard, DeltaTime);
+	return HandleRawInput(DeltaTime);
 }
 
 void RenderSystem::OnRender()

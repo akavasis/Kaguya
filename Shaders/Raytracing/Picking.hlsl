@@ -1,6 +1,6 @@
 struct RenderPassData
 {
-    uint2 MousePosition;
+    int2 MousePosition;
 };
 #define RenderPassDataType RenderPassData
 #include "Global.hlsli"
@@ -23,7 +23,7 @@ RWStructuredBuffer<int> PickingResult : register(u0, space0);
 [shader("raygeneration")]
 void RayGeneration()
 {
-    uint2 pixelIdx = g_RenderPassData.MousePosition;
+    int2 pixelIdx = g_RenderPassData.MousePosition;
     float2 uv = (pixelIdx + float2(0.5f, 0.5f)) / g_SystemConstants.OutputSize.xy;
 
     RayDesc ray = 

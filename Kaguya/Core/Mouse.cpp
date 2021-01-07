@@ -3,35 +3,8 @@
 
 Mouse::Mouse()
 {
-	m_X = m_Y = 0;
 	m_IsLMBPressed = m_IsMMBPressed = m_IsRMBPressed = m_IsInWindow = false;
 	m_WheelDeltaCarry = 0;
-	m_RawInputEnabled = false;
-}
-
-void Mouse::EnableRawInput()
-{
-	m_RawInputEnabled = true;
-}
-
-void Mouse::DisableRawInput()
-{
-	m_RawInputEnabled = false;
-}
-
-bool Mouse::RawInputEnabled() const
-{
-	return m_RawInputEnabled;
-}
-
-int Mouse::X() const
-{
-	return m_X;
-}
-
-int Mouse::Y() const
-{
-	return m_Y;
 }
 
 bool Mouse::IsLMBPressed() const
@@ -54,36 +27,26 @@ bool Mouse::IsInWindow() const
 	return m_IsInWindow;
 }
 
-Mouse::Event Mouse::Read()
+std::optional<Mouse::Event> Mouse::Read()
 {
 	if (Mouse::Event e;
 		m_MouseBuffer.Dequeue(e, 0))
 		return e;
-	return Mouse::Event(Mouse::Event::EType::Invalid, *this);
+	return {};
 }
 
-bool Mouse::MouseBufferIsEmpty() const
+std::optional<Mouse::RawInput> Mouse::ReadRawInput()
 {
-	return m_MouseBuffer.IsEmpty();
-}
-
-Mouse::RawDelta Mouse::ReadRawDelta()
-{
-	if (Mouse::RawDelta e;
+	if (Mouse::RawInput e;
 		m_RawDeltaBuffer.Dequeue(e, 0))
 		return e;
-	return { 0, 0 };
+	return {};
 }
 
-bool Mouse::RawDeltaBufferIsEmpty() const
+void Mouse::OnMouseMove(int X, int Y)
 {
-	return m_RawDeltaBuffer.IsEmpty();
-}
-
-void Mouse::OnMouseMove(int x, int y)
-{
-	this->m_X = x;
-	this->m_Y = y;
+	this->X = X;
+	this->Y = Y;
 	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::Move, *this));
 	TrimBuffer(m_MouseBuffer);
 }
@@ -102,78 +65,80 @@ void Mouse::OnMouseLeave()
 	TrimBuffer(m_MouseBuffer);
 }
 
-void Mouse::OnLMBPress(int x, int y)
+void Mouse::OnLMBDown()
 {
 	m_IsLMBPressed = true;
 	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::LMBPress, *this));
 	TrimBuffer(m_MouseBuffer);
 }
 
-void Mouse::OnLMBRelease(int x, int y)
-{
-	m_IsLMBPressed = false;
-	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::LMBRelease, *this));
-	TrimBuffer(m_MouseBuffer);
-}
-
-void Mouse::OnMMBPress(int x, int y)
+void Mouse::OnMMBDown()
 {
 	m_IsMMBPressed = true;
 	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::MMBPress, *this));
 	TrimBuffer(m_MouseBuffer);
 }
 
-void Mouse::OnMMBRelease(int x, int y)
-{
-	m_IsMMBPressed = false;
-	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::MMBRelease, *this));
-	TrimBuffer(m_MouseBuffer);
-}
-
-void Mouse::OnRMBPress(int x, int y)
+void Mouse::OnRMBDown()
 {
 	m_IsRMBPressed = true;
 	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::RMBPress, *this));
 	TrimBuffer(m_MouseBuffer);
 }
 
-void Mouse::OnRMBRelease(int x, int y)
+void Mouse::OnLMBUp()
+{
+	m_IsLMBPressed = false;
+	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::LMBRelease, *this));
+	TrimBuffer(m_MouseBuffer);
+}
+
+void Mouse::OnMMBUp()
+{
+	m_IsMMBPressed = false;
+	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::MMBRelease, *this));
+	TrimBuffer(m_MouseBuffer);
+}
+
+void Mouse::OnRMBUp()
 {
 	m_IsRMBPressed = false;
 	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::RMBRelease, *this));
 	TrimBuffer(m_MouseBuffer);
 }
 
-void Mouse::OnWheelUp(int x, int y)
-{
-	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::WheelUp, *this));
-	TrimBuffer(m_MouseBuffer);
-}
-
-void Mouse::OnWheelDown(int x, int y)
+void Mouse::OnWheelDown()
 {
 	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::WheelDown, *this));
 	TrimBuffer(m_MouseBuffer);
 }
 
-void Mouse::OnWheelDelta(int x, int y, int delta)
+void Mouse::OnWheelUp()
 {
-	m_WheelDeltaCarry += delta;
+	m_MouseBuffer.Enqueue(Mouse::Event(Mouse::Event::EType::WheelUp, *this));
+	TrimBuffer(m_MouseBuffer);
+}
+
+void Mouse::OnWheelDelta(int WheelDelta)
+{
+	m_WheelDeltaCarry += WheelDelta;
 	// Generate events for every 120 
 	while (m_WheelDeltaCarry >= WHEEL_DELTA)
 	{
 		m_WheelDeltaCarry -= WHEEL_DELTA;
-		OnWheelUp(x, y);
+		OnWheelUp();
 	}
 	while (m_WheelDeltaCarry <= -WHEEL_DELTA)
 	{
 		m_WheelDeltaCarry += WHEEL_DELTA;
-		OnWheelDown(x, y);
+		OnWheelDown();
 	}
 }
 
-void Mouse::OnRawDelta(int dx, int dy)
+void Mouse::OnRawInput(int X, int Y)
 {
-	m_RawDeltaBuffer.Enqueue({ dx, dy });
+	RawX = X;
+	RawY = Y;
+	m_RawDeltaBuffer.Enqueue({ X, Y });
 	TrimBuffer(m_RawDeltaBuffer);
 }

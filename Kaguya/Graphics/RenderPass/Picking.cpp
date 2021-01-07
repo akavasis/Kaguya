@@ -31,7 +31,7 @@ INT Picking::GetInstanceID(RenderDevice* pRenderDevice)
 {
 	auto pPickingResultBuffer = pRenderDevice->GetBuffer(m_PickingResultReadBack);
 
-	INT InstanceID;
+	INT InstanceID = -1;
 	auto pCpuMemory = pPickingResultBuffer->Map();
 
 	memcpy(&InstanceID, pCpuMemory, sizeof(int));
@@ -205,11 +205,11 @@ void Picking::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
 	struct RenderPassData
 	{
-		uint2 MousePosition;
+		int2 MousePosition;
 	} g_RenderPassData = {};
 
-	g_RenderPassData.MousePosition.x = Application::InputHandler.Mouse.X();
-	g_RenderPassData.MousePosition.y = Application::InputHandler.Mouse.Y();
+	g_RenderPassData.MousePosition.x = Application::InputHandler.Mouse.X;
+	g_RenderPassData.MousePosition.y = Application::InputHandler.Mouse.Y;
 
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 

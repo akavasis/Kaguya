@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <optional>
 #include "ThreadSafeQueue.h"
 
 class Mouse
@@ -43,8 +45,8 @@ public:
 		Event(EType Type, const Mouse& Mouse)
 			: Type(Type)
 		{
-			Data.X = Mouse.m_X;
-			Data.Y = Mouse.m_Y;
+			Data.X = Mouse.X;
+			Data.Y = Mouse.Y;
 			Data.LeftMouseButtonIsPressed = Mouse.m_IsLMBPressed;
 			Data.MiddleMouseButtonIsPressed = Mouse.m_IsMMBPressed;
 			Data.RightMouseButtonIsPressed = Mouse.m_IsRMBPressed;
@@ -54,44 +56,40 @@ public:
 		SData Data = {};
 	};
 
-	struct RawDelta
+	struct RawInput
 	{
 		int X, Y;
 	};
 
 	Mouse();
 
-	void EnableRawInput();
-	void DisableRawInput();
-	bool RawInputEnabled() const;
-
-	int X() const;
-	int Y() const;
-
 	bool IsLMBPressed() const;
 	bool IsMMBPressed() const;
 	bool IsRMBPressed() const;
 	bool IsInWindow() const;
 
-	Mouse::Event Read();
-	bool MouseBufferIsEmpty() const;
+	std::optional<Mouse::Event> Read();
 
-	Mouse::RawDelta ReadRawDelta();
-	bool RawDeltaBufferIsEmpty() const;
+	std::optional<Mouse::RawInput> ReadRawInput();
 private:
-	void OnMouseMove(int x, int y);
+	void OnMouseMove(int X, int Y);
 	void OnMouseEnter();
 	void OnMouseLeave();
-	void OnLMBPress(int x, int y);
-	void OnLMBRelease(int x, int y);
-	void OnMMBPress(int x, int y);
-	void OnMMBRelease(int x, int y);
-	void OnRMBPress(int x, int y);
-	void OnRMBRelease(int x, int y);
-	void OnWheelUp(int x, int y);
-	void OnWheelDown(int x, int y);
-	void OnWheelDelta(int x, int y, int delta);
-	void OnRawDelta(int dx, int dy);
+
+	void OnLMBDown();
+	void OnMMBDown();
+	void OnRMBDown();
+
+	void OnLMBUp();
+	void OnMMBUp();
+	void OnRMBUp();
+
+	void OnWheelDown();
+	void OnWheelUp();
+	void OnWheelDelta(int WheelDelta);
+
+	void OnRawInput(int X, int Y);
+
 	template<class T>
 	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer)
 	{
@@ -102,15 +100,19 @@ private:
 		}
 	}
 
+public:
+	bool							UseRawInput = false;
+	int								X			= 0;
+	int								Y			= 0;
+	int								RawX		= 0;
+	int								RawY		= 0;
+
 private:
-	int								m_X;
-	int								m_Y;
 	bool							m_IsLMBPressed;
 	bool							m_IsMMBPressed;
 	bool							m_IsRMBPressed;
 	bool							m_IsInWindow;
 	int								m_WheelDeltaCarry;
-	bool							m_RawInputEnabled;
 	ThreadSafeQueue<Mouse::Event>	m_MouseBuffer;
-	ThreadSafeQueue<RawDelta>		m_RawDeltaBuffer;
+	ThreadSafeQueue<RawInput>		m_RawDeltaBuffer;
 };

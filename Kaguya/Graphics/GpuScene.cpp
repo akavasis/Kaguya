@@ -162,13 +162,14 @@ bool EditTransform(
 	const float* pCameraView,
 	float* pCameraProjection,
 	float* pMatrix,
-	bool EditTransformDecomposition,
-	bool AllowRotation)
+	bool EditTransformDecomposition)
 {
-	static bool mUseSnap = false;
-	static float mSnap[3] = { 1, 1, 1 };
-	static ImGuizmo::OPERATION CurrentGizmoOperation = ImGuizmo::TRANSLATE;
-	static ImGuizmo::MODE CurrentGizmoMode = ImGuizmo::LOCAL;
+	bool IsDirty = false;
+
+	static bool					UseSnap					= false;
+	static float				Snap[3]					= { 1, 1, 1 };
+	static ImGuizmo::OPERATION	CurrentGizmoOperation	= ImGuizmo::TRANSLATE;
+	static ImGuizmo::MODE		CurrentGizmoMode		= ImGuizmo::LOCAL;
 
 	if (EditTransformDecomposition)
 	{
@@ -176,25 +177,18 @@ bool EditTransform(
 			CurrentGizmoOperation = ImGuizmo::TRANSLATE;
 		ImGui::SameLine();
 
-		if (AllowRotation)
-		{
-			if (ImGui::RadioButton("Rotate", CurrentGizmoOperation == ImGuizmo::ROTATE))
-				CurrentGizmoOperation = ImGuizmo::ROTATE;
-		}
-
+		if (ImGui::RadioButton("Rotate", CurrentGizmoOperation == ImGuizmo::ROTATE))
+			CurrentGizmoOperation = ImGuizmo::ROTATE;
 		ImGui::SameLine();
+
 		if (ImGui::RadioButton("Scale", CurrentGizmoOperation == ImGuizmo::SCALE))
 			CurrentGizmoOperation = ImGuizmo::SCALE;
+
 		float matrixTranslation[3], matrixRotation[3], matrixScale[3];
 		ImGuizmo::DecomposeMatrixToComponents(pMatrix, matrixTranslation, matrixRotation, matrixScale);
-		ImGui::InputFloat3("Tr", matrixTranslation);
-
-		if (AllowRotation)
-		{
-			ImGui::InputFloat3("Rt", matrixRotation);
-		}
-
-		ImGui::InputFloat3("Sc", matrixScale);
+		IsDirty |= ImGui::InputFloat3("Tr", matrixTranslation);
+		IsDirty |= ImGui::InputFloat3("Rt", matrixRotation);
+		IsDirty |= ImGui::InputFloat3("Sc", matrixScale);
 		ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, pMatrix);
 
 		if (CurrentGizmoOperation != ImGuizmo::SCALE)
@@ -206,29 +200,32 @@ bool EditTransform(
 				CurrentGizmoMode = ImGuizmo::WORLD;
 		}
 
-		ImGui::Checkbox("", &mUseSnap);
+		ImGui::Checkbox("", &UseSnap);
 		ImGui::SameLine();
 
 		switch (CurrentGizmoOperation)
 		{
 		case ImGuizmo::TRANSLATE:
-			ImGui::InputFloat3("Snap", &mSnap[0]);
+			ImGui::InputFloat3("Snap", &Snap[0]);
 			break;
 		case ImGuizmo::ROTATE:
-			ImGui::InputFloat("Angle Snap", &mSnap[0]);
+			ImGui::InputFloat("Angle Snap", &Snap[0]);
 			break;
 		case ImGuizmo::SCALE:
-			ImGui::InputFloat("Scale Snap", &mSnap[0]);
+			ImGui::InputFloat("Scale Snap", &Snap[0]);
 			break;
 		}
 	}
 
-	return ImGuizmo::Manipulate(
+	IsDirty |= ImGuizmo::Manipulate(
 		pCameraView,
 		pCameraProjection,
 		CurrentGizmoOperation,
 		CurrentGizmoMode,
 		pMatrix);
+
+		LOG_INFO("{}", IsDirty);
+	return IsDirty;
 }
 
 GpuScene::GpuScene(RenderDevice* pRenderDevice)
@@ -343,15 +340,24 @@ void GpuScene::RenderGui()
 
 			ImGui::TreePop();
 		}
+	}
+	ImGui::End();
 
+	ImGui::Begin("Editor");
+	{
 		// Render ImGuizmo
-		if (m_SelectedInstanceID != -1)
+		bool IsValidInstanceID = m_SelectedInstanceID != -1;
+		if (IsValidInstanceID)
 		{
 			m_SelectedMeshInstance = &pScene->MeshInstances[m_SelectedInstanceID];
+		}
 
+		if (m_SelectedMeshInstance)
+		{
 			DirectX::XMFLOAT4X4 World;
 			DirectX::XMFLOAT4X4 View, Projection;
 
+			// Dont transpose this
 			XMStoreFloat4x4(&World, m_SelectedMeshInstance->Transform.Matrix());
 			XMStoreFloat4x4(&View, pScene->Camera.ViewMatrix());
 			XMStoreFloat4x4(&Projection, pScene->Camera.ProjectionMatrix());
@@ -361,15 +367,12 @@ void GpuScene::RenderGui()
 			ImGui::Separator();
 
 			ImGuizmo::SetID(0);
-			EditTransform(
+
+			if (EditTransform(
 				reinterpret_cast<float*>(&View),
 				reinterpret_cast<float*>(&Projection),
 				reinterpret_cast<float*>(&World),
-				true,
-				true
-			);
-
-			if (ImGuizmo::IsUsing())
+				m_SelectedMeshInstance != nullptr))
 			{
 				m_SelectedMeshInstance->Transform.SetTransform(XMLoadFloat4x4(&World));
 				m_SelectedMeshInstance->Dirty = true;

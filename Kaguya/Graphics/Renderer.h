@@ -15,13 +15,11 @@ class Renderer : public RenderSystem
 public:
 	Renderer();
 
-	void RequestCapture();
-
 protected:
 	bool Initialize() override;
 	void Update(const Time& Time) override;
-	void HandleMouse(bool CursorEnabled, int32_t X, int32_t Y, const Mouse& Mouse, float DeltaTime) override;
-	void HandleKeyboard(const Keyboard& Keyboard, float DeltaTime) override;
+	void HandleInput(float DeltaTime) override;
+	void HandleRawInput(float DeltaTime) override;
 	void Render() override;
 	bool Resize(uint32_t Width, uint32_t Height) override;
 	void Destroy() override;
@@ -40,7 +38,7 @@ private:
 
 	Scene									m_Scene;
 	std::unique_ptr<GpuScene>				m_pGpuScene;
-	INT										InstanceID							= -1; // Temporary, used to debug picking results
+	INT										InstanceID							= -1;
 
 	wil::unique_event						BuildAccelerationStructureEvent;
 	wil::unique_event						AccelerationStructureCompleteEvent;

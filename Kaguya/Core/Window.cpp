@@ -96,31 +96,14 @@ bool Window::IsFocused() const
 	return GetForegroundWindow() == m_WindowHandle.get();
 }
 
-void Window::SetTitle(const std::wstring& Title)
-{
-	::SetWindowText(m_WindowHandle.get(), Title.data());
-}
-
-void Window::AppendToTitle(const std::wstring& Message)
-{
-	::SetWindowText(m_WindowHandle.get(), (m_WindowName + Message).data());
-}
-
 LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	const ImGuiIO* pImGuiIO = nullptr;
-	if (ImGui::GetCurrentContext() != nullptr)
-	{
-		pImGuiIO = &ImGui::GetIO();
-		if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle.get(), uMsg, wParam, lParam))
-			return true;
-	}
+	if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle.get(), uMsg, wParam, lParam))
+		return true;
 
 	switch (uMsg)
 	{
 	case WM_SIZE:
-	case WM_ENTERSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
-	case WM_EXITSIZEMOVE:	// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
 	{
 		RECT WindowRect = {};
 		::GetWindowRect(m_WindowHandle.get(), &WindowRect);
@@ -133,7 +116,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		WindowMessage.Data.Height		= m_WindowHeight;
 		MessageQueue.Enqueue(WindowMessage);
 	}
-	break;
+	return 0;
 
 	case WM_ACTIVATE:
 	{
@@ -154,14 +137,26 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 
-	case WM_DESTROY:
+	// Catch this message so to prevent the window from becoming too small.
+	case WM_GETMINMAXINFO:
 	{
-		::PostQuitMessage(0);
+		auto pMinMaxInfo = reinterpret_cast<MINMAXINFO*>(lParam);
+
+		pMinMaxInfo->ptMinTrackSize.x = Application::MinimumWidth;
+		pMinMaxInfo->ptMinTrackSize.y = Application::MinimumHeight;
+		return 0;
 	}
 	break;
+
+	case WM_DESTROY:
+		::PostQuitMessage(0);
+		return 0;
+
+	default:
+		return ::DefWindowProc(m_WindowHandle.get(), uMsg, wParam, lParam);
 	}
 
-	return ::DefWindowProc(m_WindowHandle.get(), uMsg, wParam, lParam);
+	return 0;
 }
 
 LRESULT CALLBACK Window::WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

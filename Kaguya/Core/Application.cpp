@@ -31,6 +31,9 @@ void Application::Initialize(LPCWSTR WindowName,
 	Window.SetIcon(::LoadImage(0, ImageFile.wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
 	Window.Create(WindowName, Width, Height, X, Y);
 	InputHandler.Create(&Window);
+
+	MinimumWidth = GetSystemMetrics(SM_CXMINTRACK);
+	MinimumHeight = GetSystemMetrics(SM_CYMINTRACK);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -45,7 +48,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 			throw std::exception("Null RenderSystem");
 
 		// Begin our render thread
-		RenderThread				= wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, RenderSystem.get(), 0, nullptr));
+		RenderThread = wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, RenderSystem.get(), 0, nullptr));
 		if (!RenderThread)
 		{
 			LOG_ERROR("Failed to create thread (error={})", ::GetLastError());
@@ -55,22 +58,22 @@ int Application::Run(RenderSystem* pRenderSystem)
 		MSG Msg = {};
 		while (Msg.message != WM_QUIT)
 		{
-			if (PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE))
+			if (::PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE))
 			{
-				TranslateMessage(&Msg);
-				DispatchMessage(&Msg);
+				::TranslateMessage(&Msg);
+				::DispatchMessage(&Msg);
 
 				InputHandler.Handle(&Msg);
 
 				if (InputHandler.Mouse.IsRMBPressed())
 				{
 					Window.DisableCursor();
-					InputHandler.Mouse.EnableRawInput();
+					InputHandler.Mouse.UseRawInput = true;
 				}
 				else
 				{
 					Window.EnableCursor();
-					InputHandler.Mouse.DisableRawInput();
+					InputHandler.Mouse.UseRawInput = false;
 				}
 			}
 
@@ -158,28 +161,13 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 		// Update
 		pRenderSystem->OnUpdate(Time);
 
-		// Process mouse & keyboard events
-		// Handle render system mouse events
-		while (!InputHandler.Mouse.RawDeltaBufferIsEmpty())
-		{
-			auto delta = InputHandler.Mouse.ReadRawDelta();
+		pRenderSystem->OnHandleInput(Time.DeltaTime());
 
-			if (!Window.CursorEnabled())
-			{
-				pRenderSystem->OnHandleMouse(false, delta.X, delta.Y, InputHandler.Mouse, Time.DeltaTime());
-			}
-			else
-			{
-				pRenderSystem->OnHandleMouse(true, delta.X, delta.Y, InputHandler.Mouse, Time.DeltaTime());
-			}
-		}
-
-		// Handle render system keyboard events
 		if (!Window.CursorEnabled())
 		{
-			pRenderSystem->OnHandleKeyboard(InputHandler.Keyboard, Time.DeltaTime());
+			pRenderSystem->OnHandleRawInput(Time.DeltaTime());
 		}
-		
+
 		pRenderSystem->OnRender();
 	}
 

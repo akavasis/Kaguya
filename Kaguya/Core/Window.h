@@ -54,9 +54,6 @@ public:
 	inline auto GetWindowWidth() const { return m_WindowWidth; }
 	inline auto GetWindowHeight() const { return m_WindowHeight; }
 
-	void SetTitle(const std::wstring& Title);
-	void AppendToTitle(const std::wstring& Message);
-
 private:
 	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

@@ -50,9 +50,10 @@ public:
 
 private:
 	void ResetKeyState();
-	void OnKeyPress(unsigned char KeyCode);
-	void OnKeyRelease(unsigned char KeyCode);
+	void OnKeyDown(unsigned char KeyCode);
+	void OnKeyUp(unsigned char KeyCode);
 	void OnChar(unsigned char Char);
+
 	template<class T>
 	void TrimBuffer(ThreadSafeQueue<T>& QueueBuffer)
 	{
