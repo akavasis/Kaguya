@@ -1,6 +1,6 @@
 #pragma once
+
 #include "Resource.h"
-#include <cassert>
 
 class Device;
 class BufferProxy;
@@ -19,7 +19,7 @@ public:
 	Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
 	Buffer(const Device* pDevice, BufferProxy& Proxy);
 	Buffer(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy);
-	~Buffer() override;
+	~Buffer();
 
 	inline auto GetStride() const { return m_Stride; }
 	inline auto GetCpuAccess() const { return m_CpuAccess; }

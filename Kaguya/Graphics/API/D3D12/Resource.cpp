@@ -3,10 +3,12 @@
 #include "Device.h"
 #include "../Proxy/ResourceProxy.h"
 
+using Microsoft::WRL::ComPtr;
+
 Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 	: m_pResource(ExistingID3D12Resource)
 {
-	ID3D12Device* pDevice = nullptr;
+	ComPtr<ID3D12Device> pDevice;
 	ExistingID3D12Resource->GetDevice(IID_PPV_ARGS(&pDevice));
 
 	const D3D12_RESOURCE_DESC				ResourceDesc		= m_pResource->GetDesc();
@@ -14,7 +16,6 @@ Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource
 																	ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D) && 
 																	ResourceDesc.DepthOrArraySize > 1;
 	const D3D12_RESOURCE_ALLOCATION_INFO ResourceAllocationInfo = pDevice->GetResourceAllocationInfo(0, 1, &ResourceDesc);
-	pDevice->Release();
 
 	switch (ResourceDesc.Dimension)
 	{

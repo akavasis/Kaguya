@@ -59,7 +59,7 @@ public:
 	Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource);
 	Resource(const Device* pDevice, ResourceProxy& Proxy);
 	Resource(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy);
-	virtual ~Resource() = 0;
+	~Resource();
 
 	inline auto GetApiHandle() const { return m_pResource.Get(); }
 	inline auto GetType() const { return m_Type; }

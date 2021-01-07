@@ -1,7 +1,8 @@
 #pragma once
+
+#include <wrl/client.h>
 #include <dxgi1_6.h>
 #include <d3d12.h>
-#include <wrl/client.h>
 #include <unordered_set>
 
 class Device
