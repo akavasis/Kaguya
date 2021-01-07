@@ -45,6 +45,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - DirectXTK12 (https://github.com/microsoft/DirectXTK12)
 - DirectX Shader Compiler (https://github.com/microsoft/DirectXShaderCompiler)
 - imgui (https://github.com/ocornut/imgui)
+- ImGuizmo (https://github.com/CedricGuillemet/ImGuizmo)
 - spdlog (https://github.com/gabime/spdlog)
 - WinPixEventRunTime (https://devblogs.microsoft.com/pix/winpixeventruntime/)
 - wil (https://github.com/microsoft/wil)
@@ -58,3 +59,6 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 ![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
 ![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
 ![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")
+
+## Picking/Editing Progress
+![4](/Gallery/PickingAndEditing.jpg?raw=true "PickingAndEditing")
