@@ -164,15 +164,17 @@ bool EditTransform(
 	float* pMatrix,
 	bool EditTransformDecomposition)
 {
-	bool IsDirty = false;
+	bool IsEdited = false;
 
-	static bool					UseSnap					= false;
+	static bool					UseSnap					= true;
 	static float				Snap[3]					= { 1, 1, 1 };
 	static ImGuizmo::OPERATION	CurrentGizmoOperation	= ImGuizmo::TRANSLATE;
 	static ImGuizmo::MODE		CurrentGizmoMode		= ImGuizmo::LOCAL;
 
 	if (EditTransformDecomposition)
 	{
+		ImGui::Text("Operation");
+
 		if (ImGui::RadioButton("Translate", CurrentGizmoOperation == ImGuizmo::TRANSLATE))
 			CurrentGizmoOperation = ImGuizmo::TRANSLATE;
 		ImGui::SameLine();
@@ -184,11 +186,13 @@ bool EditTransform(
 		if (ImGui::RadioButton("Scale", CurrentGizmoOperation == ImGuizmo::SCALE))
 			CurrentGizmoOperation = ImGuizmo::SCALE;
 
+		ImGui::Text("Transform");
+
 		float matrixTranslation[3], matrixRotation[3], matrixScale[3];
 		ImGuizmo::DecomposeMatrixToComponents(pMatrix, matrixTranslation, matrixRotation, matrixScale);
-		IsDirty |= ImGui::InputFloat3("Tr", matrixTranslation);
-		IsDirty |= ImGui::InputFloat3("Rt", matrixRotation);
-		IsDirty |= ImGui::InputFloat3("Sc", matrixScale);
+		IsEdited |= ImGui::InputFloat3("Translation", matrixTranslation);
+		IsEdited |= ImGui::InputFloat3("Rotation", matrixRotation);
+		IsEdited |= ImGui::InputFloat3("Scale", matrixScale);
 		ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, pMatrix);
 
 		if (CurrentGizmoOperation != ImGuizmo::SCALE)
@@ -217,15 +221,13 @@ bool EditTransform(
 		}
 	}
 
-	IsDirty |= ImGuizmo::Manipulate(
-		pCameraView,
-		pCameraProjection,
-		CurrentGizmoOperation,
-		CurrentGizmoMode,
-		pMatrix);
+	IsEdited |= ImGuizmo::Manipulate(
+		pCameraView, pCameraProjection,
+		CurrentGizmoOperation, CurrentGizmoMode,
+		pMatrix, nullptr,
+		UseSnap ? Snap : nullptr);
 
-		LOG_INFO("{}", IsDirty);
-	return IsDirty;
+	return IsEdited;
 }
 
 GpuScene::GpuScene(RenderDevice* pRenderDevice)
@@ -346,19 +348,20 @@ void GpuScene::RenderGui()
 	ImGui::Begin("Editor");
 	{
 		// Render ImGuizmo
+		MeshInstance* SelectedMeshInstance = nullptr;
 		bool IsValidInstanceID = m_SelectedInstanceID != -1;
 		if (IsValidInstanceID)
 		{
-			m_SelectedMeshInstance = &pScene->MeshInstances[m_SelectedInstanceID];
+			SelectedMeshInstance = &pScene->MeshInstances[m_SelectedInstanceID];
 		}
 
-		if (m_SelectedMeshInstance)
+		if (SelectedMeshInstance)
 		{
 			DirectX::XMFLOAT4X4 World;
 			DirectX::XMFLOAT4X4 View, Projection;
 
 			// Dont transpose this
-			XMStoreFloat4x4(&World, m_SelectedMeshInstance->Transform.Matrix());
+			XMStoreFloat4x4(&World, SelectedMeshInstance->Transform.Matrix());
 			XMStoreFloat4x4(&View, pScene->Camera.ViewMatrix());
 			XMStoreFloat4x4(&Projection, pScene->Camera.ProjectionMatrix());
 
@@ -366,16 +369,18 @@ void GpuScene::RenderGui()
 			ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 			ImGui::Separator();
 
+			// I'm not sure what this does, I put it here because the example does it...
 			ImGuizmo::SetID(0);
 
+			// If we have edited the transform, update it and mark it as dirty so it will be updated on the GPU side
 			if (EditTransform(
 				reinterpret_cast<float*>(&View),
 				reinterpret_cast<float*>(&Projection),
 				reinterpret_cast<float*>(&World),
-				m_SelectedMeshInstance != nullptr))
+				SelectedMeshInstance != nullptr))
 			{
-				m_SelectedMeshInstance->Transform.SetTransform(XMLoadFloat4x4(&World));
-				m_SelectedMeshInstance->Dirty = true;
+				SelectedMeshInstance->Transform.SetTransform(XMLoadFloat4x4(&World));
+				SelectedMeshInstance->Dirty = true;
 			}
 		}
 	}

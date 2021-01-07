@@ -11,9 +11,16 @@
 class Application
 {
 public:
-	static void Initialize(LPCWSTR WindowName,
-		int32_t Width = CW_USEDEFAULT, int32_t Height = CW_USEDEFAULT,
-		int32_t X = CW_USEDEFAULT, int32_t Y = CW_USEDEFAULT);
+	struct Config
+	{
+		std::wstring Title	= L"Application";
+		int Width			= CW_USEDEFAULT;
+		int Height			= CW_USEDEFAULT;
+		int X				= CW_USEDEFAULT;
+		int Y				= CW_USEDEFAULT;
+	};
+
+	static void Initialize(const Config& Config);
 
 	static int Run(RenderSystem* pRenderSystem);
 

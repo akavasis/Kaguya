@@ -9,9 +9,7 @@
 #include "Time.h"
 
 //----------------------------------------------------------------------------------------------------
-void Application::Initialize(LPCWSTR WindowName,
-	int32_t Width /*= CW_USEDEFAULT*/, int32_t Height /*= CW_USEDEFAULT*/,
-	int32_t X /*= CW_USEDEFAULT*/, int32_t Y /*= CW_USEDEFAULT*/)
+void Application::Initialize(const Config& Config)
 {
 	Log::Create();
 
@@ -29,7 +27,7 @@ void Application::Initialize(LPCWSTR WindowName,
 
 	auto ImageFile = Application::ExecutableFolderPath / "Assets/Kaguya.ico";
 	Window.SetIcon(::LoadImage(0, ImageFile.wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
-	Window.Create(WindowName, Width, Height, X, Y);
+	Window.Create(Config.Title.data(), Config.Width, Config.Height, Config.X, Config.Y);
 	InputHandler.Create(&Window);
 
 	MinimumWidth = GetSystemMetrics(SM_CXMINTRACK);

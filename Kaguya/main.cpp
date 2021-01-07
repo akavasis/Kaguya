@@ -21,6 +21,13 @@ int main(int argc, char* argv[])
 	ENABLE_LEAK_DETECTION();
 	SET_LEAK_BREAKPOINT(-1);
 #endif
-	Application::Initialize(L"Kaguya", 1280, 720);
+	Application::Config Config =
+	{
+		.Title = L"Kaguya",
+		.Width = 1280,
+		.Height = 720
+	};
+
+	Application::Initialize(Config);
 	return Application::Run(new Renderer());
 }

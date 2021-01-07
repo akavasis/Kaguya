@@ -65,5 +65,4 @@ private:
 	RTTLAS					m_RaytracingTopLevelAccelerationStructure;
 
 	INT						m_SelectedInstanceID	= -1;
-	MeshInstance*			m_SelectedMeshInstance	= nullptr;
 };
