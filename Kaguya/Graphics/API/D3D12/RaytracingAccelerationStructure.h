@@ -1,6 +1,7 @@
 #pragma once
+
 #include <d3d12.h>
-#include <DirectXMath.h>
+#include <vector>
 
 class Device;
 class Buffer;
@@ -30,10 +31,9 @@ public:
 	void ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes);
 	void Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult);
 private:
-	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>			RaytracingGeometryDescs;
-	UINT64												ScratchSizeInBytes;
-	UINT64												ResultSizeInBytes;
-	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS BuildFlags;
+	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>	RaytracingGeometryDescs;
+	UINT64										ScratchSizeInBytes;
+	UINT64										ResultSizeInBytes;
 };
 
 // https://developer.nvidia.com/blog/rtx-best-practices/

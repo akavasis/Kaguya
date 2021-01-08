@@ -57,7 +57,7 @@ public:
 	UINT NumRenderPass() const { return m_RenderPasses.size(); }
 
 	// Only call once
-	void Initialize(HANDLE AccelerationStructureCompleteSignal);
+	void Initialize();
 	void InitializeScene(GpuScene* pGpuScene);
 
 	// Call every frame
@@ -90,7 +90,6 @@ private:
 
 	RenderDevice*												SV_pRenderDevice;
 
-	HANDLE														m_AccelerationStructureCompleteSignal = nullptr;
 	std::vector<CommandContext*>								m_CommandContexts;
 	std::vector<wil::unique_event>								m_WorkerExecuteEvents;
 	std::vector<wil::unique_event>								m_WorkerCompleteEvents;

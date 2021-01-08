@@ -8,7 +8,6 @@ using namespace DirectX;
 BottomLevelAccelerationStructure::BottomLevelAccelerationStructure()
 {
 	ScratchSizeInBytes = ResultSizeInBytes = 0;
-	BuildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 }
 
 void BottomLevelAccelerationStructure::AddGeometry(const RaytracingGeometryDesc& Desc)
@@ -32,7 +31,7 @@ void BottomLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* 
 {
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS Desc	= {};
 	Desc.Type													= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-	Desc.Flags													= BuildFlags;
+	Desc.Flags													= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 	Desc.NumDescs												= static_cast<UINT>(RaytracingGeometryDescs.size());
 	Desc.DescsLayout											= D3D12_ELEMENTS_LAYOUT_ARRAY;
 	Desc.pGeometryDescs											= RaytracingGeometryDescs.data();
@@ -65,7 +64,7 @@ void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext,
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC Desc = {};
 	Desc.DestAccelerationStructureData						= pResult->GetGpuVirtualAddress();
 	Desc.Inputs.Type										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-	Desc.Inputs.Flags										= BuildFlags;
+	Desc.Inputs.Flags										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 	Desc.Inputs.NumDescs									= static_cast<UINT>(RaytracingGeometryDescs.size());
 	Desc.Inputs.DescsLayout									= D3D12_ELEMENTS_LAYOUT_ARRAY;
 	Desc.Inputs.pGeometryDescs								= RaytracingGeometryDescs.data();

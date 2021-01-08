@@ -39,56 +39,48 @@ void InputHandler::Handle(const MSG* pMsg)
 	{
 	case WM_ENTERSIZEMOVE:
 	{
-		LOG_INFO("WM_ENTERSIZEMOVE");
 		Mouse.OnLMBDown();
 	}
 	break;
 
 	case WM_EXITSIZEMOVE:
 	{
-		LOG_INFO("WM_EXITSIZEMOVE");
 		Mouse.OnLMBUp();
 	}
 	break;
 
 	case WM_LBUTTONDOWN:
 	{
-		LOG_INFO("WM_LBUTTONDOWN");
 		Mouse.OnLMBDown();
 	}
 	break;
 
 	case WM_MBUTTONDOWN:
 	{
-		LOG_INFO("WM_MBUTTONDOWN");
 		Mouse.OnMMBDown();
 	}
 	break;
 
 	case WM_RBUTTONDOWN:
 	{
-		LOG_INFO("WM_RBUTTONDOWN");
 		Mouse.OnRMBDown();
 	}
 	break;
 
 	case WM_LBUTTONUP:
 	{
-		LOG_INFO("WM_LBUTTONUP");
 		Mouse.OnLMBUp();
 	}
 	break;
 
 	case WM_MBUTTONUP:
 	{
-		LOG_INFO("WM_MBUTTONUP");
 		Mouse.OnMMBUp();
 	}
 	break;
 
 	case WM_RBUTTONUP:
 	{
-		LOG_INFO("WM_RBUTTONUP");
 		Mouse.OnRMBUp();
 	}
 	break;
@@ -105,8 +97,6 @@ void InputHandler::Handle(const MSG* pMsg)
 		{
 			return;
 		}
-
-		LOG_INFO("WM_INPUT");
 
 		UINT dwSize = 0;
 		::GetRawInputData(reinterpret_cast<HRAWINPUT>(pMsg->lParam), RID_INPUT, NULL, &dwSize,

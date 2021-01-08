@@ -35,10 +35,8 @@ RenderPass* RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 	return m_RenderPasses.back().get();
 }
 
-void RenderGraph::Initialize(HANDLE AccelerationStructureCompleteSignal)
+void RenderGraph::Initialize()
 {
-	m_AccelerationStructureCompleteSignal = AccelerationStructureCompleteSignal;
-
 	m_CommandContexts.resize(NumRenderPass());
 	m_WorkerExecuteEvents.resize(NumRenderPass());
 	m_WorkerCompleteEvents.resize(NumRenderPass());
@@ -161,7 +159,6 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 	auto pRenderPassThreadProcParameter = reinterpret_cast<RenderPassThreadProcParameter*>(pParameter);
 
 	auto pRenderGraph		= pRenderPassThreadProcParameter->pRenderGraph;
-	auto ASBuildEvent		= pRenderGraph->m_AccelerationStructureCompleteSignal;
 	auto ThreadID			= pRenderPassThreadProcParameter->ThreadID;
 	auto ExecuteSignal		= pRenderPassThreadProcParameter->ExecuteSignal;
 	auto CompleteSignal		= pRenderPassThreadProcParameter->CompleteSignal;

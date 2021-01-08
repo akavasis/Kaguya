@@ -61,9 +61,6 @@ bool Renderer::Initialize()
 		return false;
 	}
 
-	BuildAccelerationStructureEvent.create();
-	AccelerationStructureCompleteEvent.create(wil::EventOptions::ManualReset);
-
 	//m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
 	//m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
 	//m_pRenderGraph->AddRenderPass(new SVGFReproject(Width, Height));
@@ -78,16 +75,13 @@ bool Renderer::Initialize()
 
 	m_pRenderDevice->CreateCommandContexts(m_pRenderGraph->NumRenderPass());
 
-	m_pRenderGraph->Initialize(AccelerationStructureCompleteEvent.get());
+	m_pRenderGraph->Initialize();
 
 	m_GraphicsContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice.get(), m_pRenderDevice->GetDefaultGraphicsContext());
 
 	SetScene(GenerateScene(SampleScene::CornellBox));
 
 	m_pRenderGraph->InitializeScene(m_pGpuScene.get());
-
-	//AsyncComputeThread = wil::unique_handle(::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr));
-	//AsyncCopyThread = wil::unique_handle(::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr));
 
 	return true;
 }
@@ -103,9 +97,9 @@ void Renderer::HandleInput(float DeltaTime)
 {
 	auto& Mouse = Application::InputHandler.Mouse;
 
-	// If LMB is pressed and if we are not hovering over any imgui stuff then we update the
+	// If LMB is pressed and we are not handling raw input and if we are not hovering over any imgui stuff then we update the
 	// instance id for editor
-	if (Mouse.IsLMBPressed() && !Mouse.IsRMBPressed() && !ImGui::GetIO().WantCaptureMouse)
+	if (Mouse.IsLMBPressed() && !Mouse.UseRawInput && !ImGui::GetIO().WantCaptureMouse)
 	{
 		m_pGpuScene->SetSelectedInstanceID(InstanceID);
 	}
@@ -155,8 +149,6 @@ void Renderer::Render()
 
 	m_pGpuScene->CreateTopLevelAS(AsyncComputeContext);
 
-	auto c = m_pRenderDevice->ComputeFence->GetCompletedValue();
-
 	CommandContext* pCommandContexts[] = { AsyncComputeContext };
 	m_pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
 	m_pRenderDevice->ComputeQueue.GetApiHandle()->Signal(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
@@ -172,7 +164,6 @@ void Renderer::Render()
 	HLSLSystemConstants.Skybox					= m_pRenderDevice->GetShaderResourceView(m_pGpuScene->TextureManager.GetSkybox()).HeapIndex;
 
 	bool Refresh = m_pGpuScene->Update(AspectRatio);
-	BuildAccelerationStructureEvent.SetEvent(); // Tell the AsyncComputeThreadProc to build our TLAS after we have updated any scene objects
 
 	auto& CommandContexts = m_pRenderGraph->GetCommandContexts();
 	for (auto CommandContext : CommandContexts)
@@ -221,17 +212,6 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 //----------------------------------------------------------------------------------------------------
 void Renderer::Destroy()
 {
-	ExitAsyncQueuesThread = true;
-	BuildAccelerationStructureEvent.SetEvent();
-
-	HANDLE Handles[] = 
-	{
-		AsyncComputeThread.get(),
-		AsyncCopyThread.get()
-	};
-
-	::WaitForMultipleObjects(ARRAYSIZE(Handles), Handles, TRUE, INFINITE);
-
 	m_pGpuScene.reset();
 	m_pRenderGraph.reset();
 

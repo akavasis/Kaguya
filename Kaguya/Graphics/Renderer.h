@@ -36,10 +36,4 @@ private:
 	Scene									m_Scene;
 	std::unique_ptr<GpuScene>				m_pGpuScene;
 	INT										InstanceID							= -1;
-
-	wil::unique_event						BuildAccelerationStructureEvent;
-	wil::unique_event						AccelerationStructureCompleteEvent;
-	wil::unique_handle						AsyncComputeThread;
-	wil::unique_handle						AsyncCopyThread;
-	std::atomic<bool>						ExitAsyncQueuesThread				= false;
 };
