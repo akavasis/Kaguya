@@ -35,11 +35,17 @@ namespace HLSL
 
 	struct Mesh
 	{
-		uint	VertexOffset;
-		uint	IndexOffset;
-		uint	MaterialIndex;
-		matrix	World;
-		matrix	PreviousWorld;
+		uint						VertexOffset;
+		uint						IndexOffset;
+		uint						MaterialIndex;
+		uint						InstanceID : 24;
+		uint						InstanceMask : 8;
+		uint						InstanceContributionToHitGroupIndex : 24;
+		uint						Flags : 8;
+		D3D12_GPU_VIRTUAL_ADDRESS	AccelerationStructure;
+		matrix						World;
+		matrix						PreviousWorld;
+		float3x4					Transform;
 	};
 
 	struct Camera

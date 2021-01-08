@@ -38,6 +38,8 @@ void Shaders::Register(const ShaderCompiler& ShaderCompiler)
 
 	// Load CS
 	{
+		CS::InstanceGeneration							= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/InstanceGeneration.hlsl",		CSEntryPoint, {});
+
 		CS::EquirectangularToCubemap					= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/EquirectangularToCubemap.hlsl",	CSEntryPoint, {});
 		CS::GenerateMips								= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/GenerateMips.hlsl",				CSEntryPoint, {});
 
@@ -85,6 +87,8 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 	InitRootSignature(PostProcess_BloomUpsampleBlurAccumulation);
 	InitRootSignature(PostProcess_BloomComposition);
 
+	InitRootSignature(InstanceGeneration);
+
 	InitRootSignature(Raytracing::Local);
 	InitRootSignature(Raytracing::EmptyLocal);
 	InitRootSignature(Raytracing::Global);
@@ -97,7 +101,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		Builder.DenyGSAccess();
 	});
 
-	// Generate mips RS
 	pRenderDevice->CreateRootSignature(GenerateMips, [](RootSignatureBuilder& Builder)
 	{
 		Builder.AddRootConstantsParameter(RootConstants<GenerateMipsData>(0, 0));
@@ -109,7 +112,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		Builder.DenyGSAccess();
 	});
 
-	// Equirectangular to cubemap RS
 	pRenderDevice->CreateRootSignature(EquirectangularToCubemap, [](RootSignatureBuilder& Builder)
 	{
 		Builder.AddRootConstantsParameter(RootConstants<EquirectangularToCubemapData>(0, 0));
@@ -120,6 +122,14 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		Builder.DenyTessellationShaderAccess();
 		Builder.DenyGSAccess();
 	});
+
+	pRenderDevice->CreateRootSignature(InstanceGeneration, [](RootSignatureBuilder& Builder)
+	{
+		Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, 1));
+
+		Builder.AddRootSRVParameter(RootSRV(0, 0));
+		Builder.AddRootUAVParameter(RootUAV(0, 0));
+	}, false);
 
 	pRenderDevice->CreateRootSignature(Skybox, [](RootSignatureBuilder& Builder)
 	{
@@ -198,6 +208,8 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 	InitComputePSO(PostProcess_BloomUpsampleBlurAccumulation);
 	InitComputePSO(PostProcess_BloomComposition);
 
+	InitComputePSO(InstanceGeneration);
+
 	pRenderDevice->CreateComputePipelineState(GenerateMips, [=](ComputePipelineStateBuilder& Builder)
 	{
 		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GenerateMips);
@@ -208,6 +220,12 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 	{
 		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap);
 		Builder.pCS = &Shaders::CS::EquirectangularToCubemap;
+	});
+
+	pRenderDevice->CreateComputePipelineState(InstanceGeneration, [=](ComputePipelineStateBuilder& Builder)
+	{
+		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::InstanceGeneration);
+		Builder.pCS = &Shaders::CS::InstanceGeneration;
 	});
 }
 

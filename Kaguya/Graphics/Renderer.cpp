@@ -150,6 +150,17 @@ void Renderer::Render()
 	RenderGui();
 	m_pGpuScene->RenderGui();
 
+	//auto AsyncComputeContext = m_pRenderDevice->GetDefaultAsyncComputeContext();
+	//AsyncComputeContext->Reset(m_pRenderDevice->ComputeFenceValue, m_pRenderDevice->ComputeFence->GetCompletedValue(), &m_pRenderDevice->ComputeQueue);
+
+	//m_pGpuScene->CreateTopLevelAS(AsyncComputeContext);
+
+	//CommandContext* pCommandContexts[] = { AsyncComputeContext };
+	//m_pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
+	//m_pRenderDevice->ComputeQueue.GetApiHandle()->Signal(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
+	//m_pRenderDevice->GraphicsQueue.GetApiHandle()->Wait(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
+	//m_pRenderDevice->ComputeFenceValue++;
+
 	HLSL::SystemConstants HLSLSystemConstants	= {};
 	HLSLSystemConstants.Camera					= m_pGpuScene->GetHLSLCamera();
 	HLSLSystemConstants.PreviousCamera			= m_pGpuScene->GetHLSLPreviousCamera();

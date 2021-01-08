@@ -3,7 +3,7 @@
 
 #include "Light.hlsli"
 #include "Material.hlsli"
-#include "Camera.hlsli"
 #include "Mesh.hlsli"
+#include "Camera.hlsli"
 
 #endif

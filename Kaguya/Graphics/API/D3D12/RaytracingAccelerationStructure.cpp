@@ -133,22 +133,22 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDe
 
 void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult, Buffer* pInstanceDescs)
 {
-	D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDesc = nullptr;
-	pInstanceDescs->GetApiHandle()->Map(0, nullptr, reinterpret_cast<void**>(&pInstanceDesc));
-	if (!pInstanceDesc)
-	{
-		throw std::logic_error("Cannot map the instance descriptor buffer - is it in the upload heap?");
-	}
+	//D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDesc = nullptr;
+	//pInstanceDescs->GetApiHandle()->Map(0, nullptr, reinterpret_cast<void**>(&pInstanceDesc));
+	//if (!pInstanceDesc)
+	//{
+	//	throw std::logic_error("Cannot map the instance descriptor buffer - is it in the upload heap?");
+	//}
 
 	UINT NumInstances = static_cast<UINT>(RaytracingInstanceDescs.size());
 
-	// Create the description for each instance
-	for (UINT i = 0; i < NumInstances; i++)
-	{
-		pInstanceDesc[i] = RaytracingInstanceDescs[i];
-	}
+	//// Create the description for each instance
+	//for (UINT i = 0; i < NumInstances; i++)
+	//{
+	//	pInstanceDesc[i] = RaytracingInstanceDescs[i];
+	//}
 
-	pInstanceDescs->GetApiHandle()->Unmap(0, nullptr);
+	//pInstanceDescs->GetApiHandle()->Unmap(0, nullptr);
 
 	if (ScratchSizeInBytes == 0 || ResultSizeInBytes == 0 || InstanceDescsSizeInBytes == 0)
 	{

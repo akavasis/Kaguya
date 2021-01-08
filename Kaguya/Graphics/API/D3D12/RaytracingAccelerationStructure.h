@@ -53,6 +53,11 @@ class TopLevelAccelerationStructure
 public:
 	TopLevelAccelerationStructure();
 
+	const D3D12_RAYTRACING_INSTANCE_DESC& operator[](size_t Index)
+	{
+		return RaytracingInstanceDescs[Index];
+	}
+
 	void AddInstance(const RaytracingInstanceDesc& Desc);
 	void ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes);
 	void Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult, Buffer* pInstanceDescs);

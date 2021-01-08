@@ -68,6 +68,8 @@ struct Shaders
 	// Compute Shaders
 	struct CS
 	{
+		inline static Shader InstanceGeneration;
+
 		inline static Shader EquirectangularToCubemap;
 		inline static Shader GenerateMips;
 
@@ -117,6 +119,8 @@ struct RootSignatures
 	inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
 	inline static RenderResourceHandle PostProcess_BloomComposition;
 
+	inline static RenderResourceHandle InstanceGeneration;
+
 	struct Raytracing
 	{
 		struct Local
@@ -161,6 +165,8 @@ struct ComputePSOs
 	inline static RenderResourceHandle PostProcess_BloomBlur;
 	inline static RenderResourceHandle PostProcess_BloomUpsampleBlurAccumulation;
 	inline static RenderResourceHandle PostProcess_BloomComposition;
+
+	inline static RenderResourceHandle InstanceGeneration;
 
 	static void Register(RenderDevice* pRenderDevice);
 };

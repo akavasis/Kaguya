@@ -5,6 +5,7 @@
 #define matrix DirectX::XMFLOAT4X4
 #define float4x4 matrix
 #define float3x3 DirectX::XMFLOAT3X3
+#define float3x4 DirectX::XMFLOAT3X4
 
 #define float4 DirectX::XMFLOAT4
 #define float3 DirectX::XMFLOAT3

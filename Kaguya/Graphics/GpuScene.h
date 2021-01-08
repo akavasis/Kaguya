@@ -57,12 +57,15 @@ private:
 
 	RenderResourceHandle	m_LightTable;
 	RenderResourceHandle	m_MaterialTable;
+	RenderResourceHandle	m_InstanceDescsBuffer;
 	RenderResourceHandle	m_MeshTable;
 	RenderResourceHandle	m_PickingResult;
 	RenderResourceHandle	m_PickingResultReadback;
 
 	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS					m_RaytracingTopLevelAccelerationStructure;
+
+	TopLevelAccelerationStructure m_TopLevelAccelerationStructure;
 
 	INT						m_SelectedInstanceID	= -1;
 };
