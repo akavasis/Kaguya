@@ -84,31 +84,23 @@ void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext,
 
 TopLevelAccelerationStructure::TopLevelAccelerationStructure()
 {
-	ScratchSizeInBytes = ResultSizeInBytes = InstanceDescsSizeInBytes = 0;
-	BuildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
+	NumInstances = 0;
+	ScratchSizeInBytes = ResultSizeInBytes = 0;
 }
 
-void TopLevelAccelerationStructure::AddInstance(const RaytracingInstanceDesc& Desc)
+void TopLevelAccelerationStructure::SetNumInstances(UINT NumInstances)
 {
-	D3D12_RAYTRACING_INSTANCE_DESC ApiDesc		= {};
-	XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(ApiDesc.Transform), Desc.Transform);
-	ApiDesc.InstanceID							= Desc.InstanceID;
-	ApiDesc.InstanceMask						= Desc.InstanceMask;
-	ApiDesc.InstanceContributionToHitGroupIndex = Desc.InstanceContributionToHitGroupIndex;
-	ApiDesc.Flags								= D3D12_RAYTRACING_INSTANCE_FLAG_NONE; // TODO: should be accessible from outside
-	ApiDesc.AccelerationStructure				= Desc.AccelerationStructure;
-
-	RaytracingInstanceDescs.push_back(ApiDesc);
+	this->NumInstances = NumInstances;
 }
 
-void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes, UINT64* pInstanceDescsSizeInBytes)
+void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes)
 {
 	// Describe the work being requested, in this case the construction of a
 	// (possibly dynamic) top-level hierarchy, with the given instance descriptors
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS Desc	= {};
 	Desc.Type													= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-	Desc.Flags													= BuildFlags;
-	Desc.NumDescs												= static_cast<UINT>(RaytracingInstanceDescs.size());
+	Desc.Flags													= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
+	Desc.NumDescs												= NumInstances;
 	Desc.DescsLayout											= D3D12_ELEMENTS_LAYOUT_ARRAY;
 
 	// This structure is used to hold the sizes of the required scratch memory and
@@ -124,35 +116,16 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDe
 	// Buffer sizes need to be 256-byte-aligned
 	ScratchSizeInBytes			= Math::AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
 	ResultSizeInBytes			= Math::AlignUp<UINT64>(PrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
-	InstanceDescsSizeInBytes	= Math::AlignUp<UINT64>(sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * static_cast<UINT64>(RaytracingInstanceDescs.size()), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
 	*pScratchSizeInBytes		= ScratchSizeInBytes;
 	*pResultSizeInBytes			= ResultSizeInBytes;
-	*pInstanceDescsSizeInBytes	= InstanceDescsSizeInBytes;
 }
 
 void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult, Buffer* pInstanceDescs)
 {
-	//D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDesc = nullptr;
-	//pInstanceDescs->GetApiHandle()->Map(0, nullptr, reinterpret_cast<void**>(&pInstanceDesc));
-	//if (!pInstanceDesc)
-	//{
-	//	throw std::logic_error("Cannot map the instance descriptor buffer - is it in the upload heap?");
-	//}
-
-	UINT NumInstances = static_cast<UINT>(RaytracingInstanceDescs.size());
-
-	//// Create the description for each instance
-	//for (UINT i = 0; i < NumInstances; i++)
-	//{
-	//	pInstanceDesc[i] = RaytracingInstanceDescs[i];
-	//}
-
-	//pInstanceDescs->GetApiHandle()->Unmap(0, nullptr);
-
-	if (ScratchSizeInBytes == 0 || ResultSizeInBytes == 0 || InstanceDescsSizeInBytes == 0)
+	if (ScratchSizeInBytes == 0 || ResultSizeInBytes == 0)
 	{
-		throw std::logic_error("Invalid Result, Scratch and InstanceDescs buffer sizes - ComputeMemoryRequirements needs to be called before Build");
+		throw std::logic_error("Invalid allocation - ComputeMemoryRequirements needs to be called before Generate");
 	}
 
 	if (!pResult || !pScratch || !pInstanceDescs)
@@ -165,7 +138,7 @@ void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Bu
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC Desc = {};
 	Desc.DestAccelerationStructureData						= pResult->GetGpuVirtualAddress();
 	Desc.Inputs.Type										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-	Desc.Inputs.Flags										= BuildFlags;
+	Desc.Inputs.Flags										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
 	Desc.Inputs.NumDescs									= NumInstances;
 	Desc.Inputs.DescsLayout									= D3D12_ELEMENTS_LAYOUT_ARRAY;
 	Desc.Inputs.InstanceDescs								= pInstanceDescs->GetGpuVirtualAddress();

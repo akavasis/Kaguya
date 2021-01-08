@@ -6,8 +6,8 @@
 
 struct MeshInstance
 {
-	MeshInstance(const std::string& Name, size_t MeshIndex, size_t MaterialIndex);
-	void RenderGui(int NumMeshes, int NumMaterials);
+	MeshInstance(const std::string& Name, uint32_t MeshIndex, uint32_t MaterialIndex);
+	void RenderGui(uint32_t NumMeshes, uint32_t NumMaterials);
 
 	void Translate(float DeltaX, float DeltaY, float DeltaZ);
 	void SetScale(float Scale);
@@ -17,9 +17,9 @@ struct MeshInstance
 	std::string Name;
 	bool		Dirty;
 
-	size_t					MeshIndex		= -1;
-	size_t					MaterialIndex	= -1;
+	uint32_t				MeshIndex		= -1;
+	uint32_t				MaterialIndex	= -1;
 	Transform				Transform, PreviousTransform;
 	DirectX::BoundingBox	BoundingBox;
-	size_t					InstanceID		= -1;
+	uint32_t				InstanceID		= -1;
 };

@@ -86,8 +86,8 @@ bool Renderer::Initialize()
 
 	m_pRenderGraph->InitializeScene(m_pGpuScene.get());
 
-	AsyncComputeThread = wil::unique_handle(::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr));
-	AsyncCopyThread = wil::unique_handle(::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr));
+	//AsyncComputeThread = wil::unique_handle(::CreateThread(NULL, 0, AsyncComputeThreadProc, this, 0, nullptr));
+	//AsyncCopyThread = wil::unique_handle(::CreateThread(NULL, 0, AsyncCopyThreadProc, this, 0, nullptr));
 
 	return true;
 }
@@ -105,7 +105,7 @@ void Renderer::HandleInput(float DeltaTime)
 
 	// If LMB is pressed and if we are not hovering over any imgui stuff then we update the
 	// instance id for editor
-	if (Mouse.IsLMBPressed() && !ImGui::GetIO().WantCaptureMouse)
+	if (Mouse.IsLMBPressed() && !Mouse.IsRMBPressed() && !ImGui::GetIO().WantCaptureMouse)
 	{
 		m_pGpuScene->SetSelectedInstanceID(InstanceID);
 	}
@@ -125,9 +125,9 @@ void Renderer::HandleRawInput(float DeltaTime)
 		m_Scene.Camera.Translate(0.0f, 0.0f, -DeltaTime);
 	if (Keyboard.IsKeyPressed('D'))
 		m_Scene.Camera.Translate(DeltaTime, 0.0f, 0.0f);
-	if (Keyboard.IsKeyPressed('Q'))
-		m_Scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
 	if (Keyboard.IsKeyPressed('E'))
+		m_Scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
+	if (Keyboard.IsKeyPressed('Q'))
 		m_Scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
 
 	while (const auto RawInput = Mouse.ReadRawInput())
@@ -150,16 +150,18 @@ void Renderer::Render()
 	RenderGui();
 	m_pGpuScene->RenderGui();
 
-	//auto AsyncComputeContext = m_pRenderDevice->GetDefaultAsyncComputeContext();
-	//AsyncComputeContext->Reset(m_pRenderDevice->ComputeFenceValue, m_pRenderDevice->ComputeFence->GetCompletedValue(), &m_pRenderDevice->ComputeQueue);
+	auto AsyncComputeContext = m_pRenderDevice->GetDefaultAsyncComputeContext();
+	AsyncComputeContext->Reset(m_pRenderDevice->ComputeFenceValue, m_pRenderDevice->ComputeFence->GetCompletedValue(), &m_pRenderDevice->ComputeQueue);
 
-	//m_pGpuScene->CreateTopLevelAS(AsyncComputeContext);
+	m_pGpuScene->CreateTopLevelAS(AsyncComputeContext);
 
-	//CommandContext* pCommandContexts[] = { AsyncComputeContext };
-	//m_pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
-	//m_pRenderDevice->ComputeQueue.GetApiHandle()->Signal(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
-	//m_pRenderDevice->GraphicsQueue.GetApiHandle()->Wait(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
-	//m_pRenderDevice->ComputeFenceValue++;
+	auto c = m_pRenderDevice->ComputeFence->GetCompletedValue();
+
+	CommandContext* pCommandContexts[] = { AsyncComputeContext };
+	m_pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
+	m_pRenderDevice->ComputeQueue.GetApiHandle()->Signal(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
+	m_pRenderDevice->GraphicsQueue.GetApiHandle()->Wait(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
+	m_pRenderDevice->ComputeFenceValue++;
 
 	HLSL::SystemConstants HLSLSystemConstants	= {};
 	HLSLSystemConstants.Camera					= m_pGpuScene->GetHLSLCamera();
@@ -324,65 +326,4 @@ void Renderer::RenderGui()
 		ImGui::Text("ImGui::WantCaptureMouse: %i", ImGui::GetIO().WantCaptureMouse);
 	}
 	ImGui::End();
-}
-
-//----------------------------------------------------------------------------------------------------
-DWORD WINAPI Renderer::AsyncComputeThreadProc(_In_ PVOID pParameter)
-{
-	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
-
-	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
-	auto pRenderDevice = pRenderer->m_pRenderDevice.get();
-
-	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->GetDefaultAsyncComputeContext());
-
-	while (true)
-	{
-		 // We wait here so other render pass threads can get the signal that the AS building is done, then we can call ResetEvent.
-		pRenderer->BuildAccelerationStructureEvent.wait();
-
-		if (pRenderer->ExitAsyncQueuesThread)
-		{
-			LOG_INFO("Exiting {}", __FUNCTION__);
-			break;
-		}
-
-		pRenderer->AccelerationStructureCompleteEvent.ResetEvent();
-		{
-			RenderContext->Reset(pRenderDevice->ComputeFenceValue, pRenderDevice->ComputeFence->GetCompletedValue(), &pRenderDevice->ComputeQueue);
-
-			pRenderer->m_pGpuScene->CreateTopLevelAS(RenderContext.GetCommandContext());
-
-			CommandContext* pCommandContexts[] = { RenderContext.GetCommandContext() };
-			pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
-			pRenderDevice->FlushComputeQueue();
-		}
-		pRenderer->AccelerationStructureCompleteEvent.SetEvent(); // Set the event after AS build is complete
-	}
-
-	return EXIT_SUCCESS;
-}
-
-//----------------------------------------------------------------------------------------------------
-DWORD WINAPI Renderer::AsyncCopyThreadProc(_In_ PVOID pParameter)
-{
-	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
-
-	auto pRenderer = reinterpret_cast<Renderer*>(pParameter);
-	auto pRenderDevice = pRenderer->m_pRenderDevice.get();
-
-	RenderContext RenderContext(0, nullptr, nullptr, pRenderDevice, pRenderDevice->GetDefaultCopyContext());
-
-	while (true)
-	{
-		if (pRenderer->ExitAsyncQueuesThread)
-		{
-			LOG_INFO("Exiting {}", __FUNCTION__);
-			break;
-		}
-
-		// TODO: Add async upload for resources
-	}
-
-	return EXIT_SUCCESS;
 }

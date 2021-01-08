@@ -11,8 +11,6 @@ using namespace DirectX;
 #define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
 #define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
-#define INSTANCE_GENERATION_ON_CPU 1
-
 namespace
 {
 	static constexpr size_t NumLights					= 1000;
@@ -105,28 +103,31 @@ HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 	};
 }
 
-HLSL::Mesh GetHLSLMeshDesc(const Mesh& Mesh, const Material& Material, const RaytracingInstanceDesc& RTDesc, MeshInstance& MeshInstance)
+HLSL::Mesh GetHLSLMeshDesc(const Mesh& Mesh, const Material& Material, const D3D12_RAYTRACING_INSTANCE_DESC& RayTracingInstanceDesc, MeshInstance& MeshInstance)
 {
-	matrix World;
-	XMStoreFloat4x4(&World, XMMatrixTranspose(MeshInstance.Transform.Matrix()));
-	matrix PreviousWorld;
-	XMStoreFloat4x4(&PreviousWorld, XMMatrixTranspose(MeshInstance.PreviousTransform.Matrix()));
+	XMMATRIX WorldMatrix = MeshInstance.Transform.Matrix();
+	XMMATRIX PreviousWorldMatrix = MeshInstance.PreviousTransform.Matrix();
+
+	matrix World, PreviousWorld;
 	float3x4 Transform;
-	XMStoreFloat3x4(&Transform, RTDesc.Transform);
+
+	XMStoreFloat4x4(&World, XMMatrixTranspose(WorldMatrix));
+	XMStoreFloat4x4(&PreviousWorld, XMMatrixTranspose(PreviousWorldMatrix));
+	XMStoreFloat3x4(&Transform, WorldMatrix);
 
 	return
 	{
-		.VertexOffset = Mesh.BaseVertexLocation,
-		.IndexOffset = Mesh.StartIndexLocation,
-		.MaterialIndex = (uint32_t)MeshInstance.MaterialIndex,
-		.InstanceID = RTDesc.InstanceID,
-		.InstanceMask = RTDesc.InstanceMask,
-		.InstanceContributionToHitGroupIndex = RTDesc.InstanceContributionToHitGroupIndex,
-		.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE,
-		.AccelerationStructure = RTDesc.AccelerationStructure,
-		.World = World,
-		.PreviousWorld = PreviousWorld,
-		.Transform = Transform
+		.VertexOffset							= Mesh.BaseVertexLocation,
+		.IndexOffset							= Mesh.StartIndexLocation,
+		.MaterialIndex							= MeshInstance.MaterialIndex,
+		.InstanceID								= RayTracingInstanceDesc.InstanceID,
+		.InstanceMask							= RayTracingInstanceDesc.InstanceMask,
+		.InstanceContributionToHitGroupIndex	= RayTracingInstanceDesc.InstanceContributionToHitGroupIndex,
+		.Flags									= RayTracingInstanceDesc.Flags,
+		.AccelerationStructure					= RayTracingInstanceDesc.AccelerationStructure,
+		.World									= World,
+		.PreviousWorld							= PreviousWorld,
+		.Transform								= Transform
 	};
 }
 
@@ -259,8 +260,7 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	m_RaytracingTopLevelAccelerationStructure =
 	{
 		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure (Scratch)"),
-		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure"),
-		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure (InstanceDescs)")
+		pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Top-Level Acceleration Structure")
 	};
 
 	pRenderDevice->CreateBuffer(m_LightTable, [&](BufferProxy& proxy)
@@ -459,12 +459,12 @@ bool GpuScene::Update(float AspectRatio)
 		RTBLAS& RTBLAS = m_RaytracingBottomLevelAccelerationStructures[mesh.BottomLevelAccelerationStructureIndex];
 		Buffer* pBLAS = pRenderDevice->GetBuffer(RTBLAS.Result);
 
-		RaytracingInstanceDesc Desc					= {};
-		Desc.AccelerationStructure					= pBLAS->GetGpuVirtualAddress();
-		Desc.Transform								= meshInstance.Transform.Matrix();
+		D3D12_RAYTRACING_INSTANCE_DESC Desc			= {};
 		Desc.InstanceID								= meshInstance.InstanceID;
 		Desc.InstanceMask							= RAYTRACING_INSTANCEMASK_ALL;
 		Desc.InstanceContributionToHitGroupIndex	= i;
+		Desc.Flags									= D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
+		Desc.AccelerationStructure					= pBLAS->GetGpuVirtualAddress();
 
 		if (meshInstance.Dirty)
 		{
@@ -489,8 +489,10 @@ void GpuScene::CreateTopLevelAS(CommandContext* pCommandContext)
 {
 	PIXScopedEvent(pCommandContext->GetApiHandle(), 0, L"Top Level Acceleration Structure Generation");
 
-#if INSTANCE_GENERATION_ON_CPU
-	// TODO: Generate InstanceDescs on CS
+	UINT NumInstances = pScene->MeshInstances.size();
+
+	m_TopLevelAccelerationStructure.SetNumInstances(NumInstances);
+
 	auto pPipelineState = pRenderDevice->GetPipelineState(ComputePSOs::InstanceGeneration);
 	auto pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::InstanceGeneration);
 	pCommandContext->SetPipelineState(pPipelineState);
@@ -498,44 +500,19 @@ void GpuScene::CreateTopLevelAS(CommandContext* pCommandContext)
 
 	auto pMeshBuffer = pRenderDevice->GetBuffer(m_MeshTable);
 	auto pInstanceDescsBuffer = pRenderDevice->GetBuffer(m_InstanceDescsBuffer);
-	pCommandContext->SetComputeRoot32BitConstant(0, pScene->MeshInstances.size(), 0);
+	pCommandContext->SetComputeRoot32BitConstant(0, NumInstances, 0);
 	pCommandContext->SetComputeRootShaderResourceView(1, pMeshBuffer->GetGpuVirtualAddress());
 	pCommandContext->SetComputeRootUnorderedAccessView(2, pInstanceDescsBuffer->GetGpuVirtualAddress());
 
-	pCommandContext->Dispatch1D(pScene->MeshInstances.size(), 64);
+	pCommandContext->Dispatch1D(NumInstances, 64);
 	pCommandContext->UAVBarrier(pInstanceDescsBuffer);
 	pCommandContext->FlushResourceBarriers();
-#endif
 
-	TopLevelAccelerationStructure TopLevelAccelerationStructure;
-
-	size_t HitGroupIndex = 0;
-	for (const auto& meshInstance : pScene->MeshInstances)
-	{
-		const auto& mesh = pScene->Meshes[meshInstance.MeshIndex];
-
-		RTBLAS& RTBLAS = m_RaytracingBottomLevelAccelerationStructures[mesh.BottomLevelAccelerationStructureIndex];
-		Buffer* pBLAS = pRenderDevice->GetBuffer(RTBLAS.Result);
-
-		RaytracingInstanceDesc Desc					= {};
-		Desc.AccelerationStructure					= pBLAS->GetGpuVirtualAddress();
-		Desc.Transform								= meshInstance.Transform.Matrix();
-		Desc.InstanceID								= meshInstance.InstanceID;
-		Desc.InstanceMask							= RAYTRACING_INSTANCEMASK_ALL;
-
-		Desc.InstanceContributionToHitGroupIndex	= HitGroupIndex;
-
-		TopLevelAccelerationStructure.AddInstance(Desc);
-
-		HitGroupIndex++;
-	}
-
-	UINT64 ScratchSizeInBytes, ResultSizeInBytes, InstanceDescsSizeInBytes;
-	TopLevelAccelerationStructure.ComputeMemoryRequirements(pRenderDevice->Device, &ScratchSizeInBytes, &ResultSizeInBytes, &InstanceDescsSizeInBytes);
+	UINT64 ScratchSizeInBytes, ResultSizeInBytes;
+	m_TopLevelAccelerationStructure.ComputeMemoryRequirements(pRenderDevice->Device, &ScratchSizeInBytes, &ResultSizeInBytes);
 
 	Buffer* pScratch = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Scratch);
 	Buffer* pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
-	Buffer* pInstanceDescs = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
 
 	if (!pScratch || pScratch->GetSizeInBytes() < ScratchSizeInBytes)
 	{
@@ -565,22 +542,7 @@ void GpuScene::CreateTopLevelAS(CommandContext* pCommandContext)
 		pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
 	}
 
-	//if (!pInstanceDescs || pInstanceDescs->GetSizeInBytes() < InstanceDescsSizeInBytes)
-	//{
-	//	pRenderDevice->Destroy(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
-
-	//	// TLAS Instance Desc
-	//	pRenderDevice->CreateBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs, [=](BufferProxy& proxy)
-	//	{
-	//		proxy.SetSizeInBytes(InstanceDescsSizeInBytes);
-	//		proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-	//	});
-	//	pInstanceDescs = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.InstanceDescs);
-	//}
-
-	TopLevelAccelerationStructure.Generate(pCommandContext, pScratch, pResult, pInstanceDescsBuffer);
-
-	m_TopLevelAccelerationStructure = TopLevelAccelerationStructure;
+	m_TopLevelAccelerationStructure.Generate(pCommandContext, pScratch, pResult, pInstanceDescsBuffer);
 }
 
 HLSL::Camera GpuScene::GetHLSLCamera() const
@@ -618,7 +580,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		Desc.NumIndices				= Mesh.IndexCount;
 		Desc.IndexOffset			= Mesh.StartIndexLocation;
 
-		rtblas.BLAS.AddGeometry(Desc);
+		rtblas.BottomLevelAccelerationStructure.AddGeometry(Desc);
 
 		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
 	}
@@ -628,7 +590,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
 		UINT64 scratchSizeInBytes, resultSizeInBytes;
-		rtblas.BLAS.ComputeMemoryRequirements(pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
+		rtblas.BottomLevelAccelerationStructure.ComputeMemoryRequirements(pRenderDevice->Device, &scratchSizeInBytes, &resultSizeInBytes);
 
 		// BLAS Scratch
 		pRenderDevice->CreateBuffer(rtblas.Scratch, [=](BufferProxy& proxy)
@@ -649,6 +611,6 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		Buffer* pResult = pRenderDevice->GetBuffer(rtblas.Result);
 		Buffer* pScratch = pRenderDevice->GetBuffer(rtblas.Scratch);
 
-		rtblas.BLAS.Generate(RenderContext.GetCommandContext(), pScratch, pResult);
+		rtblas.BottomLevelAccelerationStructure.Generate(RenderContext.GetCommandContext(), pScratch, pResult);
 	}
 }

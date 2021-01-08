@@ -16,7 +16,7 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 		ID3D12Device6					Windows 10 May 2019				(18362)
 		ID3D12Device7, ID3D12Device8	Windows 10 May 2020 Update		(19041)
 	*/
-#if defined(_DEBUG)
+#ifdef _DEBUG
 	// NOTE: Enabling the debug layer after creating the ID3D12Device will cause the DX runtime to remove the device.
 	ComPtr<ID3D12Debug1> Debug1;
 	ThrowIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(Debug1.ReleaseAndGetAddressOf())));
@@ -36,7 +36,7 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 	CheckRaytracingSupport();
 	CheckMeshShaderSupport();
 
-#if defined(_DEBUG)
+#ifdef _DEBUG
 	ComPtr<ID3D12InfoQueue> InfoQueue;
 	if (SUCCEEDED(m_Device5.As(&InfoQueue)))
 	{

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "MeshInstance.h"
 
-MeshInstance::MeshInstance(const std::string& Name, size_t MeshIndex, size_t MaterialIndex)
+MeshInstance::MeshInstance(const std::string& Name, uint32_t MeshIndex, uint32_t MaterialIndex)
 	: Name(Name),
 	Dirty(true),
 	MeshIndex(MeshIndex),
@@ -10,12 +10,13 @@ MeshInstance::MeshInstance(const std::string& Name, size_t MeshIndex, size_t Mat
 
 }
 
-void MeshInstance::RenderGui(int NumMeshes, int NumMaterials)
+void MeshInstance::RenderGui(uint32_t NumMeshes, uint32_t NumMaterials)
 {
 	if (ImGui::TreeNode(Name.data()))
 	{
-		NumMeshes = std::max(0, NumMeshes - 1);
-		NumMaterials = std::max(0, NumMaterials - 1);
+		// Clamp this to Num[] - 1 because SliderInt is from [v_min, v_max]
+		NumMeshes = std::max<uint32_t>(0, NumMeshes - 1);
+		NumMaterials = std::max<uint32_t>(0, NumMaterials - 1);
 
 		Dirty |= ImGui::SliderInt("Mesh Index", (int*)&MeshIndex, 0, NumMeshes);
 		Dirty |= ImGui::SliderInt("Material Index", (int*)&MaterialIndex, 0, NumMaterials);

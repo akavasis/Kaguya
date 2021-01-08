@@ -28,9 +28,6 @@ private:
 	void SetScene(Scene Scene);
 	void RenderGui();
 
-	static DWORD WINAPI AsyncComputeThreadProc(_In_ PVOID pParameter);
-	static DWORD WINAPI AsyncCopyThreadProc(_In_ PVOID pParameter);
-	
 private:
 	std::unique_ptr<RenderDevice>			m_pRenderDevice;
 	std::unique_ptr<RenderGraph>			m_pRenderGraph;

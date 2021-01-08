@@ -43,14 +43,13 @@ private:
 	{
 		RenderResourceHandle Scratch;
 		RenderResourceHandle Result;
-		RenderResourceHandle InstanceDescs;
 	};
 
 	struct RTBLAS
 	{
 		RenderResourceHandle Scratch;
 		RenderResourceHandle Result;
-		BottomLevelAccelerationStructure BLAS;
+		BottomLevelAccelerationStructure BottomLevelAccelerationStructure;
 	};
 
 	RenderDevice*			pRenderDevice;
@@ -59,8 +58,6 @@ private:
 	RenderResourceHandle	m_MaterialTable;
 	RenderResourceHandle	m_InstanceDescsBuffer;
 	RenderResourceHandle	m_MeshTable;
-	RenderResourceHandle	m_PickingResult;
-	RenderResourceHandle	m_PickingResultReadback;
 
 	std::vector<RTBLAS>		m_RaytracingBottomLevelAccelerationStructures;
 	RTTLAS					m_RaytracingTopLevelAccelerationStructure;

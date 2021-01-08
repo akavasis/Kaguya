@@ -30,11 +30,11 @@ RenderDevice::RenderDevice(const Window& Window)
 	m_RenderTargetDescriptorHeap			= { Device, NumRenderTargetDescriptors };
 	m_DepthStencilDescriptorHeap			= { Device, NumDepthStencilDescriptors };
 
-	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 0;
+	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 1;
 
-	ThrowIfFailed(Device.GetApiHandle()->CreateFence(GraphicsFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(GraphicsFence.ReleaseAndGetAddressOf())));
-	ThrowIfFailed(Device.GetApiHandle()->CreateFence(ComputeFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(ComputeFence.ReleaseAndGetAddressOf())));
-	ThrowIfFailed(Device.GetApiHandle()->CreateFence(CopyFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(CopyFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device.GetApiHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(GraphicsFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device.GetApiHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(ComputeFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device.GetApiHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(CopyFence.ReleaseAndGetAddressOf())));
 
 	GraphicsFenceCompletionEvent.create();
 	ComputeFenceCompletionEvent.create();

@@ -214,11 +214,6 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 				}
 			}
 
-			if (pRenderPass->UseRayTracing)
-			{
-				::WaitForSingleObject(ASBuildEvent, INFINITE);
-			}
-
 			pRenderPass->OnExecute(RenderContext, pRenderGraph);
 
 			if (!pRenderPass->ExplicitResourceTransition)
