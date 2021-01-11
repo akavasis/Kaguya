@@ -79,7 +79,7 @@ bool Renderer::Initialize()
 
 	m_GraphicsContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice.get(), m_pRenderDevice->GetDefaultGraphicsContext());
 
-	SetScene(GenerateScene(SampleScene::CornellBox));
+	SetScene(GenerateScene(SampleScene::Hyperion));
 
 	m_pRenderGraph->InitializeScene(m_pGpuScene.get());
 

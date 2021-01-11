@@ -13,14 +13,10 @@ using namespace DirectX;
 
 namespace
 {
-	static constexpr size_t NumLights					= 1000;
-	static constexpr size_t NumMaterials				= 1000;
-	static constexpr size_t NumMeshInstances			= 1000;
-
-	static constexpr size_t LightBufferByteSize			= NumLights * sizeof(HLSL::PolygonalLight);
-	static constexpr size_t MaterialBufferByteSize		= NumMaterials * sizeof(HLSL::Material);
-	static constexpr size_t InstanceDescsSizeInBytes	= NumMeshInstances * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
-	static constexpr size_t MeshBufferByteSize			= 30_MiB;
+	static constexpr size_t LightBufferByteSize			= Scene::MAX_LIGHT_SUPPORTED * sizeof(HLSL::PolygonalLight);
+	static constexpr size_t MaterialBufferByteSize		= Scene::MAX_MATERIAL_SUPPORTED * sizeof(HLSL::Material);
+	static constexpr size_t MeshBufferByteSize			= Scene::MAX_MESH_INSTANCE_SUPPORTED * sizeof(HLSL::Mesh);
+	static constexpr size_t InstanceDescsSizeInBytes	= Scene::MAX_MESH_INSTANCE_SUPPORTED * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
 }
 
 HLSL::PolygonalLight GetHLSLLightDesc(const PolygonalLight& Light)
@@ -182,10 +178,10 @@ bool EditTransform(
 {
 	bool IsEdited = false;
 
-	static bool					UseSnap					= true;
+	static bool					UseSnap					= false;
 	static float				Snap[3]					= { 1, 1, 1 };
 	static ImGuizmo::OPERATION	CurrentGizmoOperation	= ImGuizmo::TRANSLATE;
-	static ImGuizmo::MODE		CurrentGizmoMode		= ImGuizmo::LOCAL;
+	static ImGuizmo::MODE		CurrentGizmoMode		= ImGuizmo::WORLD;
 
 	if (EditTransformDecomposition)
 	{

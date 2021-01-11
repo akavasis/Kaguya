@@ -1,6 +1,7 @@
 template<typename T, size_t Size>
 inline Pool<T, Size>::Pool()
 {
+	Elements.resize(Size);
 	Reset();
 }
 

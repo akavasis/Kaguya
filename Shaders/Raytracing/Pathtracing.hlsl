@@ -77,12 +77,7 @@ struct Lambertian
 };
 
 struct Glossy
-{
-	float3 Albedo;
-	float SpecularChance;
-	float Roughness;
-	float3 Specular;
-	
+{	
 	bool Scatter(in SurfaceInteraction si, inout RayPayload rayPayload, out ScatterRecord scatterRecord)
 	{
 		float doSpecular = RandomFloat01(rayPayload.Seed) < SpecularChance ? 1.0f : 0.0f;
@@ -111,6 +106,11 @@ struct Glossy
 	{
 		return 0.0.xxx;
 	}
+	
+	float3 Albedo;
+	float SpecularChance;
+	float Roughness;
+	float3 Specular;
 };
 
 struct Metal

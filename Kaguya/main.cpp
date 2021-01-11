@@ -29,5 +29,6 @@ int main(int argc, char* argv[])
 	};
 
 	Application::Initialize(Config);
-	return Application::Run(new Renderer());
+	Renderer Renderer;
+	return Application::Run(&Renderer);
 }

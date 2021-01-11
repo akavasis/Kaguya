@@ -18,6 +18,7 @@ RenderDevice::RenderDevice(const Window& Window)
 	InitializeDXGIObjects();
 
 	Device.Create(m_DXGIAdapter.Get());
+
 	GraphicsQueue.Create(Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	ComputeQueue.Create(Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
 	CopyQueue.Create(Device, D3D12_COMMAND_LIST_TYPE_COPY);
@@ -784,7 +785,6 @@ void RenderDevice::InitializeDXGIObjects()
 	m_TearingSupport = AllowTearing == TRUE;
 
 	// Enumerate hardware for an adapter that supports DX12
-	// Enumerating iGPU, dGPU, xGPU
 	ComPtr<IDXGIAdapter4> pAdapter4;
 	UINT AdapterID = 0;
 	while (m_DXGIFactory->EnumAdapterByGpuPreference(AdapterID, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(pAdapter4.ReleaseAndGetAddressOf())) != DXGI_ERROR_NOT_FOUND)

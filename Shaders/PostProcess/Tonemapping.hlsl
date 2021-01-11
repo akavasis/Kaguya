@@ -1,18 +1,7 @@
 #include <ShaderLayout.hlsli>
 
+#include "ACES.hlsli"
 #include "GranTurismoOperator.hlsli"
-
-// ACES tone mapping curve fit to go from HDR to LDR
-//https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-float3 ACESFilm(float3 x)
-{
-	float a = 2.51f;
-	float b = 0.03f;
-	float c = 2.43f;
-	float d = 0.59f;
-	float e = 0.14f;
-	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
-}
 
 float3 LinearTosRGB(float3 u)
 {
@@ -54,8 +43,10 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	GTOperator.LinearSectionLength	= LinearSectionLength;
 	GTOperator.BlackTightness_C		= BlackTightness_C;
 	GTOperator.BlackTightness_B		= BlackTightness_B;
-		
-	color = ApplyGranTurismoOperator(color, GTOperator);
+	
+	color = ACESFitted(color);
+	//color = ACESFilm(color);
+	//color = ApplyGranTurismoOperator(color, GTOperator);
 	color = LinearTosRGB(color);
 	return float4(color, 1.0f);
 }

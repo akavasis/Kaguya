@@ -32,23 +32,28 @@ file(GLOB_RECURSE External_SourceList
 ../External/*.cpp
 )
 
+set(D3D12MemoryAllocator_PATH ${CMAKE_SOURCE_DIR}/Submodules/D3D12MemoryAllocator/src)
+set(D3D12MemoryAllocator ${D3D12MemoryAllocator_PATH}/D3D12MemAlloc.h
+			${D3D12MemoryAllocator_PATH}/D3D12MemAlloc.cpp
+)
+
 set(IMGUI_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/imgui)
 set(IMGUI 		${IMGUI_FILE_PATH}/imconfig.h
-				${IMGUI_FILE_PATH}/imgui.cpp
-				${IMGUI_FILE_PATH}/imgui.h
-				${IMGUI_FILE_PATH}/imgui_demo.cpp
-				${IMGUI_FILE_PATH}/imgui_draw.cpp
-				${IMGUI_FILE_PATH}/imgui_internal.h
-				${IMGUI_FILE_PATH}/imgui_tables.cpp
-				${IMGUI_FILE_PATH}/imgui_widgets.cpp
-				${IMGUI_FILE_PATH}/imstb_rectpack.h
-				${IMGUI_FILE_PATH}/imstb_textedit.h
-				${IMGUI_FILE_PATH}/imstb_truetype.h
-				# Backend
-				${IMGUI_FILE_PATH}/backends/imgui_impl_dx12.cpp
-				${IMGUI_FILE_PATH}/backends/imgui_impl_dx12.h
-				${IMGUI_FILE_PATH}/backends/imgui_impl_win32.cpp
-				${IMGUI_FILE_PATH}/backends/imgui_impl_win32.h
+			${IMGUI_FILE_PATH}/imgui.cpp
+			${IMGUI_FILE_PATH}/imgui.h
+			${IMGUI_FILE_PATH}/imgui_demo.cpp
+			${IMGUI_FILE_PATH}/imgui_draw.cpp
+			${IMGUI_FILE_PATH}/imgui_internal.h
+			${IMGUI_FILE_PATH}/imgui_tables.cpp
+			${IMGUI_FILE_PATH}/imgui_widgets.cpp
+			${IMGUI_FILE_PATH}/imstb_rectpack.h
+			${IMGUI_FILE_PATH}/imstb_textedit.h
+			${IMGUI_FILE_PATH}/imstb_truetype.h
+			# Backend
+			${IMGUI_FILE_PATH}/backends/imgui_impl_dx12.cpp
+			${IMGUI_FILE_PATH}/backends/imgui_impl_dx12.h
+			${IMGUI_FILE_PATH}/backends/imgui_impl_win32.cpp
+			${IMGUI_FILE_PATH}/backends/imgui_impl_win32.h
 )
 
 set(IMGUIZMO_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo)
@@ -74,8 +79,9 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${HeaderList})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SourceList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_HeaderList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_SourceList})
-source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${IMGUIZMO})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${D3D12MemoryAllocator})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${IMGUI})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${IMGUIZMO})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SPDLOG})
 
 foreach(Source IN LISTS SourceList)
@@ -92,12 +98,14 @@ ${HeaderList}
 ${SourceList}
 ${External_HeaderList}
 ${External_SourceList}
+${D3D12MemoryAllocator}
 ${IMGUI}
 ${IMGUIZMO}
 ${SPDLOG}
 )
 
 # Submodules
+include_directories("${CMAKE_SOURCE_DIR}/Submodules/D3D12MemoryAllocator/src")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/glm")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/imgui")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo")

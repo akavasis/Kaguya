@@ -46,19 +46,6 @@ void AmbientOcclusion::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.AddHitGroup(HitGroupExport, nullptr, ClosestHit, nullptr);
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		RootSignature* pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local);
-
-		// The following section associates the root signature to each shader. Note
-		// that we can explicitly show that some shaders share the same root signature
-		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
-		// to as hit groups, meaning that the underlying intersection, any-hit and
-		// closest-hit shaders share the same root signature.
-		Builder.AddRootSignatureAssociation(pEmptyLocalRootSignature,
-			{
-				RayGeneration,
-				Miss,
-				HitGroupExport
-			});
 
 		Builder.SetGlobalRootSignature(pGlobalRootSignature);
 

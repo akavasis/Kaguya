@@ -15,6 +15,12 @@ namespace
 
 	// HitGroup Exports
 	const LPCWSTR HitGroupExport	= L"Default";
+
+	static constexpr UINT MinimumSamples = 1;
+	static constexpr UINT MaximumSamples = 16;
+
+	static constexpr UINT MinimumDepth = 1;
+	static constexpr UINT MaximumDepth = 16;
 }
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
@@ -44,19 +50,7 @@ void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.AddHitGroup(HitGroupExport, nullptr, ClosestHit, nullptr);
 
 		auto pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		auto pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
-		auto pLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local);
-
-		// The following section associates the root signature to each shader. Note
-		// that we can explicitly show that some shaders share the same root signature
-		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
-		// to as hit groups, meaning that the underlying intersection, any-hit and
-		// closest-hit shaders share the same root signature.
-		Builder.AddRootSignatureAssociation(pEmptyLocalRootSignature,
-			{
-				RayGeneration,
-				Miss
-			});
+		auto pLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local::Default);
 
 		Builder.AddRootSignatureAssociation(pLocalRootSignature,
 			{
@@ -173,7 +167,7 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 
 void Pathtracing::RenderGui()
 {
-	if (ImGui::TreeNode("Path tracing"))
+	if (ImGui::TreeNode(Name.data()))
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{
@@ -181,14 +175,15 @@ void Pathtracing::RenderGui()
 			Refresh = true;
 		}
 
-		int Dirty = 0;
-		Dirty |= (int)ImGui::SliderInt("Num Samples Per Pixel", &settings.NumSamplesPerPixel, 1, 10);
-		Dirty |= (int)ImGui::SliderInt("Max Depth", &settings.MaxDepth, 1, 7);
+		bool Dirty = false;
+		Dirty |= ImGui::SliderScalar("Num Samples Per Pixel", ImGuiDataType_U32, &settings.NumSamplesPerPixel, &MinimumSamples, &MaximumSamples);
+		Dirty |= ImGui::SliderScalar("Max Depth", ImGuiDataType_U32, &settings.MaxDepth, &MinimumDepth, &MaximumDepth);
 
 		if (Dirty)
 		{
 			Refresh = true;
 		}
+
 		ImGui::TreePop();
 	}
 }

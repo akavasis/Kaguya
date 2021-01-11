@@ -1,5 +1,5 @@
 #pragma once
-#include <array>
+#include <vector>
 #include <cassert>
 
 template<typename T, size_t Size>
@@ -34,7 +34,7 @@ public:
 
 	void Reset();
 private:
-	std::array<Element, Size> Elements;
+	std::vector<Element> Elements;
 	size_t FreeStart;
 	size_t NumActiveElements;
 };

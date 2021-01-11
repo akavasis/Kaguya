@@ -29,6 +29,9 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - Windows 10 Version: 20H2
 - CMake Version 3.15
 
+Make sure CMake is in your environmental variable path, if not using the CMake Gui should also work. Once you have cloned the repo, be sure
+to initialize the submodules.
+
 # Bibliography
 - 3D Game Programming with DirectX 12 Book by Frank D Luna
 - Direct3D 12 programming guide from MSDN [https://docs.microsoft.com/en-us/windows/win32/direct3d12/directx-12-programming-guide]

@@ -48,7 +48,12 @@ void Accumulation::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDev
 
 void Accumulation::RenderGui()
 {
+	if (ImGui::TreeNode(Name.data()))
+	{
+		ImGui::Text("Samples Accumulated: %u", Settings.AccumulationCount);
 
+		ImGui::TreePop();
+	}
 }
 
 void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)

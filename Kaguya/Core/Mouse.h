@@ -1,13 +1,11 @@
 #pragma once
 
-#include <atomic>
 #include <optional>
 #include "ThreadSafeQueue.h"
 
 class Mouse
 {
 public:
-	friend class Window;
 	friend class InputHandler;
 
 	enum

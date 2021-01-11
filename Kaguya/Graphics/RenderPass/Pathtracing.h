@@ -12,8 +12,8 @@ public:
 
 	struct Settings
 	{
-		int NumSamplesPerPixel	= 1;
-		int MaxDepth			= 4;
+		UINT NumSamplesPerPixel	= 4;
+		UINT MaxDepth			= 6;
 	};
 
 	Pathtracing(UINT Width, UINT Height);

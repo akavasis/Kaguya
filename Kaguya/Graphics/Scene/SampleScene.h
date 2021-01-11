@@ -4,6 +4,7 @@
 enum class SampleScene
 {
 	CornellBox,
+	Hyperion,
 
 	PlaneWithLights,
 };

@@ -125,12 +125,11 @@ struct RootSignatures
 	{
 		struct Local
 		{
+			// Includes a VB and IB root parameter
+			inline static RenderResourceHandle Default;
 			inline static RenderResourceHandle Picking;
 		};
 
-		// TODO: Move local rs to the local struct below
-		inline static RenderResourceHandle Local;
-		inline static RenderResourceHandle EmptyLocal;
 		inline static RenderResourceHandle Global;
 	};
 
