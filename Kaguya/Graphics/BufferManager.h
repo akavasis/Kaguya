@@ -12,7 +12,7 @@ class BufferManager
 public:
 	BufferManager(RenderDevice* pRenderDevice);
 
-	void Stage(Scene& Scene, RenderContext& RenderContext);
+	void Stage(Scene& Scene, CommandContext* pCommandContext);
 	void DisposeResources();
 private:
 	struct StagingBuffer
@@ -25,7 +25,7 @@ private:
 	void LoadMesh(Mesh& Mesh);
 	void StageVertexResource(Mesh& Mesh);
 	void StageIndexResource(Mesh& Mesh);
-	void StageBuffer(RenderResourceHandle Handle, StagingBuffer& StagingBuffer, RenderContext& RenderContext);
+	void StageBuffer(RenderResourceHandle Handle, StagingBuffer& StagingBuffer, CommandContext* pCommandContext);
 
 	RenderDevice*											pRenderDevice;
 

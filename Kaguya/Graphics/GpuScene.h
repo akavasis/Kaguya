@@ -12,8 +12,8 @@ class GpuScene
 public:
 	GpuScene(RenderDevice* pRenderDevice);
 
-	void UploadTextures(RenderContext& RenderContext);
-	void UploadModels(RenderContext& RenderContext);
+	void UploadTextures(CommandContext* pCommandContext);
+	void UploadModels(CommandContext* pCommandContext);
 	void DisposeResources();
 
 	void SetSelectedInstanceID(INT SelectedInstanceID);
@@ -31,7 +31,7 @@ public:
 	HLSL::Camera GetHLSLPreviousCamera() const;
 
 private:
-	void CreateBottomLevelAS(RenderContext& RenderContext);
+	void CreateBottomLevelAS(CommandContext* pCommandContext);
 
 public:
 	Scene* pScene;

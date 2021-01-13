@@ -7,7 +7,7 @@ BufferManager::BufferManager(RenderDevice* pRenderDevice)
 
 }
 
-void BufferManager::Stage(Scene& Scene, RenderContext& RenderContext)
+void BufferManager::Stage(Scene& Scene, CommandContext* pCommandContext)
 {
 	for (auto& Mesh : Scene.Meshes)
 	{
@@ -16,9 +16,9 @@ void BufferManager::Stage(Scene& Scene, RenderContext& RenderContext)
 
 	for (auto& [handle, stagingBuffer] : m_UnstagedBuffers)
 	{
-		StageBuffer(handle, stagingBuffer, RenderContext);
+		StageBuffer(handle, stagingBuffer, pCommandContext);
 	}
-	RenderContext->FlushResourceBarriers();
+	pCommandContext->FlushResourceBarriers();
 }
 
 void BufferManager::DisposeResources()
@@ -132,12 +132,11 @@ void BufferManager::StageIndexResource(Mesh& Mesh)
 	m_UnstagedBuffers[Mesh.IndexResource] = CreateStagingBuffer(pBuffer->GetApiHandle()->GetDesc(), Mesh.Indices.data());
 }
 
-void BufferManager::StageBuffer(RenderResourceHandle Handle, StagingBuffer& StagingBuffer, RenderContext& RenderContext)
+void BufferManager::StageBuffer(RenderResourceHandle Handle, StagingBuffer& StagingBuffer, CommandContext* pCommandContext)
 {
 	Buffer* pBuffer = pRenderDevice->GetBuffer(Handle);
 	Buffer* pUploadBuffer = &StagingBuffer.Buffer;
 
-	RenderContext->CopyBufferRegion(pBuffer, 0, pUploadBuffer, 0, pUploadBuffer->GetMemoryRequested());
-
-	RenderContext->TransitionBarrier(pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+	pCommandContext->CopyBufferRegion(pBuffer, 0, pUploadBuffer, 0, pUploadBuffer->GetMemoryRequested());
+	pCommandContext->TransitionBarrier(pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 }

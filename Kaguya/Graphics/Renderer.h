@@ -23,11 +23,9 @@ protected:
 	void Render() override;
 	bool Resize(uint32_t Width, uint32_t Height) override;
 	void Destroy() override;
-
 private:
 	void SetScene(Scene Scene);
 	void RenderGui();
-
 private:
 	std::unique_ptr<RenderDevice>			m_pRenderDevice;
 	std::unique_ptr<RenderGraph>			m_pRenderGraph;

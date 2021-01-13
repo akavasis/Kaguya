@@ -159,7 +159,6 @@ void Renderer::Render()
 	HLSLSystemConstants.OutputSize				= { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
 	HLSLSystemConstants.TotalFrameCount			= static_cast<unsigned int>(Statistics::TotalFrameCount);
 	HLSLSystemConstants.NumPolygonalLights		= m_Scene.Lights.size();
-	HLSLSystemConstants.Skybox					= m_pRenderDevice->GetShaderResourceView(m_pGpuScene->TextureManager.GetSkybox()).HeapIndex;
 
 	bool Refresh = m_pGpuScene->Update(AspectRatio);
 
@@ -248,7 +247,7 @@ void Renderer::SetScene(Scene Scene)
 	m_pGpuScene->UploadTextures(GraphicsContext);
 	m_pGpuScene->UploadModels(GraphicsContext);
 
-	CommandContext* pCommandContexts[] = { m_GraphicsContext.GetCommandContext() };
+	CommandContext* pCommandContexts[] = { GraphicsContext };
 	m_pRenderDevice->ExecuteGraphicsContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
 	m_pRenderDevice->FlushGraphicsQueue();
 	m_pGpuScene->DisposeResources();

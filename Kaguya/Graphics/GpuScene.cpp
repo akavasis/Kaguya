@@ -289,16 +289,16 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	});
 }
 
-void GpuScene::UploadTextures(RenderContext& RenderContext)
+void GpuScene::UploadTextures(CommandContext* pCommandContext)
 {
-	TextureManager.Stage(*pScene, RenderContext);
+	TextureManager.Stage(*pScene, pCommandContext);
 }
 
-void GpuScene::UploadModels(RenderContext& RenderContext)
+void GpuScene::UploadModels(CommandContext* pCommandContext)
 {
-	BufferManager.Stage(*pScene, RenderContext);
+	BufferManager.Stage(*pScene, pCommandContext);
 
-	CreateBottomLevelAS(RenderContext);
+	CreateBottomLevelAS(pCommandContext);
 }
 
 void GpuScene::DisposeResources()
@@ -551,7 +551,7 @@ HLSL::Camera GpuScene::GetHLSLPreviousCamera() const
 	return GetHLSLCameraDesc(pScene->PreviousCamera);
 }
 
-void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
+void GpuScene::CreateBottomLevelAS(CommandContext* pCommandContext)
 {
 	for (auto& Mesh : pScene->Meshes)
 	{
@@ -582,7 +582,7 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
 	}
 
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bottom Level Acceleration Structure Generation");
+	PIXScopedEvent(pCommandContext->GetApiHandle(), 0, L"Bottom Level Acceleration Structure Generation");
 
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
@@ -608,6 +608,6 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		Buffer* pResult = pRenderDevice->GetBuffer(rtblas.Result);
 		Buffer* pScratch = pRenderDevice->GetBuffer(rtblas.Scratch);
 
-		rtblas.BottomLevelAccelerationStructure.Generate(RenderContext.GetCommandContext(), pScratch, pResult);
+		rtblas.BottomLevelAccelerationStructure.Generate(pCommandContext, pScratch, pResult);
 	}
 }

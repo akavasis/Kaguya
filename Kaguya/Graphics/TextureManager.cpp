@@ -10,7 +10,7 @@ TextureManager::TextureManager(RenderDevice* pRenderDevice)
 	LoadNoiseTextures();
 }
 
-void TextureManager::Stage(Scene& Scene, RenderContext& RenderContext)
+void TextureManager::Stage(Scene& Scene, CommandContext* pCommandContext)
 {
 	for (auto& material : Scene.Materials)
 	{
@@ -20,19 +20,14 @@ void TextureManager::Stage(Scene& Scene, RenderContext& RenderContext)
 	// Gpu copy
 	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
 	{
-		StageTexture(handle, stagingTexture, RenderContext);
+		StageTexture(handle, stagingTexture, pCommandContext);
 	}
-	RenderContext->FlushResourceBarriers();
+	pCommandContext->FlushResourceBarriers();
 }
 
 void TextureManager::DisposeResources()
 {
 	m_UnstagedTextures.clear();
-
-	for (auto& handle : m_TemporaryResources)
-	{
-		pRenderDevice->Destroy(handle);
-	}
 }
 
 TextureManager::StagingTexture TextureManager::CreateStagingTexture(std::string Name, D3D12_RESOURCE_DESC Desc, const DirectX::ScratchImage& ScratchImage, std::size_t MipLevels, bool GenerateMips)
@@ -92,7 +87,6 @@ TextureManager::StagingTexture TextureManager::CreateStagingTexture(std::string 
 	StagingTexture.NumSubresources = NumSubresources;
 	StagingTexture.PlacedSubresourceLayouts = std::move(PlacedSubresourceLayouts);
 	StagingTexture.MipLevels = MipLevels;
-	StagingTexture.GenerateMips = GenerateMips;
 
 	return StagingTexture;
 }
@@ -379,19 +373,19 @@ void TextureManager::LoadMaterial(Material& Material)
 	}
 }
 
-void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
+void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, CommandContext* pCommandContext)
 {
 #ifdef _DEBUG
 	std::wstring Path = UTF8ToUTF16(StagingTexture.Name);
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, Path.data());
+	PIXScopedEvent(pCommandContext->GetApiHandle(), 0, Path.data());
 #endif
 
 	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
 	Texture* pStagingResourceTexture = &StagingTexture.Texture;
 
 	// Stage texture
-	RenderContext->TransitionBarrier(pTexture, Resource::State::CopyDest);
-	RenderContext->FlushResourceBarriers();
+	pCommandContext->TransitionBarrier(pTexture, Resource::State::CopyDest);
+	pCommandContext->FlushResourceBarriers();
 	for (size_t subresourceIndex = 0; subresourceIndex < StagingTexture.NumSubresources; ++subresourceIndex)
 	{
 		D3D12_TEXTURE_COPY_LOCATION Destination = {};
@@ -403,133 +397,11 @@ void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTex
 		Source.pResource = pStagingResourceTexture->GetApiHandle();
 		Source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		Source.PlacedFootprint = StagingTexture.PlacedSubresourceLayouts[subresourceIndex];
-		RenderContext->CopyTextureRegion(&Destination, 0, 0, 0, &Source, nullptr);
+		pCommandContext->CopyTextureRegion(&Destination, 0, 0, 0, &Source, nullptr);
 	}
 
-	if (StagingTexture.GenerateMips)
-	{
-		if (pRenderDevice->Device.IsUAVCompatable(pTexture->GetFormat()))
-		{
-			GenerateMipsUAV(TextureHandle, RenderContext);
-		}
-		else if (DirectX::IsSRGB(pTexture->GetFormat()))
-		{
-			GenerateMipsSRGB(StagingTexture.Name, TextureHandle, RenderContext);
-		}
-	}
-
-	RenderContext->TransitionBarrier(pTexture, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+	pCommandContext->TransitionBarrier(pTexture, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 	LOG_INFO("{} Loaded", StagingTexture.Name);
-}
-
-void TextureManager::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
-{
-	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-
-	RenderContext.SetPipelineState(ComputePSOs::GenerateMips);
-
-	GenerateMipsData GenerateMipsData	= {};
-	GenerateMipsData.IsSRGB				= DirectX::IsSRGB(pTexture->GetFormat());
-
-	for (uint32_t srcMip = 0; srcMip < pTexture->GetMipLevels() - 1u; )
-	{
-		uint64_t srcWidth	= pTexture->GetWidth() >> srcMip;
-		uint32_t srcHeight	= pTexture->GetHeight() >> srcMip;
-		uint32_t dstWidth	= static_cast<uint32_t>(srcWidth >> 1);
-		uint32_t dstHeight	= srcHeight >> 1;
-
-		// Determine the switch case to use in CS
-		// 0b00(0): Both width and height are even.
-		// 0b01(1): Width is odd, height is even.
-		// 0b10(2): Width is even, height is odd.
-		// 0b11(3): Both width and height are odd.
-		GenerateMipsData.SrcDimension = (srcHeight & 1) << 1 | (srcWidth & 1);
-
-		// How many mipmap levels to compute this pass (max 4 mips per pass)
-		DWORD mipCount;
-
-		// The number of times we can half the size of the texture and get
-		// exactly a 50% reduction in size.
-		// A 1 bit in the width or height indicates an odd dimension.
-		// The case where either the width or the height is exactly 1 is handled
-		// as a special case (as the dimension does not require reduction).
-		_BitScanForward(&mipCount, (dstWidth == 1 ? dstHeight : dstWidth) | (dstHeight == 1 ? dstWidth : dstHeight));
-		// Maximum number of mips to generate is 4.
-		mipCount = std::min<DWORD>(4, mipCount + 1);
-		// Clamp to total number of mips left over.
-		mipCount = (srcMip + mipCount) >= pTexture->GetMipLevels() ? pTexture->GetMipLevels() - srcMip - 1 : mipCount;
-
-		// Dimensions should not reduce to 0.
-		// This can happen if the width and height are not the same.
-		dstWidth = std::max<DWORD>(1, dstWidth);
-		dstHeight = std::max<DWORD>(1, dstHeight);
-
-		GenerateMipsData.SrcMipLevel	= srcMip;
-		GenerateMipsData.NumMipLevels	= mipCount;
-		GenerateMipsData.TexelSize.x	= 1.0f / (float)dstWidth;
-		GenerateMipsData.TexelSize.y	= 1.0f / (float)dstHeight;
-
-		for (uint32_t mip = 0; mip < mipCount; ++mip)
-		{
-			pRenderDevice->CreateUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1);
-		}
-
-		GenerateMipsData.InputIndex = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
-
-		int32_t outputIndices[4] = { -1, -1, -1, -1 };
-		for (uint32_t mip = 0; mip < mipCount; ++mip)
-		{
-			outputIndices[mip] = pRenderDevice->GetUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1).HeapIndex;
-		}
-
-		GenerateMipsData.Output1Index = outputIndices[0];
-		GenerateMipsData.Output2Index = outputIndices[1];
-		GenerateMipsData.Output3Index = outputIndices[2];
-		GenerateMipsData.Output4Index = outputIndices[3];
-
-		RenderContext->TransitionBarrier(pTexture, Resource::State::NonPixelShaderResource, srcMip);
-		for (uint32_t mip = 0; mip < mipCount; ++mip)
-		{
-			RenderContext->TransitionBarrier(pTexture, Resource::State::UnorderedAccess, srcMip + mip + 1);
-		}
-
-		RenderContext->SetComputeRoot32BitConstants(0, sizeof(GenerateMipsData) / 4, &GenerateMipsData, 0);
-
-		RenderContext->Dispatch2D(dstWidth, dstHeight, 8, 8);
-
-		RenderContext->UAVBarrier(pTexture);
-		RenderContext->FlushResourceBarriers();
-
-		srcMip += mipCount;
-	}
-}
-
-void TextureManager::GenerateMipsSRGB(const std::string& Name, RenderResourceHandle TextureHandle, RenderContext& RenderContext)
-{
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-
-	RenderResourceHandle textureCopyHandle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
-	pRenderDevice->CreateTexture(textureCopyHandle, pTexture->GetType(), [&](TextureProxy& proxy)
-	{
-		proxy.SetFormat(pTexture->GetFormat());
-		proxy.SetWidth(pTexture->GetWidth());
-		proxy.SetHeight(pTexture->GetHeight());
-		proxy.SetDepthOrArraySize(pTexture->GetDepthOrArraySize());
-		proxy.SetMipLevels(pTexture->GetMipLevels());
-		proxy.BindFlags = Resource::Flags::UnorderedAccess;
-		proxy.InitialState = Resource::State::CopyDest;
-	});
-
-	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
-
-	RenderContext->CopyResource(pDstTexture, pTexture);
-
-	GenerateMipsUAV(textureCopyHandle, RenderContext);
-
-	RenderContext->CopyResource(pTexture, pDstTexture);
-
-	m_TemporaryResources.push_back(textureCopyHandle);
 }
 
 DXGI_FORMAT TextureManager::GetUAVCompatableFormat(DXGI_FORMAT Format)
