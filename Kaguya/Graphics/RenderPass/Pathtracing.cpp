@@ -15,20 +15,36 @@ namespace
 
 	// HitGroup Exports
 	const LPCWSTR HitGroupExport	= L"Default";
+
+	const UINT MinimumSamples = 1;
+	const UINT MaximumSamples = 16;
+
+	const UINT MinimumDepth = 1;
+	const UINT MaximumDepth = 16;
+
+	ShaderIdentifier RayGenerationSID;
+	ShaderIdentifier MissSID;
+	ShaderIdentifier DefaultSID;
 }
 
 Pathtracing::Pathtracing(UINT Width, UINT Height)
 	: RenderPass("Path tracing", { Width, Height }, NumResources)
 {
 	UseRayTracing = true;
+
+	HitGroupShaderTable.Reserve(Scene::MAX_MESH_INSTANCE_SUPPORTED);
+}
+
+Pathtracing::~Pathtracing()
+{
+	SafeRelease(m_HitGroupShaderTableAllocation);
+	SafeRelease(m_MissShaderTableAllocation);
+	SafeRelease(m_RayGenerationShaderTableAllocation);
 }
 
 void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
 {
 	Resources[RenderTarget]		= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, "Render Pass[" + Name + "]: " + "RenderTarget");
-	m_RayGenerationShaderTable	= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Ray Generation Shader Table");
-	m_MissShaderTable			= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Miss Shader Table");
-	m_HitGroupShaderTable		= pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, "Render Pass[" + Name + "]: " + "Hit Group Shader Table");
 
 	pRenderDevice->CreateRaytracingPipelineState(RaytracingPSOs::Pathtracing, [&](RaytracingPipelineStateBuilder& Builder)
 	{
@@ -44,19 +60,7 @@ void Pathtracing::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.AddHitGroup(HitGroupExport, nullptr, ClosestHit, nullptr);
 
 		auto pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
-		auto pEmptyLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
-		auto pLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local);
-
-		// The following section associates the root signature to each shader. Note
-		// that we can explicitly show that some shaders share the same root signature
-		// (eg. Miss and ShadowMiss). Note that the hit shaders are now only referred
-		// to as hit groups, meaning that the underlying intersection, any-hit and
-		// closest-hit shaders share the same root signature.
-		Builder.AddRootSignatureAssociation(pEmptyLocalRootSignature,
-			{
-				RayGeneration,
-				Miss
-			});
+		auto pLocalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local::Default);
 
 		Builder.AddRootSignatureAssociation(pLocalRootSignature,
 			{
@@ -87,59 +91,59 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 	this->pGpuScene = pGpuScene;
 
 	RaytracingPipelineState* pRaytracingPipelineState = pRenderDevice->GetRaytracingPipelineState(RaytracingPSOs::Pathtracing);
+	RayGenerationSID = pRaytracingPipelineState->GetShaderIdentifier(L"RayGeneration");
+	MissSID = pRaytracingPipelineState->GetShaderIdentifier(L"Miss");
+	DefaultSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
 
 	// Ray Generation Shader Table
 	{
-		ShaderTable<void> shaderTable;
-		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"RayGeneration"));
+		ShaderTable<void> ShaderTable;
+		ShaderTable.AddShaderRecord(RayGenerationSID);
 
 		UINT64 shaderTableSizeInBytes, stride;
-		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
-		stride = shaderTable.GetShaderRecordStride();
+		ShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		stride = ShaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateBuffer(m_RayGenerationShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
-		{
-			proxy.SetSizeInBytes(shaderTableSizeInBytes);
-			proxy.SetStride(stride);
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-		});
+		D3D12MA::ALLOCATION_DESC AllocDesc = {};
+		AllocDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+		D3D12_RESOURCE_DESC Desc = CD3DX12_RESOURCE_DESC::Buffer(shaderTableSizeInBytes, D3D12_RESOURCE_FLAG_NONE);
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_RayGenerationShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		pRenderDevice->Device.Allocator()->CreateResource(&AllocDesc, &Desc,
+			D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+			&m_RayGenerationShaderTableAllocation, IID_PPV_ARGS(m_RayGenerationShaderTable.ReleaseAndGetAddressOf()));
+
+		ShaderTable.Generate(m_RayGenerationShaderTable.Get());
+
+		RayGenerationShaderRecord.StartAddress = m_RayGenerationShaderTable->GetGPUVirtualAddress();
+		RayGenerationShaderRecord.SizeInBytes = shaderTableSizeInBytes;
 	}
 
 	// Miss Shader Table
 	{
-		ShaderTable<void> shaderTable;
-		shaderTable.AddShaderRecord(pRaytracingPipelineState->GetShaderIdentifier(L"Miss"));
+		ShaderTable<void> ShaderTable;
+		ShaderTable.AddShaderRecord(MissSID);
 
 		UINT64 shaderTableSizeInBytes, stride;
-		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
-		stride = shaderTable.GetShaderRecordStride();
+		ShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		stride = ShaderTable.GetShaderRecordStride();
 
-		pRenderDevice->CreateBuffer(m_MissShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
-		{
-			proxy.SetSizeInBytes(shaderTableSizeInBytes);
-			proxy.SetStride(stride);
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-		});
+		D3D12MA::ALLOCATION_DESC AllocDesc = {};
+		AllocDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+		D3D12_RESOURCE_DESC Desc = CD3DX12_RESOURCE_DESC::Buffer(shaderTableSizeInBytes, D3D12_RESOURCE_FLAG_NONE);
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_MissShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		pRenderDevice->Device.Allocator()->CreateResource(&AllocDesc, &Desc,
+			D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+			&m_MissShaderTableAllocation, IID_PPV_ARGS(m_MissShaderTable.ReleaseAndGetAddressOf()));
+
+		ShaderTable.Generate(m_MissShaderTable.Get());
+
+		MissShaderTable.StartAddress = m_MissShaderTable->GetGPUVirtualAddress();
+		MissShaderTable.SizeInBytes = shaderTableSizeInBytes;
+		MissShaderTable.StrideInBytes = stride;
 	}
 
 	// Hit Group Shader Table
 	{
-		struct RootArgument
-		{
-			D3D12_GPU_VIRTUAL_ADDRESS VertexBuffer;
-			D3D12_GPU_VIRTUAL_ADDRESS IndexBuffer;
-		};
-
-		ShaderTable<RootArgument> shaderTable;
-
-		ShaderIdentifier hitGroupSID = pRaytracingPipelineState->GetShaderIdentifier(L"Default");
-
 		for (const auto& MeshInstance : pGpuScene->pScene->MeshInstances)
 		{
 			const auto& Mesh = pGpuScene->pScene->Meshes[MeshInstance.MeshIndex];
@@ -152,28 +156,32 @@ void Pathtracing::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevi
 				.VertexBuffer = pVertexBuffer->GetGpuVirtualAddress(),
 				.IndexBuffer = pIndexBuffer->GetGpuVirtualAddress()
 			};
-			shaderTable.AddShaderRecord(hitGroupSID, argument);
+			HitGroupShaderTable.AddShaderRecord(DefaultSID, argument);
 		}
 
-		UINT64 shaderTableSizeInBytes, stride;
-		shaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
-		stride = shaderTable.GetShaderRecordStride();
+		UINT64 shaderTableSizeInBytes, stride = HitGroupShaderTable.GetShaderRecordStride();
+		shaderTableSizeInBytes = Scene::MAX_MESH_INSTANCE_SUPPORTED * stride;
+		shaderTableSizeInBytes = Math::AlignUp<UINT64>(shaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
-		pRenderDevice->CreateBuffer(m_HitGroupShaderTable, [shaderTableSizeInBytes, stride](BufferProxy& proxy)
-		{
-			proxy.SetSizeInBytes(shaderTableSizeInBytes);
-			proxy.SetStride(stride);
-			proxy.SetCpuAccess(Buffer::CpuAccess::Write);
-		});
+		D3D12MA::ALLOCATION_DESC AllocDesc = {};
+		AllocDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+		D3D12_RESOURCE_DESC Desc = CD3DX12_RESOURCE_DESC::Buffer(shaderTableSizeInBytes, D3D12_RESOURCE_FLAG_NONE);
 
-		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_HitGroupShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		pRenderDevice->Device.Allocator()->CreateResource(&AllocDesc, &Desc,
+			D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+			&m_HitGroupShaderTableAllocation, IID_PPV_ARGS(m_HitGroupShaderTable.ReleaseAndGetAddressOf()));
+
+		HitGroupShaderTable.Generate(m_HitGroupShaderTable.Get());
+
+		HitGroupTable.StartAddress = m_HitGroupShaderTable->GetGPUVirtualAddress();
+		HitGroupTable.SizeInBytes = shaderTableSizeInBytes;
+		HitGroupTable.StrideInBytes = stride;
 	}
 }
 
 void Pathtracing::RenderGui()
 {
-	if (ImGui::TreeNode("Path tracing"))
+	if (ImGui::TreeNode(Name.data()))
 	{
 		if (ImGui::Button("Restore Defaults"))
 		{
@@ -181,20 +189,41 @@ void Pathtracing::RenderGui()
 			Refresh = true;
 		}
 
-		int Dirty = 0;
-		Dirty |= (int)ImGui::SliderInt("Num Samples Per Pixel", &settings.NumSamplesPerPixel, 1, 10);
-		Dirty |= (int)ImGui::SliderInt("Max Depth", &settings.MaxDepth, 1, 7);
+		bool Dirty = false;
+		Dirty |= ImGui::SliderScalar("Num Samples Per Pixel", ImGuiDataType_U32, &settings.NumSamplesPerPixel, &MinimumSamples, &MaximumSamples);
+		Dirty |= ImGui::SliderScalar("Max Depth", ImGuiDataType_U32, &settings.MaxDepth, &MinimumDepth, &MaximumDepth);
 
 		if (Dirty)
 		{
 			Refresh = true;
 		}
+
 		ImGui::TreePop();
 	}
 }
 
 void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	HitGroupShaderTable.Clear();
+	for (const auto& MeshInstance : pGpuScene->pScene->MeshInstances)
+	{
+		const auto& Mesh = pGpuScene->pScene->Meshes[MeshInstance.MeshIndex];
+
+		auto pVertexBuffer = RenderContext.GetBuffer(Mesh.VertexResource);
+		auto pIndexBuffer = RenderContext.GetBuffer(Mesh.IndexResource);
+
+		RootArgument argument =
+		{
+			.VertexBuffer = pVertexBuffer->GetGpuVirtualAddress(),
+			.IndexBuffer = pIndexBuffer->GetGpuVirtualAddress()
+		};
+		HitGroupShaderTable.AddShaderRecord(DefaultSID, argument);
+	}
+
+	HitGroupShaderTable.Generate(m_HitGroupShaderTable.Get());
+
+	HitGroupTable.SizeInBytes = pGpuScene->pScene->MeshInstances.size() * HitGroupShaderTable.GetShaderRecordStride();
+
 	struct RenderPassData
 	{
 		uint NumSamplesPerPixel;
@@ -216,13 +245,17 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetLightTable());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMaterialTable());
 
-	RenderContext.DispatchRays
-	(
-		m_RayGenerationShaderTable,
-		m_MissShaderTable,
-		m_HitGroupShaderTable,
-		Properties.Width, Properties.Height
-	);
+	D3D12_DISPATCH_RAYS_DESC Desc = {};
+	Desc.RayGenerationShaderRecord = RayGenerationShaderRecord;
+
+	Desc.MissShaderTable = MissShaderTable;
+
+	Desc.HitGroupTable = HitGroupTable;
+
+	Desc.Width = Properties.Width;
+	Desc.Height = Properties.Height;
+	Desc.Depth = 1;
+	RenderContext->DispatchRays(&Desc);
 }
 
 void Pathtracing::StateRefresh()

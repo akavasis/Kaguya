@@ -89,11 +89,10 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	InitRootSignature(InstanceGeneration);
 
-	InitRootSignature(Raytracing::Local);
-	InitRootSignature(Raytracing::EmptyLocal);
-	InitRootSignature(Raytracing::Global);
-
+	InitRootSignature(Raytracing::Local::Default);
 	InitRootSignature(Raytracing::Local::Picking);
+	
+	InitRootSignature(Raytracing::Global);
 
 	pRenderDevice->CreateRootSignature(Default, [](RootSignatureBuilder& Builder)
 	{
@@ -152,18 +151,11 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 		false);
 
 	// Local RS
-	pRenderDevice->CreateRootSignature(Raytracing::Local, [](RootSignatureBuilder& Builder)
+	pRenderDevice->CreateRootSignature(Raytracing::Local::Default, [](RootSignatureBuilder& Builder)
 	{
 		Builder.AddRootSRVParameter(RootSRV(0, 1));	// VertexBuffer,			t0 | space1
 		Builder.AddRootSRVParameter(RootSRV(1, 1));	// IndexBuffer				t1 | space1
 
-		Builder.SetAsLocalRootSignature();
-	},
-		false);
-
-	// Empty Local RS
-	pRenderDevice->CreateRootSignature(Raytracing::EmptyLocal, [](RootSignatureBuilder& Builder)
-	{
 		Builder.SetAsLocalRootSignature();
 	},
 		false);

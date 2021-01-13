@@ -7,27 +7,12 @@ class Device;
 class Buffer;
 class CommandContext;
 
-struct RaytracingGeometryDesc
-{
-	Buffer* pVertexBuffer;
-	UINT	NumVertices;
-	UINT	VertexStride;
-	UINT64	VertexOffset;
-
-	Buffer* pIndexBuffer;
-	UINT	NumIndices;
-	UINT	IndexStride;
-	UINT64	IndexOffset;
-
-	bool	IsOpaque;
-};
-
 class BottomLevelAccelerationStructure
 {
 public:
 	BottomLevelAccelerationStructure();
 
-	void AddGeometry(const RaytracingGeometryDesc& Desc);
+	void AddGeometry(const D3D12_RAYTRACING_GEOMETRY_DESC& Desc);
 	void ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes);
 	void Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult);
 private:

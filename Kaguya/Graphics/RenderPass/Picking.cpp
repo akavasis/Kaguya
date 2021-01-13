@@ -64,7 +64,6 @@ void Picking::InitializePipeline(RenderDevice* pRenderDevice)
 
 		RootSignature* pGlobalRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Global);
 		RootSignature* pLocalPickingRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::Local::Picking);
-		RootSignature* pLocalEmptyRootSignature = pRenderDevice->GetRootSignature(RootSignatures::Raytracing::EmptyLocal);
 
 		// The following section associates the root signature to each shader. Note
 		// that we can explicitly show that some shaders share the same root signature
@@ -76,12 +75,6 @@ void Picking::InitializePipeline(RenderDevice* pRenderDevice)
 		Builder.AddRootSignatureAssociation(pLocalPickingRootSignature,
 			{
 				RayGeneration
-			});
-
-		Builder.AddRootSignatureAssociation(pLocalEmptyRootSignature,
-			{
-				Miss,
-				HitGroupExport
 			});
 
 		Builder.SetRaytracingShaderConfig(sizeof(int), SizeOfBuiltInTriangleIntersectionAttributes);
@@ -146,7 +139,7 @@ void Picking::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		});
 
 		auto pShaderTableBuffer = pRenderDevice->GetBuffer(m_RayGenerationShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		shaderTable.Generate(pShaderTableBuffer->GetApiHandle());
 	}
 
 	// Miss Shader Table
@@ -166,7 +159,7 @@ void Picking::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		});
 
 		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_MissShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		shaderTable.Generate(pShaderTableBuffer->GetApiHandle());
 	}
 
 	// Hit Group Shader Table
@@ -192,7 +185,7 @@ void Picking::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRenderDevice)
 		});
 
 		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_HitGroupShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		shaderTable.Generate(pShaderTableBuffer->GetApiHandle());
 	}
 }
 

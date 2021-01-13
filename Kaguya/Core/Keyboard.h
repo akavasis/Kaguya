@@ -6,7 +6,6 @@
 class Keyboard
 {
 public:
-	friend class Window;
 	friend class InputHandler;
 
 	enum

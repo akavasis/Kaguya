@@ -4,8 +4,7 @@
 enum class SampleScene
 {
 	CornellBox,
-
-	PlaneWithLights,
+	Hyperion,
 };
 
 Scene GenerateScene(SampleScene SampleScene);

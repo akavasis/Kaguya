@@ -25,11 +25,9 @@ public:
 	static int Run(RenderSystem* pRenderSystem);
 
 	static void Quit();
-
 private:
 	static DWORD WINAPI RenderThreadProc(_In_ PVOID pParameter);
 	static bool HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message);
-
 public:
 	inline static std::filesystem::path			ExecutableFolderPath;
 	inline static Window						Window;

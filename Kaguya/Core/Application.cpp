@@ -38,15 +38,11 @@ void Application::Initialize(const Config& Config)
 int Application::Run(RenderSystem* pRenderSystem)
 {
 	int ExitCode = EXIT_SUCCESS;
-	std::unique_ptr<RenderSystem> RenderSystem(pRenderSystem);
 
 	try
 	{
-		if (!pRenderSystem)
-			throw std::exception("Null RenderSystem");
-
 		// Begin our render thread
-		RenderThread = wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, RenderSystem.get(), 0, nullptr));
+		RenderThread = wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, pRenderSystem, 0, nullptr));
 		if (!RenderThread)
 		{
 			LOG_ERROR("Failed to create thread (error={})", ::GetLastError());

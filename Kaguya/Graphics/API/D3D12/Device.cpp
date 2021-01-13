@@ -4,6 +4,15 @@
 #define GPU_BASED_VALIDATION 0
 
 using Microsoft::WRL::ComPtr;
+using namespace D3D12MA;
+
+Device::~Device()
+{
+	if (m_Allocator)
+	{
+		m_Allocator->Release();
+	}
+}
 
 void Device::Create(IDXGIAdapter4* pAdapter)
 {
@@ -105,6 +114,17 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 			}
 		}
 	}
+
+	// Create our memory allocator
+	// Note: we create allocator last due to stack unwinding when throwing exceptions.
+	ALLOCATOR_DESC Desc			= {};
+	Desc.Flags					= ALLOCATOR_FLAG_NONE;
+	Desc.pDevice				= m_Device5.Get();
+	Desc.PreferredBlockSize		= 0;
+	Desc.pAllocationCallbacks	= nullptr;
+	Desc.pAdapter = pAdapter;
+
+	ThrowIfFailed(CreateAllocator(&Desc, &m_Allocator));
 }
 
 bool Device::IsUAVCompatable(DXGI_FORMAT Format) const

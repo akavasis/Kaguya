@@ -12,31 +12,6 @@ TextureManager::TextureManager(RenderDevice* pRenderDevice)
 
 void TextureManager::Stage(Scene& Scene, RenderContext& RenderContext)
 {
-	if (!Status::SkyboxGenerated && !Scene.Skybox.Path.empty())
-	{
-		Status::SkyboxGenerated = true;
-
-		m_SkyboxEquirectangular = LoadFromFile(Scene.Skybox.Path, false, true);
-		m_Skybox = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Scene.Skybox.Path.string());
-		auto& stagingTexture = m_UnstagedTextures[m_SkyboxEquirectangular];
-		StageTexture(m_SkyboxEquirectangular, stagingTexture, RenderContext);
-
-		// Generate cubemap for equirectangular map
-		auto pEquirectangularMap = pRenderDevice->GetTexture(m_SkyboxEquirectangular);
-		pRenderDevice->CreateTexture(m_Skybox, Resource::Type::TextureCube, [&](TextureProxy& proxy)
-		{
-			proxy.SetFormat(pEquirectangularMap->GetFormat());
-			proxy.SetWidth(1024);
-			proxy.SetHeight(1024);
-			proxy.SetMipLevels(0);
-			proxy.BindFlags = Resource::Flags::UnorderedAccess;
-			proxy.InitialState = Resource::State::Common;
-		});
-
-		EquirectangularToCubemap(Scene.Skybox.Path.string(), m_SkyboxEquirectangular, m_Skybox, RenderContext);
-		pRenderDevice->CreateShaderResourceView(m_Skybox);
-	}
-
 	for (auto& material : Scene.Materials)
 	{
 		LoadMaterial(material);
@@ -553,103 +528,6 @@ void TextureManager::GenerateMipsSRGB(const std::string& Name, RenderResourceHan
 	GenerateMipsUAV(textureCopyHandle, RenderContext);
 
 	RenderContext->CopyResource(pTexture, pDstTexture);
-
-	m_TemporaryResources.push_back(textureCopyHandle);
-}
-
-void TextureManager::EquirectangularToCubemap(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
-{
-	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
-	if (pRenderDevice->Device.IsUAVCompatable(pCubemap->GetFormat()))
-	{
-		EquirectangularToCubemapUAV(EquirectangularMap, Cubemap, RenderContext);
-	}
-	else if (DirectX::IsSRGB(pCubemap->GetFormat()))
-	{
-		EquirectangularToCubemapSRGB(Name, EquirectangularMap, Cubemap, RenderContext);
-	}
-}
-
-void TextureManager::EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
-{
-	pRenderDevice->CreateShaderResourceView(EquirectangularMap);
-
-	Texture* pEquirectangularMap = pRenderDevice->GetTexture(EquirectangularMap);
-	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
-	auto resourceDesc = pCubemap->GetApiHandle()->GetDesc();
-
-	RenderContext.SetPipelineState(ComputePSOs::EquirectangularToCubemap);
-
-	EquirectangularToCubemapData EquirectangularToCubemapData = {};
-
-	for (uint32_t mipSlice = 0; mipSlice < resourceDesc.MipLevels; )
-	{
-		// Maximum number of mips to generate per pass is 5.
-		uint32_t numMips = std::min<uint32_t>(5, resourceDesc.MipLevels - mipSlice);
-
-		EquirectangularToCubemapData.FirstMip = mipSlice;
-		EquirectangularToCubemapData.CubemapSize = std::max<uint32_t>(static_cast<uint32_t>(resourceDesc.Width), resourceDesc.Height) >> mipSlice;
-		EquirectangularToCubemapData.NumMips = numMips;
-
-		for (uint32_t mip = 0; mip < numMips; ++mip)
-		{
-			pRenderDevice->CreateUnorderedAccessView(Cubemap, {}, mipSlice + mip);
-		}
-
-		int outputIndices[5] = { -1, -1, -1, -1, -1 };
-		for (uint32_t mip = 0; mip < numMips; ++mip)
-		{
-			outputIndices[mip] = pRenderDevice->GetUnorderedAccessView(Cubemap, {}, mipSlice + mip).HeapIndex;
-		}
-
-		EquirectangularToCubemapData.InputIndex = pRenderDevice->GetShaderResourceView(EquirectangularMap).HeapIndex;
-
-		EquirectangularToCubemapData.Output1Index = outputIndices[0];
-		EquirectangularToCubemapData.Output2Index = outputIndices[1];
-		EquirectangularToCubemapData.Output3Index = outputIndices[2];
-		EquirectangularToCubemapData.Output4Index = outputIndices[3];
-		EquirectangularToCubemapData.Output5Index = outputIndices[4];
-
-		RenderContext->TransitionBarrier(pEquirectangularMap, Resource::State::NonPixelShaderResource);
-		for (uint32_t mip = 0; mip < numMips; ++mip)
-		{
-			RenderContext->TransitionBarrier(pCubemap, Resource::State::UnorderedAccess);
-		}
-
-		RenderContext->SetComputeRoot32BitConstants(0, sizeof(EquirectangularToCubemapData) / 4, &EquirectangularToCubemapData, 0);
-
-		UINT threadGroupCount = Math::RoundUpAndDivide(EquirectangularToCubemapData.CubemapSize, 16);
-		RenderContext->Dispatch(threadGroupCount, threadGroupCount, 6);
-
-		RenderContext->UAVBarrier(pCubemap);
-
-		mipSlice += numMips;
-	}
-}
-
-void TextureManager::EquirectangularToCubemapSRGB(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext)
-{
-	Texture* pCubemap = pRenderDevice->GetTexture(Cubemap);
-
-	RenderResourceHandle textureCopyHandle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
-	pRenderDevice->CreateTexture(textureCopyHandle, pCubemap->GetType(), [&](TextureProxy& proxy)
-	{
-		proxy.SetFormat(pCubemap->GetFormat());
-		proxy.SetWidth(pCubemap->GetWidth());
-		proxy.SetHeight(pCubemap->GetHeight());
-		proxy.SetDepthOrArraySize(pCubemap->GetDepthOrArraySize());
-		proxy.SetMipLevels(pCubemap->GetMipLevels());
-		proxy.BindFlags = Resource::Flags::UnorderedAccess;
-		proxy.InitialState = Resource::State::CopyDest;
-	});
-
-	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
-
-	RenderContext->CopyResource(pDstTexture, pCubemap);
-
-	EquirectangularToCubemapUAV(EquirectangularMap, textureCopyHandle, RenderContext);
-
-	RenderContext->CopyResource(pCubemap, pDstTexture);
 
 	m_TemporaryResources.push_back(textureCopyHandle);
 }

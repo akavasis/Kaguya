@@ -5,7 +5,6 @@
 #include <Core/Math.h>
 
 #include "Shader.h"
-#include "Buffer.h"
 
 // ShaderRecord = {{Shader Identifier}, {RootArguments}}
 template<typename TRootArguments>
@@ -29,6 +28,26 @@ public:
 		: m_ShaderRecordStride(0)
 	{
 
+	}
+
+	void Clear()
+	{
+		m_ShaderRecords.clear();
+	}
+
+	void Reserve(size_t NumShaderRecords)
+	{
+		m_ShaderRecords.reserve(NumShaderRecords);
+	}
+
+	void Resize(size_t NumShaderRecords)
+	{
+		m_ShaderRecords.resize(NumShaderRecords);
+	}
+
+	ShaderRecord<TRootArguments>& operator[](size_t Index)
+	{
+		return m_ShaderRecords[Index];
 	}
 
 	inline auto GetShaderRecordStride() const { return m_ShaderRecordStride; }
@@ -65,25 +84,26 @@ public:
 		}
 	}
 
-	void Generate(Buffer* pShaderTableBuffer)
+	void Generate(ID3D12Resource* pShaderTableBuffer)
 	{
-		BYTE* pData = pShaderTableBuffer->Map();
-
-		for (const auto& ShaderRecord : m_ShaderRecords)
+		BYTE* pHostMemory = nullptr;
+		if (SUCCEEDED(pShaderTableBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory))))
 		{
-			// Copy the shader identifier
-			memcpy(pData, ShaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
-			// Copy all its resources pointers or values in bulk
-			memcpy(pData + sizeof(ShaderIdentifier), &ShaderRecord.RootArguments, sizeof(TRootArguments));
+			for (const auto& ShaderRecord : m_ShaderRecords)
+			{
+				// Copy the shader identifier
+				memcpy(pHostMemory, ShaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
+				// Copy all its resources pointers or values in bulk
+				memcpy(pHostMemory + sizeof(ShaderIdentifier), &ShaderRecord.RootArguments, sizeof(TRootArguments));
 
-			pData += m_ShaderRecordStride;
+				pHostMemory += m_ShaderRecordStride;
+			}
+
+			pShaderTableBuffer->Unmap(0, nullptr);
 		}
-
-		pShaderTableBuffer->Unmap();
 	}
-
 private:
-	std::vector<ShaderRecord<TRootArguments>>	m_ShaderRecords;
+	std::vector<ShaderRecord<TRootArguments>> m_ShaderRecords;
 	// The stride of a shader record type, this is the maximum record size for each type
 	UINT64 m_ShaderRecordStride;
 };
@@ -96,6 +116,26 @@ public:
 		: m_ShaderRecordStride(0)
 	{
 
+	}
+
+	void Clear()
+	{
+		m_ShaderRecords.clear();
+	}
+
+	void Reserve(size_t NumShaderRecords)
+	{
+		m_ShaderRecords.reserve(NumShaderRecords);
+	}
+
+	void Resize(size_t NumShaderRecords)
+	{
+		m_ShaderRecords.resize(NumShaderRecords);
+	}
+
+	ShaderRecord<void>& operator[](size_t Index)
+	{
+		return m_ShaderRecords[Index];
 	}
 
 	inline auto GetShaderRecordStride() const { return m_ShaderRecordStride; }
@@ -130,21 +170,22 @@ public:
 		}
 	}
 
-	void Generate(Buffer* pShaderTableBuffer)
+	void Generate(ID3D12Resource* pShaderTableBuffer)
 	{
-		BYTE* pData = pShaderTableBuffer->Map();
-
-		for (const auto& ShaderRecord : m_ShaderRecords)
+		BYTE* pHostMemory = nullptr;
+		if (SUCCEEDED(pShaderTableBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory))))
 		{
-			// Copy the shader identifier
-			memcpy(pData, ShaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
+			for (const auto& ShaderRecord : m_ShaderRecords)
+			{
+				// Copy the shader identifier
+				memcpy(pHostMemory, ShaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
 
-			pData += m_ShaderRecordStride;
+				pHostMemory += m_ShaderRecordStride;
+			}
+
+			pShaderTableBuffer->Unmap(0, nullptr);
 		}
-
-		pShaderTableBuffer->Unmap();
 	}
-
 private:
 	std::vector<ShaderRecord<void>> m_ShaderRecords;
 	// The stride of a shader record type, this is the maximum record size for each type

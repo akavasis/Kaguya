@@ -184,7 +184,7 @@ public:
 	Device														Device;
 	CommandQueue												GraphicsQueue, ComputeQueue, CopyQueue;
 	UINT64														GraphicsFenceValue, ComputeFenceValue, CopyFenceValue;
-	Microsoft::WRL::ComPtr<ID3D12Fence1>						GraphicsFence, ComputeFence, CopyFence;
+	Microsoft::WRL::ComPtr<ID3D12Fence>							GraphicsFence, ComputeFence, CopyFence;
 	wil::unique_event											GraphicsFenceCompletionEvent, ComputeFenceCompletionEvent, CopyFenceCompletionEvent;
 
 	ShaderCompiler												ShaderCompiler;

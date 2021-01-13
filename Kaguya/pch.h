@@ -81,3 +81,13 @@
 #include <Core/Synchronization/ConditionVariable.h>
 
 #include <Graphics/Debug/PIXCapture.h>
+
+template<typename T>
+void SafeRelease(T*& Ptr)
+{
+	if (Ptr)
+	{
+		Ptr->Release();
+		Ptr = nullptr;
+	}
+}

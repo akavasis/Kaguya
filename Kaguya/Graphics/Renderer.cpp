@@ -77,9 +77,7 @@ bool Renderer::Initialize()
 
 	m_pRenderGraph->Initialize();
 
-	m_GraphicsContext = RenderContext(0, nullptr, nullptr, m_pRenderDevice.get(), m_pRenderDevice->GetDefaultGraphicsContext());
-
-	SetScene(GenerateScene(SampleScene::CornellBox));
+	SetScene(GenerateScene(SampleScene::Hyperion));
 
 	m_pRenderGraph->InitializeScene(m_pGpuScene.get());
 
@@ -240,15 +238,15 @@ void Renderer::SetScene(Scene Scene)
 	m_Scene				= std::move(Scene);
 	//m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
 
-	m_Scene.Camera.Transform.Position = { 0.0f, 5.0f, -20.0f };
-
 	m_pGpuScene->pScene = &m_Scene;
 
-	m_GraphicsContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+	auto GraphicsContext = m_pRenderDevice->GetDefaultGraphicsContext();
 
-	m_pRenderDevice->BindGpuDescriptorHeap(m_GraphicsContext.GetCommandContext());
-	m_pGpuScene->UploadTextures(m_GraphicsContext);
-	m_pGpuScene->UploadModels(m_GraphicsContext);
+	GraphicsContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+
+	m_pRenderDevice->BindGpuDescriptorHeap(GraphicsContext);
+	m_pGpuScene->UploadTextures(GraphicsContext);
+	m_pGpuScene->UploadModels(GraphicsContext);
 
 	CommandContext* pCommandContexts[] = { m_GraphicsContext.GetCommandContext() };
 	m_pRenderDevice->ExecuteGraphicsContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
