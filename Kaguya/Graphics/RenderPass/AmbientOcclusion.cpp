@@ -89,7 +89,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		});
 
 		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_RayGenerationShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		shaderTable.Generate(pShaderTableBuffer->GetApiHandle());
 	}
 
 	// Miss Shader Table
@@ -109,7 +109,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		});
 
 		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_MissShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		shaderTable.Generate(pShaderTableBuffer->GetApiHandle());
 	}
 
 	// Hit Group Shader Table
@@ -135,7 +135,7 @@ void AmbientOcclusion::InitializeScene(GpuScene* pGpuScene, RenderDevice* pRende
 		});
 
 		Buffer* pShaderTableBuffer = pRenderDevice->GetBuffer(m_HitGroupShaderTable);
-		shaderTable.Generate(pShaderTableBuffer);
+		shaderTable.Generate(pShaderTableBuffer->GetApiHandle());
 	}
 }
 

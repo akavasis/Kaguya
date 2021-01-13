@@ -27,8 +27,6 @@ public:
 
 	inline auto GetBlueNoise()									{ return m_NoiseTextures[AssetTextures::BlueNoise]; }
 
-	inline auto GetSkybox()										{ return m_Skybox; }
-
 	void Stage(Scene& Scene, RenderContext& RenderContext);
 	void DisposeResources();
 
@@ -57,11 +55,6 @@ private:
 		};
 	};
 
-	struct Status
-	{
-		inline static bool SkyboxGenerated = false;
-	};
-
 	struct StagingTexture
 	{
 		std::string										Name;						// File path
@@ -81,9 +74,6 @@ private:
 	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext);
 	void GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
 	void GenerateMipsSRGB(const std::string& Name, RenderResourceHandle TextureHandle, RenderContext& RenderContext);
-	void EquirectangularToCubemap(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
-	void EquirectangularToCubemapUAV(RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
-	void EquirectangularToCubemapSRGB(const std::string& Name, RenderResourceHandle EquirectangularMap, RenderResourceHandle Cubemap, RenderContext& RenderContext);
 
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
 

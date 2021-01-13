@@ -68,6 +68,11 @@ struct Scene
 		return Index;
 	}
 
+	bool Empty()
+	{
+		return MeshInstances.size() != 0;
+	}
+
 	Skybox						Skybox;
 	Camera						Camera, PreviousCamera;
 

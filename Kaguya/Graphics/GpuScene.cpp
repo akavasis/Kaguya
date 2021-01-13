@@ -565,16 +565,17 @@ void GpuScene::CreateBottomLevelAS(RenderContext& RenderContext)
 		// Update mesh's BLAS Index
 		Mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
 
-		RaytracingGeometryDesc Desc = {};
-		Desc.pVertexBuffer			= pVertexBuffer;
-		Desc.VertexStride			= sizeof(Vertex);
-		Desc.pIndexBuffer			= pIndexBuffer;
-		Desc.IndexStride			= sizeof(unsigned int);
-		Desc.IsOpaque				= true;
-		Desc.NumVertices			= Mesh.VertexCount;
-		Desc.VertexOffset			= Mesh.BaseVertexLocation;
-		Desc.NumIndices				= Mesh.IndexCount;
-		Desc.IndexOffset			= Mesh.StartIndexLocation;
+		D3D12_RAYTRACING_GEOMETRY_DESC Desc			= {};
+		Desc.Type									= D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+		Desc.Flags									= D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+		Desc.Triangles.Transform3x4					= NULL;
+		Desc.Triangles.IndexFormat					= DXGI_FORMAT_R32_UINT;
+		Desc.Triangles.VertexFormat					= DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
+		Desc.Triangles.IndexCount					= Mesh.IndexCount;
+		Desc.Triangles.VertexCount					= Mesh.VertexCount;
+		Desc.Triangles.IndexBuffer					= pIndexBuffer->GetGpuVirtualAddress() + Mesh.StartIndexLocation * sizeof(unsigned int);
+		Desc.Triangles.VertexBuffer.StartAddress	= pVertexBuffer->GetGpuVirtualAddress() + Mesh.BaseVertexLocation * sizeof(Vertex);
+		Desc.Triangles.VertexBuffer.StrideInBytes	= sizeof(Vertex);
 
 		rtblas.BottomLevelAccelerationStructure.AddGeometry(Desc);
 

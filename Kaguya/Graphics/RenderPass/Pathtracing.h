@@ -17,6 +17,7 @@ public:
 	};
 
 	Pathtracing(UINT Width, UINT Height);
+	~Pathtracing() override;
 protected:
 	void InitializePipeline(RenderDevice* pRenderDevice) override;
 	void ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph) override;
@@ -28,7 +29,22 @@ private:
 	Settings settings;
 	GpuScene* pGpuScene;
 
-	RenderResourceHandle m_RayGenerationShaderTable;
-	RenderResourceHandle m_MissShaderTable;
-	RenderResourceHandle m_HitGroupShaderTable;
+	Microsoft::WRL::ComPtr<ID3D12Resource>	m_RayGenerationShaderTable;
+	Microsoft::WRL::ComPtr<ID3D12Resource>	m_MissShaderTable;
+	Microsoft::WRL::ComPtr<ID3D12Resource>	m_HitGroupShaderTable;
+	D3D12MA::Allocation*					m_RayGenerationShaderTableAllocation = nullptr;
+	D3D12MA::Allocation*					m_MissShaderTableAllocation = nullptr;
+	D3D12MA::Allocation*					m_HitGroupShaderTableAllocation = nullptr;
+
+	D3D12_GPU_VIRTUAL_ADDRESS_RANGE				RayGenerationShaderRecord;
+	D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE	MissShaderTable;
+	D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE	HitGroupTable;
+
+	struct RootArgument
+	{
+		D3D12_GPU_VIRTUAL_ADDRESS VertexBuffer;
+		D3D12_GPU_VIRTUAL_ADDRESS IndexBuffer;
+	};
+
+	ShaderTable<RootArgument> HitGroupShaderTable;
 };

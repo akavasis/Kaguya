@@ -1,5 +1,4 @@
 # Kaguya
-## Description
 This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR). This project have evolved from a path tracer to a deferred renderer. See pathtracing branch for full details of the implementation (Path tracing is still supported in the main branch, just need to change a couple lines of code).
 
 # Features
@@ -42,16 +41,27 @@ to initialize the submodules.
 - Real-Time Rendering, Fourth Edition by Eric Haines, Naty Hoffman, and Tomas Möller
 
 # Acknowledgements
-- assimp (https://github.com/assimp/assimp)
-- DirectXMesh (https://github.com/microsoft/DirectXMesh)
-- DirectXTex (https://github.com/microsoft/DirectXTex)
-- DirectXTK12 (https://github.com/microsoft/DirectXTK12)
-- DirectX Shader Compiler (https://github.com/microsoft/DirectXShaderCompiler)
-- imgui (https://github.com/ocornut/imgui)
-- ImGuizmo (https://github.com/CedricGuillemet/ImGuizmo)
-- spdlog (https://github.com/gabime/spdlog)
-- WinPixEventRunTime (https://devblogs.microsoft.com/pix/winpixeventruntime/)
-- wil (https://github.com/microsoft/wil)
+- [assimp][1]
+- [DirectXMesh][2]
+- [DirectXTex][3]
+- [DirectXTK12][4]
+- [DirectX Shader Compiler][5]
+- [imgui][6]
+- [ImGuizmo][7]
+- [spdlog][8]
+- [WinPixEventRunTime][9]
+- [wil][10]
+
+[1]: <https://github.com/assimp/assimp> "assimp"
+[2]: <https://github.com/microsoft/DirectXMesh> "DirectXMesh"
+[3]: <https://github.com/microsoft/DirectXTex> "DirectXTex"
+[4]: <https://github.com/microsoft/DirectXTK12> "DirectXTK12"
+[5]: <https://github.com/microsoft/DirectXShaderCompiler> "DirectX Shader Compiler"
+[6]: <https://github.com/ocornut/imgui> "imgui"
+[7]: <https://github.com/CedricGuillemet/ImGuizmo> "ImGuizmo"
+[8]: <https://github.com/gabime/spdlog> "spdlog"
+[9]: <https://devblogs.microsoft.com/pix/winpixeventruntime/> "WinPixEventRunTime"
+[10]: <https://github.com/microsoft/wil> "wil"
 
 # Showcase
 
@@ -62,6 +72,8 @@ to initialize the submodules.
 ![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
 ![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
 ![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")
+![4](/Gallery/Hyperion.jpg?raw=true "Hyperion")
+![5](/Gallery/HyperionWithEgg.jpg?raw=true "HyperionWithEgg")
 
 ## Picking/Editing Progress
-![4](/Gallery/PickingAndEditing.jpg?raw=true "PickingAndEditing")
+![1](/Gallery/PickingAndEditing.jpg?raw=true "PickingAndEditing")

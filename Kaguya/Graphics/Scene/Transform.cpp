@@ -44,7 +44,7 @@ void Transform::Rotate(float AngleX, float AngleY, float AngleZ)
 {
 	XMVECTOR currentRotation = XMLoadFloat4(&Orientation);
 	XMVECTOR pitch = XMQuaternionNormalize(XMQuaternionRotationAxis(Right(), AngleX));
-	XMVECTOR yaw = XMQuaternionNormalize(XMQuaternionRotationAxis(Math::Up, AngleY));
+	XMVECTOR yaw = XMQuaternionNormalize(XMQuaternionRotationAxis(g_XMIdentityR1, AngleY));
 	XMVECTOR roll = XMQuaternionNormalize(XMQuaternionRotationAxis(Forward(), AngleZ));
 
 	XMStoreFloat4(&Orientation, XMQuaternionMultiply(currentRotation, pitch));
@@ -68,19 +68,19 @@ DirectX::XMMATRIX Transform::Matrix() const
 	return S * R * T;
 }
 
-DirectX::XMVECTOR Transform::Up() const
-{
-	return XMVector3Rotate(Math::Up, XMLoadFloat4(&Orientation));
-}
-
 DirectX::XMVECTOR Transform::Right() const
 {
-	return XMVector3Rotate(Math::Right, XMLoadFloat4(&Orientation));
+	return XMVector3Rotate(g_XMIdentityR0, XMLoadFloat4(&Orientation));
+}
+
+DirectX::XMVECTOR Transform::Up() const
+{
+	return XMVector3Rotate(g_XMIdentityR1, XMLoadFloat4(&Orientation));
 }
 
 DirectX::XMVECTOR Transform::Forward() const
 {
-	return XMVector3Rotate(Math::Forward, XMLoadFloat4(&Orientation));
+	return XMVector3Rotate(g_XMIdentityR2, XMLoadFloat4(&Orientation));
 }
 
 bool Transform::operator==(const Transform& Transform) const

@@ -31,7 +31,6 @@ private:
 private:
 	std::unique_ptr<RenderDevice>			m_pRenderDevice;
 	std::unique_ptr<RenderGraph>			m_pRenderGraph;
-	RenderContext							m_GraphicsContext;
 
 	Scene									m_Scene;
 	std::unique_ptr<GpuScene>				m_pGpuScene;

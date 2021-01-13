@@ -6,6 +6,7 @@ using namespace DirectX;
 Scene CornellBox()
 {
 	Scene scene;
+	scene.Camera.Transform.Position = { 0.0f, 5.0f, -20.0f };
 	{
 		// Materials
 		auto defaultMtl = Scene::LoadMaterial("Default");
@@ -81,6 +82,7 @@ Scene CornellBox()
 Scene Hyperion()
 {
 	Scene scene;
+	scene.Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
 	{
 		auto floorMtl = Scene::LoadMaterial("Floor");
 		floorMtl.Albedo = { 0.75, 0.6585, 0.5582 };
@@ -159,8 +161,8 @@ Scene Hyperion()
 
 		auto ring1 = MeshInstance("Ring 1", ring, ringMtlIdx);
 		ring1.SetScale(0.005f);
+		ring1.Translate(0.499, 0.278, 0.004);
 		ring1.Rotate(1.984_Deg, 6.683_Deg, -15.97_Deg);
-		ring1.Translate(0.431, 0.296, 0.044);
 
 		auto ring2 = MeshInstance("Ring 2", ring, ringMtlIdx);
 		ring2.SetScale(0.005f);
@@ -189,6 +191,7 @@ Scene Hyperion()
 	return scene;
 }
 
+// TODO: Fix
 Scene PlaneWithLights()
 {
 	Scene Scene;
@@ -281,8 +284,6 @@ Scene GenerateScene(SampleScene SampleScene)
 	{
 	case SampleScene::CornellBox:					return CornellBox();
 	case SampleScene::Hyperion:						return Hyperion();
-
-	case SampleScene::PlaneWithLights:				return PlaneWithLights();
 	}
 	return Scene();
 }

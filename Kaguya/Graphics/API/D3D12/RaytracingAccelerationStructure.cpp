@@ -10,21 +10,9 @@ BottomLevelAccelerationStructure::BottomLevelAccelerationStructure()
 	ScratchSizeInBytes = ResultSizeInBytes = 0;
 }
 
-void BottomLevelAccelerationStructure::AddGeometry(const RaytracingGeometryDesc& Desc)
+void BottomLevelAccelerationStructure::AddGeometry(const D3D12_RAYTRACING_GEOMETRY_DESC& Desc)
 {
-	D3D12_RAYTRACING_GEOMETRY_DESC ApiDesc			= {};
-	ApiDesc.Type									= D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-	ApiDesc.Flags									= Desc.IsOpaque ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
-	ApiDesc.Triangles.Transform3x4					= NULL;
-	ApiDesc.Triangles.IndexFormat					= DXGI_FORMAT_R32_UINT;
-	ApiDesc.Triangles.VertexFormat					= DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
-	ApiDesc.Triangles.IndexCount					= Desc.NumIndices;
-	ApiDesc.Triangles.VertexCount					= Desc.NumVertices;
-	ApiDesc.Triangles.IndexBuffer					= Desc.pIndexBuffer->GetGpuVirtualAddress() + Desc.IndexOffset * Desc.IndexStride;
-	ApiDesc.Triangles.VertexBuffer.StartAddress		= Desc.pVertexBuffer->GetGpuVirtualAddress() + Desc.VertexOffset * Desc.VertexStride;
-	ApiDesc.Triangles.VertexBuffer.StrideInBytes	= Desc.VertexStride;
-
-	RaytracingGeometryDescs.push_back(ApiDesc);
+	RaytracingGeometryDescs.push_back(Desc);
 }
 
 void BottomLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes)
