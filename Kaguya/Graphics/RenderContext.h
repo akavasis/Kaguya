@@ -4,21 +4,24 @@
 class RenderContext
 {
 public:
-	RenderContext() = default;
 	RenderContext(size_t RenderPassIndex,
 		Buffer* pSystemConstants,
 		Buffer* pGpuData,
 		RenderDevice* pRenderDevice,
-		CommandContext* pCommandContext)
+		CommandList& CommandList)
 		: SV_RenderPassIndex(RenderPassIndex),
 		SV_pSystemConstants(pSystemConstants),
 		SV_pGpuData(pGpuData),
 		SV_pRenderDevice(pRenderDevice),
-		SV_pCommandContext(pCommandContext)
+		SV_CommandList(CommandList)
 	{
+
 	}
 
-	inline auto GetCommandContext() const { return SV_pCommandContext; }
+	CommandList& GetCommandList()
+	{
+		return SV_CommandList;
+	}
 
 	inline auto GetCurrentBackBufferHandle() const
 	{
@@ -74,8 +77,6 @@ public:
 		RenderResourceHandle HitGroupShaderTable,
 		UINT Width, UINT Height, UINT Depth = 1
 	);
-
-	auto operator->() const { return SV_pCommandContext; }
 private:
 	void SetPipelineState(PipelineState* pPipelineState);
 	void SetRaytracingPipelineState(RaytracingPipelineState* pRaytracingPipelineState);
@@ -88,7 +89,7 @@ private:
 	Buffer*					SV_pSystemConstants		= nullptr;
 	Buffer*					SV_pGpuData				= nullptr;
 	RenderDevice*			SV_pRenderDevice		= nullptr;
-	CommandContext*			SV_pCommandContext		= nullptr;
+	CommandList&			SV_CommandList;
 
 	RenderResourceHandle	m_PipelineStateHandle	= {};
 	PipelineState::Type		m_PipelineStateType		= PipelineState::Type::Unknown;

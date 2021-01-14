@@ -1,9 +1,5 @@
 #include "pch.h"
 #include "RaytracingAccelerationStructure.h"
-#include "Buffer.h"
-#include "CommandContext.h"
-
-using namespace DirectX;
 
 BottomLevelAccelerationStructure::BottomLevelAccelerationStructure()
 {
@@ -35,7 +31,7 @@ void BottomLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* 
 	*pResultSizeInBytes		= ResultSizeInBytes;
 }
 
-void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult)
+void BottomLevelAccelerationStructure::Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult)
 {
 	if (ScratchSizeInBytes == 0 || ResultSizeInBytes == 0)
 	{
@@ -50,23 +46,17 @@ void BottomLevelAccelerationStructure::Generate(CommandContext* pCommandContext,
 	// Create a descriptor of the requested builder work, to generate a
 	// bottom-level AS from the input parameters
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC Desc = {};
-	Desc.DestAccelerationStructureData						= pResult->GetGpuVirtualAddress();
+	Desc.DestAccelerationStructureData						= pResult->GetGPUVirtualAddress();
 	Desc.Inputs.Type										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
 	Desc.Inputs.Flags										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 	Desc.Inputs.NumDescs									= static_cast<UINT>(RaytracingGeometryDescs.size());
 	Desc.Inputs.DescsLayout									= D3D12_ELEMENTS_LAYOUT_ARRAY;
 	Desc.Inputs.pGeometryDescs								= RaytracingGeometryDescs.data();
 	Desc.SourceAccelerationStructureData					= NULL;
-	Desc.ScratchAccelerationStructureData					= pScratch->GetGpuVirtualAddress();
+	Desc.ScratchAccelerationStructureData					= pScratch->GetGPUVirtualAddress();
 
 	// Build the AS
-	pCommandContext->BuildRaytracingAccelerationStructure(&Desc, 0, nullptr);
-
-	// Wait for the builder to complete by setting a barrier on the resulting
-	// buffer. This is particularly important as the construction of the top-level
-	// hierarchy may be called right afterwards, before executing the command
-	// list.
-	pCommandContext->UAVBarrier(pResult);
+	pCommandList->BuildRaytracingAccelerationStructure(&Desc, 0, nullptr);
 }
 
 TopLevelAccelerationStructure::TopLevelAccelerationStructure()
@@ -108,7 +98,7 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDe
 	*pResultSizeInBytes			= ResultSizeInBytes;
 }
 
-void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult, Buffer* pInstanceDescs)
+void TopLevelAccelerationStructure::Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult, ID3D12Resource* pInstanceDescs)
 {
 	if (ScratchSizeInBytes == 0 || ResultSizeInBytes == 0)
 	{
@@ -123,20 +113,15 @@ void TopLevelAccelerationStructure::Generate(CommandContext* pCommandContext, Bu
 	// Create a descriptor of the requested builder work, to generate a top - level
 	// AS from the input parameters
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC Desc = {};
-	Desc.DestAccelerationStructureData						= pResult->GetGpuVirtualAddress();
+	Desc.DestAccelerationStructureData						= pResult->GetGPUVirtualAddress();
 	Desc.Inputs.Type										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 	Desc.Inputs.Flags										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
 	Desc.Inputs.NumDescs									= NumInstances;
 	Desc.Inputs.DescsLayout									= D3D12_ELEMENTS_LAYOUT_ARRAY;
-	Desc.Inputs.InstanceDescs								= pInstanceDescs->GetGpuVirtualAddress();
+	Desc.Inputs.InstanceDescs								= pInstanceDescs->GetGPUVirtualAddress();
 	Desc.SourceAccelerationStructureData					= NULL;
-	Desc.ScratchAccelerationStructureData					= pScratch->GetGpuVirtualAddress();
+	Desc.ScratchAccelerationStructureData					= pScratch->GetGPUVirtualAddress();
 
 	// Build the top-level AS
-	pCommandContext->BuildRaytracingAccelerationStructure(&Desc, 0, nullptr);
-
-	// Wait for the builder to complete by setting a barrier on the resulting
-	// buffer. This can be important in case the rendering is triggered
-	// immediately afterwards, without executing the command list
-	pCommandContext->UAVBarrier(pResult);
+	pCommandList->BuildRaytracingAccelerationStructure(&Desc, 0, nullptr);
 }

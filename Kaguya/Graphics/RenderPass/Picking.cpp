@@ -22,8 +22,6 @@ namespace
 Picking::Picking()
 	: RenderPass("Picking", { 0, 0 }, 0)
 {
-	UseRayTracing = true;
-
 	pGpuScene = nullptr;
 }
 
@@ -220,7 +218,9 @@ void Picking::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 		1, 1
 	);
 
+	RenderContext.TransitionBarrier(m_PickingResult, Resource::State::CopySource);
 	RenderContext.CopyBufferRegion(m_PickingResultReadBack, 0, m_PickingResult, 0, sizeof(int));
+	RenderContext.TransitionBarrier(m_PickingResult, Resource::State::NonPixelShaderResource);
 }
 
 void Picking::StateRefresh()

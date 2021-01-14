@@ -12,15 +12,15 @@ class GpuScene
 public:
 	GpuScene(RenderDevice* pRenderDevice);
 
-	void UploadTextures(RenderContext& RenderContext);
-	void UploadModels(RenderContext& RenderContext);
+	void UploadTextures(CommandList& CommandList);
+	void UploadModels(CommandList& CommandList);
 	void DisposeResources();
 
 	void SetSelectedInstanceID(INT SelectedInstanceID);
 
 	void RenderGui();
 	bool Update(float AspectRatio);
-	void CreateTopLevelAS(CommandContext* pCommandContext);
+	void CreateTopLevelAS(CommandList& CommandList);
 
 	inline auto GetLightTable()						const { return m_LightTable; }
 	inline auto GetMaterialTable()					const { return m_MaterialTable; }
@@ -29,15 +29,12 @@ public:
 
 	HLSL::Camera GetHLSLCamera() const;
 	HLSL::Camera GetHLSLPreviousCamera() const;
-
 private:
-	void CreateBottomLevelAS(RenderContext& RenderContext);
-
+	void CreateBottomLevelAS(CommandList& CommandList);
 public:
 	Scene* pScene;
 	BufferManager BufferManager;
 	TextureManager TextureManager;
-
 private:
 	struct RTTLAS
 	{

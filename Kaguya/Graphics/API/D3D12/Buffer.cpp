@@ -8,7 +8,7 @@ Buffer::Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
 {
 }
 
-Buffer::Buffer(const Device* pDevice, BufferProxy& Proxy)
+Buffer::Buffer(ID3D12Device* pDevice, BufferProxy& Proxy)
 	: Resource(pDevice, Proxy),
 	m_Stride(Proxy.m_Stride),
 	m_CpuAccess(Proxy.m_CpuAccess),
@@ -22,7 +22,7 @@ Buffer::Buffer(const Device* pDevice, BufferProxy& Proxy)
 	}
 }
 
-Buffer::Buffer(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy)
+Buffer::Buffer(ID3D12Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, BufferProxy& Proxy)
 	: Resource(pDevice, pHeap, HeapOffset, Proxy),
 	m_Stride(Proxy.m_Stride),
 	m_CpuAccess(Proxy.m_CpuAccess),

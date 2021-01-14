@@ -1,5 +1,4 @@
 #pragma once
-
 #include <d3d12.h>
 #include <vector>
 #include <unordered_map>
@@ -27,9 +26,8 @@ public:
 
 	inline auto GetBlueNoise()									{ return m_NoiseTextures[AssetTextures::BlueNoise]; }
 
-	void Stage(Scene& Scene, RenderContext& RenderContext);
+	void Stage(Scene& Scene, CommandList& CommandList);
 	void DisposeResources();
-
 private:
 	struct AssetTextures
 	{
@@ -62,22 +60,19 @@ private:
 		std::size_t										NumSubresources;			// Number of subresources
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts;	// Footprint is synonymous to layout
 		std::size_t										MipLevels;					// Indicates what mip levels this texture should have
-		bool											GenerateMips;				// Indicates whether or not we should generate mips for the staged texture
 	};
-
+private:
 	StagingTexture CreateStagingTexture(std::string Name, D3D12_RESOURCE_DESC Desc, const DirectX::ScratchImage& ScratchImage, std::size_t MipLevels, bool GenerateMips);
 
 	void LoadSystemTextures();
 	void LoadNoiseTextures();
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
 	void LoadMaterial(Material& Material);
-	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext);
-	void GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext);
-	void GenerateMipsSRGB(const std::string& Name, RenderResourceHandle TextureHandle, RenderContext& RenderContext);
 
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
-
+private:
 	RenderDevice*												pRenderDevice;
+	ID3D12Device4*												pDevice;
 
 	RenderResourceHandle										m_SystemTextureHeap;
 	RenderResourceHandle										m_SystemTextures[AssetTextures::NumSystemTextures];
@@ -90,5 +85,4 @@ private:
 	std::unordered_map<std::string, RenderResourceHandle>		m_TextureCache;
 
 	std::unordered_map<RenderResourceHandle, StagingTexture>	m_UnstagedTextures;
-	std::vector<RenderResourceHandle>							m_TemporaryResources;
 };

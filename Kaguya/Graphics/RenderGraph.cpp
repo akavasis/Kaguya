@@ -37,7 +37,7 @@ RenderPass* RenderGraph::AddRenderPass(RenderPass* pRenderPass)
 
 void RenderGraph::Initialize()
 {
-	m_CommandContexts.resize(NumRenderPass());
+	m_CommandLists.resize(NumRenderPass());
 	m_WorkerExecuteEvents.resize(NumRenderPass());
 	m_WorkerCompleteEvents.resize(NumRenderPass());
 	m_ThreadParameters.resize(NumRenderPass());
@@ -68,7 +68,7 @@ void RenderGraph::Initialize()
 	auto pGpuData					= SV_pRenderDevice->GetBuffer(m_GpuData);
 	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
 	{
-		m_CommandContexts[i] = SV_pRenderDevice->GetGraphicsContext(i + 1);
+		m_CommandLists[i] = &SV_pRenderDevice->GetGraphicsContext(i + 1);
 		m_WorkerExecuteEvents[i].create();
 		m_WorkerCompleteEvents[i].create();
 
@@ -79,7 +79,7 @@ void RenderGraph::Initialize()
 		Parameter.CompleteSignal	= m_WorkerCompleteEvents[i].get();
 		Parameter.pRenderPass		= m_RenderPasses[i].get();
 		Parameter.pRenderDevice		= SV_pRenderDevice;
-		Parameter.pCommandContext	= m_CommandContexts[i];
+		Parameter.pCommandList	= m_CommandLists[i];
 		Parameter.pSystemConstants	= pSystemConstants;
 		Parameter.pGpuData			= pGpuData;
 
@@ -149,9 +149,9 @@ void RenderGraph::Execute(bool Refresh)
 	WaitForMultipleObjects(m_WorkerCompleteEvents.size(), m_WorkerCompleteEvents.data()->addressof(), TRUE, INFINITE);
 }
 
-std::vector<CommandContext*>& RenderGraph::GetCommandContexts()
+std::vector<CommandList*>& RenderGraph::GetCommandContexts()
 {
-	return m_CommandContexts;
+	return m_CommandLists;
 }
 
 DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
@@ -164,7 +164,7 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 	auto CompleteSignal		= pRenderPassThreadProcParameter->CompleteSignal;
 	auto pRenderPass		= pRenderPassThreadProcParameter->pRenderPass;
 	auto pRenderDevice		= pRenderPassThreadProcParameter->pRenderDevice;
-	auto pCommandContext	= pRenderPassThreadProcParameter->pCommandContext;
+	auto& CommandList		= *pRenderPassThreadProcParameter->pCommandList;
 	auto pSystemConstants	= pRenderPassThreadProcParameter->pSystemConstants;
 	auto pGpuData			= pRenderPassThreadProcParameter->pGpuData;
 	auto Name				= UTF8ToUTF16(pRenderPass->Name);
@@ -181,11 +181,11 @@ DWORD WINAPI RenderGraph::RenderPassThreadProc(_In_ PVOID pParameter)
 			break;
 		}
 
-		RenderContext RenderContext(ThreadID, pSystemConstants, pGpuData, pRenderDevice, pCommandContext);
+		RenderContext RenderContext(ThreadID, pSystemConstants, pGpuData, pRenderDevice, CommandList);
 		{
-			PIXScopedEvent(RenderContext->GetApiHandle(), 0, Name.data());
+			PIXScopedEvent(CommandList.GetApiHandle(), 0, Name.data());
 
-			pRenderDevice->BindGpuDescriptorHeap(pCommandContext);
+			pRenderDevice->BindGpuDescriptorHeap(CommandList);
 
 			if (!pRenderPass->ExplicitResourceTransition)
 			{

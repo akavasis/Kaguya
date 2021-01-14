@@ -1,5 +1,4 @@
 #pragma once
-
 #include <wrl/client.h>
 #include <d3d12.h>
 #include "d3dx12.h"
@@ -8,9 +7,6 @@
 
 #include "Texture.h"
 #include "Buffer.h"
-
-//----------------------------------------------------------------------------------------------------
-class DescriptorHeap;
 
 //----------------------------------------------------------------------------------------------------
 struct Descriptor
@@ -29,6 +25,8 @@ class DescriptorHeap
 public:
 	DescriptorHeap() = default;
 	DescriptorHeap(ID3D12Device* pDevice, std::vector<UINT> Ranges, bool ShaderVisible, D3D12_DESCRIPTOR_HEAP_TYPE Type);
+
+	operator auto() { return m_DescriptorHeap.Get(); }
 
 	inline auto GetApiHandle() const { return m_DescriptorHeap.Get(); }
 	inline auto GetDescriptorFromStart() const { return m_StartDescriptor; }
@@ -105,19 +103,28 @@ public:
 class SamplerDescriptorHeap : public DescriptorHeap
 {
 public:
-	class Entry
+	struct Entry
 	{
 	public:
-		Entry(ID3D12Device* pDevice, Descriptor DestDescriptor)
-			: pDevice(pDevice), DestDescriptor(DestDescriptor)
-		{
-		}
+		void operator=(const D3D12_SAMPLER_DESC& Desc);
 
-		// void operator=(Sampler* pSampler);
-	private:
 		ID3D12Device* pDevice;
 		Descriptor DestDescriptor;
 	};
+
+	Descriptor GetDescriptorAt(UINT HeapIndex) const
+	{
+		return DescriptorHeap::GetDescriptorAt(0, HeapIndex);
+	}
+
+	Entry operator[](UINT Index)
+	{
+		return Entry
+		{
+			.pDevice = m_pDevice,
+			.DestDescriptor = GetDescriptorAt(Index)
+		};
+	}
 
 	SamplerDescriptorHeap() = default;
 	SamplerDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors, bool ShaderVisible);
@@ -150,14 +157,14 @@ public:
 	RenderTargetDescriptorHeap() = default;
 	RenderTargetDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors);
 
-	Entry operator[](UINT Index)
-	{
-		return Entry(m_pDevice, GetDescriptorAt(Index));
-	}
-
 	Descriptor GetDescriptorAt(UINT HeapIndex) const
 	{
 		return DescriptorHeap::GetDescriptorAt(0, HeapIndex);
+	}
+
+	Entry operator[](UINT Index)
+	{
+		return Entry(m_pDevice, GetDescriptorAt(Index));
 	}
 
 	static D3D12_RENDER_TARGET_VIEW_DESC GetRenderTargetViewDesc(Texture* pTexture, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});

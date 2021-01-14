@@ -340,7 +340,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC Desc = {};
 	UINT mostDetailedMip = MostDetailedMip.value_or(0);
-	UINT mipLevels = MipLevels.value_or(pTexture->GetMipLevels());
+	UINT mipLevels = MipLevels.value_or(pTexture->MipLevels);
 
 	auto GetValidSRVFormat = [](DXGI_FORMAT Format)
 	{
@@ -353,20 +353,20 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 		}
 	};
 
-	Desc.Format = GetValidSRVFormat(pTexture->GetFormat());
+	Desc.Format = GetValidSRVFormat(pTexture->Format);
 	Desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
 	switch (pTexture->GetType())
 	{
 	case Resource::Type::Texture1D:
 	{
-		if (pTexture->GetDepthOrArraySize() > 1)
+		if (pTexture->DepthOrArraySize > 1)
 		{
 			Desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
 			Desc.Texture1DArray.MostDetailedMip = mostDetailedMip;
 			Desc.Texture1DArray.MipLevels = mipLevels;
 			Desc.Texture1DArray.FirstArraySlice = 0;
-			Desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			Desc.Texture1DArray.ArraySize = pTexture->DepthOrArraySize;
 			Desc.Texture1DArray.ResourceMinLODClamp = 0.0f;
 		}
 		else
@@ -381,12 +381,12 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CBSRUADescriptorHeap::GetShaderResourceViewDesc(
 
 	case Resource::Type::Texture2D:
 	{
-		if (pTexture->GetDepthOrArraySize() > 1)
+		if (pTexture->DepthOrArraySize > 1)
 		{
 			Desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
 			Desc.Texture2DArray.MostDetailedMip = mostDetailedMip;
 			Desc.Texture2DArray.MipLevels = mipLevels;
-			Desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			Desc.Texture2DArray.ArraySize = pTexture->DepthOrArraySize;
 			Desc.Texture2DArray.PlaneSlice = 0;
 			Desc.Texture2DArray.ResourceMinLODClamp = 0.0f;
 		}
@@ -428,19 +428,19 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDes
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
 
-	Desc.Format = pTexture->GetFormat();
+	Desc.Format = pTexture->Format;
 
 	// TODO: Add buffer support
 	switch (pTexture->GetType())
 	{
 	case Resource::Type::Texture1D:
 	{
-		if (pTexture->GetDepthOrArraySize() > 1)
+		if (pTexture->DepthOrArraySize > 1)
 		{
 			Desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
 			Desc.Texture1DArray.MipSlice = mipSlice;
 			Desc.Texture1DArray.FirstArraySlice = arraySlice;
-			Desc.Texture1DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			Desc.Texture1DArray.ArraySize = pTexture->DepthOrArraySize;
 		}
 		else
 		{
@@ -453,12 +453,12 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC CBSRUADescriptorHeap::GetUnorderedAccessViewDes
 	case Resource::Type::Texture2D: [[fallthrough]];
 	case Resource::Type::TextureCube:
 	{
-		if (pTexture->GetDepthOrArraySize() > 1)
+		if (pTexture->DepthOrArraySize > 1)
 		{
 			Desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
 			Desc.Texture2DArray.MipSlice = mipSlice;
 			Desc.Texture2DArray.FirstArraySlice = arraySlice;
-			Desc.Texture2DArray.ArraySize = pTexture->GetDepthOrArraySize();
+			Desc.Texture2DArray.ArraySize = pTexture->DepthOrArraySize;
 			Desc.Texture2DArray.PlaneSlice = 0;
 		}
 		else
@@ -499,6 +499,11 @@ SamplerDescriptorHeap::SamplerDescriptorHeap(ID3D12Device* pDevice, UINT NumDesc
 
 }
 
+void SamplerDescriptorHeap::Entry::operator=(const D3D12_SAMPLER_DESC& Desc)
+{
+	pDevice->CreateSampler(&Desc, DestDescriptor.CpuHandle);
+}
+
 //----------------------------------------------------------------------------------------------------
 RenderTargetDescriptorHeap::RenderTargetDescriptorHeap(ID3D12Device* pDevice, UINT NumDescriptors)
 	: DescriptorHeap(pDevice, { NumDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
@@ -511,16 +516,16 @@ D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDes
 	D3D12_RENDER_TARGET_VIEW_DESC Desc = {};
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
-	UINT arraySize = ArraySize.value_or(pTexture->GetDepthOrArraySize());
+	UINT arraySize = ArraySize.value_or(pTexture->DepthOrArraySize);
 
-	Desc.Format = pTexture->GetFormat();
+	Desc.Format = pTexture->Format;
 
 	// TODO: Add buffer support and MS support
 	switch (pTexture->GetType())
 	{
 	case Resource::Type::Texture1D:
 	{
-		if (pTexture->GetDepthOrArraySize() > 1)
+		if (pTexture->DepthOrArraySize > 1)
 		{
 			Desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
 			Desc.Texture1DArray.MipSlice = mipSlice;
@@ -538,7 +543,7 @@ D3D12_RENDER_TARGET_VIEW_DESC RenderTargetDescriptorHeap::GetRenderTargetViewDes
 	case Resource::Type::Texture2D: [[fallthrough]];
 	case Resource::Type::TextureCube:
 	{
-		if (pTexture->GetDepthOrArraySize() > 1)
+		if (pTexture->DepthOrArraySize > 1)
 		{
 			Desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 			Desc.Texture2DArray.MipSlice = mipSlice;
@@ -591,7 +596,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	D3D12_DEPTH_STENCIL_VIEW_DESC Desc = {};
 	UINT arraySlice = ArraySlice.value_or(0);
 	UINT mipSlice = MipSlice.value_or(0);
-	UINT arraySize = ArraySize.value_or(pTexture->GetDepthOrArraySize());
+	UINT arraySize = ArraySize.value_or(pTexture->DepthOrArraySize);
 
 	auto GetValidDSVFormat = [](DXGI_FORMAT Format)
 	{
@@ -604,7 +609,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 		}
 	};
 
-	Desc.Format = GetValidDSVFormat(pTexture->GetFormat());
+	Desc.Format = GetValidDSVFormat(pTexture->Format);
 	Desc.Flags = D3D12_DSV_FLAG_NONE;
 
 	// TODO: Add support and MS support
@@ -612,7 +617,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	{
 	case Resource::Type::Texture1D:
 	{
-		if (pTexture->GetDepthOrArraySize() > 1)
+		if (pTexture->DepthOrArraySize > 1)
 		{
 			Desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
 			Desc.Texture1DArray.MipSlice = mipSlice;
@@ -630,7 +635,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC DepthStencilDescriptorHeap::GetDepthStencilViewDes
 	case Resource::Type::Texture2D: [[fallthrough]];
 	case Resource::Type::TextureCube:
 	{
-		if (pTexture->GetDepthOrArraySize() > 1)
+		if (pTexture->DepthOrArraySize > 1)
 		{
 			Desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 			Desc.Texture2DArray.MipSlice = mipSlice;

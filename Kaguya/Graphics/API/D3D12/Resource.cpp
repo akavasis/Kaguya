@@ -32,7 +32,7 @@ Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource
 	m_HeapOffset = 0;
 }
 
-Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
+Resource::Resource(ID3D12Device* pDevice, ResourceProxy& Proxy)
 {
 	Proxy.Link();
 
@@ -41,7 +41,7 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 	const D3D12_RESOURCE_DESC				ResourceDesc			= Proxy.BuildD3DDesc();
 	const D3D12_RESOURCE_STATES				ResourceStates			= GetD3D12ResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE*				pClearValue				= Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
-	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetApiHandle()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
 	m_Type				= Proxy.m_Type;
 	m_BindFlags			= Proxy.BindFlags;
@@ -50,7 +50,7 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 	m_SizeInBytes		= ResourceAllocationInfo.SizeInBytes;
 	m_Alignment			= ResourceAllocationInfo.Alignment;
 	m_HeapOffset		= 0;
-	ThrowIfFailed(pDevice->GetApiHandle()->CreateCommittedResource(
+	ThrowIfFailed(pDevice->CreateCommittedResource(
 		&HeapProperties,
 		HeapFlags,
 		&ResourceDesc,
@@ -59,14 +59,14 @@ Resource::Resource(const Device* pDevice, ResourceProxy& Proxy)
 		IID_PPV_ARGS(&m_pResource)));
 }
 
-Resource::Resource(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy)
+Resource::Resource(ID3D12Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, ResourceProxy& Proxy)
 {
 	Proxy.Link();
 
 	const D3D12_RESOURCE_DESC				ResourceDesc			= Proxy.BuildD3DDesc();
 	D3D12_RESOURCE_STATES					ResourceStates			= GetD3D12ResourceStates(Proxy.InitialState);
 	const D3D12_CLEAR_VALUE*				pClearValue				= Proxy.m_ClearValue.has_value() ? &(Proxy.m_ClearValue.value()) : nullptr;
-	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetApiHandle()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+	const D3D12_RESOURCE_ALLOCATION_INFO	ResourceAllocationInfo	= pDevice->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
 	m_Type				= Proxy.m_Type;
 	m_BindFlags			= Proxy.BindFlags;
@@ -76,17 +76,13 @@ Resource::Resource(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, 
 	m_Alignment			= ResourceAllocationInfo.Alignment;
 	m_HeapOffset		= HeapOffset;
 
-	ThrowIfFailed(pDevice->GetApiHandle()->CreatePlacedResource(
+	ThrowIfFailed(pDevice->CreatePlacedResource(
 		pHeap,
 		HeapOffset,
 		&ResourceDesc,
 		ResourceStates,
 		pClearValue,
 		IID_PPV_ARGS(&m_pResource)));
-}
-
-Resource::~Resource()
-{
 }
 
 D3D12_RESOURCE_DIMENSION GetD3D12ResourceDimension(Resource::Type Type)

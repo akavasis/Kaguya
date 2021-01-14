@@ -1,5 +1,4 @@
 #pragma once
-#include <d3d12.h>
 #include <wrl/client.h>
 #include <DXProgrammableCapture.h>
 
@@ -13,7 +12,7 @@ namespace Kaguya
 			PIXCapture();
 			~PIXCapture();
 		private:
-			Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> graphicsAnalysis;
+			Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> GraphicsAnalysis;
 		};
 	}
 }

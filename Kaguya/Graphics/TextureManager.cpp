@@ -5,12 +5,13 @@
 
 TextureManager::TextureManager(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice)
+	, pDevice(pRenderDevice->Device)
 {
 	LoadSystemTextures();
 	LoadNoiseTextures();
 }
 
-void TextureManager::Stage(Scene& Scene, RenderContext& RenderContext)
+void TextureManager::Stage(Scene& Scene, CommandList& CommandList)
 {
 	for (auto& material : Scene.Materials)
 	{
@@ -20,19 +21,40 @@ void TextureManager::Stage(Scene& Scene, RenderContext& RenderContext)
 	// Gpu copy
 	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
 	{
-		StageTexture(handle, stagingTexture, RenderContext);
+#ifdef _DEBUG
+		std::wstring Path = UTF8ToUTF16(stagingTexture.Name);
+		PIXScopedEvent(CommandList.GetApiHandle(), 0, Path.data());
+#endif
+
+		Texture* pTexture = pRenderDevice->GetTexture(handle);
+		Texture* pStagingResourceTexture = &stagingTexture.Texture;
+
+		// Stage texture
+		CommandList.TransitionBarrier(pTexture->GetApiHandle(), Resource::State::CopyDest);
+		CommandList.FlushResourceBarriers();
+		for (size_t subresourceIndex = 0; subresourceIndex < stagingTexture.NumSubresources; ++subresourceIndex)
+		{
+			D3D12_TEXTURE_COPY_LOCATION Destination = {};
+			Destination.pResource = pTexture->GetApiHandle();
+			Destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			Destination.SubresourceIndex = subresourceIndex;
+
+			D3D12_TEXTURE_COPY_LOCATION Source = {};
+			Source.pResource = pStagingResourceTexture->GetApiHandle();
+			Source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			Source.PlacedFootprint = stagingTexture.PlacedSubresourceLayouts[subresourceIndex];
+			CommandList->CopyTextureRegion(&Destination, 0, 0, 0, &Source, nullptr);
+		}
+
+		CommandList.TransitionBarrier(pTexture->GetApiHandle(), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+		LOG_INFO("{} Loaded", stagingTexture.Name);
 	}
-	RenderContext->FlushResourceBarriers();
+	CommandList.FlushResourceBarriers();
 }
 
 void TextureManager::DisposeResources()
 {
 	m_UnstagedTextures.clear();
-
-	for (auto& handle : m_TemporaryResources)
-	{
-		pRenderDevice->Destroy(handle);
-	}
 }
 
 TextureManager::StagingTexture TextureManager::CreateStagingTexture(std::string Name, D3D12_RESOURCE_DESC Desc, const DirectX::ScratchImage& ScratchImage, std::size_t MipLevels, bool GenerateMips)
@@ -53,13 +75,12 @@ TextureManager::StagingTexture TextureManager::CreateStagingTexture(std::string 
 	std::vector<UINT64>								RowSizeInBytes(NumSubresources);
 	UINT64											TotalBytes = 0;
 
-	auto pD3DDevice = pRenderDevice->Device.GetApiHandle();
-	pD3DDevice->GetCopyableFootprints(&Desc, 0, NumSubresources, 0,
+	pDevice->GetCopyableFootprints(&Desc, 0, NumSubresources, 0,
 		PlacedSubresourceLayouts.data(), NumRows.data(), RowSizeInBytes.data(), &TotalBytes);
 
 	auto HeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	Desc = CD3DX12_RESOURCE_DESC::Buffer(TotalBytes);
-	pD3DDevice->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE,
+	pDevice->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE,
 		&Desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(StagingResource.ReleaseAndGetAddressOf()));
 
 	// CPU Upload
@@ -92,7 +113,6 @@ TextureManager::StagingTexture TextureManager::CreateStagingTexture(std::string 
 	StagingTexture.NumSubresources = NumSubresources;
 	StagingTexture.PlacedSubresourceLayouts = std::move(PlacedSubresourceLayouts);
 	StagingTexture.MipLevels = MipLevels;
-	StagingTexture.GenerateMips = GenerateMips;
 
 	return StagingTexture;
 }
@@ -145,7 +165,7 @@ void TextureManager::LoadSystemTextures()
 		ScratchImages[i] = std::move(ScratchImage);
 	}
 
-	auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
+	auto ResourceAllocationInfo = pRenderDevice->Device->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
 	if (ResourceAllocationInfo.Alignment != D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT)
 	{
 		// If the alignment requested is not granted, then let D3D tell us
@@ -154,7 +174,7 @@ void TextureManager::LoadSystemTextures()
 		{
 			ResourceDesc.Alignment = 0;
 		}
-		ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
+		ResourceAllocationInfo = pRenderDevice->Device->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
 	}
 	
 	auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES);
@@ -216,7 +236,7 @@ void TextureManager::LoadNoiseTextures()
 		ScratchImages[i] = std::move(ScratchImage);
 	}
 
-	auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
+	auto ResourceAllocationInfo = pDevice->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
 
 	auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES);
 	m_NoiseTextureHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, "System Texture Heap");
@@ -377,159 +397,6 @@ void TextureManager::LoadMaterial(Material& Material)
 
 		Material.TextureIndices[i] = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
 	}
-}
-
-void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, RenderContext& RenderContext)
-{
-#ifdef _DEBUG
-	std::wstring Path = UTF8ToUTF16(StagingTexture.Name);
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, Path.data());
-#endif
-
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-	Texture* pStagingResourceTexture = &StagingTexture.Texture;
-
-	// Stage texture
-	RenderContext->TransitionBarrier(pTexture, Resource::State::CopyDest);
-	RenderContext->FlushResourceBarriers();
-	for (size_t subresourceIndex = 0; subresourceIndex < StagingTexture.NumSubresources; ++subresourceIndex)
-	{
-		D3D12_TEXTURE_COPY_LOCATION Destination = {};
-		Destination.pResource = pTexture->GetApiHandle();
-		Destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		Destination.SubresourceIndex = subresourceIndex;
-
-		D3D12_TEXTURE_COPY_LOCATION Source = {};
-		Source.pResource = pStagingResourceTexture->GetApiHandle();
-		Source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		Source.PlacedFootprint = StagingTexture.PlacedSubresourceLayouts[subresourceIndex];
-		RenderContext->CopyTextureRegion(&Destination, 0, 0, 0, &Source, nullptr);
-	}
-
-	if (StagingTexture.GenerateMips)
-	{
-		if (pRenderDevice->Device.IsUAVCompatable(pTexture->GetFormat()))
-		{
-			GenerateMipsUAV(TextureHandle, RenderContext);
-		}
-		else if (DirectX::IsSRGB(pTexture->GetFormat()))
-		{
-			GenerateMipsSRGB(StagingTexture.Name, TextureHandle, RenderContext);
-		}
-	}
-
-	RenderContext->TransitionBarrier(pTexture, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
-	LOG_INFO("{} Loaded", StagingTexture.Name);
-}
-
-void TextureManager::GenerateMipsUAV(RenderResourceHandle TextureHandle, RenderContext& RenderContext)
-{
-	// Credit: https://github.com/jpvanoosten/LearningDirectX12/blob/master/DX12Lib/src/CommandList.cpp
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-
-	RenderContext.SetPipelineState(ComputePSOs::GenerateMips);
-
-	GenerateMipsData GenerateMipsData	= {};
-	GenerateMipsData.IsSRGB				= DirectX::IsSRGB(pTexture->GetFormat());
-
-	for (uint32_t srcMip = 0; srcMip < pTexture->GetMipLevels() - 1u; )
-	{
-		uint64_t srcWidth	= pTexture->GetWidth() >> srcMip;
-		uint32_t srcHeight	= pTexture->GetHeight() >> srcMip;
-		uint32_t dstWidth	= static_cast<uint32_t>(srcWidth >> 1);
-		uint32_t dstHeight	= srcHeight >> 1;
-
-		// Determine the switch case to use in CS
-		// 0b00(0): Both width and height are even.
-		// 0b01(1): Width is odd, height is even.
-		// 0b10(2): Width is even, height is odd.
-		// 0b11(3): Both width and height are odd.
-		GenerateMipsData.SrcDimension = (srcHeight & 1) << 1 | (srcWidth & 1);
-
-		// How many mipmap levels to compute this pass (max 4 mips per pass)
-		DWORD mipCount;
-
-		// The number of times we can half the size of the texture and get
-		// exactly a 50% reduction in size.
-		// A 1 bit in the width or height indicates an odd dimension.
-		// The case where either the width or the height is exactly 1 is handled
-		// as a special case (as the dimension does not require reduction).
-		_BitScanForward(&mipCount, (dstWidth == 1 ? dstHeight : dstWidth) | (dstHeight == 1 ? dstWidth : dstHeight));
-		// Maximum number of mips to generate is 4.
-		mipCount = std::min<DWORD>(4, mipCount + 1);
-		// Clamp to total number of mips left over.
-		mipCount = (srcMip + mipCount) >= pTexture->GetMipLevels() ? pTexture->GetMipLevels() - srcMip - 1 : mipCount;
-
-		// Dimensions should not reduce to 0.
-		// This can happen if the width and height are not the same.
-		dstWidth = std::max<DWORD>(1, dstWidth);
-		dstHeight = std::max<DWORD>(1, dstHeight);
-
-		GenerateMipsData.SrcMipLevel	= srcMip;
-		GenerateMipsData.NumMipLevels	= mipCount;
-		GenerateMipsData.TexelSize.x	= 1.0f / (float)dstWidth;
-		GenerateMipsData.TexelSize.y	= 1.0f / (float)dstHeight;
-
-		for (uint32_t mip = 0; mip < mipCount; ++mip)
-		{
-			pRenderDevice->CreateUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1);
-		}
-
-		GenerateMipsData.InputIndex = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
-
-		int32_t outputIndices[4] = { -1, -1, -1, -1 };
-		for (uint32_t mip = 0; mip < mipCount; ++mip)
-		{
-			outputIndices[mip] = pRenderDevice->GetUnorderedAccessView(TextureHandle, {}, srcMip + mip + 1).HeapIndex;
-		}
-
-		GenerateMipsData.Output1Index = outputIndices[0];
-		GenerateMipsData.Output2Index = outputIndices[1];
-		GenerateMipsData.Output3Index = outputIndices[2];
-		GenerateMipsData.Output4Index = outputIndices[3];
-
-		RenderContext->TransitionBarrier(pTexture, Resource::State::NonPixelShaderResource, srcMip);
-		for (uint32_t mip = 0; mip < mipCount; ++mip)
-		{
-			RenderContext->TransitionBarrier(pTexture, Resource::State::UnorderedAccess, srcMip + mip + 1);
-		}
-
-		RenderContext->SetComputeRoot32BitConstants(0, sizeof(GenerateMipsData) / 4, &GenerateMipsData, 0);
-
-		RenderContext->Dispatch2D(dstWidth, dstHeight, 8, 8);
-
-		RenderContext->UAVBarrier(pTexture);
-		RenderContext->FlushResourceBarriers();
-
-		srcMip += mipCount;
-	}
-}
-
-void TextureManager::GenerateMipsSRGB(const std::string& Name, RenderResourceHandle TextureHandle, RenderContext& RenderContext)
-{
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-
-	RenderResourceHandle textureCopyHandle = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Texture, Name + " Copy");
-	pRenderDevice->CreateTexture(textureCopyHandle, pTexture->GetType(), [&](TextureProxy& proxy)
-	{
-		proxy.SetFormat(pTexture->GetFormat());
-		proxy.SetWidth(pTexture->GetWidth());
-		proxy.SetHeight(pTexture->GetHeight());
-		proxy.SetDepthOrArraySize(pTexture->GetDepthOrArraySize());
-		proxy.SetMipLevels(pTexture->GetMipLevels());
-		proxy.BindFlags = Resource::Flags::UnorderedAccess;
-		proxy.InitialState = Resource::State::CopyDest;
-	});
-
-	Texture* pDstTexture = pRenderDevice->GetTexture(textureCopyHandle);
-
-	RenderContext->CopyResource(pDstTexture, pTexture);
-
-	GenerateMipsUAV(textureCopyHandle, RenderContext);
-
-	RenderContext->CopyResource(pTexture, pDstTexture);
-
-	m_TemporaryResources.push_back(textureCopyHandle);
 }
 
 DXGI_FORMAT TextureManager::GetUAVCompatableFormat(DXGI_FORMAT Format)

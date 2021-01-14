@@ -10,8 +10,6 @@ class CommandAllocatorPool
 public:
 	void Create(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type);
 
-	inline auto GetType() const { return m_Type; }
-
 	ID3D12CommandAllocator* RequestCommandAllocator(UINT64 CompletedFenceValue);
 	void DiscardCommandAllocator(UINT64 FenceValue, ID3D12CommandAllocator* pCommandAllocator);
 private:

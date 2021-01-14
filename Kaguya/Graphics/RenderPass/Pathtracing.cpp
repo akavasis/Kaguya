@@ -30,8 +30,6 @@ namespace
 Pathtracing::Pathtracing(UINT Width, UINT Height)
 	: RenderPass("Path tracing", { Width, Height }, NumResources)
 {
-	UseRayTracing = true;
-
 	HitGroupShaderTable.Reserve(Scene::MAX_MESH_INSTANCE_SUPPORTED);
 }
 
@@ -245,17 +243,17 @@ void Pathtracing::Execute(RenderContext& RenderContext, RenderGraph* pRenderGrap
 	RenderContext.SetRootShaderResourceView(2, pGpuScene->GetLightTable());
 	RenderContext.SetRootShaderResourceView(3, pGpuScene->GetMaterialTable());
 
-	D3D12_DISPATCH_RAYS_DESC Desc = {};
-	Desc.RayGenerationShaderRecord = RayGenerationShaderRecord;
+	D3D12_DISPATCH_RAYS_DESC Desc = 
+	{
+		.RayGenerationShaderRecord	= RayGenerationShaderRecord,
+		.MissShaderTable			= MissShaderTable,
+		.HitGroupTable				= HitGroupTable,
+		.Width						= Properties.Width,
+		.Height						= Properties.Height,
+		.Depth						= 1
+	};
 
-	Desc.MissShaderTable = MissShaderTable;
-
-	Desc.HitGroupTable = HitGroupTable;
-
-	Desc.Width = Properties.Width;
-	Desc.Height = Properties.Height;
-	Desc.Depth = 1;
-	RenderContext->DispatchRays(&Desc);
+	RenderContext.GetCommandList().DispatchRays(&Desc);
 }
 
 void Pathtracing::StateRefresh()

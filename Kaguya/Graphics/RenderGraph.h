@@ -66,7 +66,7 @@ public:
 	void Execute(bool Refresh);
 
 	// Returns the command contexts that needs to be executed
-	std::vector<CommandContext*>& GetCommandContexts();
+	std::vector<CommandList*>& GetCommandContexts();
 private:
 	struct RenderPassThreadProcParameter
 	{
@@ -76,9 +76,9 @@ private:
 		HANDLE			CompleteSignal;
 		RenderPass*		pRenderPass;
 		RenderDevice*	pRenderDevice;
-		CommandContext* pCommandContext;
-		Buffer*	pSystemConstants;
-		Buffer*	pGpuData;
+		CommandList*	pCommandList;
+		Buffer*			pSystemConstants;
+		Buffer*			pGpuData;
 	};
 
 	static DWORD WINAPI RenderPassThreadProc(_In_ PVOID pParameter);
@@ -90,7 +90,7 @@ private:
 
 	RenderDevice*												SV_pRenderDevice;
 
-	std::vector<CommandContext*>								m_CommandContexts;
+	std::vector<CommandList*>									m_CommandLists;
 	std::vector<wil::unique_event>								m_WorkerExecuteEvents;
 	std::vector<wil::unique_event>								m_WorkerCompleteEvents;
 	std::vector<RenderPassThreadProcParameter>					m_ThreadParameters;

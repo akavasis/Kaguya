@@ -7,8 +7,6 @@
 #include "Graphics/RendererRegistry.h"
 
 #include "Pathtracing.h"
-#include "AmbientOcclusion.h"
-#include "ShadingComposition.h"
 
 Accumulation::Accumulation(UINT Width, UINT Height)
 	: RenderPass("Accumulation",
@@ -61,12 +59,6 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 	auto pPathtracingRenderPass = pRenderGraph->GetRenderPass<Pathtracing>();
 	Descriptor InputSRV = RenderContext.GetShaderResourceView(pPathtracingRenderPass->Resources[Pathtracing::EResources::RenderTarget]);
 
-	//auto pAmbientOcclusionRenderPass = pRenderGraph->GetRenderPass<AmbientOcclusion>();
-	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pAmbientOcclusionRenderPass->Resources[AmbientOcclusion::EResources::RenderTarget]);
-
-	//auto pShadingCompositionRenderPass = pRenderGraph->GetRenderPass<ShadingComposition>();
-	//Descriptor InputSRV = RenderContext.GetShaderResourceView(pShadingCompositionRenderPass->Resources[ShadingComposition::EResources::RenderTarget]);
-
 	struct RenderPassData
 	{
 		uint AccumulationCount;
@@ -83,7 +75,7 @@ void Accumulation::Execute(RenderContext& RenderContext, RenderGraph* pRenderGra
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::Accumulation);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
+	RenderContext.GetCommandList().Dispatch2D<8, 8>(Properties.Width, Properties.Height);
 }
 
 void Accumulation::StateRefresh()

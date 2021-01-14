@@ -1,13 +1,16 @@
 #include "pch.h"
 #include "BufferManager.h"
 
+using Microsoft::WRL::ComPtr;
+
 BufferManager::BufferManager(RenderDevice* pRenderDevice)
-	: pRenderDevice(pRenderDevice)
+	: pRenderDevice(pRenderDevice),
+	pAllocator(pRenderDevice->Device.Allocator())
 {
 
 }
 
-void BufferManager::Stage(Scene& Scene, RenderContext& RenderContext)
+void BufferManager::Stage(Scene& Scene, CommandList& CommandList)
 {
 	for (auto& Mesh : Scene.Meshes)
 	{
@@ -16,25 +19,38 @@ void BufferManager::Stage(Scene& Scene, RenderContext& RenderContext)
 
 	for (auto& [handle, stagingBuffer] : m_UnstagedBuffers)
 	{
-		StageBuffer(handle, stagingBuffer, RenderContext);
+		auto pBuffer = pRenderDevice->GetBuffer(handle)->GetApiHandle();
+		auto pUploadBuffer = stagingBuffer.Buffer.Get();
+
+		UINT64 NumBytes = pUploadBuffer->GetDesc().Width;
+
+		CommandList.TransitionBarrier(pBuffer, Resource::State::CopyDest);
+		CommandList->CopyBufferRegion(pBuffer, 0, pUploadBuffer, 0, NumBytes);
+		CommandList.TransitionBarrier(pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 	}
-	RenderContext->FlushResourceBarriers();
+	CommandList.FlushResourceBarriers();
 }
 
 void BufferManager::DisposeResources()
 {
+	for (auto& [handle, stagingBuffer] : m_UnstagedBuffers)
+	{
+		stagingBuffer.pAllocation->Release();
+	}
 	m_UnstagedBuffers.clear();
 }
 
-BufferManager::StagingBuffer BufferManager::CreateStagingBuffer(D3D12_RESOURCE_DESC Desc, const void* pData)
+BufferManager::StagingBuffer BufferManager::CreateStagingBuffer(const D3D12_RESOURCE_DESC& Desc, const void* pData)
 {
-	auto HeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	Microsoft::WRL::ComPtr<ID3D12Resource> StagingResource;
-	pRenderDevice->Device.GetApiHandle()->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE,
-		&Desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(StagingResource.ReleaseAndGetAddressOf()));
+	D3D12MA::ALLOCATION_DESC AllocDesc = {};
+	AllocDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+	ComPtr<ID3D12Resource> StagingResource;
+	D3D12MA::Allocation* pAllocation = nullptr;
+
+	pAllocator->CreateResource(&AllocDesc, &Desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &pAllocation, IID_PPV_ARGS(StagingResource.ReleaseAndGetAddressOf()));
 
 	BYTE* pMemory = nullptr;
-	if (StagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pMemory)) == S_OK)
+	if (SUCCEEDED(StagingResource->Map(0, nullptr, reinterpret_cast<void**>(&pMemory))))
 	{
 		memcpy(pMemory, pData, Desc.Width);
 
@@ -42,7 +58,8 @@ BufferManager::StagingBuffer BufferManager::CreateStagingBuffer(D3D12_RESOURCE_D
 	}
 
 	StagingBuffer StagingBuffer = {};
-	StagingBuffer.Buffer = Buffer(StagingResource);
+	StagingBuffer.Buffer = std::move(StagingResource);
+	StagingBuffer.pAllocation = pAllocation;
 	return StagingBuffer;
 }
 
@@ -51,9 +68,9 @@ void BufferManager::LoadMesh(Mesh& Mesh)
 	StageVertexResource(Mesh);
 	StageIndexResource(Mesh);
 
-	Mesh.MeshletResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Mesh.Name + " [Meshlet Resource]");
-	Mesh.VertexIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Mesh.Name + " [Vertex Index Resource]");
-	Mesh.PrimitiveIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, Mesh.Name + " [Primitive Index Resource]");
+	Mesh.MeshletResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Mesh.Name + " [Meshlet Resource]");
+	Mesh.VertexIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Mesh.Name + " [Vertex Index Resource]");
+	Mesh.PrimitiveIndexResource = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Buffer, Mesh.Name + " [Primitive Index Resource]");
 
 	UINT64 MeshletResourceSizeInBytes = Mesh.Meshlets.size() * sizeof(Meshlet);
 	UINT64 VertexIndexResourceSizeInBytes = Mesh.VertexIndices.size() * sizeof(uint32_t);
@@ -130,14 +147,4 @@ void BufferManager::StageIndexResource(Mesh& Mesh)
 
 	Buffer* pBuffer = pRenderDevice->GetBuffer(Mesh.IndexResource);
 	m_UnstagedBuffers[Mesh.IndexResource] = CreateStagingBuffer(pBuffer->GetApiHandle()->GetDesc(), Mesh.Indices.data());
-}
-
-void BufferManager::StageBuffer(RenderResourceHandle Handle, StagingBuffer& StagingBuffer, RenderContext& RenderContext)
-{
-	Buffer* pBuffer = pRenderDevice->GetBuffer(Handle);
-	Buffer* pUploadBuffer = &StagingBuffer.Buffer;
-
-	RenderContext->CopyBufferRegion(pBuffer, 0, pUploadBuffer, 0, pUploadBuffer->GetMemoryRequested());
-
-	RenderContext->TransitionBarrier(pBuffer, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
 }

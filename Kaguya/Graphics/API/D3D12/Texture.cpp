@@ -4,43 +4,39 @@
 #include "../Proxy/TextureProxy.h"
 
 Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> ExistingID3D12Resource)
-	: Resource(ExistingID3D12Resource),
-	m_Format(ExistingID3D12Resource->GetDesc().Format),
-	m_Width(ExistingID3D12Resource->GetDesc().Width),
-	m_Height(ExistingID3D12Resource->GetDesc().Height),
-	m_DepthOrArraySize(ExistingID3D12Resource->GetDesc().DepthOrArraySize),
-	m_MipLevels(ExistingID3D12Resource->GetDesc().MipLevels)
+	: Resource(ExistingID3D12Resource)
+	, Format(ExistingID3D12Resource->GetDesc().Format)
+	, Width(ExistingID3D12Resource->GetDesc().Width)
+	, Height(ExistingID3D12Resource->GetDesc().Height)
+	, DepthOrArraySize(ExistingID3D12Resource->GetDesc().DepthOrArraySize)
+	, MipLevels(ExistingID3D12Resource->GetDesc().MipLevels)
 {
 
 }
 
-Texture::Texture(const Device* pDevice, TextureProxy& Proxy)
-	: Resource(pDevice, Proxy),
-	m_Format(Proxy.m_Format),
-	m_Width(Proxy.m_Width),
-	m_Height(Proxy.m_Height),
-	m_DepthOrArraySize(Proxy.m_DepthOrArraySize),
-	m_MipLevels(Proxy.m_MipLevels)
+Texture::Texture(ID3D12Device* pDevice, TextureProxy& Proxy)
+	: Resource(pDevice, Proxy)
+	, Format(Proxy.m_Format)
+	, Width(Proxy.m_Width)
+	, Height(Proxy.m_Height)
+	, DepthOrArraySize(Proxy.m_DepthOrArraySize)
+	, MipLevels(Proxy.m_MipLevels)
 {
-	m_MipLevels = m_pResource->GetDesc().MipLevels;
+	MipLevels = m_pResource->GetDesc().MipLevels;
 }
 
-Texture::Texture(const Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy)
-	: Resource(pDevice, pHeap, HeapOffset, Proxy),
-	m_Format(Proxy.m_Format),
-	m_Width(Proxy.m_Width),
-	m_Height(Proxy.m_Height),
-	m_DepthOrArraySize(Proxy.m_DepthOrArraySize),
-	m_MipLevels(Proxy.m_MipLevels)
+Texture::Texture(ID3D12Device* pDevice, ID3D12Heap* pHeap, UINT64 HeapOffset, TextureProxy& Proxy)
+	: Resource(pDevice, pHeap, HeapOffset, Proxy)
+	, Format(Proxy.m_Format)
+	, Width(Proxy.m_Width)
+	, Height(Proxy.m_Height)
+	, DepthOrArraySize(Proxy.m_DepthOrArraySize)
+	, MipLevels(Proxy.m_MipLevels)
 {
-	m_MipLevels = m_pResource->GetDesc().MipLevels;
-}
-
-Texture::~Texture()
-{
+	MipLevels = m_pResource->GetDesc().MipLevels;
 }
 
 bool Texture::IsArray() const
 {
-	return (m_Type == Resource::Type::Texture1D || m_Type == Resource::Type::Texture2D || m_Type == Resource::Type::TextureCube) && m_DepthOrArraySize > 1;
+	return (m_Type == Resource::Type::Texture1D || m_Type == Resource::Type::Texture2D || m_Type == Resource::Type::TextureCube) && DepthOrArraySize > 1;
 }

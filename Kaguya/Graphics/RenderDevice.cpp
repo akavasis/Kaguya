@@ -33,9 +33,9 @@ RenderDevice::RenderDevice(const Window& Window)
 
 	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 1;
 
-	ThrowIfFailed(Device.GetApiHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(GraphicsFence.ReleaseAndGetAddressOf())));
-	ThrowIfFailed(Device.GetApiHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(ComputeFence.ReleaseAndGetAddressOf())));
-	ThrowIfFailed(Device.GetApiHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(CopyFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(GraphicsFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(ComputeFence.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(CopyFence.ReleaseAndGetAddressOf())));
 
 	GraphicsFenceCompletionEvent.create();
 	ComputeFenceCompletionEvent.create();
@@ -74,17 +74,17 @@ void RenderDevice::CreateCommandContexts(UINT NumGraphicsContext)
 
 	for (UINT i = 0; i < NumGraphicsContext; ++i)
 	{
-		m_GraphicsContexts.push_back(std::make_unique<CommandContext>(Device, D3D12_COMMAND_LIST_TYPE_DIRECT));
+		m_GraphicsContexts.push_back(CommandList(Device, D3D12_COMMAND_LIST_TYPE_DIRECT));
 	}
 
 	for (UINT i = 0; i < NumAsyncComputeContext; ++i)
 	{
-		m_AsyncComputeContexts.push_back(std::make_unique<CommandContext>(Device, D3D12_COMMAND_LIST_TYPE_COMPUTE));
+		m_AsyncComputeContexts.push_back(CommandList(Device, D3D12_COMMAND_LIST_TYPE_COMPUTE));
 	}
 
 	for (UINT i = 0; i < NumCopyContext; ++i)
 	{
-		m_CopyContexts.push_back(std::make_unique<CommandContext>(Device, D3D12_COMMAND_LIST_TYPE_COPY));
+		m_CopyContexts.push_back(CommandList(Device, D3D12_COMMAND_LIST_TYPE_COPY));
 	}
 }
 
@@ -140,27 +140,27 @@ void RenderDevice::Resize(UINT Width, UINT Height)
 	FlushGraphicsQueue();
 }
 
-void RenderDevice::BindGpuDescriptorHeap(CommandContext* pCommandContext)
+void RenderDevice::BindGpuDescriptorHeap(CommandList& CommandList)
 {
-	pCommandContext->SetDescriptorHeaps(&m_ShaderVisibleCBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
+	CommandList.SetDescriptorHeaps(&m_ShaderVisibleCBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
 }
 
 void RenderDevice::FlushGraphicsQueue()
 {
 	UINT64 Value = ++GraphicsFenceValue;
-	D3D12Utility::FlushCommandQueue(Value, GraphicsFence.Get(), GraphicsQueue.GetApiHandle(), GraphicsFenceCompletionEvent);
+	D3D12Utility::FlushCommandQueue(Value, GraphicsFence.Get(), GraphicsQueue, GraphicsFenceCompletionEvent);
 }
 
 void RenderDevice::FlushComputeQueue()
 {
 	UINT64 Value = ++ComputeFenceValue;
-	D3D12Utility::FlushCommandQueue(Value, ComputeFence.Get(), ComputeQueue.GetApiHandle(), ComputeFenceCompletionEvent);
+	D3D12Utility::FlushCommandQueue(Value, ComputeFence.Get(), ComputeQueue, ComputeFenceCompletionEvent);
 }
 
 void RenderDevice::FlushCopyQueue()
 {
 	UINT64 Value = ++CopyFenceValue;
-	D3D12Utility::FlushCommandQueue(Value, CopyFence.Get(), CopyQueue.GetApiHandle(), CopyFenceCompletionEvent);
+	D3D12Utility::FlushCommandQueue(Value, CopyFence.Get(), CopyQueue, CopyFenceCompletionEvent);
 }
 
 RenderResourceHandle RenderDevice::InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name)
@@ -196,7 +196,7 @@ void RenderDevice::CreateBuffer(RenderResourceHandle Handle, std::function<void(
 	BufferProxy proxy;
 	Configurator(proxy);
 
-	auto pBuffer = m_Buffers.CreateResource(Handle, &Device, proxy);
+	auto pBuffer = m_Buffers.CreateResource(Handle, Device, proxy);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pBuffer->GetApiHandle()->SetName(Name.data());
 
@@ -211,7 +211,7 @@ void RenderDevice::CreateBuffer(RenderResourceHandle Handle, RenderResourceHandl
 	Configurator(proxy);
 
 	auto pHeap = m_Heaps.GetResource(HeapHandle);
-	auto pBuffer = m_Buffers.CreateResource(Handle, &Device, pHeap->GetApiHandle(), HeapOffset, proxy);
+	auto pBuffer = m_Buffers.CreateResource(Handle, Device, pHeap->GetApiHandle(), HeapOffset, proxy);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pBuffer->GetApiHandle()->SetName(Name.data());
 
@@ -234,7 +234,7 @@ void RenderDevice::CreateTexture(RenderResourceHandle Handle, Resource::Type Typ
 	TextureProxy proxy(Type);
 	Configurator(proxy);
 
-	auto pTexture = m_Textures.CreateResource(Handle, &Device, proxy);
+	auto pTexture = m_Textures.CreateResource(Handle, Device, proxy);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pTexture->GetApiHandle()->SetName(Name.data());
 
@@ -247,7 +247,7 @@ void RenderDevice::CreateTexture(RenderResourceHandle Handle, Resource::Type Typ
 	Configurator(proxy);
 
 	auto pHeap = m_Heaps.GetResource(HeapHandle);
-	auto pTexture = m_Textures.CreateResource(Handle, &Device, pHeap->GetApiHandle(), HeapOffset, proxy);
+	auto pTexture = m_Textures.CreateResource(Handle, Device, pHeap->GetApiHandle(), HeapOffset, proxy);
 	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
 	pTexture->GetApiHandle()->SetName(Name.data());
 
@@ -826,7 +826,7 @@ void RenderDevice::InitializeDXGISwapChain(const Window& Window)
 	Desc.AlphaMode				= DXGI_ALPHA_MODE_UNSPECIFIED;
 	Desc.Flags					= m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	ComPtr<IDXGISwapChain1> pSwapChain1;
-	ThrowIfFailed(m_DXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetApiHandle(), Window.GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
+	ThrowIfFailed(m_DXGIFactory->CreateSwapChainForHwnd(GraphicsQueue, Window.GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
 	ThrowIfFailed(m_DXGIFactory->MakeWindowAssociation(Window.GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
 	ThrowIfFailed(pSwapChain1->QueryInterface(IID_PPV_ARGS(m_DXGISwapChain.ReleaseAndGetAddressOf())));
 
@@ -885,22 +885,22 @@ void RenderDevice::AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& R
 	RootSignatureBuilder.AddRootDescriptorTableParameter(SamplerDescriptorTable);
 }
 
-void RenderDevice::ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE CommandListType, UINT NumCommandContexts, CommandContext* ppCommandContexts[])
+void RenderDevice::ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE Type, UINT NumCommandLists, CommandList* ppCommandLists[])
 {
 	ScopedWriteLock SWL(m_GlobalResourceStateTrackerRWLock);
 
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
-	commandlistsToBeExecuted.reserve(size_t(NumCommandContexts) * 2);
-	for (UINT i = 0; i < NumCommandContexts; ++i)
+	commandlistsToBeExecuted.reserve(size_t(NumCommandLists) * 2);
+	for (UINT i = 0; i < NumCommandLists; ++i)
 	{
-		CommandContext* pCommandContext = ppCommandContexts[i];
-		if (pCommandContext->Close(&m_GlobalResourceStateTracker))
+		CommandList* pCommandList = ppCommandLists[i];
+		if (pCommandList->Close(&m_GlobalResourceStateTracker))
 		{
-			commandlistsToBeExecuted.push_back(pCommandContext->GetPendingCommandList());
+			commandlistsToBeExecuted.push_back(pCommandList->pPendingCommandList.Get());
 		}
-		commandlistsToBeExecuted.push_back(pCommandContext->GetApiHandle());
+		commandlistsToBeExecuted.push_back(pCommandList->pCommandList.Get());
 	}
 
-	CommandQueue& pCommandQueue = GetCommandQueue(CommandListType);
-	pCommandQueue.GetApiHandle()->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
+	CommandQueue& CommandQueue = GetCommandQueue(Type);
+	CommandQueue->ExecuteCommandLists(commandlistsToBeExecuted.size(), commandlistsToBeExecuted.data());
 }

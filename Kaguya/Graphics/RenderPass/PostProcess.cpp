@@ -208,17 +208,18 @@ void PostProcess::StateRefresh()
 
 void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	auto& CommandList = RenderContext.GetCommandList();
 	/*
 		Bloom PP is based on Microsoft's DirectX-Graphics-Samples's MiniEngine.
 		https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine
 	*/
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom");
+	PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Bloom");
 
 	// Bloom Mask
 	{
-		PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Mask");
+		PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Bloom Mask");
 
-		auto pOutput = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1a]);
+		auto pOutput = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1a])->GetApiHandle();
 
 		struct BloomMask_SubPass_Data
 		{
@@ -232,19 +233,19 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		data.InputIndex = InputSRV.HeapIndex;
 		data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[EResources::BloomRenderTarget1a]).HeapIndex;
 
-		RenderContext->TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
+		CommandList.TransitionBarrier(pOutput, Resource::State::UnorderedAccess);
 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomMask);
 		RenderContext.SetRoot32BitConstants(0, 5, &data, 0);
 
-		RenderContext->Dispatch2D(Properties.Width, Properties.Height, 8, 8);
+		CommandList.Dispatch2D<8, 8>(Properties.Width, Properties.Height);
 
-		RenderContext->TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
+		CommandList.TransitionBarrier(pOutput, Resource::State::NonPixelShaderResource);
 	}
 
 	// Bloom Downsample
 	{
-		PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Downsample");
+		PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Bloom Downsample");
 
 		auto pOutput1 = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget2a]);
 
@@ -273,7 +274,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomDownsample);
 		RenderContext.SetRoot32BitConstants(0, 7, &data, 0);
 
-		RenderContext->Dispatch2D(Properties.Width / 2, Properties.Height / 2, 8, 8);
+		CommandList.Dispatch2D<8, 8>(Properties.Width / 2, Properties.Height / 2);
 
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget2a], Resource::State::NonPixelShaderResource);
 		RenderContext.TransitionBarrier(Resources[EResources::BloomRenderTarget3a], Resource::State::NonPixelShaderResource);
@@ -293,7 +294,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 	// Bloom Composition
 	{
-		PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Composition");
+		PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Bloom Composition");
 
 		auto pBloom = RenderContext.GetTexture(Resources[EResources::BloomRenderTarget1b]);
 		auto pOutput = RenderContext.GetTexture(Resources[EResources::RenderTarget]);
@@ -306,7 +307,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 			uint BloomIndex;
 			uint OutputIndex;
 		} data = {};
-		data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
+		data.InverseOutputSize = { 1.0f / pOutput->Width, 1.0f / pOutput->Height };
 		data.Intensity = settings.Bloom.Intensity;
 		data.InputIndex = InputSRV.HeapIndex;
 		data.BloomIndex = RenderContext.GetShaderResourceView(Resources[EResources::BloomRenderTarget1b]).HeapIndex;
@@ -317,7 +318,7 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 		RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomComposition);
 		RenderContext.SetRoot32BitConstants(0, 6, &data, 0);
 
-		RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
+		CommandList.Dispatch2D<8, 8>(pOutput->Width, pOutput->Height);
 
 		RenderContext.TransitionBarrier(Resources[EResources::RenderTarget], Resource::State::PixelShaderResource);
 	}
@@ -325,22 +326,24 @@ void PostProcess::ApplyBloom(Descriptor InputSRV, RenderContext& RenderContext, 
 
 void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	auto& CommandList = RenderContext.GetCommandList();
+
 	auto pDestination = RenderContext.GetTexture(RenderContext.GetCurrentBackBufferHandle());
-	auto DestinationRTV = RenderContext.GetRenderTargetView(RenderContext.GetCurrentBackBufferHandle());
+	auto DestinationRTV = RenderContext.GetRenderTargetView(RenderContext.GetCurrentBackBufferHandle()).CpuHandle;
 
-	RenderContext->TransitionBarrier(pDestination, Resource::State::RenderTarget);
+	CommandList.TransitionBarrier(pDestination->GetApiHandle(), Resource::State::RenderTarget);
 	{
-		D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, pDestination->GetWidth(), pDestination->GetHeight());
-		D3D12_RECT		sr = CD3DX12_RECT(0, 0, pDestination->GetWidth(), pDestination->GetHeight());
+		D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, pDestination->Width, pDestination->Height);
+		D3D12_RECT		sr = CD3DX12_RECT(0, 0, pDestination->Width, pDestination->Height);
 
-		RenderContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		RenderContext->SetViewports(1, &vp);
-		RenderContext->SetScissorRects(1, &sr);
-		RenderContext->SetRenderTargets(1, &DestinationRTV, TRUE, Descriptor());
+		CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		CommandList->RSSetViewports(1, &vp);
+		CommandList->RSSetScissorRects(1, &sr);
+		CommandList->OMSetRenderTargets(1, &DestinationRTV, TRUE, nullptr);
 
 		// Tonemap
 		{
-			PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Tonemap");
+			PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Tonemap");
 
 			struct Tonemapping_SubPass_Data
 			{
@@ -365,23 +368,24 @@ void PostProcess::ApplyTonemapAndGuiToSwapChain(Descriptor InputSRV, RenderConte
 			RenderContext.SetPipelineState(GraphicsPSOs::PostProcess_Tonemapping);
 			RenderContext.SetRoot32BitConstants(0, NumTonemapRootConstants, &data, 0);
 
-			RenderContext->DrawInstanced(3, 1, 0, 0);
+			CommandList.DrawInstanced(3, 1, 0, 0);
 		}
 
 		// ImGui Render
 		{
-			PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"ImGui Render");
+			PIXScopedEvent(CommandList.GetApiHandle(), 0, L"ImGui Render");
 
 			ImGui::Render();
-			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), RenderContext->GetApiHandle());
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), CommandList);
 		}
 	}
-	RenderContext->TransitionBarrier(pDestination, Resource::State::Present);
+	CommandList.TransitionBarrier(pDestination->GetApiHandle(), Resource::State::Present);
 }
 
 void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext)
 {
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Blur");
+	auto& CommandList = RenderContext.GetCommandList();
+	PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Bloom Blur");
 
 	auto pOutput = RenderContext.GetTexture(Resources[Output]);
 
@@ -391,7 +395,7 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 		uint InputIndex;
 		uint OutputIndex;
 	} data = {};
-	data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
+	data.InverseOutputSize = { 1.0f / pOutput->Width, 1.0f / pOutput->Height };
 	data.InputIndex = RenderContext.GetShaderResourceView(Resources[Input]).HeapIndex;
 	data.OutputIndex = RenderContext.GetUnorderedAccessView(Resources[Output]).HeapIndex;
 
@@ -401,14 +405,15 @@ void PostProcess::Blur(size_t Input, size_t Output, RenderContext& RenderContext
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomBlur);
 	RenderContext.SetRoot32BitConstants(0, 4, &data, 0);
 
-	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
+	CommandList.Dispatch2D<8, 8>(pOutput->Width, pOutput->Height);
 
 	RenderContext.TransitionBarrier(Resources[Output], Resource::State::NonPixelShaderResource);
 }
 
 void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowResolution, size_t Output, RenderContext& RenderContext)
 {
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Bloom Upsample Blur Accumulation");
+	auto& CommandList = RenderContext.GetCommandList();
+	PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Bloom Upsample Blur Accumulation");
 
 	auto pOutput = RenderContext.GetTexture(Resources[Output]);
 
@@ -420,7 +425,7 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 		uint LowResolutionIndex;
 		uint OutputIndex;
 	} data = {};
-	data.InverseOutputSize = { 1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight() };
+	data.InverseOutputSize = { 1.0f / pOutput->Width, 1.0f / pOutput->Height };
 	data.UpsampleInterpolationFactor = 0.5f;
 	data.HighResolutionIndex = RenderContext.GetShaderResourceView(Resources[HighResolution]).HeapIndex;
 	data.LowResolutionIndex = RenderContext.GetShaderResourceView(Resources[LowResolution]).HeapIndex;
@@ -433,7 +438,7 @@ void PostProcess::UpsampleBlurAccumulation(size_t HighResolution, size_t LowReso
 	RenderContext.SetPipelineState(ComputePSOs::PostProcess_BloomUpsampleBlurAccumulation);
 	RenderContext.SetRoot32BitConstants(0, 6, &data, 0);
 
-	RenderContext->Dispatch2D(pOutput->GetWidth(), pOutput->GetHeight(), 8, 8);
+	CommandList.Dispatch2D<8, 8>(pOutput->Width, pOutput->Height);
 
 	RenderContext.TransitionBarrier(Resources[Output], Resource::State::NonPixelShaderResource);
 }

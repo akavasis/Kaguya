@@ -1,5 +1,4 @@
 #pragma once
-
 #include <wil/resource.h>
 #include <wrl/client.h>
 #include <d3d12.h>
@@ -19,7 +18,7 @@
 #include "API/D3D12/ResourceStateTracker.h"
 #include "API/D3D12/ShaderCompiler.h"
 #include "API/D3D12/DescriptorHeap.h"
-#include "API/D3D12/CommandContext.h"
+#include "API/D3D12/CommandList.h"
 #include "API/D3D12/RaytracingAccelerationStructure.h"
 
 #include "API/Proxy/BufferProxy.h"
@@ -99,23 +98,23 @@ public:
 
 	void Resize(UINT Width, UINT Height);
 
-	CommandContext* GetGraphicsContext(UINT Index) const { return m_GraphicsContexts[Index].get(); }
-	CommandContext* GetAsyncComputeContext(UINT Index) const { return m_AsyncComputeContexts[Index].get(); }
-	CommandContext* GetCopyContext(UINT Index) const { return m_CopyContexts[Index].get(); }
+	CommandList& GetGraphicsContext(UINT Index) { return m_GraphicsContexts[Index]; }
+	CommandList& GetAsyncComputeContext(UINT Index) { return m_AsyncComputeContexts[Index]; }
+	CommandList& GetCopyContext(UINT Index) { return m_CopyContexts[Index]; }
 
-	CommandContext* GetDefaultGraphicsContext() const { return GetGraphicsContext(0); }
-	CommandContext* GetDefaultAsyncComputeContext() const { return GetAsyncComputeContext(0); }
-	CommandContext* GetDefaultCopyContext() const { return GetCopyContext(0); }
+	CommandList& GetDefaultGraphicsContext() { return GetGraphicsContext(0); }
+	CommandList& GetDefaultAsyncComputeContext() { return GetAsyncComputeContext(0); }
+	CommandList& GetDefaultCopyContext() { return GetCopyContext(0); }
 
-	void BindGpuDescriptorHeap(CommandContext* pCommandContext);
+	void BindGpuDescriptorHeap(CommandList& CommandList);
 	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetCBDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(0); }
 	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
 	inline auto GetSamplerDescriptorHeapDescriptorFromStart() const { return m_SamplerDescriptorHeap.GetDescriptorFromStart(); }
 
-	void ExecuteGraphicsContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]) { ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE_DIRECT, NumCommandContexts, ppCommandContexts); }
-	void ExecuteAsyncComputeContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]) { ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE_COMPUTE, NumCommandContexts, ppCommandContexts); }
-	void ExecuteCopyContexts(UINT NumCommandContexts, CommandContext* ppCommandContexts[]) { ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE_COPY, NumCommandContexts, ppCommandContexts); }
+	void ExecuteGraphicsContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_DIRECT, NumCommandLists, ppCommandLists); }
+	void ExecuteAsyncComputeContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_COMPUTE, NumCommandLists, ppCommandLists); }
+	void ExecuteCopyContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_COPY, NumCommandLists, ppCommandLists); }
 
 	void FlushGraphicsQueue();
 	void FlushComputeQueue();
@@ -161,7 +160,6 @@ public:
 	Descriptor GetUnorderedAccessView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;
 	Descriptor GetRenderTargetView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
 	Descriptor GetDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
-
 private:
 	void InitializeDXGIObjects();
 	void InitializeDXGISwapChain(const Window& pWindow);
@@ -169,8 +167,7 @@ private:
 	CommandQueue& GetCommandQueue(D3D12_COMMAND_LIST_TYPE CommandListType);
 	void AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder);
 
-	void ExecuteCommandContextsInternal(D3D12_COMMAND_LIST_TYPE CommandListType, UINT NumCommandContexts, CommandContext* ppCommandContexts[]);
-
+	void ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE Type, UINT NumCommandLists, CommandList* ppCommandLists[]);
 private:
 	Microsoft::WRL::ComPtr<IDXGIFactory6>						m_DXGIFactory;
 	Microsoft::WRL::ComPtr<IDXGIAdapter4>						m_DXGIAdapter;
@@ -194,9 +191,9 @@ private:
 	ResourceStateTracker										m_GlobalResourceStateTracker;
 	RWLock														m_GlobalResourceStateTrackerRWLock;
 
-	std::vector<std::unique_ptr<CommandContext>>				m_GraphicsContexts;
-	std::vector<std::unique_ptr<CommandContext>>				m_AsyncComputeContexts;
-	std::vector<std::unique_ptr<CommandContext>>				m_CopyContexts;
+	std::vector<CommandList>									m_GraphicsContexts;
+	std::vector<CommandList>									m_AsyncComputeContexts;
+	std::vector<CommandList>									m_CopyContexts;
 
 	RenderResourceHandleRegistry								m_BufferHandleRegistry;
 	RenderResourceHandleRegistry								m_TextureHandleRegistry;
