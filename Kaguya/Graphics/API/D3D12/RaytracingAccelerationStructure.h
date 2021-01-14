@@ -1,11 +1,6 @@
 #pragma once
-
 #include <d3d12.h>
 #include <vector>
-
-class Device;
-class Buffer;
-class CommandContext;
 
 class BottomLevelAccelerationStructure
 {
@@ -14,7 +9,7 @@ public:
 
 	void AddGeometry(const D3D12_RAYTRACING_GEOMETRY_DESC& Desc);
 	void ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes);
-	void Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult);
+	void Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult);
 private:
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>	RaytracingGeometryDescs;
 	UINT64										ScratchSizeInBytes;
@@ -30,7 +25,7 @@ public:
 
 	void SetNumInstances(UINT NumInstances);
 	void ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes);
-	void Generate(CommandContext* pCommandContext, Buffer* pScratch, Buffer* pResult, Buffer* pInstanceDescs);
+	void Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult, ID3D12Resource* pInstanceDescs);
 private:
 	UINT	NumInstances;
 	UINT64	ScratchSizeInBytes;

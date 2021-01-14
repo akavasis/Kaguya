@@ -22,8 +22,6 @@ namespace
 Shading::Shading(UINT Width, UINT Height)
 	: RenderPass("Shading",  { Width, Height }, NumResources)
 {
-	UseRayTracing = true;
-
 	pGpuScene = nullptr;
 }
 

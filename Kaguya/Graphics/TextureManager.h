@@ -1,5 +1,4 @@
 #pragma once
-
 #include <d3d12.h>
 #include <vector>
 #include <unordered_map>
@@ -27,9 +26,8 @@ public:
 
 	inline auto GetBlueNoise()									{ return m_NoiseTextures[AssetTextures::BlueNoise]; }
 
-	void Stage(Scene& Scene, CommandContext* pCommandContext);
+	void Stage(Scene& Scene, CommandList& CommandList);
 	void DisposeResources();
-
 private:
 	struct AssetTextures
 	{
@@ -63,18 +61,18 @@ private:
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> PlacedSubresourceLayouts;	// Footprint is synonymous to layout
 		std::size_t										MipLevels;					// Indicates what mip levels this texture should have
 	};
-
+private:
 	StagingTexture CreateStagingTexture(std::string Name, D3D12_RESOURCE_DESC Desc, const DirectX::ScratchImage& ScratchImage, std::size_t MipLevels, bool GenerateMips);
 
 	void LoadSystemTextures();
 	void LoadNoiseTextures();
 	RenderResourceHandle LoadFromFile(const std::filesystem::path& Path, bool ForceSRGB, bool GenerateMips);
 	void LoadMaterial(Material& Material);
-	void StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, CommandContext* pCommandContext);
 
 	DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT Format);
-
+private:
 	RenderDevice*												pRenderDevice;
+	ID3D12Device4*												pDevice;
 
 	RenderResourceHandle										m_SystemTextureHeap;
 	RenderResourceHandle										m_SystemTextures[AssetTextures::NumSystemTextures];

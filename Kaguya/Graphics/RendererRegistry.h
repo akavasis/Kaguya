@@ -1,44 +1,9 @@
 #pragma once
 #include "RenderDevice.h"
 
+// Gives a float2 barycentric, the last element can be found via 1 - b.x - b.y since barycentrics must add up to 1
 static constexpr size_t SizeOfBuiltInTriangleIntersectionAttributes = 2 * sizeof(float);
 static constexpr size_t SizeOfHLSLBooleanType = sizeof(int);
-
-struct GenerateMipsData
-{
-	UINT SrcMipLevel;				// Texture level of source mip
-	UINT NumMipLevels;				// Number of OutMips to write: [1-4]
-	UINT SrcDimension;				// Width and height of the source texture are even or odd.
-	UINT IsSRGB;					// Must apply gamma correction to sRGB textures.
-	DirectX::XMFLOAT2 TexelSize;    // 1.0 / OutMip1.Dimensions
-
-	// Source mip map.
-	int InputIndex;
-
-	// Write up to 4 mip map levels.
-	int Output1Index;
-	int Output2Index;
-	int Output3Index;
-	int Output4Index;
-};
-
-struct EquirectangularToCubemapData
-{
-	UINT CubemapSize;				// Size of the cubemap face in pixels at the current mipmap level.
-	UINT FirstMip;					// The first mip level to generate.
-	UINT NumMips;					// The number of mips to generate.
-
-	// Source texture as an equirectangular panoramic image.
-	// It is assumed that the src texture has a full mipmap chain.
-	int InputIndex;
-
-	// Destination texture as a mip slice in the cubemap texture (texture array with 6 elements).
-	int Output1Index;
-	int Output2Index;
-	int Output3Index;
-	int Output4Index;
-	int Output5Index;
-};
 
 struct Shaders
 {
@@ -46,7 +11,6 @@ struct Shaders
 	struct VS
 	{
 		inline static Shader Quad;
-		inline static Shader Skybox;
 	};
 
 	// Mesh Shaders
@@ -69,9 +33,6 @@ struct Shaders
 	struct CS
 	{
 		inline static Shader InstanceGeneration;
-
-		inline static Shader EquirectangularToCubemap;
-		inline static Shader GenerateMips;
 
 		inline static Shader SVGF_Reproject;
 		inline static Shader SVGF_FilterMoments;
@@ -104,9 +65,6 @@ struct Libraries
 struct RootSignatures
 {
 	inline static RenderResourceHandle Default;
-
-	inline static RenderResourceHandle GenerateMips;
-	inline static RenderResourceHandle EquirectangularToCubemap;
 
 	inline static RenderResourceHandle Skybox;
 	inline static RenderResourceHandle GBufferMeshes;
@@ -148,9 +106,6 @@ struct GraphicsPSOs
 
 struct ComputePSOs
 {
-	inline static RenderResourceHandle GenerateMips;
-	inline static RenderResourceHandle EquirectangularToCubemap;
-
 	inline static RenderResourceHandle SVGF_Reproject;
 	inline static RenderResourceHandle SVGF_FilterMoments;
 	inline static RenderResourceHandle SVGF_Atrous;

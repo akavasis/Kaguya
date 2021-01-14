@@ -1,5 +1,4 @@
 #pragma once
-
 #include <wrl/client.h>
 #include <dxgi1_6.h>
 #include <d3d12.h>
@@ -12,11 +11,11 @@ class Device
 public:
 	~Device();
 
-	operator auto() const { return m_Device5.Get(); }
-
 	void Create(IDXGIAdapter4* pAdapter);
 
-	inline auto GetApiHandle() const { return m_Device5.Get(); }
+	operator auto() const { return m_Device5.Get(); }
+	auto operator->() { return m_Device5.Get(); }
+
 	inline auto Allocator() const { return m_Allocator; }
 
 	bool IsUAVCompatable(DXGI_FORMAT Format) const;

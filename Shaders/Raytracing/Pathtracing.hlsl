@@ -1,9 +1,3 @@
-/*
-	TODO: Finish reading "Ray Tracing: The Rest of Your Life" and finish implementing PDF
-	for different materials along with importance sampling and russian roulette
-	https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html
-*/
-
 struct RenderPassData
 {
 	uint NumSamplesPerPixel;

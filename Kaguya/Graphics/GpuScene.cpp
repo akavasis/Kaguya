@@ -289,16 +289,16 @@ GpuScene::GpuScene(RenderDevice* pRenderDevice)
 	});
 }
 
-void GpuScene::UploadTextures(CommandContext* pCommandContext)
+void GpuScene::UploadTextures(CommandList& CommandList)
 {
-	TextureManager.Stage(*pScene, pCommandContext);
+	TextureManager.Stage(*pScene, CommandList);
 }
 
-void GpuScene::UploadModels(CommandContext* pCommandContext)
+void GpuScene::UploadModels(CommandList& CommandList)
 {
-	BufferManager.Stage(*pScene, pCommandContext);
+	BufferManager.Stage(*pScene, CommandList);
 
-	CreateBottomLevelAS(pCommandContext);
+	CreateBottomLevelAS(CommandList);
 }
 
 void GpuScene::DisposeResources()
@@ -481,28 +481,28 @@ bool GpuScene::Update(float AspectRatio)
 	return Refresh;
 }
 
-void GpuScene::CreateTopLevelAS(CommandContext* pCommandContext)
+void GpuScene::CreateTopLevelAS(CommandList& CommandList)
 {
-	PIXScopedEvent(pCommandContext->GetApiHandle(), 0, L"Top Level Acceleration Structure Generation");
+	PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Top Level Acceleration Structure Generation");
 
 	UINT NumInstances = pScene->MeshInstances.size();
 
 	m_TopLevelAccelerationStructure.SetNumInstances(NumInstances);
 
-	auto pPipelineState = pRenderDevice->GetPipelineState(ComputePSOs::InstanceGeneration);
-	auto pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::InstanceGeneration);
-	pCommandContext->SetPipelineState(pPipelineState);
-	pCommandContext->SetComputeRootSignature(pRootSignature);
+	auto pPipelineState = pRenderDevice->GetPipelineState(ComputePSOs::InstanceGeneration)->GetApiHandle();
+	auto pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::InstanceGeneration)->GetApiHandle();
+	CommandList->SetPipelineState(pPipelineState);
+	CommandList->SetComputeRootSignature(pRootSignature);
 
-	auto pMeshBuffer = pRenderDevice->GetBuffer(m_MeshTable);
-	auto pInstanceDescsBuffer = pRenderDevice->GetBuffer(m_InstanceDescsBuffer);
-	pCommandContext->SetComputeRoot32BitConstant(0, NumInstances, 0);
-	pCommandContext->SetComputeRootShaderResourceView(1, pMeshBuffer->GetGpuVirtualAddress());
-	pCommandContext->SetComputeRootUnorderedAccessView(2, pInstanceDescsBuffer->GetGpuVirtualAddress());
+	auto pMeshBuffer = pRenderDevice->GetBuffer(m_MeshTable)->GetApiHandle();
+	auto pInstanceDescsBuffer = pRenderDevice->GetBuffer(m_InstanceDescsBuffer)->GetApiHandle();
+	CommandList->SetComputeRoot32BitConstant(0, NumInstances, 0);
+	CommandList->SetComputeRootShaderResourceView(1, pMeshBuffer->GetGPUVirtualAddress());
+	CommandList->SetComputeRootUnorderedAccessView(2, pInstanceDescsBuffer->GetGPUVirtualAddress());
 
-	pCommandContext->Dispatch1D(NumInstances, 64);
-	pCommandContext->UAVBarrier(pInstanceDescsBuffer);
-	pCommandContext->FlushResourceBarriers();
+	CommandList.Dispatch1D<64>(NumInstances);
+	CommandList.UAVBarrier(pInstanceDescsBuffer);
+	CommandList.FlushResourceBarriers();
 
 	UINT64 ScratchSizeInBytes, ResultSizeInBytes;
 	m_TopLevelAccelerationStructure.ComputeMemoryRequirements(pRenderDevice->Device, &ScratchSizeInBytes, &ResultSizeInBytes);
@@ -538,7 +538,7 @@ void GpuScene::CreateTopLevelAS(CommandContext* pCommandContext)
 		pResult = pRenderDevice->GetBuffer(m_RaytracingTopLevelAccelerationStructure.Result);
 	}
 
-	m_TopLevelAccelerationStructure.Generate(pCommandContext, pScratch, pResult, pInstanceDescsBuffer);
+	m_TopLevelAccelerationStructure.Generate(CommandList, pScratch->GetApiHandle(), pResult->GetApiHandle(), pInstanceDescsBuffer);
 }
 
 HLSL::Camera GpuScene::GetHLSLCamera() const
@@ -551,7 +551,7 @@ HLSL::Camera GpuScene::GetHLSLPreviousCamera() const
 	return GetHLSLCameraDesc(pScene->PreviousCamera);
 }
 
-void GpuScene::CreateBottomLevelAS(CommandContext* pCommandContext)
+void GpuScene::CreateBottomLevelAS(CommandList& CommandList)
 {
 	for (auto& Mesh : pScene->Meshes)
 	{
@@ -582,7 +582,7 @@ void GpuScene::CreateBottomLevelAS(CommandContext* pCommandContext)
 		m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
 	}
 
-	PIXScopedEvent(pCommandContext->GetApiHandle(), 0, L"Bottom Level Acceleration Structure Generation");
+	PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Bottom Level Acceleration Structure Generation");
 
 	for (auto& rtblas : m_RaytracingBottomLevelAccelerationStructures)
 	{
@@ -608,6 +608,6 @@ void GpuScene::CreateBottomLevelAS(CommandContext* pCommandContext)
 		Buffer* pResult = pRenderDevice->GetBuffer(rtblas.Result);
 		Buffer* pScratch = pRenderDevice->GetBuffer(rtblas.Scratch);
 
-		rtblas.BottomLevelAccelerationStructure.Generate(pCommandContext, pScratch, pResult);
+		rtblas.BottomLevelAccelerationStructure.Generate(CommandList, pScratch->GetApiHandle(), pResult->GetApiHandle());
 	}
 }

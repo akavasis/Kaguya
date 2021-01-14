@@ -26,7 +26,7 @@ public:
 	};
 
 	RenderSystem(uint32_t Width, uint32_t Height);
-	virtual ~RenderSystem();
+	~RenderSystem();
 
 	bool OnInitialize();
 	void OnUpdate(const Time& Time);

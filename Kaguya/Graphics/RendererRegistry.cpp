@@ -19,7 +19,6 @@ void Shaders::Register(const ShaderCompiler& ShaderCompiler)
 	// Load VS
 	{
 		VS::Quad										= ShaderCompiler.CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Quad.hlsl",		VSEntryPoint, {});
-		VS::Skybox										= ShaderCompiler.CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/Skybox.hlsli",		VSEntryPoint, {});
 	}
 
 	// Load MS
@@ -39,9 +38,6 @@ void Shaders::Register(const ShaderCompiler& ShaderCompiler)
 	// Load CS
 	{
 		CS::InstanceGeneration							= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/InstanceGeneration.hlsl",		CSEntryPoint, {});
-
-		CS::EquirectangularToCubemap					= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/EquirectangularToCubemap.hlsl",	CSEntryPoint, {});
-		CS::GenerateMips								= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/GenerateMips.hlsl",				CSEntryPoint, {});
 
 		CS::SVGF_Reproject								= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_Reproject.hlsl",		CSEntryPoint, {});
 		CS::SVGF_FilterMoments							= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/SVGF/SVGF_FilterMoments.hlsl",	CSEntryPoint, {});
@@ -73,9 +69,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 {
 	InitRootSignature(Default);
 
-	InitRootSignature(GenerateMips);
-	InitRootSignature(EquirectangularToCubemap);
-
 	InitRootSignature(Skybox);
 	InitRootSignature(GBufferMeshes);
 	InitRootSignature(GBufferLights);
@@ -96,28 +89,6 @@ void RootSignatures::Register(RenderDevice* pRenderDevice)
 
 	pRenderDevice->CreateRootSignature(Default, [](RootSignatureBuilder& Builder)
 	{
-		Builder.DenyTessellationShaderAccess();
-		Builder.DenyGSAccess();
-	});
-
-	pRenderDevice->CreateRootSignature(GenerateMips, [](RootSignatureBuilder& Builder)
-	{
-		Builder.AddRootConstantsParameter(RootConstants<GenerateMipsData>(0, 0));
-
-		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);
-
-		Builder.DenyVSAccess();
-		Builder.DenyTessellationShaderAccess();
-		Builder.DenyGSAccess();
-	});
-
-	pRenderDevice->CreateRootSignature(EquirectangularToCubemap, [](RootSignatureBuilder& Builder)
-	{
-		Builder.AddRootConstantsParameter(RootConstants<EquirectangularToCubemapData>(0, 0));
-
-		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);
-
-		Builder.DenyVSAccess();
 		Builder.DenyTessellationShaderAccess();
 		Builder.DenyGSAccess();
 	});
@@ -183,9 +154,6 @@ void GraphicsPSOs::Register(RenderDevice* pRenderDevice)
 
 void ComputePSOs::Register(RenderDevice* pRenderDevice)
 {
-	InitComputePSO(GenerateMips);
-	InitComputePSO(EquirectangularToCubemap);
-
 	InitComputePSO(SVGF_Reproject);
 	InitComputePSO(SVGF_FilterMoments);
 	InitComputePSO(SVGF_Atrous);
@@ -201,18 +169,6 @@ void ComputePSOs::Register(RenderDevice* pRenderDevice)
 	InitComputePSO(PostProcess_BloomComposition);
 
 	InitComputePSO(InstanceGeneration);
-
-	pRenderDevice->CreateComputePipelineState(GenerateMips, [=](ComputePipelineStateBuilder& Builder)
-	{
-		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::GenerateMips);
-		Builder.pCS = &Shaders::CS::GenerateMips;
-	});
-
-	pRenderDevice->CreateComputePipelineState(EquirectangularToCubemap, [=](ComputePipelineStateBuilder& Builder)
-	{
-		Builder.pRootSignature = pRenderDevice->GetRootSignature(RootSignatures::EquirectangularToCubemap);
-		Builder.pCS = &Shaders::CS::EquirectangularToCubemap;
-	});
 
 	pRenderDevice->CreateComputePipelineState(InstanceGeneration, [=](ComputePipelineStateBuilder& Builder)
 	{

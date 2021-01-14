@@ -5,7 +5,6 @@ RenderPass::RenderPass(std::string Name, RenderTargetProperties Properties, UINT
 	: Enabled(true),
 	Refresh(false),
 	ExplicitResourceTransition(false),
-	UseRayTracing(false),
 	Name(std::move(Name)),
 	Properties(Properties),
 	Resources(NumResources)

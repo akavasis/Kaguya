@@ -50,6 +50,8 @@ void ShadingComposition::RenderGui()
 
 void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	auto& CommandList = RenderContext.GetCommandList();
+
 	auto pShadingRenderPass = pRenderGraph->GetRenderPass<Shading>();
 	auto pSVGFAtrousRenderPass = pRenderGraph->GetRenderPass<SVGFAtrous>();
 
@@ -73,7 +75,7 @@ void ShadingComposition::Execute(RenderContext& RenderContext, RenderGraph* pRen
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::ShadingComposition);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
+	CommandList.Dispatch2D<16, 16>(Properties.Width, Properties.Height);
 }
 
 void ShadingComposition::StateRefresh()

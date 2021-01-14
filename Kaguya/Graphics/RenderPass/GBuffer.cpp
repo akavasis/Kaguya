@@ -6,6 +6,11 @@
 #include "Graphics/RenderGraph.h"
 #include "Graphics/RendererRegistry.h"
 
+namespace
+{
+	constexpr UINT NumRenderTargets = 6;
+}
+
 GBuffer::GBuffer(UINT Width, UINT Height)
 	: RenderPass("GBuffer", { Width, Height }, NumResources)
 {
@@ -87,7 +92,7 @@ void GBuffer::InitializePipeline(RenderDevice* pRenderDevice)
 
 void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGraph* pRenderGraph)
 {
-	DXGI_FORMAT Formats[EResources::NumResources - 1] =
+	DXGI_FORMAT Formats[NumRenderTargets] =
 	{
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -96,7 +101,7 @@ void GBuffer::ScheduleResource(ResourceScheduler* pResourceScheduler, RenderGrap
 		DXGI_FORMAT_R16G16B16A16_FLOAT,
 		DXGI_FORMAT_R32G32B32A32_FLOAT
 	};
-	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
+	for (size_t i = 0; i < NumRenderTargets; ++i)
 	{
 		pResourceScheduler->AllocateTexture(Resource::Type::Texture2D, [&](TextureProxy& proxy)
 		{
@@ -132,30 +137,31 @@ void GBuffer::RenderGui()
 
 void GBuffer::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
-	D3D12_VIEWPORT	vp = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
-	D3D12_RECT		sr = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
+	auto& CommandList = RenderContext.GetCommandList();
 
-	RenderContext->SetViewports(1, &vp);
-	RenderContext->SetScissorRects(1, &sr);
+	D3D12_VIEWPORT	Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, Properties.Width, Properties.Height);
+	D3D12_RECT		ScissorRect = CD3DX12_RECT(0, 0, Properties.Width, Properties.Height);
 
-	Descriptor RenderTargetViews[] =
+	CommandList->RSSetViewports(1, &Viewport);
+	CommandList->RSSetScissorRects(1, &ScissorRect);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetDescriptors[NumRenderTargets] = {};
+	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilDescriptor = {};
+
+	for (UINT i = 0; i < NumRenderTargets; ++i)
 	{
-		RenderContext.GetRenderTargetView(Resources[Albedo]),
-		RenderContext.GetRenderTargetView(Resources[Normal]),
-		RenderContext.GetRenderTargetView(Resources[TypeAndIndex]),
-		RenderContext.GetRenderTargetView(Resources[SVGF_LinearZ]),
-		RenderContext.GetRenderTargetView(Resources[SVGF_MotionVector]),
-		RenderContext.GetRenderTargetView(Resources[SVGF_Compact]),
-	};
-	Descriptor DepthStencilView = RenderContext.GetDepthStencilView(Resources[EResources::Depth]);
-
-	RenderContext->SetRenderTargets(ARRAYSIZE(RenderTargetViews), RenderTargetViews, TRUE, DepthStencilView);
-
-	for (size_t i = 0; i < EResources::NumResources - 1; ++i)
-	{
-		RenderContext->ClearRenderTarget(RenderTargetViews[i], DirectX::Colors::Black, 0, nullptr);
+		RenderTargetDescriptors[i] = RenderContext.GetRenderTargetView(Resources[i]).CpuHandle;
 	}
-	RenderContext->ClearDepthStencil(DepthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+	DepthStencilDescriptor = RenderContext.GetDepthStencilView(Resources[EResources::Depth]).CpuHandle;
+
+	CommandList->OMSetRenderTargets(NumRenderTargets, RenderTargetDescriptors, TRUE, &DepthStencilDescriptor);
+
+	for (auto & RenderTargetDescriptor : RenderTargetDescriptors)
+	{
+		CommandList->ClearRenderTargetView(RenderTargetDescriptor, DirectX::Colors::Black, 0, nullptr);
+	}
+	CommandList->ClearDepthStencilView(DepthStencilDescriptor, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	RenderMeshes(RenderContext);
 	RenderLights(RenderContext);
@@ -168,7 +174,8 @@ void GBuffer::StateRefresh()
 
 void GBuffer::RenderMeshes(RenderContext& RenderContext)
 {
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Render Meshes");
+	auto& CommandList = RenderContext.GetCommandList();
+	PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Render Meshes");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferMeshes);
 
@@ -187,16 +194,17 @@ void GBuffer::RenderMeshes(RenderContext& RenderContext)
 		RenderContext.SetRootShaderResourceView(2, Mesh.VertexIndexResource);
 		RenderContext.SetRootShaderResourceView(3, Mesh.PrimitiveIndexResource);
 
-		RenderContext->DispatchMesh(Mesh.Meshlets.size(), 1, 1);
+		CommandList->DispatchMesh(Mesh.Meshlets.size(), 1, 1);
 	}
 }
 
 void GBuffer::RenderLights(RenderContext& RenderContext)
 {
-	PIXScopedEvent(RenderContext->GetApiHandle(), 0, L"Render Lights");
+	auto& CommandList = RenderContext.GetCommandList();
+	PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Render Lights");
 
 	RenderContext.SetPipelineState(GraphicsPSOs::GBufferLights);
 	RenderContext.SetRootShaderResourceView(0, pGpuScene->GetLightTable());
 
-	RenderContext->DispatchMesh(pGpuScene->pScene->Lights.size(), 1, 1);
+	CommandList->DispatchMesh(pGpuScene->pScene->Lights.size(), 1, 1);
 }

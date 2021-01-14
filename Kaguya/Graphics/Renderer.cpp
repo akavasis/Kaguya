@@ -3,18 +3,13 @@
 #include "Core/Window.h"
 #include "Core/Time.h"
 
-#include <wincodec.h> // GUID_ContainerFormatJpeg, needed for ScreenGrab
+#include <wincodec.h> // GUID for different file formats, needed for ScreenGrab
 #include <ScreenGrab.h> // DirectX::SaveWICTextureToFile
 
 #include "RendererRegistry.h"
 
 // Render passes
-#include "RenderPass/GBuffer.h"
-#include "RenderPass/Shading.h"
-#include "RenderPass/SVGF.h"
-#include "RenderPass/ShadingComposition.h"
 #include "RenderPass/Pathtracing.h"
-#include "RenderPass/AmbientOcclusion.h"
 #include "RenderPass/Accumulation.h"
 #include "RenderPass/PostProcess.h"
 #include "RenderPass/Picking.h"
@@ -37,7 +32,7 @@ bool Renderer::Initialize()
 {
 	try
 	{
-		m_pRenderDevice	= std::make_unique<RenderDevice>(Application::Window);
+		m_pRenderDevice = std::make_unique<RenderDevice>(Application::Window);
 		m_pRenderDevice->ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
 
 		m_pRenderGraph = std::make_unique<RenderGraph>(m_pRenderDevice.get());
@@ -61,14 +56,7 @@ bool Renderer::Initialize()
 		return false;
 	}
 
-	//m_pRenderGraph->AddRenderPass(new GBuffer(Width, Height));
-	//m_pRenderGraph->AddRenderPass(new Shading(Width, Height));
-	//m_pRenderGraph->AddRenderPass(new SVGFReproject(Width, Height));
-	//m_pRenderGraph->AddRenderPass(new SVGFFilterMoments(Width, Height));
-	//m_pRenderGraph->AddRenderPass(new SVGFAtrous(Width, Height));
-	//m_pRenderGraph->AddRenderPass(new ShadingComposition(Width, Height));
 	m_pRenderGraph->AddRenderPass(new Pathtracing(Width, Height));
-	//m_RenderGraph.AddRenderPass(new AmbientOcclusion(Width, Height));
 	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
 	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
 	m_pRenderGraph->AddRenderPass(new Picking());
@@ -142,23 +130,23 @@ void Renderer::Render()
 	RenderGui();
 	m_pGpuScene->RenderGui();
 
-	auto AsyncComputeContext = m_pRenderDevice->GetDefaultAsyncComputeContext();
-	AsyncComputeContext->Reset(m_pRenderDevice->ComputeFenceValue, m_pRenderDevice->ComputeFence->GetCompletedValue(), &m_pRenderDevice->ComputeQueue);
+	auto& AsyncComputeContext = m_pRenderDevice->GetDefaultAsyncComputeContext();
+	AsyncComputeContext.Reset(m_pRenderDevice->ComputeFenceValue, m_pRenderDevice->ComputeFence->GetCompletedValue(), &m_pRenderDevice->ComputeQueue);
 
 	m_pGpuScene->CreateTopLevelAS(AsyncComputeContext);
 
-	CommandContext* pCommandContexts[] = { AsyncComputeContext };
+	CommandList* pCommandContexts[] = { &AsyncComputeContext };
 	m_pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
-	m_pRenderDevice->ComputeQueue.GetApiHandle()->Signal(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
-	m_pRenderDevice->GraphicsQueue.GetApiHandle()->Wait(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
+	m_pRenderDevice->ComputeQueue->Signal(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
+	m_pRenderDevice->GraphicsQueue->Wait(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
 	m_pRenderDevice->ComputeFenceValue++;
 
-	HLSL::SystemConstants HLSLSystemConstants	= {};
-	HLSLSystemConstants.Camera					= m_pGpuScene->GetHLSLCamera();
-	HLSLSystemConstants.PreviousCamera			= m_pGpuScene->GetHLSLPreviousCamera();
-	HLSLSystemConstants.OutputSize				= { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
-	HLSLSystemConstants.TotalFrameCount			= static_cast<unsigned int>(Statistics::TotalFrameCount);
-	HLSLSystemConstants.NumPolygonalLights		= m_Scene.Lights.size();
+	HLSL::SystemConstants HLSLSystemConstants = {};
+	HLSLSystemConstants.Camera = m_pGpuScene->GetHLSLCamera();
+	HLSLSystemConstants.PreviousCamera = m_pGpuScene->GetHLSLPreviousCamera();
+	HLSLSystemConstants.OutputSize = { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
+	HLSLSystemConstants.TotalFrameCount = static_cast<unsigned int>(Statistics::TotalFrameCount);
+	HLSLSystemConstants.NumPolygonalLights = m_Scene.Lights.size();
 
 	bool Refresh = m_pGpuScene->Update(AspectRatio);
 
@@ -167,7 +155,7 @@ void Renderer::Render()
 	{
 		CommandContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
 	}
-	
+
 	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
 	m_pRenderGraph->Execute(Refresh);
 
@@ -175,7 +163,7 @@ void Renderer::Render()
 	m_pRenderDevice->Present(Settings::VSync);
 
 	UINT64 Value = ++m_pRenderDevice->GraphicsFenceValue;
-	ThrowIfFailed(m_pRenderDevice->GraphicsQueue.GetApiHandle()->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
+	ThrowIfFailed(m_pRenderDevice->GraphicsQueue->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
 	ThrowIfFailed(m_pRenderDevice->GraphicsFence->SetEventOnCompletion(Value, m_pRenderDevice->GraphicsFenceCompletionEvent.get()));
 	m_pRenderDevice->GraphicsFenceCompletionEvent.wait();
 
@@ -188,11 +176,10 @@ void Renderer::Render()
 
 		auto pTexture = m_pRenderDevice->GetTexture(m_pRenderDevice->GetCurrentBackBufferHandle());
 
-		auto FileName = Application::ExecutableFolderPath / L"Screenshot.jpg";
-		HRESULT hr = DirectX::SaveWICTextureToFile(m_pRenderDevice->GraphicsQueue.GetApiHandle(), pTexture->GetApiHandle(),
-			GUID_ContainerFormatJpeg, FileName.c_str(),
-			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_PRESENT);
-		if (FAILED(hr))
+		auto FileName = Application::ExecutableFolderPath / L"Screenshot.png";
+		if (FAILED(DirectX::SaveWICTextureToFile(m_pRenderDevice->GraphicsQueue, pTexture->GetApiHandle(),
+			GUID_ContainerFormatPng, FileName.c_str(),
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_PRESENT, nullptr, nullptr, true)))
 		{
 			LOG_WARN("Failed to save screenshot");
 		}
@@ -234,20 +221,19 @@ void Renderer::Destroy()
 void Renderer::SetScene(Scene Scene)
 {
 	PIXCapture();
-	m_Scene				= std::move(Scene);
-	//m_Scene.Skybox.Path = Application::ExecutableFolderPath / "Assets/IBL/ChiricahuaPath.hdr";
+	m_Scene = std::move(Scene);
 
 	m_pGpuScene->pScene = &m_Scene;
 
-	auto GraphicsContext = m_pRenderDevice->GetDefaultGraphicsContext();
+	auto& GraphicsContext = m_pRenderDevice->GetDefaultGraphicsContext();
 
-	GraphicsContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+	GraphicsContext.Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
 
 	m_pRenderDevice->BindGpuDescriptorHeap(GraphicsContext);
 	m_pGpuScene->UploadTextures(GraphicsContext);
 	m_pGpuScene->UploadModels(GraphicsContext);
 
-	CommandContext* pCommandContexts[] = { GraphicsContext };
+	CommandList* pCommandContexts[] = { &GraphicsContext };
 	m_pRenderDevice->ExecuteGraphicsContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
 	m_pRenderDevice->FlushGraphicsQueue();
 	m_pGpuScene->DisposeResources();
@@ -303,4 +289,9 @@ void Renderer::RenderGui()
 		ImGui::Text("ImGui::WantCaptureMouse: %i", ImGui::GetIO().WantCaptureMouse);
 	}
 	ImGui::End();
+}
+
+DWORD WINAPI Renderer::AssetProcessThreadProc(_In_ PVOID pParameter)
+{
+	return 0;
 }

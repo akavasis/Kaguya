@@ -5,12 +5,13 @@
 
 TextureManager::TextureManager(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice)
+	, pDevice(pRenderDevice->Device)
 {
 	LoadSystemTextures();
 	LoadNoiseTextures();
 }
 
-void TextureManager::Stage(Scene& Scene, CommandContext* pCommandContext)
+void TextureManager::Stage(Scene& Scene, CommandList& CommandList)
 {
 	for (auto& material : Scene.Materials)
 	{
@@ -20,9 +21,35 @@ void TextureManager::Stage(Scene& Scene, CommandContext* pCommandContext)
 	// Gpu copy
 	for (auto& [handle, stagingTexture] : m_UnstagedTextures)
 	{
-		StageTexture(handle, stagingTexture, pCommandContext);
+#ifdef _DEBUG
+		std::wstring Path = UTF8ToUTF16(stagingTexture.Name);
+		PIXScopedEvent(CommandList.GetApiHandle(), 0, Path.data());
+#endif
+
+		Texture* pTexture = pRenderDevice->GetTexture(handle);
+		Texture* pStagingResourceTexture = &stagingTexture.Texture;
+
+		// Stage texture
+		CommandList.TransitionBarrier(pTexture->GetApiHandle(), Resource::State::CopyDest);
+		CommandList.FlushResourceBarriers();
+		for (size_t subresourceIndex = 0; subresourceIndex < stagingTexture.NumSubresources; ++subresourceIndex)
+		{
+			D3D12_TEXTURE_COPY_LOCATION Destination = {};
+			Destination.pResource = pTexture->GetApiHandle();
+			Destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			Destination.SubresourceIndex = subresourceIndex;
+
+			D3D12_TEXTURE_COPY_LOCATION Source = {};
+			Source.pResource = pStagingResourceTexture->GetApiHandle();
+			Source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			Source.PlacedFootprint = stagingTexture.PlacedSubresourceLayouts[subresourceIndex];
+			CommandList->CopyTextureRegion(&Destination, 0, 0, 0, &Source, nullptr);
+		}
+
+		CommandList.TransitionBarrier(pTexture->GetApiHandle(), Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
+		LOG_INFO("{} Loaded", stagingTexture.Name);
 	}
-	pCommandContext->FlushResourceBarriers();
+	CommandList.FlushResourceBarriers();
 }
 
 void TextureManager::DisposeResources()
@@ -48,13 +75,12 @@ TextureManager::StagingTexture TextureManager::CreateStagingTexture(std::string 
 	std::vector<UINT64>								RowSizeInBytes(NumSubresources);
 	UINT64											TotalBytes = 0;
 
-	auto pD3DDevice = pRenderDevice->Device.GetApiHandle();
-	pD3DDevice->GetCopyableFootprints(&Desc, 0, NumSubresources, 0,
+	pDevice->GetCopyableFootprints(&Desc, 0, NumSubresources, 0,
 		PlacedSubresourceLayouts.data(), NumRows.data(), RowSizeInBytes.data(), &TotalBytes);
 
 	auto HeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	Desc = CD3DX12_RESOURCE_DESC::Buffer(TotalBytes);
-	pD3DDevice->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE,
+	pDevice->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE,
 		&Desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(StagingResource.ReleaseAndGetAddressOf()));
 
 	// CPU Upload
@@ -139,7 +165,7 @@ void TextureManager::LoadSystemTextures()
 		ScratchImages[i] = std::move(ScratchImage);
 	}
 
-	auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
+	auto ResourceAllocationInfo = pRenderDevice->Device->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
 	if (ResourceAllocationInfo.Alignment != D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT)
 	{
 		// If the alignment requested is not granted, then let D3D tell us
@@ -148,7 +174,7 @@ void TextureManager::LoadSystemTextures()
 		{
 			ResourceDesc.Alignment = 0;
 		}
-		ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
+		ResourceAllocationInfo = pRenderDevice->Device->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
 	}
 	
 	auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES);
@@ -210,7 +236,7 @@ void TextureManager::LoadNoiseTextures()
 		ScratchImages[i] = std::move(ScratchImage);
 	}
 
-	auto ResourceAllocationInfo = pRenderDevice->Device.GetApiHandle()->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
+	auto ResourceAllocationInfo = pDevice->GetResourceAllocationInfo1(0, ARRAYSIZE(ResourceDescs), ResourceDescs, ResourceAllocationInfo1);
 
 	auto HeapDesc = CD3DX12_HEAP_DESC(ResourceAllocationInfo.SizeInBytes, D3D12_HEAP_TYPE_DEFAULT, 0, D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES);
 	m_NoiseTextureHeap = pRenderDevice->InitializeRenderResourceHandle(RenderResourceType::Heap, "System Texture Heap");
@@ -371,37 +397,6 @@ void TextureManager::LoadMaterial(Material& Material)
 
 		Material.TextureIndices[i] = pRenderDevice->GetShaderResourceView(TextureHandle).HeapIndex;
 	}
-}
-
-void TextureManager::StageTexture(RenderResourceHandle TextureHandle, StagingTexture& StagingTexture, CommandContext* pCommandContext)
-{
-#ifdef _DEBUG
-	std::wstring Path = UTF8ToUTF16(StagingTexture.Name);
-	PIXScopedEvent(pCommandContext->GetApiHandle(), 0, Path.data());
-#endif
-
-	Texture* pTexture = pRenderDevice->GetTexture(TextureHandle);
-	Texture* pStagingResourceTexture = &StagingTexture.Texture;
-
-	// Stage texture
-	pCommandContext->TransitionBarrier(pTexture, Resource::State::CopyDest);
-	pCommandContext->FlushResourceBarriers();
-	for (size_t subresourceIndex = 0; subresourceIndex < StagingTexture.NumSubresources; ++subresourceIndex)
-	{
-		D3D12_TEXTURE_COPY_LOCATION Destination = {};
-		Destination.pResource = pTexture->GetApiHandle();
-		Destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		Destination.SubresourceIndex = subresourceIndex;
-
-		D3D12_TEXTURE_COPY_LOCATION Source = {};
-		Source.pResource = pStagingResourceTexture->GetApiHandle();
-		Source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		Source.PlacedFootprint = StagingTexture.PlacedSubresourceLayouts[subresourceIndex];
-		pCommandContext->CopyTextureRegion(&Destination, 0, 0, 0, &Source, nullptr);
-	}
-
-	pCommandContext->TransitionBarrier(pTexture, Resource::State::PixelShaderResource | Resource::State::NonPixelShaderResource);
-	LOG_INFO("{} Loaded", StagingTexture.Name);
 }
 
 DXGI_FORMAT TextureManager::GetUAVCompatableFormat(DXGI_FORMAT Format)

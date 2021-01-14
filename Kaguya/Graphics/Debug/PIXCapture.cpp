@@ -9,18 +9,17 @@ namespace Kaguya
 	{
 		PIXCapture::PIXCapture()
 		{
-			::DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphicsAnalysis));
-			if (graphicsAnalysis)
+			if (SUCCEEDED(::DXGIGetDebugInterface1(0, IID_PPV_ARGS(&GraphicsAnalysis))))
 			{
-				graphicsAnalysis->BeginCapture();
+				GraphicsAnalysis->BeginCapture();
 			}
 		}
 
 		PIXCapture::~PIXCapture()
 		{
-			if (graphicsAnalysis)
+			if (GraphicsAnalysis)
 			{
-				graphicsAnalysis->EndCapture();
+				GraphicsAnalysis->EndCapture();
 			}
 		}
 	}

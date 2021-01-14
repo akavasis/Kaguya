@@ -95,6 +95,8 @@ void SVGFReproject::RenderGui()
 
 void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	auto& CommandList = RenderContext.GetCommandList();
+
 	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget0], Resource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[EResources::PrevRenderTarget1], Resource::State::NonPixelShaderResource);
 	RenderContext.TransitionBarrier(Resources[EResources::PrevLinearZ], Resource::State::NonPixelShaderResource);
@@ -156,7 +158,7 @@ void SVGFReproject::Execute(RenderContext& RenderContext, RenderGraph* pRenderGr
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::SVGF_Reproject);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
+	CommandList.Dispatch2D<16, 16>(Properties.Width, Properties.Height);
 
 	RenderContext.CopyResource(Resources[EResources::PrevRenderTarget0], Resources[EResources::RenderTarget0]);
 	RenderContext.CopyResource(Resources[EResources::PrevRenderTarget1], Resources[EResources::RenderTarget1]);
@@ -217,6 +219,8 @@ void SVGFFilterMoments::RenderGui()
 
 void SVGFFilterMoments::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	auto& CommandList = RenderContext.GetCommandList();
+
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 	auto pSVGFReprojectRenderPass = pRenderGraph->GetRenderPass<SVGFReproject>();
 
@@ -256,7 +260,7 @@ void SVGFFilterMoments::Execute(RenderContext& RenderContext, RenderGraph* pRend
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::SVGF_FilterMoments);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
+	CommandList.Dispatch2D<16, 16>(Properties.Width, Properties.Height);
 }
 
 void SVGFFilterMoments::StateRefresh()
@@ -311,6 +315,8 @@ void SVGFAtrous::RenderGui()
 
 void SVGFAtrous::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph)
 {
+	auto& CommandList = RenderContext.GetCommandList();
+
 	auto pGBufferRenderPass = pRenderGraph->GetRenderPass<GBuffer>();
 	auto pSVGFReprojectRenderPass = pRenderGraph->GetRenderPass<SVGFReproject>();
 	auto pSVGFFilterMomentsRenderPass = pRenderGraph->GetRenderPass<SVGFFilterMoments>();
@@ -353,7 +359,7 @@ void SVGFAtrous::Execute(RenderContext& RenderContext, RenderGraph* pRenderGraph
 	RenderContext.UpdateRenderPassData<RenderPassData>(g_RenderPassData);
 
 	RenderContext.SetPipelineState(ComputePSOs::SVGF_Atrous);
-	RenderContext->Dispatch2D(Properties.Width, Properties.Height, 16, 16);
+	CommandList.Dispatch2D<16, 16>(Properties.Width, Properties.Height);
 }
 
 void SVGFAtrous::StateRefresh()

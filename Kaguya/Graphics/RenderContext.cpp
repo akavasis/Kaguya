@@ -3,7 +3,10 @@
 
 void RenderContext::CopyBufferRegion(RenderResourceHandle DstBuffer, UINT64 DstOffset, RenderResourceHandle SrcBuffer, UINT64 SrcOffset, UINT64 NumBytes)
 {
-	SV_pCommandContext->CopyBufferRegion(SV_pRenderDevice->GetBuffer(DstBuffer), DstOffset, SV_pRenderDevice->GetBuffer(SrcBuffer), SrcOffset, NumBytes);
+	auto pDstBuffer = SV_pRenderDevice->GetBuffer(DstBuffer)->GetApiHandle();
+	auto pSrcBuffer = SV_pRenderDevice->GetBuffer(SrcBuffer)->GetApiHandle();
+
+	SV_CommandList->CopyBufferRegion(pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, NumBytes);
 }
 
 void RenderContext::CopyResource(RenderResourceHandle Dst, RenderResourceHandle Src)
@@ -11,12 +14,20 @@ void RenderContext::CopyResource(RenderResourceHandle Dst, RenderResourceHandle 
 	switch (Dst.Type)
 	{
 	case RenderResourceType::Buffer:
-		SV_pCommandContext->CopyResource(SV_pRenderDevice->GetBuffer(Dst), SV_pRenderDevice->GetBuffer(Src));
-		break;
+	{
+		auto pDstBuffer = SV_pRenderDevice->GetBuffer(Dst)->GetApiHandle();
+		auto pSrcBuffer = SV_pRenderDevice->GetBuffer(Src)->GetApiHandle();
+		SV_CommandList->CopyResource(pDstBuffer, pSrcBuffer);
+	}
+	break;
 
 	case RenderResourceType::Texture:
-		SV_pCommandContext->CopyResource(SV_pRenderDevice->GetTexture(Dst), SV_pRenderDevice->GetTexture(Src));
-		break;
+	{
+		auto pDstTexture = SV_pRenderDevice->GetTexture(Dst)->GetApiHandle();
+		auto pSrcTexture = SV_pRenderDevice->GetTexture(Src)->GetApiHandle();
+		SV_CommandList->CopyResource(pDstTexture, pSrcTexture);
+	}
+	break;
 	}
 }
 
@@ -25,11 +36,11 @@ void RenderContext::TransitionBarrier(RenderResourceHandle ResourceHandle, Resou
 	switch (ResourceHandle.Type)
 	{
 	case RenderResourceType::Buffer:
-		SV_pCommandContext->TransitionBarrier(SV_pRenderDevice->GetBuffer(ResourceHandle), TransitionState, Subresource);
+		SV_CommandList.TransitionBarrier(SV_pRenderDevice->GetBuffer(ResourceHandle)->GetApiHandle(), TransitionState, Subresource);
 		break;
 
 	case RenderResourceType::Texture:
-		SV_pCommandContext->TransitionBarrier(SV_pRenderDevice->GetTexture(ResourceHandle), TransitionState, Subresource);
+		SV_CommandList.TransitionBarrier(SV_pRenderDevice->GetTexture(ResourceHandle)->GetApiHandle(), TransitionState, Subresource);
 		break;
 	}
 }
@@ -45,11 +56,11 @@ void RenderContext::UAVBarrier(RenderResourceHandle ResourceHandle)
 	switch (ResourceHandle.Type)
 	{
 	case RenderResourceType::Buffer:
-		SV_pCommandContext->UAVBarrier(SV_pRenderDevice->GetBuffer(ResourceHandle));
+		SV_CommandList.UAVBarrier(SV_pRenderDevice->GetBuffer(ResourceHandle)->GetApiHandle());
 		break;
 
 	case RenderResourceType::Texture:
-		SV_pCommandContext->UAVBarrier(SV_pRenderDevice->GetTexture(ResourceHandle));
+		SV_CommandList.UAVBarrier(SV_pRenderDevice->GetTexture(ResourceHandle)->GetApiHandle());
 		break;
 	}
 }
@@ -78,12 +89,12 @@ void RenderContext::SetRoot32BitConstants(UINT RootParameterIndex, UINT Num32Bit
 	switch (m_PipelineStateType)
 	{
 	case PipelineState::Type::Graphics:
-		SV_pCommandContext->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
+		SV_CommandList->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
 		break;
 
 		// RaytracingPipelineState's use SetComputeXXX method
 	case PipelineState::Type::Compute:
-		SV_pCommandContext->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
+		SV_CommandList->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
 		break;
 	}
 }
@@ -98,12 +109,12 @@ void RenderContext::SetRootShaderResourceView(UINT RootParameterIndex, RenderRes
 	switch (m_PipelineStateType)
 	{
 	case PipelineState::Type::Graphics:
-		SV_pCommandContext->SetGraphicsRootShaderResourceView(RootParameterIndex, GpuVirtualAddress);
+		SV_CommandList->SetGraphicsRootShaderResourceView(RootParameterIndex, GpuVirtualAddress);
 		break;
 
 		// RaytracingPipelineState's use SetComputeXXX method
 	case PipelineState::Type::Compute:
-		SV_pCommandContext->SetComputeRootShaderResourceView(RootParameterIndex, GpuVirtualAddress);
+		SV_CommandList->SetComputeRootShaderResourceView(RootParameterIndex, GpuVirtualAddress);
 		break;
 	}
 }
@@ -140,27 +151,27 @@ void RenderContext::DispatchRays
 	Desc.Width	= Width;
 	Desc.Height = Height;
 	Desc.Depth	= Depth;
-	SV_pCommandContext->DispatchRays(&Desc);
+	SV_CommandList->DispatchRays(&Desc);
 }
 
 void RenderContext::SetPipelineState(PipelineState* pPipelineState)
 {
 	m_PipelineStateType = pPipelineState->GetType();
 
-	SV_pCommandContext->SetPipelineState(pPipelineState);
+	SV_CommandList->SetPipelineState(pPipelineState->GetApiHandle());
 
 	switch (m_PipelineStateType)
 	{
 	case PipelineState::Type::Graphics:
 	{
-		SV_pCommandContext->SetGraphicsRootSignature(pPipelineState->pRootSignature);
+		SV_CommandList->SetGraphicsRootSignature(pPipelineState->pRootSignature->GetApiHandle());
 		BindGraphicsShaderLayoutResource(pPipelineState->pRootSignature);
 	}
 	break;
 
 	case PipelineState::Type::Compute:
 	{
-		SV_pCommandContext->SetComputeRootSignature(pPipelineState->pRootSignature);
+		SV_CommandList->SetComputeRootSignature(pPipelineState->pRootSignature->GetApiHandle());
 		BindComputeShaderLayoutResource(pPipelineState->pRootSignature);
 	}
 	break;
@@ -171,8 +182,8 @@ void RenderContext::SetRaytracingPipelineState(RaytracingPipelineState* pRaytrac
 {
 	m_PipelineStateType = PipelineState::Type::Compute;
 
-	SV_pCommandContext->SetRaytracingPipelineState(pRaytracingPipelineState);
-	SV_pCommandContext->SetComputeRootSignature(pRaytracingPipelineState->pGlobalRootSignature);
+	SV_CommandList->SetPipelineState1(pRaytracingPipelineState->GetApiHandle());
+	SV_CommandList->SetComputeRootSignature(pRaytracingPipelineState->pGlobalRootSignature->GetApiHandle());
 
 	BindComputeShaderLayoutResource(pRaytracingPipelineState->pGlobalRootSignature);
 }
@@ -186,12 +197,12 @@ void RenderContext::BindGraphicsShaderLayoutResource(const RootSignature* pRootS
 	auto SamplerDescriptorFromStart			= SV_pRenderDevice->GetSamplerDescriptorHeapDescriptorFromStart();
 
 	if (SV_pSystemConstants)
-		SV_pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::SystemConstants + RootParameterOffset, SV_pSystemConstants->GetGpuVirtualAddress());
+		SV_CommandList->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::SystemConstants + RootParameterOffset, SV_pSystemConstants->GetGpuVirtualAddress());
 	if (SV_pGpuData)
-		SV_pCommandContext->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameterOffset, SV_pGpuData->GetGpuVirtualAddressAt(SV_RenderPassIndex));
-	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GpuHandle);
-	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GpuHandle);
-	SV_pCommandContext->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GpuHandle);
+		SV_CommandList->SetGraphicsRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameterOffset, SV_pGpuData->GetGpuVirtualAddressAt(SV_RenderPassIndex));
+	SV_CommandList->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GpuHandle);
+	SV_CommandList->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GpuHandle);
+	SV_CommandList->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GpuHandle);
 }
 
 void RenderContext::BindComputeShaderLayoutResource(const RootSignature* pRootSignature)
@@ -203,10 +214,10 @@ void RenderContext::BindComputeShaderLayoutResource(const RootSignature* pRootSi
 	auto SamplerDescriptorFromStart			= SV_pRenderDevice->GetSamplerDescriptorHeapDescriptorFromStart();
 
 	if (SV_pSystemConstants)
-		SV_pCommandContext->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::SystemConstants + RootParameterOffset, SV_pSystemConstants->GetGpuVirtualAddress());
+		SV_CommandList->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::SystemConstants + RootParameterOffset, SV_pSystemConstants->GetGpuVirtualAddress());
 	if (SV_pGpuData)
-		SV_pCommandContext->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameterOffset, SV_pGpuData->GetGpuVirtualAddressAt(SV_RenderPassIndex));
-	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GpuHandle);
-	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GpuHandle);
-	SV_pCommandContext->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GpuHandle);
+		SV_CommandList->SetComputeRootConstantBufferView(RootParameters::ShaderLayout::RenderPassDataCB + RootParameterOffset, SV_pGpuData->GetGpuVirtualAddressAt(SV_RenderPassIndex));
+	SV_CommandList->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, ShaderResourceDescriptorFromStart.GpuHandle);
+	SV_CommandList->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, UnorderedAccessDescriptorFromStart.GpuHandle);
+	SV_CommandList->SetComputeRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GpuHandle);
 }
