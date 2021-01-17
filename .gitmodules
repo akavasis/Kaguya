@@ -16,3 +16,6 @@
 [submodule "Submodules/D3D12MemoryAllocator"]
 	path = Submodules/D3D12MemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git
+[submodule "Submodules/entt"]
+	path = Submodules/entt
+	url = https://github.com/skypjack/entt.git
