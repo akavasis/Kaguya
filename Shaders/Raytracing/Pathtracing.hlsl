@@ -2,11 +2,75 @@ struct RenderPassData
 {
 	uint NumSamplesPerPixel;
 	uint MaxDepth;
-	
+	uint NumAccumulatedSamples;
+
 	uint RenderTarget;
 };
 #define RenderPassDataType RenderPassData
 #include "Global.hlsli"
+
+// Local Root Signature
+// ====================
+StructuredBuffer<Vertex> VertexBuffer : register(t0, space1);
+StructuredBuffer<uint> IndexBuffer : register(t1, space1);
+
+Triangle GetTriangle()
+{
+	Mesh mesh = Meshes[InstanceID()];
+
+	const uint primIndex = PrimitiveIndex();
+	const uint idx0 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 0];
+	const uint idx1 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 1];
+	const uint idx2 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 2];
+	
+	const Vertex vtx0 = VertexBuffer[idx0 + mesh.VertexOffset];
+	const Vertex vtx1 = VertexBuffer[idx1 + mesh.VertexOffset];
+	const Vertex vtx2 = VertexBuffer[idx2 + mesh.VertexOffset];
+	
+	Triangle t = { vtx0, vtx1, vtx2 };
+	return t;
+}
+
+Vertex GetInterpolatedVertex(in HitAttributes attrib)
+{
+	float3 barycentrics = float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
+
+	Triangle t = GetTriangle();
+	return BarycentricInterpolation(t, barycentrics);
+}
+
+struct SurfaceInteraction
+{
+	bool frontFace;
+	float3 position;
+	float2 uv;
+	float3 tangent;
+	float3 bitangent;
+	float3 normal;
+	Material material;
+};
+
+SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib)
+{
+	SurfaceInteraction si;
+	
+	Mesh mesh = Meshes[InstanceID()];
+	Vertex vertex = GetInterpolatedVertex(attrib);
+	Material material = Materials[mesh.MaterialIndex];
+	
+	vertex.Normal = normalize(mul(vertex.Normal, (float3x3) mesh.World));
+	ONB onb = InitONB(vertex.Normal);
+	
+	si.frontFace = dot(WorldRayDirection(), vertex.Normal) < 0.0f;
+	si.position = WorldRayOrigin() + (WorldRayDirection() * RayTCurrent());
+	si.uv = vertex.Texture;
+	si.tangent = onb.tangent;
+	si.bitangent = onb.bitangent;
+	si.normal = onb.normal;
+	si.material = material;
+	
+	return si;
+}
 
 // Hit information, aka ray payload
 // Note that the payload should be kept as small as possible,
@@ -289,10 +353,22 @@ void RayGeneration()
 	
 		color += PathTrace(ray, seed);
 	}
-	color /= (float) g_RenderPassData.NumSamplesPerPixel;
+	color *= 1.0f / float(g_RenderPassData.NumSamplesPerPixel);
 
 	RWTexture2D<float4> RenderTarget = g_RWTexture2DTable[g_RenderPassData.RenderTarget];
-	RenderTarget[launchIndex] = float4(color, 1.0f);
+	
+	float3 finalColor;
+	if (g_RenderPassData.NumAccumulatedSamples > 0)
+	{
+		float3 prev = RenderTarget[launchIndex].rgb;
+		finalColor = lerp(prev, color, 1.0f / float(g_RenderPassData.NumAccumulatedSamples)); // accumulate
+	}
+	else
+	{
+		finalColor = color;
+	}
+	
+	RenderTarget[launchIndex] = float4(finalColor, 1);
 }
 
 [shader("miss")]

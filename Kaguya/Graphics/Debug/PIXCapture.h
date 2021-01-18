@@ -1,24 +1,20 @@
 #pragma once
 #include <wrl/client.h>
 #include <DXProgrammableCapture.h>
+#include <pix3.h>
 
-namespace Kaguya
+class PIXCapture
 {
-	namespace Internal
-	{
-		class PIXCapture
-		{
-		public:
-			PIXCapture();
-			~PIXCapture();
-		private:
-			Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> GraphicsAnalysis;
-		};
-	}
-}
+public:
+	PIXCapture();
+	~PIXCapture();
+private:
+	Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> GraphicsAnalysis;
+};
 
 #ifdef _DEBUG
-#define PIXCapture() Kaguya::Internal::PIXCapture __PIXCAPTURE
+#define GetScopedCaptureVariableName(a, b) PIXConcatenate(a, b)
+#define PIXScopedCapture() PIXCapture GetScopedCaptureVariableName(pixCapture, __LINE__)
 #else
-#define PIXCapture() 
+#define ScopedCapture(context, ...)
 #endif

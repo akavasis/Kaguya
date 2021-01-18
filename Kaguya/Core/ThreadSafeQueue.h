@@ -19,6 +19,13 @@ public:
 		::WakeConditionVariable(&ConditionVariable);
 	}
 
+	void Enqueue(T&& Item)
+	{
+		ScopedCriticalSection SCS(CriticalSection);
+		Queue.push(std::move(Item));
+		::WakeConditionVariable(&ConditionVariable);
+	}
+
 	bool Dequeue(T& Item, int Milliseconds)
 	{
 		ScopedCriticalSection SCS(CriticalSection);
@@ -30,7 +37,7 @@ public:
 				return false;
 		}
 
-		Item = Queue.front();
+		Item = std::move(Queue.front());
 		Queue.pop();
 
 		return true;

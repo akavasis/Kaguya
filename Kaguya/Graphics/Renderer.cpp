@@ -8,23 +8,24 @@
 
 #include "RendererRegistry.h"
 
-// Render passes
-#include "RenderPass/Pathtracing.h"
-#include "RenderPass/Accumulation.h"
-#include "RenderPass/PostProcess.h"
-#include "RenderPass/Picking.h"
-
-#include "Scene/SampleScene.h"
-
-#define SHOW_IMGUI_DEMO_WINDOW 0
+#define SHOW_IMGUI_DEMO_WINDOW 1
 
 using Microsoft::WRL::ComPtr;
 
 //----------------------------------------------------------------------------------------------------
 Renderer::Renderer()
 	: RenderSystem(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight())
+	, RenderDevice(Application::Window)
 {
+	RenderDevice.ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
+	//ResourceManager.Create(&RenderDevice);
 
+	atexit(Device::ReportLiveObjects);
+}
+
+Renderer::~Renderer()
+{
+	
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -32,18 +33,8 @@ bool Renderer::Initialize()
 {
 	try
 	{
-		m_pRenderDevice = std::make_unique<RenderDevice>(Application::Window);
-		m_pRenderDevice->ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
-
-		m_pRenderGraph = std::make_unique<RenderGraph>(m_pRenderDevice.get());
-		m_pGpuScene = std::make_unique<GpuScene>(m_pRenderDevice.get());
-
-		Shaders::Register(m_pRenderDevice->ShaderCompiler);
-		Libraries::Register(m_pRenderDevice->ShaderCompiler);
-		RootSignatures::Register(m_pRenderDevice.get());
-		GraphicsPSOs::Register(m_pRenderDevice.get());
-		ComputePSOs::Register(m_pRenderDevice.get());
-		RaytracingPSOs::Register(m_pRenderDevice.get());
+		Shaders::Register(RenderDevice.ShaderCompiler);
+		Libraries::Register(RenderDevice.ShaderCompiler);
 	}
 	catch (std::exception& e)
 	{
@@ -56,18 +47,9 @@ bool Renderer::Initialize()
 		return false;
 	}
 
-	m_pRenderGraph->AddRenderPass(new Pathtracing(Width, Height));
-	m_pRenderGraph->AddRenderPass(new Accumulation(Width, Height));
-	m_pRenderGraph->AddRenderPass(new PostProcess(Width, Height));
-	m_pRenderGraph->AddRenderPass(new Picking());
+	RenderDevice.CreateCommandContexts(5);
 
-	m_pRenderDevice->CreateCommandContexts(m_pRenderGraph->NumRenderPass());
-
-	m_pRenderGraph->Initialize();
-
-	SetScene(GenerateScene(SampleScene::Hyperion));
-
-	m_pRenderGraph->InitializeScene(m_pGpuScene.get());
+	//SetScene(GenerateScene(SampleScene::Hyperion));
 
 	return true;
 }
@@ -75,7 +57,7 @@ bool Renderer::Initialize()
 //----------------------------------------------------------------------------------------------------
 void Renderer::Update(const Time& Time)
 {
-	m_Scene.PreviousCamera = m_Scene.Camera;
+	Scene.PreviousCamera = Scene.Camera;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -87,7 +69,7 @@ void Renderer::HandleInput(float DeltaTime)
 	// instance id for editor
 	if (Mouse.IsLMBPressed() && !Mouse.UseRawInput && !ImGui::GetIO().WantCaptureMouse)
 	{
-		m_pGpuScene->SetSelectedInstanceID(InstanceID);
+		//m_pGpuScene->SetSelectedInstanceID(InstanceID);
 	}
 }
 
@@ -98,21 +80,21 @@ void Renderer::HandleRawInput(float DeltaTime)
 	auto& Keyboard = Application::InputHandler.Keyboard;
 
 	if (Keyboard.IsKeyPressed('W'))
-		m_Scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
+		Scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
 	if (Keyboard.IsKeyPressed('A'))
-		m_Scene.Camera.Translate(-DeltaTime, 0.0f, 0.0f);
+		Scene.Camera.Translate(-DeltaTime, 0.0f, 0.0f);
 	if (Keyboard.IsKeyPressed('S'))
-		m_Scene.Camera.Translate(0.0f, 0.0f, -DeltaTime);
+		Scene.Camera.Translate(0.0f, 0.0f, -DeltaTime);
 	if (Keyboard.IsKeyPressed('D'))
-		m_Scene.Camera.Translate(DeltaTime, 0.0f, 0.0f);
+		Scene.Camera.Translate(DeltaTime, 0.0f, 0.0f);
 	if (Keyboard.IsKeyPressed('E'))
-		m_Scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
+		Scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
 	if (Keyboard.IsKeyPressed('Q'))
-		m_Scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
+		Scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
 
 	while (const auto RawInput = Mouse.ReadRawInput())
 	{
-		m_Scene.Camera.Rotate(RawInput->Y * DeltaTime, RawInput->X * DeltaTime);
+		Scene.Camera.Rotate(RawInput->Y * DeltaTime, RawInput->X * DeltaTime);
 	}
 }
 
@@ -128,56 +110,81 @@ void Renderer::Render()
 #endif
 
 	RenderGui();
-	m_pGpuScene->RenderGui();
 
-	auto& AsyncComputeContext = m_pRenderDevice->GetDefaultAsyncComputeContext();
-	AsyncComputeContext.Reset(m_pRenderDevice->ComputeFenceValue, m_pRenderDevice->ComputeFence->GetCompletedValue(), &m_pRenderDevice->ComputeQueue);
+	auto& GraphicsContext = RenderDevice.GetDefaultGraphicsContext();
+	GraphicsContext.Reset(RenderDevice.GraphicsFenceValue, RenderDevice.GraphicsFence->GetCompletedValue(), &RenderDevice.GraphicsQueue);
 
-	m_pGpuScene->CreateTopLevelAS(AsyncComputeContext);
+	auto pBackBuffer = RenderDevice.GetCurrentBackBuffer();
+	auto RTV = RenderDevice.GetCurrentBackBufferRenderTargetView();
 
-	CommandList* pCommandContexts[] = { &AsyncComputeContext };
-	m_pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
-	m_pRenderDevice->ComputeQueue->Signal(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
-	m_pRenderDevice->GraphicsQueue->Wait(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
-	m_pRenderDevice->ComputeFenceValue++;
-
-	HLSL::SystemConstants HLSLSystemConstants = {};
-	HLSLSystemConstants.Camera = m_pGpuScene->GetHLSLCamera();
-	HLSLSystemConstants.PreviousCamera = m_pGpuScene->GetHLSLPreviousCamera();
-	HLSLSystemConstants.OutputSize = { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
-	HLSLSystemConstants.TotalFrameCount = static_cast<unsigned int>(Statistics::TotalFrameCount);
-	HLSLSystemConstants.NumPolygonalLights = m_Scene.Lights.size();
-
-	bool Refresh = m_pGpuScene->Update(AspectRatio);
-
-	auto& CommandContexts = m_pRenderGraph->GetCommandContexts();
-	for (auto CommandContext : CommandContexts)
+	GraphicsContext.TransitionBarrier(pBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	{
-		CommandContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+		D3D12_VIEWPORT	Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, Width, Height);
+		D3D12_RECT		ScissorRect = CD3DX12_RECT(0, 0, Width, Height);
+
+		RenderDevice.BindGlobalDescriptorHeap(GraphicsContext);
+		GraphicsContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		GraphicsContext->RSSetViewports(1, &Viewport);
+		GraphicsContext->RSSetScissorRects(1, &ScissorRect);
+		GraphicsContext->OMSetRenderTargets(1, &RTV.CpuHandle, TRUE, nullptr);
+		GraphicsContext->ClearRenderTargetView(RTV.CpuHandle, DirectX::Colors::White, 0, nullptr);
+		// ImGui Render
+		{
+			PIXScopedEvent(GraphicsContext.GetApiHandle(), 0, L"ImGui Render");
+
+			ImGui::Render();
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), GraphicsContext);
+		}
 	}
+	GraphicsContext.TransitionBarrier(pBackBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
-	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
-	m_pRenderGraph->Execute(Refresh);
+//	//m_pGpuScene->RenderGui();
+//
+//	auto& AsyncComputeContext = m_pRenderDevice->GetDefaultAsyncComputeContext();
+//	AsyncComputeContext.Reset(m_pRenderDevice->ComputeFenceValue, m_pRenderDevice->ComputeFence->GetCompletedValue(), &m_pRenderDevice->ComputeQueue);
+//
+//	m_pGpuScene->CreateTopLevelAS(AsyncComputeContext);
+//
+//	CommandList* pCommandContexts[] = { &AsyncComputeContext };
+//	m_pRenderDevice->ExecuteAsyncComputeContexts(1, pCommandContexts);
+//	m_pRenderDevice->ComputeQueue->Signal(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
+//	m_pRenderDevice->GraphicsQueue->Wait(m_pRenderDevice->ComputeFence.Get(), m_pRenderDevice->ComputeFenceValue);
+//	m_pRenderDevice->ComputeFenceValue++;
+//
+//	HLSL::SystemConstants HLSLSystemConstants = {};
+//	HLSLSystemConstants.Camera = m_pGpuScene->GetHLSLCamera();
+//	HLSLSystemConstants.PreviousCamera = m_pGpuScene->GetHLSLPreviousCamera();
+//	HLSLSystemConstants.OutputSize = { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
+//	HLSLSystemConstants.TotalFrameCount = static_cast<unsigned int>(Statistics::TotalFrameCount);
+//	HLSLSystemConstants.NumPolygonalLights = m_Scene.Lights.size();
+//
+//	bool Refresh = m_pGpuScene->Update(AspectRatio);
+//
+//	auto& CommandContexts = m_pRenderGraph->GetCommandContexts();
+//	for (auto CommandContext : CommandContexts)
+//	{
+//		CommandContext->Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+//	}
+//
+//	m_pRenderGraph->UpdateSystemConstants(HLSLSystemConstants);
+//	m_pRenderGraph->Execute(Refresh);
+//
 
-	m_pRenderDevice->ExecuteGraphicsContexts(CommandContexts.size(), CommandContexts.data());
-	m_pRenderDevice->Present(Settings::VSync);
-
-	UINT64 Value = ++m_pRenderDevice->GraphicsFenceValue;
-	ThrowIfFailed(m_pRenderDevice->GraphicsQueue->Signal(m_pRenderDevice->GraphicsFence.Get(), Value));
-	ThrowIfFailed(m_pRenderDevice->GraphicsFence->SetEventOnCompletion(Value, m_pRenderDevice->GraphicsFenceCompletionEvent.get()));
-	m_pRenderDevice->GraphicsFenceCompletionEvent.wait();
-
-	auto PickingRenderPass = m_pRenderGraph->GetRenderPass<Picking>();
-	InstanceID = PickingRenderPass->GetInstanceID(m_pRenderDevice.get());
-
+	CommandList* CommandLists[] = { &GraphicsContext };
+	RenderDevice.ExecuteGraphicsContexts(1, CommandLists);
+	RenderDevice.Present(Settings::VSync);
+	RenderDevice.FlushGraphicsQueue();
+//
+//	InstanceID = Picking->GetInstanceID(m_pRenderDevice.get());
+//
 	if (Screenshot)
 	{
 		Screenshot = false;
 
-		auto pTexture = m_pRenderDevice->GetTexture(m_pRenderDevice->GetCurrentBackBufferHandle());
+		auto pTexture = RenderDevice.GetCurrentBackBuffer();
 
 		auto FileName = Application::ExecutableFolderPath / L"Screenshot.png";
-		if (FAILED(DirectX::SaveWICTextureToFile(m_pRenderDevice->GraphicsQueue, pTexture->GetApiHandle(),
+		if (FAILED(DirectX::SaveWICTextureToFile(RenderDevice.GraphicsQueue, pTexture,
 			GUID_ContainerFormatPng, FileName.c_str(),
 			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_PRESENT, nullptr, nullptr, true)))
 		{
@@ -189,63 +196,47 @@ void Renderer::Render()
 //----------------------------------------------------------------------------------------------------
 bool Renderer::Resize(uint32_t Width, uint32_t Height)
 {
-	m_pRenderDevice->Resize(Width, Height);
+	RenderDevice.Resize(Width, Height);
 	return true;
 }
 
 //----------------------------------------------------------------------------------------------------
 void Renderer::Destroy()
 {
-	m_pGpuScene.reset();
-	m_pRenderGraph.reset();
-
-	if (m_pRenderDevice)
-	{
-		m_pRenderDevice->FlushGraphicsQueue();
-		m_pRenderDevice->FlushComputeQueue();
-		m_pRenderDevice->FlushCopyQueue();
-	}
-
-	m_pRenderDevice.reset();
-
-#ifdef _DEBUG
-	ComPtr<IDXGIDebug> DXGIDebug;
-	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&DXGIDebug))))
-	{
-		DXGIDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
-	}
-#endif
+	RenderDevice.FlushGraphicsQueue();
+	RenderDevice.FlushComputeQueue();
+	RenderDevice.FlushCopyQueue();
 }
 
 //----------------------------------------------------------------------------------------------------
-void Renderer::SetScene(Scene Scene)
-{
-	PIXCapture();
-	m_Scene = std::move(Scene);
-
-	m_pGpuScene->pScene = &m_Scene;
-
-	auto& GraphicsContext = m_pRenderDevice->GetDefaultGraphicsContext();
-
-	GraphicsContext.Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
-
-	m_pRenderDevice->BindGpuDescriptorHeap(GraphicsContext);
-	m_pGpuScene->UploadTextures(GraphicsContext);
-	m_pGpuScene->UploadModels(GraphicsContext);
-
-	CommandList* pCommandContexts[] = { &GraphicsContext };
-	m_pRenderDevice->ExecuteGraphicsContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
-	m_pRenderDevice->FlushGraphicsQueue();
-	m_pGpuScene->DisposeResources();
-}
+//void Renderer::SetScene(Scene Scene)
+//{
+//	ScopedPIXCapture();
+//	m_Scene = std::move(Scene);
+//
+//	m_pGpuScene->pScene = &m_Scene;
+//
+//	auto& GraphicsContext = m_pRenderDevice->GetDefaultGraphicsContext();
+//
+//	GraphicsContext.Reset(m_pRenderDevice->GraphicsFenceValue, m_pRenderDevice->GraphicsFence->GetCompletedValue(), &m_pRenderDevice->GraphicsQueue);
+//
+//	m_pRenderDevice->BindGpuDescriptorHeap(GraphicsContext);
+//	m_pGpuScene->UploadTextures(GraphicsContext);
+//	m_pGpuScene->UploadModels(GraphicsContext);
+//
+//	CommandList* pCommandContexts[] = { &GraphicsContext };
+//	m_pRenderDevice->ExecuteGraphicsContexts(ARRAYSIZE(pCommandContexts), pCommandContexts);
+//	m_pRenderDevice->FlushGraphicsQueue();
+//	m_pGpuScene->DisposeResources();
+//}
 
 //----------------------------------------------------------------------------------------------------
 void Renderer::RenderGui()
 {
 	if (ImGui::Begin("Renderer"))
 	{
-		const auto& AdapterDesc = m_pRenderDevice->GetAdapterDesc();
-		auto LocalVideoMemoryInfo = m_pRenderDevice->QueryLocalVideoMemoryInfo();
+		const auto& AdapterDesc = RenderDevice.GetAdapterDesc();
+		auto LocalVideoMemoryInfo = RenderDevice.QueryLocalVideoMemoryInfo();
 		auto UsageInMiB = ToMiB(LocalVideoMemoryInfo.CurrentUsage);
 		ImGui::Text("GPU: %ls", AdapterDesc.Description);
 		ImGui::Text("VRAM Usage: %d Mib", UsageInMiB);
@@ -274,7 +265,7 @@ void Renderer::RenderGui()
 
 		if (ImGui::TreeNode("Render Pipeline"))
 		{
-			m_pRenderGraph->RenderGui();
+			
 			ImGui::TreePop();
 		}
 	}
@@ -289,9 +280,4 @@ void Renderer::RenderGui()
 		ImGui::Text("ImGui::WantCaptureMouse: %i", ImGui::GetIO().WantCaptureMouse);
 	}
 	ImGui::End();
-}
-
-DWORD WINAPI Renderer::AssetProcessThreadProc(_In_ PVOID pParameter)
-{
-	return 0;
 }

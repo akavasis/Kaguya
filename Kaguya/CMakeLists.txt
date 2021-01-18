@@ -37,6 +37,9 @@ set(D3D12MemoryAllocator ${D3D12MemoryAllocator_PATH}/D3D12MemAlloc.h
 			${D3D12MemoryAllocator_PATH}/D3D12MemAlloc.cpp
 )
 
+set(entt_PATH ${CMAKE_SOURCE_DIR}/Submodules/entt/single_include/entt)
+set(entt ${entt_PATH}/entt.hpp)
+
 set(IMGUI_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/imgui)
 set(IMGUI 		${IMGUI_FILE_PATH}/imconfig.h
 			${IMGUI_FILE_PATH}/imgui.cpp
@@ -69,8 +72,7 @@ set(IMGUIZMO 	${IMGUIZMO_FILE_PATH}/ImCurveEdit.cpp
 )
 
 set(SPDLOG_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/spdlog)
-set(SPDLOG 	${SPDLOG_FILE_PATH}/include/spdlog/spdlog.h
-)
+set(SPDLOG 	${SPDLOG_FILE_PATH}/include/spdlog/spdlog.h)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${Main})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${PCH_Header})
@@ -80,6 +82,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SourceList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_HeaderList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${External_SourceList})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${D3D12MemoryAllocator})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${entt})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${IMGUI})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${IMGUIZMO})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SPDLOG})
@@ -99,6 +102,7 @@ ${SourceList}
 ${External_HeaderList}
 ${External_SourceList}
 ${D3D12MemoryAllocator}
+${entt}
 ${IMGUI}
 ${IMGUIZMO}
 ${SPDLOG}
@@ -106,6 +110,7 @@ ${SPDLOG}
 
 # Submodules
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/D3D12MemoryAllocator/src")
+include_directories("${CMAKE_SOURCE_DIR}/Submodules/entt/single_include/entt")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/glm")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/imgui")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo")

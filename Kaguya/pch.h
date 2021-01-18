@@ -28,6 +28,8 @@
 #include <variant>
 #include <sstream>
 #include <codecvt>
+#include <optional>
+#include <future>
 
 // C++ STL
 #include <array>

@@ -1,26 +1,18 @@
 #include "pch.h"
 #include "PIXCapture.h"
 
-#undef PIXCapture
-
-namespace Kaguya
+PIXCapture::PIXCapture()
 {
-	namespace Internal
+	if (SUCCEEDED(::DXGIGetDebugInterface1(0, IID_PPV_ARGS(&GraphicsAnalysis))))
 	{
-		PIXCapture::PIXCapture()
-		{
-			if (SUCCEEDED(::DXGIGetDebugInterface1(0, IID_PPV_ARGS(&GraphicsAnalysis))))
-			{
-				GraphicsAnalysis->BeginCapture();
-			}
-		}
+		GraphicsAnalysis->BeginCapture();
+	}
+}
 
-		PIXCapture::~PIXCapture()
-		{
-			if (GraphicsAnalysis)
-			{
-				GraphicsAnalysis->EndCapture();
-			}
-		}
+PIXCapture::~PIXCapture()
+{
+	if (GraphicsAnalysis)
+	{
+		GraphicsAnalysis->EndCapture();
 	}
 }

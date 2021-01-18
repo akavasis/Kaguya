@@ -1,19 +1,21 @@
 #pragma once
-
-#include <memory>
-#include <atomic>
-#include <wil/resource.h>
 #include "Core/RenderSystem.h"
 
 #include "RenderDevice.h"
-#include "RenderGraph.h"
-#include "GpuScene.h"
+#include "ResourceManager.h"
+
+#include "Scene.h"
+#include "RTScene.h"
+
+#include "PathIntegrator.h"
+#include "ToneMapper.h"
 
 //----------------------------------------------------------------------------------------------------
 class Renderer : public RenderSystem
 {
 public:
 	Renderer();
+	~Renderer() override;
 protected:
 	bool Initialize() override;
 	void Update(const Time& Time) override;
@@ -23,17 +25,15 @@ protected:
 	bool Resize(uint32_t Width, uint32_t Height) override;
 	void Destroy() override;
 private:
-	void SetScene(Scene Scene);
 	void RenderGui();
-
-	static DWORD WINAPI AssetProcessThreadProc(_In_ PVOID pParameter);
 private:
-	std::unique_ptr<RenderDevice>			m_pRenderDevice;
-	std::unique_ptr<RenderGraph>			m_pRenderGraph;
+	RenderDevice							RenderDevice;
+	ResourceManager							ResourceManager;
 
-	Scene									m_Scene;
-	std::unique_ptr<GpuScene>				m_pGpuScene;
+	Scene									Scene;
+	RTScene									RTScene;
 	INT										InstanceID							= -1;
 
-	CommandQueue							CopyQueue;
+	//PathIntegrator							PathIntegrator;
+	//ToneMapper								ToneMapper;
 };
