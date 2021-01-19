@@ -39,23 +39,13 @@ struct Resource
 {
 	~Resource();
 
-	operator auto() const
-	{
-		return pResource.Get();
-	}
-
-	auto operator->() const
-	{
-		return pResource.Get();
-	}
-
 	Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
 	D3D12MA::Allocation* pAllocation = nullptr;
 };
 
 struct Texture2D
 {
-	Resource Resource;
+	std::shared_ptr<Resource> Resource;
 	Descriptor SRV;
 };
 
@@ -120,12 +110,12 @@ public:
 	void FlushCopyQueue();
 
 	// Resource creation
-	[[nodiscard]] Resource CreateResource(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
+	[[nodiscard]] std::shared_ptr<Resource> CreateResource(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
 		const D3D12_RESOURCE_DESC* pResourceDesc,
 		D3D12_RESOURCE_STATES InitialResourceState,
 		const D3D12_CLEAR_VALUE* pOptimizedClearValue);
 
-	[[nodiscard]] Resource CreateBuffer(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
+	[[nodiscard]] std::shared_ptr<Resource> CreateBuffer(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
 		UINT64 Width,
 		D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE,
 		UINT64 Alignment = 0,

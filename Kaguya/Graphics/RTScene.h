@@ -1,7 +1,7 @@
 #pragma once
 #include "RenderDevice.h"
 #include "ResourceManager.h"
-#include "Scene.h"
+#include "Scene/Scene.h"
 
 struct RTGeometry
 {

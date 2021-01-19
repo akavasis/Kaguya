@@ -63,6 +63,8 @@ RenderDevice::RenderDevice(const Window& Window)
 		RenderDevice::SwapChainBufferFormat, m_GlobalOnlineDescriptorHeap.GetApiHandle(),
 		ImGuiDescriptor.CpuHandle,
 		ImGuiDescriptor.GpuHandle);
+
+	atexit(Device::ReportLiveObjects);
 }
 
 RenderDevice::~RenderDevice()
@@ -202,25 +204,25 @@ void RenderDevice::FlushCopyQueue()
 	D3D12Utility::FlushCommandQueue(Value, CopyFence.Get(), CopyQueue, CopyFenceCompletionEvent);
 }
 
-Resource RenderDevice::CreateResource(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
+std::shared_ptr<Resource> RenderDevice::CreateResource(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
 	const D3D12_RESOURCE_DESC* pResourceDesc,
 	D3D12_RESOURCE_STATES InitialResourceState,
 	const D3D12_CLEAR_VALUE* pOptimizedClearValue)
 {
-	Resource Resource = {};
+	std::shared_ptr<Resource> pResource = std::make_shared<Resource>();
 
 	ThrowIfFailed(Device.Allocator()->CreateResource(pAllocDesc,
 		pResourceDesc, InitialResourceState, pOptimizedClearValue,
-		&Resource.pAllocation, IID_PPV_ARGS(Resource.pResource.ReleaseAndGetAddressOf())));
+		&pResource->pAllocation, IID_PPV_ARGS(pResource->pResource.ReleaseAndGetAddressOf())));
 
 	// No need to track resources that have constant resource state throughout their lifetime
 	if (pAllocDesc->HeapType == D3D12_HEAP_TYPE_DEFAULT)
 	{
 		ScopedWriteLock SWL(g_GlobalResourceStateTrackerLock);
-		g_GlobalResourceStateTracker.AddResourceState(Resource.pResource.Get(), InitialResourceState);
+		g_GlobalResourceStateTracker.AddResourceState(pResource->pResource.Get(), InitialResourceState);
 	}
 
-	return Resource;
+	return pResource;
 }
 
 RootSignature RenderDevice::CreateRootSignature(std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters)

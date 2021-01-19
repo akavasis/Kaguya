@@ -6,83 +6,83 @@ using namespace DirectX;
 Scene CornellBox()
 {
 	Scene scene;
-	scene.Camera.Transform.Position = { 0.0f, 5.0f, -20.0f };
-	{
-		// Materials
-		auto defaultMtl = Scene::LoadMaterial("Default");
-		defaultMtl.Albedo = { 0.7f, 0.7f, 0.7f };
-		defaultMtl.Model = LambertianModel;
+	//scene.Camera.Transform.Position = { 0.0f, 5.0f, -20.0f };
+	//{
+	//	// Materials
+	//	auto defaultMtl = Scene::LoadMaterial("Default");
+	//	defaultMtl.Albedo = { 0.7f, 0.7f, 0.7f };
+	//	defaultMtl.Model = LambertianModel;
 
-		auto leftWallMtl = Scene::LoadMaterial("Red");
-		leftWallMtl.Albedo = { 0.7f, 0.1f, 0.1f };
-		leftWallMtl.Model = LambertianModel;
+	//	auto leftWallMtl = Scene::LoadMaterial("Red");
+	//	leftWallMtl.Albedo = { 0.7f, 0.1f, 0.1f };
+	//	leftWallMtl.Model = LambertianModel;
 
-		auto rightWallMtl = Scene::LoadMaterial("Green");
-		rightWallMtl.Albedo = { 0.1f, 0.7f, 0.1f };
-		rightWallMtl.Model = LambertianModel;
+	//	auto rightWallMtl = Scene::LoadMaterial("Green");
+	//	rightWallMtl.Albedo = { 0.1f, 0.7f, 0.1f };
+	//	rightWallMtl.Model = LambertianModel;
 
-		auto lightMtl = Scene::LoadMaterial("Light");
-		lightMtl.Emissive = { 15.0f, 15.0f, 15.0f };
-		lightMtl.Model = DiffuseLightModel;
+	//	auto lightMtl = Scene::LoadMaterial("Light");
+	//	lightMtl.Emissive = { 15.0f, 15.0f, 15.0f };
+	//	lightMtl.Model = DiffuseLightModel;
 
-		auto defaultMtlIdx = scene.AddMaterial(defaultMtl);
-		auto leftWallMtlIdx = scene.AddMaterial(leftWallMtl);
-		auto rightWallMtlIdx = scene.AddMaterial(rightWallMtl);
-		auto lightMtlIdx = scene.AddMaterial(lightMtl);
+	//	auto defaultMtlIdx = scene.AddMaterial(defaultMtl);
+	//	auto leftWallMtlIdx = scene.AddMaterial(leftWallMtl);
+	//	auto rightWallMtlIdx = scene.AddMaterial(rightWallMtl);
+	//	auto lightMtlIdx = scene.AddMaterial(lightMtl);
 
-		// Meshes
-		auto boxIndex = scene.AddMesh(CreateBox(1.0f, 1.0f, 1.0f));
-		auto rectIndex = scene.AddMesh(CreateGrid(10.0f, 10.0f, 10, 10));
-		auto lightIndex = scene.AddMesh(CreateGrid(3.0f, 3.0f, 2, 2));
+	//	// Meshes
+	//	auto boxIndex = scene.AddMesh(CreateBox(1.0f, 1.0f, 1.0f));
+	//	auto rectIndex = scene.AddMesh(CreateGrid(10.0f, 10.0f, 10, 10));
+	//	auto lightIndex = scene.AddMesh(CreateGrid(3.0f, 3.0f, 2, 2));
 
-		// Mesh instances
-		auto leftboxInstance = MeshInstance("Left box", boxIndex, defaultMtlIdx);
-		leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
-		leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
-		leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
+	//	// Mesh instances
+	//	auto leftboxInstance = MeshInstance("Left box", boxIndex, defaultMtlIdx);
+	//	leftboxInstance.Rotate(0.0f, -15._Deg, 0.0f);
+	//	leftboxInstance.Translate(-1.5f, 3.0f, 2.5f);
+	//	leftboxInstance.SetScale(2.75f, 6.0f, 2.75f);
 
-		auto rightboxInstance = MeshInstance("Right box", boxIndex, defaultMtlIdx);
-		rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
-		rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
-		rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
+	//	auto rightboxInstance = MeshInstance("Right box", boxIndex, defaultMtlIdx);
+	//	rightboxInstance.Rotate(0.0f, 18._Deg, 0.0f);
+	//	rightboxInstance.Translate(1.5f, 1.375f, -1.5f);
+	//	rightboxInstance.SetScale(2.75f, 2.75f, 2.75f);
 
-		auto floorInstance = MeshInstance("Floor", rectIndex, defaultMtlIdx);
+	//	auto floorInstance = MeshInstance("Floor", rectIndex, defaultMtlIdx);
 
-		auto ceilingInstance = MeshInstance("Ceiling", rectIndex, defaultMtlIdx);
-		ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
-		ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
+	//	auto ceilingInstance = MeshInstance("Ceiling", rectIndex, defaultMtlIdx);
+	//	ceilingInstance.Translate(0.0f, 10.0f, 0.0f);
+	//	ceilingInstance.Rotate(0.0f, 0.0f, XM_PI);
 
-		auto backwallInstance = MeshInstance("Back wall", rectIndex, defaultMtlIdx);
-		backwallInstance.Translate(0.0f, 5.0f, 5.0f);
-		backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
+	//	auto backwallInstance = MeshInstance("Back wall", rectIndex, defaultMtlIdx);
+	//	backwallInstance.Translate(0.0f, 5.0f, 5.0f);
+	//	backwallInstance.Rotate(-DirectX::XM_PIDIV2, 0.0f, 0.0f);
 
-		auto leftwallInstance = MeshInstance("Left wall", rectIndex, leftWallMtlIdx);
-		leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
-		leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
+	//	auto leftwallInstance = MeshInstance("Left wall", rectIndex, leftWallMtlIdx);
+	//	leftwallInstance.Translate(-5.0f, 5.0f, 0.0f);
+	//	leftwallInstance.Rotate(0.0f, 0.0f, -DirectX::XM_PIDIV2);
 
-		auto rightwallInstance = MeshInstance("Right wall", rectIndex, rightWallMtlIdx);
-		rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
-		rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
+	//	auto rightwallInstance = MeshInstance("Right wall", rectIndex, rightWallMtlIdx);
+	//	rightwallInstance.Translate(+5.0f, 5.0f, 0.0f);
+	//	rightwallInstance.Rotate(0.0f, 0.0f, DirectX::XM_PIDIV2);
 
-		auto lightInstance = MeshInstance("Light", lightIndex, lightMtlIdx);
-		lightInstance.Translate(0.0f, 9.9f, 0.0f);
+	//	auto lightInstance = MeshInstance("Light", lightIndex, lightMtlIdx);
+	//	lightInstance.Translate(0.0f, 9.9f, 0.0f);
 
-		scene.AddMeshInstance(leftboxInstance);
-		scene.AddMeshInstance(rightboxInstance);
-		scene.AddMeshInstance(floorInstance);
-		scene.AddMeshInstance(ceilingInstance);
-		scene.AddMeshInstance(backwallInstance);
-		scene.AddMeshInstance(leftwallInstance);
-		scene.AddMeshInstance(rightwallInstance);
-		scene.AddMeshInstance(lightInstance);
-	}
+	//	scene.AddMeshInstance(leftboxInstance);
+	//	scene.AddMeshInstance(rightboxInstance);
+	//	scene.AddMeshInstance(floorInstance);
+	//	scene.AddMeshInstance(ceilingInstance);
+	//	scene.AddMeshInstance(backwallInstance);
+	//	scene.AddMeshInstance(leftwallInstance);
+	//	scene.AddMeshInstance(rightwallInstance);
+	//	scene.AddMeshInstance(lightInstance);
+	//}
 	return scene;
 }
 
 Scene Hyperion()
 {
 	Scene scene;
-	scene.Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
+	/*scene.Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
 	{
 		auto floorMtl = Scene::LoadMaterial("Floor");
 		floorMtl.Albedo = { 0.75, 0.6585, 0.5582 };
@@ -187,7 +187,7 @@ Scene Hyperion()
 		scene.AddMeshInstance(ring2);
 		scene.AddMeshInstance(burrPuzzleInstance);
 		scene.AddMeshInstance(eggInstance);
-	}
+	}*/
 	return scene;
 }
 

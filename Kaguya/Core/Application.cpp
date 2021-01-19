@@ -59,7 +59,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 
 				InputHandler.Handle(&Msg);
 
-				if (InputHandler.Mouse.IsRMBPressed())
+				if (InputHandler.Mouse.IsRMBPressed() && !ImGui::GetIO().WantCaptureMouse)
 				{
 					Window.DisableCursor();
 					InputHandler.Mouse.UseRawInput = true;

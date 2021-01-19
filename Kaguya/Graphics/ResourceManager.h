@@ -1,7 +1,7 @@
 #pragma once
 #include <Core/Synchronization/RWLock.h>
 #include "RenderDevice.h"
-#include "Scene.h"
+#include "Mesh.h"
 
 class ResourceManager
 {

@@ -262,19 +262,19 @@ bool ProcessTexture()
 		else if (Extension == ".tga")
 		{
 			ScratchImage BaseImage;
-			ThrowIfFailed(LoadFromTGAFile(Path.c_str(), nullptr, Image));
+			ThrowIfFailed(LoadFromTGAFile(Path.c_str(), nullptr, BaseImage));
 			ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
 		}
 		else if (Extension == ".hdr")
 		{
 			ScratchImage BaseImage;
-			ThrowIfFailed(LoadFromHDRFile(Path.c_str(), nullptr, Image));
+			ThrowIfFailed(LoadFromHDRFile(Path.c_str(), nullptr, BaseImage));
 			ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
 		}
 		else
 		{
 			ScratchImage BaseImage;
-			ThrowIfFailed(LoadFromWICFile(Desc.Path.c_str(), WIC_FLAGS::WIC_FLAGS_FORCE_RGB, nullptr, Image));
+			ThrowIfFailed(LoadFromWICFile(Desc.Path.c_str(), WIC_FLAGS::WIC_FLAGS_FORCE_RGB, nullptr, BaseImage));
 			ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
 		}
 
@@ -299,10 +299,7 @@ bool ProcessMesh()
 
 		const auto& Path = Desc.Path;
 
-		std::filesystem::path filePath = Application::ExecutableFolderPath / Path;
-		assert(std::filesystem::exists(filePath) && "File does not exist");
-
-		const aiScene* paiScene = Importer.ReadFile(filePath.generic_string().data(),
+		const aiScene* paiScene = Importer.ReadFile(Path.generic_string().data(),
 			aiProcess_ConvertToLeftHanded |
 			aiProcessPreset_TargetRealtime_MaxQuality |
 			aiProcess_OptimizeMeshes |
@@ -373,6 +370,8 @@ bool ProcessMesh()
 
 DWORD WINAPI ResourceManager::ResourceProducerThreadProc(_In_ PVOID pParameter)
 {
+	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
+
 	auto pResourceManager = reinterpret_cast<ResourceManager*>(pParameter);
 	auto pRenderDevice = pResourceManager->pRenderDevice;
 	ID3D12Device* pDevice = pRenderDevice->Device;
@@ -453,19 +452,19 @@ auto ConsumeTexture(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader)
 
 		D3D12MA::ALLOCATION_DESC AllocDesc = {};
 		AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-		Resource Texture = pRenderDevice->CreateResource(&AllocDesc, &Desc, D3D12_RESOURCE_STATE_COMMON, nullptr);
+		auto Texture = pRenderDevice->CreateResource(&AllocDesc, &Desc, D3D12_RESOURCE_STATE_COMMON, nullptr);
 
-		Uploader.Upload(Texture, 0, subresources.data(), subresources.size());
+		Uploader.Upload(Texture->pResource.Get(), 0, subresources.data(), subresources.size());
 
 		Descriptor SRV = pRenderDevice->AllocateShaderResourceView();
 
-		pRenderDevice->CreateShaderResourceView(Texture, SRV);
+		pRenderDevice->CreateShaderResourceView(Texture->pResource.Get(), SRV);
 
 		Texture2D Texture2D;
 		Texture2D.Resource = std::move(Texture);
 		Texture2D.SRV = SRV;
 
-		LocalTextureCache[Key] = Texture2D;
+		LocalTextureCache[Key] = std::move(Texture2D);
 
 		if (PendingTexture2D.Desc.Callback)
 		{
@@ -501,11 +500,11 @@ auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader, Gra
 		D3D12MA::ALLOCATION_DESC AllocDesc = {};
 		AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-		Resource VB = pRenderDevice->CreateBuffer(&AllocDesc, VBSizeInBytes);
-		Resource IB = pRenderDevice->CreateBuffer(&AllocDesc, IBSizeInBytes);
+		auto VB = pRenderDevice->CreateBuffer(&AllocDesc, VBSizeInBytes);
+		auto IB = pRenderDevice->CreateBuffer(&AllocDesc, IBSizeInBytes);
 
-		Uploader.Upload(VB, vbUpload);
-		Uploader.Upload(IB, ibUpload);
+		Uploader.Upload(VB->pResource.Get(), vbUpload);
+		Uploader.Upload(IB->pResource.Get(), ibUpload);
 
 		Mesh Mesh(Key);
 
@@ -522,8 +521,8 @@ auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader, Gra
 			Mesh.Indices = std::move(PendingMesh.Indices);
 		}
 
-		Mesh.VertexResource = VB;
-		Mesh.IndexResource = IB;
+		Mesh.VertexResource = std::move(VB);
+		Mesh.IndexResource = std::move(IB);
 
 		LocalMeshCache[Key] = Mesh;
 
@@ -538,6 +537,8 @@ auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader, Gra
 
 DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 {
+	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
+
 	auto pResourceManager = reinterpret_cast<ResourceManager*>(pParameter);
 	auto pRenderDevice = pResourceManager->pRenderDevice;
 

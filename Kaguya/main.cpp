@@ -12,6 +12,7 @@
 #define SET_LEAK_BREAKPOINT(X) X
 #endif
 
+#define NOMINMAX
 #include <Core/Application.h>
 #include <Graphics/Renderer.h>
 

@@ -7,7 +7,10 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers.
 #endif
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif 
+
 #include <Windows.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
@@ -54,11 +57,17 @@
 
 #include <ImGuizmo.h>
 
+#include <entt.hpp>
+
 #include <wil/resource.h>
 
 // External
 #include <DirectXMesh.h>
 #include <DirectXTex.h>
+
+#include <nfd.h>
+#include <cstdio>
+#include <cstdlib>
 
 // DXGI
 #include <dxgi1_6.h>

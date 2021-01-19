@@ -112,9 +112,9 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice, RTScene* pRTScene)
 		m_RayGenerationShaderTable = pRenderDevice->CreateResource(&AllocDesc, &Desc,
 			D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
-		ShaderTable.Generate(m_RayGenerationShaderTable);
+		ShaderTable.Generate(m_RayGenerationShaderTable->pResource.Get());
 
-		RayGenerationShaderRecord.StartAddress = m_RayGenerationShaderTable->GetGPUVirtualAddress();
+		RayGenerationShaderRecord.StartAddress = m_RayGenerationShaderTable->pResource->GetGPUVirtualAddress();
 		RayGenerationShaderRecord.SizeInBytes = shaderTableSizeInBytes;
 	}
 
@@ -134,9 +134,9 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice, RTScene* pRTScene)
 		m_MissShaderTable = pRenderDevice->CreateResource(&AllocDesc, &Desc,
 			D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
-		ShaderTable.Generate(m_MissShaderTable);
+		ShaderTable.Generate(m_MissShaderTable->pResource.Get());
 
-		MissShaderTable.StartAddress = m_MissShaderTable->GetGPUVirtualAddress();
+		MissShaderTable.StartAddress = m_MissShaderTable->pResource->GetGPUVirtualAddress();
 		MissShaderTable.SizeInBytes = shaderTableSizeInBytes;
 		MissShaderTable.StrideInBytes = stride;
 	}
@@ -169,9 +169,9 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice, RTScene* pRTScene)
 		m_HitGroupShaderTable = pRenderDevice->CreateResource(&AllocDesc, &Desc,
 			D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
-		HitGroupShaderTable.Generate(m_HitGroupShaderTable);
+		HitGroupShaderTable.Generate(m_HitGroupShaderTable->pResource.Get());
 
-		HitGroupTable.StartAddress = m_HitGroupShaderTable->GetGPUVirtualAddress();
+		HitGroupTable.StartAddress = m_HitGroupShaderTable->pResource->GetGPUVirtualAddress();
 		HitGroupTable.SizeInBytes = shaderTableSizeInBytes;
 		HitGroupTable.StrideInBytes = stride;
 	}
@@ -188,7 +188,7 @@ void PathIntegrator::SetResolution(UINT Width, UINT Height)
 	m_RenderTarget = pRenderDevice->CreateResource(&AllocationDesc,
 		&ResourceDesc, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr);
 
-	pRenderDevice->CreateUnorderedAccessView(m_RenderTarget, UAV);
+	pRenderDevice->CreateUnorderedAccessView(m_RenderTarget->pResource.Get(), UAV);
 }
 
 void PathIntegrator::RenderGui()

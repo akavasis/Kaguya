@@ -4,8 +4,9 @@
 #include "RenderDevice.h"
 #include "ResourceManager.h"
 
-#include "Scene.h"
 #include "RTScene.h"
+
+#include "Editor.h"
 
 #include "PathIntegrator.h"
 #include "ToneMapper.h"
@@ -30,10 +31,13 @@ private:
 	RenderDevice							RenderDevice;
 	ResourceManager							ResourceManager;
 
+	// Realistically, Editor and Renderer should be separate,
+	// but because we are using ImGui and rendering directly into the back buffer
+	// the Renderer contains Editor...
+	// TODO: Renderer and Editor should be separate, come up with an alternative...
+	// (e.g. render onto offscreen texture and composite them)
 	Scene									Scene;
-	RTScene									RTScene;
-	INT										InstanceID							= -1;
-
+	Editor									Editor;
 	//PathIntegrator							PathIntegrator;
 	//ToneMapper								ToneMapper;
 };

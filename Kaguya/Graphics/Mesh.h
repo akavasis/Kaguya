@@ -20,8 +20,8 @@ struct Mesh
 	std::vector<Vertex>				Vertices;
 	std::vector<uint32_t>			Indices;
 
-	Resource						VertexResource;
-	Resource						IndexResource;
+	std::shared_ptr<Resource> VertexResource;
+	std::shared_ptr<Resource> IndexResource;
 };
 
 Mesh CreateBox(float Width, float Height, float Depth);

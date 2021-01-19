@@ -24,10 +24,10 @@ private:
 	RaytracingPipelineState RTPSO;
 	Descriptor UAV;
 
-	Resource m_RenderTarget;
-	Resource m_RayGenerationShaderTable;
-	Resource m_MissShaderTable;
-	Resource m_HitGroupShaderTable;
+	std::shared_ptr<Resource> m_RenderTarget;
+	std::shared_ptr<Resource> m_RayGenerationShaderTable;
+	std::shared_ptr<Resource> m_MissShaderTable;
+	std::shared_ptr<Resource> m_HitGroupShaderTable;
 
 	D3D12_GPU_VIRTUAL_ADDRESS_RANGE RayGenerationShaderRecord;
 	D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE MissShaderTable;

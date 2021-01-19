@@ -9,33 +9,22 @@ set_source_files_properties("pch.cpp" PROPERTIES COMPILE_FLAGS "/Ycpch.h")
 file(GLOB_RECURSE HeaderList
 Core/*.h
 Graphics/*.h
-Math/*.h
-Template/*.h
-
 Core/*.inl
-Graphics/*.inl
-Math/*.inl
-Template/*.inl
-)
+Graphics/*.inl)
 
 file(GLOB_RECURSE SourceList
 Core/*.cpp
-Graphics/*.cpp
-Math/*.cpp
-)
+Graphics/*.cpp)
 
 file(GLOB_RECURSE External_HeaderList
-../External/*.h
-)
+../External/*.h)
 
 file(GLOB_RECURSE External_SourceList
-../External/*.cpp
-)
+../External/*.cpp)
 
 set(D3D12MemoryAllocator_PATH ${CMAKE_SOURCE_DIR}/Submodules/D3D12MemoryAllocator/src)
 set(D3D12MemoryAllocator ${D3D12MemoryAllocator_PATH}/D3D12MemAlloc.h
-			${D3D12MemoryAllocator_PATH}/D3D12MemAlloc.cpp
-)
+			${D3D12MemoryAllocator_PATH}/D3D12MemAlloc.cpp)
 
 set(entt_PATH ${CMAKE_SOURCE_DIR}/Submodules/entt/single_include/entt)
 set(entt ${entt_PATH}/entt.hpp)
@@ -56,8 +45,7 @@ set(IMGUI 		${IMGUI_FILE_PATH}/imconfig.h
 			${IMGUI_FILE_PATH}/backends/imgui_impl_dx12.cpp
 			${IMGUI_FILE_PATH}/backends/imgui_impl_dx12.h
 			${IMGUI_FILE_PATH}/backends/imgui_impl_win32.cpp
-			${IMGUI_FILE_PATH}/backends/imgui_impl_win32.h
-)
+			${IMGUI_FILE_PATH}/backends/imgui_impl_win32.h)
 
 set(IMGUIZMO_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo)
 set(IMGUIZMO 	${IMGUIZMO_FILE_PATH}/ImCurveEdit.cpp
@@ -68,8 +56,7 @@ set(IMGUIZMO 	${IMGUIZMO_FILE_PATH}/ImCurveEdit.cpp
 				${IMGUIZMO_FILE_PATH}/ImGuizmo.h
 				${IMGUIZMO_FILE_PATH}/ImSequencer.cpp
 				${IMGUIZMO_FILE_PATH}/ImSequencer.h
-				${IMGUIZMO_FILE_PATH}/ImZoomSlider.h
-)
+				${IMGUIZMO_FILE_PATH}/ImZoomSlider.h)
 
 set(SPDLOG_FILE_PATH ${CMAKE_SOURCE_DIR}/Submodules/spdlog)
 set(SPDLOG 	${SPDLOG_FILE_PATH}/include/spdlog/spdlog.h)
@@ -117,6 +104,7 @@ include_directories("${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/spdlog/include")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/wil/include")
 
+# Externals
 include_directories("../External/assimp/include")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/assimp/lib/Release/assimp-vc142-mt.lib)
 
@@ -135,9 +123,9 @@ target_link_libraries(${PROJECTNAME} optimized ${CMAKE_SOURCE_DIR}/External/Dire
 include_directories("../External/dxc")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/dxc/dxcompiler.lib)
 
-include_directories("../External/imgui")
-
-include_directories("../External/spdlog/include")
+include_directories("../External/nativefiledialog/include")
+target_link_libraries(${PROJECTNAME} debug ${CMAKE_SOURCE_DIR}/External/nativefiledialog/lib/Debug/nfd.lib)
+target_link_libraries(${PROJECTNAME} optimized ${CMAKE_SOURCE_DIR}/External/nativefiledialog/lib/Release/nfd.lib)
 
 include_directories("../External/WinPixEventRuntime/include")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/WinPixEventRuntime/bin/x64/WinPixEventRuntime.lib)

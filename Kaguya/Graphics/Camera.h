@@ -1,6 +1,5 @@
 #pragma once
-
-#include "Transform.h"
+#include "Scene/Components/Transform.h"
 
 using FStop = float;
 using ISO = float;
