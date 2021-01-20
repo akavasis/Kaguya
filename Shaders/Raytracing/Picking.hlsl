@@ -16,8 +16,7 @@ enum RayType
     NumRayTypes
 };
 
-// Local Root Signature
-// ====================
+// ==================== Local Root Signature ====================
 RWStructuredBuffer<int> PickingResult : register(u0, space0);
 
 [shader("raygeneration")]

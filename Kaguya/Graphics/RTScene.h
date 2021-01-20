@@ -2,34 +2,30 @@
 #include "RenderDevice.h"
 #include "ResourceManager.h"
 #include "Scene/Scene.h"
+#include "Scene/Entity.h"
 
-struct RTGeometry
-{
-	Microsoft::WRL::ComPtr<ID3D12Resource> Scratch;
-	Microsoft::WRL::ComPtr<ID3D12Resource> Result;
-	BottomLevelAccelerationStructure BottomLevelAccelerationStructure;
-};
+#define RAYTRACING_INSTANCEMASK_ALL 	(0xff)
+#define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
+#define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
-class RTScene
+class RaytracingAccelerationStructure
 {
 public:
-	void Create(RenderDevice* pRenderDevice,
-		ResourceManager* pResourceManager,
-		Scene* pScene);
+	void Create(RenderDevice* pRenderDevice);
 
-	void AddRTGeometry(const Mesh& Mesh);
+	void Clear();
+	void AddInstance(MeshRenderer* pMeshRenderer);
 
 	void Build(CommandList& CommandList);
 private:
 	RenderDevice* pRenderDevice;
-	ResourceManager* pResourceManager;
 	Scene* pScene;
 
 	RootSignature RS;
 	PipelineState PSO;
 
-	std::vector<RTGeometry> Geometries;
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
+	UINT InstanceContributionToHitGroupIndex = 0;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> TLASScratch, TLASResult;
 };

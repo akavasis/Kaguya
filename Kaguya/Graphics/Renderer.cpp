@@ -21,6 +21,7 @@ Renderer::Renderer()
 	ResourceManager.Create(&RenderDevice);
 }
 
+//----------------------------------------------------------------------------------------------------
 Renderer::~Renderer()
 {
 
@@ -47,7 +48,13 @@ bool Renderer::Initialize()
 
 	RenderDevice.CreateCommandContexts(5);
 
+	RaytracingAccelerationStructure.Create(&RenderDevice);
+
 	Editor.SetContext(&ResourceManager, &Scene);
+
+	PathIntegrator.Create(&RenderDevice);
+	PathIntegrator.SetResolution(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight());
+
 	//SetScene(GenerateScene(SampleScene::Hyperion));
 
 	return true;
@@ -173,6 +180,7 @@ void Renderer::Render()
 	CommandList* CommandLists[] = { &GraphicsContext };
 	RenderDevice.ExecuteGraphicsContexts(1, CommandLists);
 	RenderDevice.Present(Settings::VSync);
+	RenderDevice.Device.GraphicsMemory()->Commit(RenderDevice.GraphicsQueue);
 	RenderDevice.FlushGraphicsQueue();
 	//
 	//	InstanceID = Picking->GetInstanceID(m_pRenderDevice.get());

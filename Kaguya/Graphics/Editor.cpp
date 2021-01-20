@@ -5,20 +5,54 @@
 
 using namespace DirectX;
 
-void HierarchyPanel::SetContext(Scene* pScene)
-{
-	this->pScene = pScene;
-	SelectedEntity = {};
-}
-
-void HierarchyPanel::RenderGui()
+void HierarchyWindow::RenderGui()
 {
 	if (ImGui::Begin("Hierarchy"))
 	{
-		pScene->m_Registry.each([&](auto Handle)
+		pScene->Registry.each([&](auto Handle)
 		{
 			Entity Entity(Handle, pScene);
-			RenderEntityGui(Entity);
+
+			auto& Name = Entity.GetComponent<Tag>().Name;
+
+			ImGuiTreeNodeFlags flags = ((SelectedEntity == Entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
+			flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+			bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)Entity, flags, Name.data());
+			if (ImGui::IsItemClicked())
+			{
+				SelectedEntity = Entity;
+			}
+
+			bool DeleteContext = false;
+			if (ImGui::BeginPopupContextItem())
+			{
+				if (ImGui::MenuItem("Delete"))
+				{
+					DeleteContext = true;
+				}
+
+				ImGui::EndPopup();
+			}
+
+			if (opened)
+			{
+				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+				bool opened = ImGui::TreeNodeEx((void*)9817239, flags, Name.data());
+				if (opened)
+				{
+					ImGui::TreePop();
+				}
+				ImGui::TreePop();
+			}
+
+			if (DeleteContext)
+			{
+				pScene->DestroyEntity(Entity);
+				if (SelectedEntity == Entity)
+				{
+					SelectedEntity = {};
+				}
+			}
 		});
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
@@ -36,53 +70,8 @@ void HierarchyPanel::RenderGui()
 
 			ImGui::EndPopup();
 		}
-
 	}
 	ImGui::End();
-}
-
-void HierarchyPanel::RenderEntityGui(Entity Entity)
-{
-	auto& Name = Entity.GetComponent<Tag>().Name;
-
-	ImGuiTreeNodeFlags flags = ((SelectedEntity == Entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-	flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
-	bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)Entity, flags, Name.data());
-	if (ImGui::IsItemClicked())
-	{
-		SelectedEntity = Entity;
-	}
-
-	bool DeleteContext = false;
-	if (ImGui::BeginPopupContextItem())
-	{
-		if (ImGui::MenuItem("Delete"))
-		{
-			DeleteContext = true;
-		}
-
-		ImGui::EndPopup();
-	}
-
-	if (opened)
-	{
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-		bool opened = ImGui::TreeNodeEx((void*)9817239, flags, Name.data());
-		if (opened)
-		{
-			ImGui::TreePop();
-		}
-		ImGui::TreePop();
-	}
-
-	if (DeleteContext)
-	{
-		pScene->DestroyEntity(Entity);
-		if (SelectedEntity == Entity)
-		{
-			SelectedEntity = {};
-		}
-	}
 }
 
 template<typename T>
@@ -132,12 +121,12 @@ static void RenderComponent(const char* pName, Entity Entity, void(*UIFunction)(
 	}
 }
 
-void InspectorPanel::SetContext(Entity Entity)
+void InspectorWindow::SetContext(Entity Entity)
 {
 	SelectedEntity = Entity;
 }
 
-void InspectorPanel::RenderGui()
+void InspectorWindow::RenderGui()
 {
 	if (ImGui::Begin("Inspector"))
 	{
@@ -174,9 +163,41 @@ void InspectorPanel::RenderGui()
 				}
 			});
 
+			RenderComponent<MeshFilter>("Mesh Filter", SelectedEntity, [](MeshFilter& MeshFilter)
+			{
+				if (MeshFilter.pMesh)
+				{
+					ImGui::Text(MeshFilter.pMesh->Name.data());
+				}
+				else
+				{
+					ImGui::Text("NULL");
+				}
+			});
+
+			RenderComponent<MeshRenderer>("Mesh Renderer", SelectedEntity, [](MeshRenderer& MeshRenderer)
+			{
+				MeshRenderer.Material.RenderGui();
+			});
+
 			if (ImGui::Button("Add Component"))
 			{
-				LOG_INFO("Add Component pressed");
+				ImGui::OpenPopup("New Component");
+			}
+
+			if (ImGui::BeginPopup("New Component"))
+			{
+				if (ImGui::MenuItem("Mesh Filter"))
+				{
+					SelectedEntity.AddComponent<MeshFilter>();
+				}
+
+				if (ImGui::MenuItem("Mesh Renderer"))
+				{
+					SelectedEntity.AddComponent<MeshRenderer>();
+				}
+
+				ImGui::EndPopup();
 			}
 		}
 	}
@@ -185,7 +206,7 @@ void InspectorPanel::RenderGui()
 
 void Editor::RenderGui()
 {
-	HierarchyPanel.RenderGui();
-	InspectorPanel.SetContext(HierarchyPanel.GetSelectedEntity());
-	InspectorPanel.RenderGui();
+	HierarchyWindow.RenderGui();
+	InspectorWindow.SetContext(HierarchyWindow.GetSelectedEntity());
+	InspectorWindow.RenderGui();
 }

@@ -1,7 +1,7 @@
 #ifndef RANDOM_HLSLI
 #define RANDOM_HLSLI
 
-#include "Constants.hlsli"
+#include <Math.hlsli>
 
 uint WangHash(inout uint seed)
 {
@@ -80,4 +80,4 @@ float3 CosHemisphereSample(inout uint seed, in float3 normal)
 	return tangent * (r * cos(phi)) + bitangent * (r * sin(phi)) + normal.xyz * sqrt(1 - randVal.x);
 }
 
-#endif
+#endif // RANDOM_HLSLI

@@ -1,6 +1,7 @@
 #pragma once
+#include "Component.h"
 
-struct Tag
+struct Tag : Component
 {
 	std::string Name;
 };

@@ -5,8 +5,9 @@ using Microsoft::WRL::ComPtr;
 
 namespace
 {
-	RWLock g_GlobalResourceStateTrackerLock;
-	ResourceStateTracker g_GlobalResourceStateTracker;
+	// Global resource state tracker
+	RWLock g_ResourceStateTrackerLock;
+	ResourceStateTracker g_ResourceStateTracker;
 }
 
 namespace D3D12Utility
@@ -147,10 +148,10 @@ void RenderDevice::Resize(UINT Width, UINT Height)
 			m_SwapChainBuffers[i] = std::move(pBackBuffer);
 		}
 
-		ScopedWriteLock SWL(g_GlobalResourceStateTrackerLock);
+		ScopedWriteLock SWL(g_ResourceStateTrackerLock);
 		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 		{
-			g_GlobalResourceStateTracker.AddResourceState(m_SwapChainBuffers[i].Get(), D3D12_RESOURCE_STATE_COMMON);
+			g_ResourceStateTracker.AddResourceState(m_SwapChainBuffers[i].Get(), D3D12_RESOURCE_STATE_COMMON);
 		}
 
 		// Reset back buffer index
@@ -218,18 +219,18 @@ std::shared_ptr<Resource> RenderDevice::CreateResource(const D3D12MA::ALLOCATION
 	// No need to track resources that have constant resource state throughout their lifetime
 	if (pAllocDesc->HeapType == D3D12_HEAP_TYPE_DEFAULT)
 	{
-		ScopedWriteLock SWL(g_GlobalResourceStateTrackerLock);
-		g_GlobalResourceStateTracker.AddResourceState(pResource->pResource.Get(), InitialResourceState);
+		ScopedWriteLock SWL(g_ResourceStateTrackerLock);
+		g_ResourceStateTracker.AddResourceState(pResource->pResource.Get(), InitialResourceState);
 	}
 
 	return pResource;
 }
 
-RootSignature RenderDevice::CreateRootSignature(std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters)
+RootSignature RenderDevice::CreateRootSignature(std::function<void(RootSignatureBuilder&)> Configurator, bool AddDescriptorTableRootParameters)
 {
 	RootSignatureBuilder Builder = {};
 	Configurator(Builder);
-	if (AddShaderLayoutRootParameters)
+	if (AddDescriptorTableRootParameters)
 		AddDescriptorTableRootParameterToBuilder(Builder);
 
 	return RootSignature(Device, Builder);
@@ -508,8 +509,8 @@ void RenderDevice::UpdateResourceState(ID3D12Resource* pResource, UINT Subresour
 		return;
 	}
 
-	ScopedWriteLock SWL(g_GlobalResourceStateTrackerLock);
-	g_GlobalResourceStateTracker.SetResourceState(pResource, Subresource, ResourceStates);
+	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
+	g_ResourceStateTracker.SetResourceState(pResource, Subresource, ResourceStates);
 }
 
 void RenderDevice::InitializeDXGIObjects()
@@ -631,14 +632,14 @@ void RenderDevice::AddDescriptorTableRootParameterToBuilder(RootSignatureBuilder
 
 void RenderDevice::ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE Type, UINT NumCommandLists, CommandList* ppCommandLists[])
 {
-	ScopedWriteLock SWL(g_GlobalResourceStateTrackerLock);
+	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
 
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
 	commandlistsToBeExecuted.reserve(size_t(NumCommandLists) * 2);
 	for (UINT i = 0; i < NumCommandLists; ++i)
 	{
 		CommandList* pCommandList = ppCommandLists[i];
-		if (pCommandList->Close(&g_GlobalResourceStateTracker))
+		if (pCommandList->Close(&g_ResourceStateTracker))
 		{
 			commandlistsToBeExecuted.push_back(pCommandList->pPendingCommandList.Get());
 		}

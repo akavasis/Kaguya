@@ -1,8 +1,7 @@
 #pragma once
+#include "Component.h"
 
-struct Mesh;
-
-struct MeshFilter
+struct MeshFilter : Component
 {
-	Mesh* pMesh = nullptr;
+	struct Mesh* pMesh = nullptr;
 };

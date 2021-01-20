@@ -82,7 +82,7 @@ Library ShaderCompiler::CompileLibrary(const std::filesystem::path& Path) const
 	return Library(pDxcBlob, pLibraryReflection);
 }
 
-Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::Compile(const std::filesystem::path& Path, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines) const
+ComPtr<IDxcBlob> ShaderCompiler::Compile(const std::filesystem::path& Path, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines) const
 {
 	assert(std::filesystem::exists(Path) && "File Not Found");
 

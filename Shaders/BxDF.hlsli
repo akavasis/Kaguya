@@ -1,7 +1,7 @@
-#ifndef __BXDF_HLSLI__
-#define __BXDF_HLSLI__
+#ifndef BXDF_HLSLI
+#define BXDF_HLSLI
 
-#include "Constants.hlsli"
+#include <Math.hlsli>
 
 // NDF: Normal distribution function
 // Approximates the amount the surface's microfacets are aligned to the halfway vector, 
@@ -64,4 +64,4 @@ float3 BRDF(float3 N, float3 V, float3 H, float3 L, float3 albedo, float3 specul
 	return (Fd + Fs) * radiance * NoL;
 }
 
-#endif
+#endif // BXDF_HLSLI

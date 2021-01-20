@@ -1,7 +1,8 @@
 #pragma once
 #include <DirectXMath.h>
+#include "Component.h"
 
-struct Transform
+struct Transform : Component
 {
 	Transform();
 

@@ -41,7 +41,7 @@ struct Shaders
 
 struct Libraries
 {
-	inline static Library Pathtracing;
+	inline static Library PathTrace;
 	inline static Library Picking;
 
 	static void Register(const ShaderCompiler& ShaderCompiler);

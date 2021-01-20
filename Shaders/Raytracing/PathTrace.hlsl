@@ -1,12 +1,3 @@
-struct RenderPassData
-{
-	uint NumSamplesPerPixel;
-	uint MaxDepth;
-	uint NumAccumulatedSamples;
-
-	uint RenderTarget;
-};
-#define RenderPassDataType RenderPassData
 #include "Global.hlsli"
 
 // Local Root Signature
@@ -16,22 +7,20 @@ StructuredBuffer<uint> IndexBuffer : register(t1, space1);
 
 Triangle GetTriangle()
 {
-	Mesh mesh = Meshes[InstanceID()];
-
 	const uint primIndex = PrimitiveIndex();
-	const uint idx0 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 0];
-	const uint idx1 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 1];
-	const uint idx2 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 2];
+	const uint idx0 = IndexBuffer[primIndex * 3 + 0];
+	const uint idx1 = IndexBuffer[primIndex * 3 + 1];
+	const uint idx2 = IndexBuffer[primIndex * 3 + 2];
 	
-	const Vertex vtx0 = VertexBuffer[idx0 + mesh.VertexOffset];
-	const Vertex vtx1 = VertexBuffer[idx1 + mesh.VertexOffset];
-	const Vertex vtx2 = VertexBuffer[idx2 + mesh.VertexOffset];
+	const Vertex vtx0 = VertexBuffer[idx0];
+	const Vertex vtx1 = VertexBuffer[idx1];
+	const Vertex vtx2 = VertexBuffer[idx2];
 	
 	Triangle t = { vtx0, vtx1, vtx2 };
 	return t;
 }
 
-Vertex GetInterpolatedVertex(in HitAttributes attrib)
+Vertex GetInterpolatedVertex(in BuiltInTriangleIntersectionAttributes attrib)
 {
 	float3 barycentrics = float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
 
@@ -50,7 +39,7 @@ struct SurfaceInteraction
 	Material material;
 };
 
-SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib)
+SurfaceInteraction GetSurfaceInteraction(in BuiltInTriangleIntersectionAttributes attrib)
 {
 	SurfaceInteraction si;
 	
@@ -315,12 +304,19 @@ float3 PathTrace(RayDesc Ray, inout uint Seed)
 	while (RayPayload.Depth < g_RenderPassData.MaxDepth)
 	{
 		// Trace the ray
-		const uint flags = RAY_FLAG_NONE;
-		const uint mask = 0xffffffff;
-		const uint hitGroupIndex = RayTypePrimary;
-		const uint hitGroupIndexMultiplier = NumRayTypes;
-		const uint missShaderIndex = RayTypePrimary;
-		TraceRay(Scene, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, Ray, RayPayload);
+		const uint RayFlags = RAY_FLAG_NONE;
+		const uint InstanceInclusionMask = 0xffffffff;
+		const uint RayContributionToHitGroupIndex = RayTypePrimary;
+		const uint MultiplierForGeometryContributionToHitGroupIndex = NumRayTypes;
+		const uint MissShaderIndex = RayTypePrimary;
+		TraceRay(Scene,
+			RayFlags,
+			InstanceInclusionMask, 
+			RayContributionToHitGroupIndex, 
+			MultiplierForGeometryContributionToHitGroupIndex, 
+			MissShaderIndex, 
+			Ray, 
+			RayPayload);
 		
 		Ray.Origin = RayPayload.Position;
 		Ray.TMin = 0.0001f; // Avoid self intersection
@@ -389,7 +385,7 @@ void Miss(inout RayPayload rayPayload)
 }
 
 [shader("closesthit")]
-void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
+void ClosestHit(inout RayPayload rayPayload, in BuiltInTriangleIntersectionAttributes attrib)
 {
 	SurfaceInteraction si = GetSurfaceInteraction(attrib);
 	

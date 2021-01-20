@@ -10,27 +10,29 @@ struct Entity
 	template<typename T, typename... Args>
 	T& AddComponent(Args&&... args)
 	{
-		T& component = pScene->m_Registry.emplace<T>(Handle, std::forward<Args>(args)...);
-		pScene->OnComponentAdded<T>(*this, component);
-		return component;
+		T& Component = pScene->Registry.emplace<T>(Handle, std::forward<Args>(args)...);
+		Component.Handle = Handle;
+		Component.pScene = pScene;
+		pScene->OnComponentAdded<T>(*this, Component);
+		return Component;
 	}
 
 	template<typename T>
 	T& GetComponent()
 	{
-		return pScene->m_Registry.get<T>(Handle);
+		return pScene->Registry.get<T>(Handle);
 	}
 
 	template<typename T>
 	bool HasComponent()
 	{
-		return pScene->m_Registry.has<T>(Handle);
+		return pScene->Registry.has<T>(Handle);
 	}
 
 	template<typename T>
 	void RemoveComponent()
 	{
-		pScene->m_Registry.remove<T>(Handle);
+		pScene->Registry.remove<T>(Handle);
 	}
 
 	operator bool() const { return Handle != entt::null; }

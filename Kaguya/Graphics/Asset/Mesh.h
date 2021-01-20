@@ -1,6 +1,6 @@
 #pragma once
-#include "RenderDevice.h"
-#include "Vertex.h"
+#include "../RenderDevice.h"
+#include "../Vertex.h"
 
 struct Mesh
 {
@@ -14,14 +14,13 @@ struct Mesh
 	uint32_t						IndexCount;
 	uint32_t						VertexCount;
 
-	// Resolved when loaded into GPU
-	size_t							BottomLevelAccelerationStructureIndex;
-
 	std::vector<Vertex>				Vertices;
 	std::vector<uint32_t>			Indices;
 
 	std::shared_ptr<Resource> VertexResource;
 	std::shared_ptr<Resource> IndexResource;
+	std::shared_ptr<Resource> AccelerationStructure;
+	BottomLevelAccelerationStructure BLAS;
 };
 
 Mesh CreateBox(float Width, float Height, float Depth);

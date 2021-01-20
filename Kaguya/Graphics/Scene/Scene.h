@@ -4,6 +4,7 @@
 #include "Components/Tag.h"
 #include "Components/Transform.h"
 #include "Components/MeshFilter.h"
+#include "Components/MeshRenderer.h"
 
 struct Entity;
 
@@ -19,5 +20,5 @@ struct Scene
 	template<typename T>
 	void OnComponentAdded(Entity entity, T& component);
 
-	entt::registry m_Registry;
+	entt::registry Registry;
 };

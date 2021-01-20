@@ -3,6 +3,22 @@
 #include <Core/Math.h>
 #include "Shader.h"
 
+/*
+*	========== Miss shader table indexing ==========
+	Simple pointer arithmetic
+	MissShaderRecordAddress = D3D12_DISPATCH_RAYS_DESC.MissShaderTable.StartAddress + D3D12_DISPATCH_RAYS_DESC.MissShaderTable.StrideInBytes * MissShaderIndex
+*/
+
+/*
+*	========== Hit group table indexing ==========
+	HitGroupRecordAddress = D3D12_DISPATCH_RAYS_DESC.HitGroupTable.StartAddress + D3D12_DISPATCH_RAYS_DESC.HitGroupTable.StrideInBytes * HitGroupEntryIndex
+
+	where HitGroupEntryIndex = 
+	(RayContributionToHitGroupIndex + (MultiplierForGeometryContributionToHitGroupIndex * GeometryContributionToHitGroupIndex) + D3D12_RAYTRACING_INSTANCE_DESC.InstanceContributionToHitGroupIndex)
+
+	GeometryContributionToHitGroupIndex is a system generated index of geometry in bottom-level acceleration structure (0,1,2,3..)
+*/
+
 // ShaderRecord = {{Shader Identifier}, {RootArguments}}
 template<typename TRootArguments>
 struct ShaderRecord
@@ -81,10 +97,9 @@ public:
 		}
 	}
 
-	void Generate(ID3D12Resource* pShaderTableBuffer)
+	void Generate(BYTE* pHostMemory)
 	{
-		BYTE* pHostMemory = nullptr;
-		if (SUCCEEDED(pShaderTableBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory))))
+		if (pHostMemory)
 		{
 			for (const auto& ShaderRecord : m_ShaderRecords)
 			{
@@ -95,8 +110,6 @@ public:
 
 				pHostMemory += m_ShaderRecordStride;
 			}
-
-			pShaderTableBuffer->Unmap(0, nullptr);
 		}
 	}
 private:
@@ -167,10 +180,9 @@ public:
 		}
 	}
 
-	void Generate(ID3D12Resource* pShaderTableBuffer)
+	void Generate(BYTE* pHostMemory)
 	{
-		BYTE* pHostMemory = nullptr;
-		if (SUCCEEDED(pShaderTableBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory))))
+		if (pHostMemory)
 		{
 			for (const auto& ShaderRecord : m_ShaderRecords)
 			{
@@ -179,8 +191,6 @@ public:
 
 				pHostMemory += m_ShaderRecordStride;
 			}
-
-			pShaderTableBuffer->Unmap(0, nullptr);
 		}
 	}
 private:

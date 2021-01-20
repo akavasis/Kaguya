@@ -16,6 +16,8 @@ class Renderer : public RenderSystem
 {
 public:
 	Renderer();
+	Renderer(const Renderer&) = delete;
+	Renderer& operator=(const Renderer&) = delete;
 	~Renderer() override;
 protected:
 	bool Initialize() override;
@@ -37,7 +39,8 @@ private:
 	// TODO: Renderer and Editor should be separate, come up with an alternative...
 	// (e.g. render onto offscreen texture and composite them)
 	Scene									Scene;
+	RaytracingAccelerationStructure			RaytracingAccelerationStructure;
 	Editor									Editor;
-	//PathIntegrator							PathIntegrator;
+	PathIntegrator							PathIntegrator;
 	//ToneMapper								ToneMapper;
 };

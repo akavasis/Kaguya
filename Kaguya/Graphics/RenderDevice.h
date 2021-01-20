@@ -125,7 +125,7 @@ public:
 		return CreateResource(pAllocDesc, &Desc, InitialResourceState, nullptr);
 	}
 
-	[[nodiscard]] RootSignature CreateRootSignature(std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters = true);
+	[[nodiscard]] RootSignature CreateRootSignature(std::function<void(RootSignatureBuilder&)> Configurator, bool AddDescriptorTableRootParameters = true);
 
 	[[nodiscard]] PipelineState CreateGraphicsPipelineState(std::function<void(GraphicsPipelineStateBuilder&)> Configurator);
 	[[nodiscard]] PipelineState CreateComputePipelineState(std::function<void(ComputePipelineStateBuilder&)> Configurator);

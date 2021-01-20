@@ -5,7 +5,7 @@
 
 Entity Scene::CreateEntity(const std::string& Name)
 {
-	Entity NewEntity = { m_Registry.create(), this };
+	Entity NewEntity = { Registry.create(), this };
 	auto& TagComponent = NewEntity.AddComponent<Tag>();
 	TagComponent.Name = Name;
 
@@ -16,7 +16,7 @@ Entity Scene::CreateEntity(const std::string& Name)
 
 void Scene::DestroyEntity(Entity Entity)
 {
-	m_Registry.destroy(Entity);
+	Registry.destroy(Entity);
 }
 
 template<typename T>
@@ -35,4 +35,28 @@ template<>
 void Scene::OnComponentAdded<Transform>(Entity Entity, Transform& Component)
 {
 
+}
+
+template<>
+void Scene::OnComponentAdded<MeshFilter>(Entity Entity, MeshFilter& Component)
+{
+	// If we added a MeshFilter component, check to see if we have a MeshRenderer component
+	// and connect them
+	if (Entity.HasComponent<MeshRenderer>())
+	{
+		auto& MeshRendererComponent = Entity.GetComponent<MeshRenderer>();
+		MeshRendererComponent.pMeshFilter = &Component;
+	}
+}
+
+template<>
+void Scene::OnComponentAdded<MeshRenderer>(Entity Entity, MeshRenderer& Component)
+{
+	// If we added a MeshRenderer component, check to see if we have a MeshFilter component
+	// and connect them
+	if (Entity.HasComponent<MeshFilter>())
+	{
+		auto& MeshFilterComponent = Entity.GetComponent<MeshFilter>();
+		Component.pMeshFilter = &MeshFilterComponent;
+	}
 }

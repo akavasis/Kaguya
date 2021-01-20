@@ -1,7 +1,8 @@
 #pragma once
 #include <Core/Synchronization/RWLock.h>
 #include "RenderDevice.h"
-#include "Mesh.h"
+
+#include "Asset/Mesh.h"
 
 class ResourceManager
 {
@@ -36,7 +37,6 @@ private:
 		and creates Descriptor and GPU Resources
 	*/
 	static DWORD WINAPI ResourceConsumerThreadProc(_In_ PVOID pParameter);
-
 private:
 	struct AssetTextures
 	{
@@ -53,7 +53,6 @@ private:
 	};
 
 	RenderDevice* pRenderDevice;
-	CommandQueue CopyQueue;
 
 	Microsoft::WRL::ComPtr<ID3D12Heap> SystemTextureHeap;
 	Microsoft::WRL::ComPtr<ID3D12Resource> SystemTextures[AssetTextures::NumSystemTextures];

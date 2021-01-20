@@ -61,13 +61,12 @@ void BottomLevelAccelerationStructure::Generate(ID3D12GraphicsCommandList6* pCom
 
 TopLevelAccelerationStructure::TopLevelAccelerationStructure()
 {
-	NumInstances = 0;
 	ScratchSizeInBytes = ResultSizeInBytes = 0;
 }
 
-void TopLevelAccelerationStructure::SetNumInstances(UINT NumInstances)
+void TopLevelAccelerationStructure::AddInstance(const D3D12_RAYTRACING_INSTANCE_DESC& Desc)
 {
-	this->NumInstances = NumInstances;
+	RaytracingInstanceDescs.push_back(Desc);
 }
 
 void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes)
@@ -77,7 +76,7 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDe
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS Desc	= {};
 	Desc.Type													= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 	Desc.Flags													= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
-	Desc.NumDescs												= NumInstances;
+	Desc.NumDescs												= Size();
 	Desc.DescsLayout											= D3D12_ELEMENTS_LAYOUT_ARRAY;
 
 	// This structure is used to hold the sizes of the required scratch memory and
@@ -116,7 +115,7 @@ void TopLevelAccelerationStructure::Generate(ID3D12GraphicsCommandList6* pComman
 	Desc.DestAccelerationStructureData						= pResult->GetGPUVirtualAddress();
 	Desc.Inputs.Type										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 	Desc.Inputs.Flags										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
-	Desc.Inputs.NumDescs									= NumInstances;
+	Desc.Inputs.NumDescs									= Size();
 	Desc.Inputs.DescsLayout									= D3D12_ELEMENTS_LAYOUT_ARRAY;
 	Desc.Inputs.InstanceDescs								= pInstanceDescs->GetGPUVirtualAddress();
 	Desc.SourceAccelerationStructureData					= NULL;

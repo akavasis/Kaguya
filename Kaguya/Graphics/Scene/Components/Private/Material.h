@@ -1,5 +1,5 @@
 #pragma once
-#include "SharedDefines.h"
+#include "../../../SharedDefines.h"
 
 enum MaterialModel
 {
@@ -27,10 +27,9 @@ enum TextureTypes
 
 struct Material
 {
-	Material(const std::string& Name);
+	Material();
 	void RenderGui();
 
-	std::string Name;
 	bool		Dirty;
 
 	float3		Albedo;

@@ -68,8 +68,8 @@ namespace
 ResourceManager::~ResourceManager()
 {
 	ExitResourceProcessThread = true;
-	::WakeAllConditionVariable(&ProducerCV);
-	::WakeAllConditionVariable(&ConsumerCV);
+	ProducerCV.WakeAll();
+	ConsumerCV.WakeAll();
 
 	::WaitForMultipleObjects(ARRAYSIZE(ResourceThreads), ResourceThreads[0].addressof(), TRUE, INFINITE);
 }
@@ -77,8 +77,6 @@ ResourceManager::~ResourceManager()
 void ResourceManager::Create(RenderDevice* pRenderDevice)
 {
 	this->pRenderDevice = pRenderDevice;
-
-	CopyQueue.Create(pRenderDevice->Device, D3D12_COMMAND_LIST_TYPE_COPY);
 
 	CreateSystemTextures();
 
@@ -123,7 +121,7 @@ void ResourceManager::AsyncLoadTexture2D(const std::filesystem::path& Path, bool
 	};
 	TextureDescQueue.Enqueue(std::move(Info));
 
-	::WakeConditionVariable(&ProducerCV);
+	ProducerCV.Wake();
 }
 
 void ResourceManager::AsyncLoadMesh(const std::filesystem::path& Path, bool KeepGeometryInRAM, std::function<void()> Callback /*= nullptr*/)
@@ -148,7 +146,7 @@ void ResourceManager::AsyncLoadMesh(const std::filesystem::path& Path, bool Keep
 	};
 	MeshDescQueue.Enqueue(std::move(Info));
 
-	::WakeConditionVariable(&ProducerCV);
+	ProducerCV.Wake();
 }
 
 void ResourceManager::CreateSystemTextures()
@@ -238,7 +236,7 @@ void ResourceManager::CreateSystemTextures()
 	}
 
 	// Upload the resources to the GPU.
-	auto finish = Uploader.End(CopyQueue);
+	auto finish = Uploader.End(this->pRenderDevice->CopyQueue);
 	finish.wait();
 }
 
@@ -298,8 +296,9 @@ bool ProcessMesh()
 		Processed = true;
 
 		const auto& Path = Desc.Path;
+		const auto Key = Path.string();
 
-		const aiScene* paiScene = Importer.ReadFile(Path.generic_string().data(),
+		const aiScene* paiScene = Importer.ReadFile(Key.data(),
 			aiProcess_ConvertToLeftHanded |
 			aiProcessPreset_TargetRealtime_MaxQuality |
 			aiProcess_OptimizeMeshes |
@@ -363,6 +362,8 @@ bool ProcessMesh()
 		PendingMesh.Indices = std::move(indices);
 
 		PendingMeshes.Enqueue(std::move(PendingMesh));
+
+		LOG_INFO("{} Loaded", Key);
 	}
 
 	return Processed;
@@ -379,7 +380,7 @@ DWORD WINAPI ResourceManager::ResourceProducerThreadProc(_In_ PVOID pParameter)
 	while (true)
 	{
 		ScopedCriticalSection SCS(ProducerCS);
-		::SleepConditionVariableCS(&ProducerCV, &ProducerCS, INFINITE);
+		ProducerCV.Wait(ProducerCS, INFINITE);
 
 		if (pResourceManager->ExitResourceProcessThread)
 		{
@@ -391,7 +392,7 @@ DWORD WINAPI ResourceManager::ResourceProducerThreadProc(_In_ PVOID pParameter)
 
 		if (Notify)
 		{
-			::WakeConditionVariable(&ConsumerCV);
+			ConsumerCV.Wake();
 		}
 	}
 
@@ -475,7 +476,7 @@ auto ConsumeTexture(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader)
 	return LocalTextureCache;
 }
 
-auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader, GraphicsMemory& GraphicsMemory)
+auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader)
 {
 	std::unordered_map<std::string, Mesh> LocalMeshCache;
 
@@ -491,20 +492,27 @@ auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader, Gra
 		UINT64 VBSizeInBytes = PendingMesh.Vertices.size() * sizeof(Vertex);
 		UINT64 IBSizeInBytes = PendingMesh.Indices.size() * sizeof(unsigned int);
 
-		SharedGraphicsResource vbUpload = GraphicsMemory.Allocate(VBSizeInBytes);
-		memcpy(vbUpload.Memory(), PendingMesh.Vertices.data(), VBSizeInBytes);
-
-		SharedGraphicsResource ibUpload = GraphicsMemory.Allocate(IBSizeInBytes);
-		memcpy(ibUpload.Memory(), PendingMesh.Indices.data(), IBSizeInBytes);
-
 		D3D12MA::ALLOCATION_DESC AllocDesc = {};
 		AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
 		auto VB = pRenderDevice->CreateBuffer(&AllocDesc, VBSizeInBytes);
 		auto IB = pRenderDevice->CreateBuffer(&AllocDesc, IBSizeInBytes);
 
-		Uploader.Upload(VB->pResource.Get(), vbUpload);
-		Uploader.Upload(IB->pResource.Get(), ibUpload);
+		// Upload vertex data
+		D3D12_SUBRESOURCE_DATA Subresource = {};
+		Subresource.pData = PendingMesh.Vertices.data();
+		Subresource.RowPitch = VBSizeInBytes;
+		Subresource.SlicePitch = VBSizeInBytes;
+
+		Uploader.Upload(VB->pResource.Get(), 0, &Subresource, 1);
+
+		// Upload index data
+		Subresource = {};
+		Subresource.pData = PendingMesh.Indices.data();
+		Subresource.RowPitch = IBSizeInBytes;
+		Subresource.SlicePitch = IBSizeInBytes;
+
+		Uploader.Upload(IB->pResource.Get(), 0, &Subresource, 1);
 
 		Mesh Mesh(Key);
 
@@ -524,12 +532,27 @@ auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader, Gra
 		Mesh.VertexResource = std::move(VB);
 		Mesh.IndexResource = std::move(IB);
 
-		LocalMeshCache[Key] = Mesh;
+		D3D12_RAYTRACING_GEOMETRY_DESC Desc = {};
+		Desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+		Desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+		Desc.Triangles.Transform3x4 = NULL;
+		Desc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
+		Desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
+		Desc.Triangles.IndexCount = Mesh.IndexCount;
+		Desc.Triangles.VertexCount = Mesh.VertexCount;
+		Desc.Triangles.IndexBuffer = Mesh.IndexResource->pResource->GetGPUVirtualAddress();
+		Desc.Triangles.VertexBuffer.StartAddress = Mesh.VertexResource->pResource->GetGPUVirtualAddress();
+		Desc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
+
+		Mesh.BLAS.AddGeometry(Desc);
+
+		LocalMeshCache[Key] = std::move(Mesh);
 
 		if (PendingMesh.Desc.Callback)
 		{
 			PendingMesh.Desc.Callback();
 		}
+
 	}
 
 	return LocalMeshCache;
@@ -541,17 +564,33 @@ DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 
 	auto pResourceManager = reinterpret_cast<ResourceManager*>(pParameter);
 	auto pRenderDevice = pResourceManager->pRenderDevice;
+	ID3D12Device5* pDevice = pRenderDevice->Device;
 
-	CommandQueue CopyQueue;
-	CopyQueue.Create(pRenderDevice->Device, D3D12_COMMAND_LIST_TYPE_COPY);
+	ResourceUploadBatch Uploader(pDevice);
 
-	ResourceUploadBatch Uploader(pRenderDevice->Device);
-	GraphicsMemory GraphicsMemory(pRenderDevice->Device);
+	ComPtr<ID3D12CommandQueue> mCmdQueue;
+	ComPtr<ID3D12CommandAllocator> mCmdAlloc;
+	ComPtr<ID3D12GraphicsCommandList6> mCmdList;
+	UINT64 FenceValue = 0;
+	Microsoft::WRL::ComPtr<ID3D12Fence> mFence;
+	wil::unique_event Event;
+
+	auto Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+	D3D12_COMMAND_QUEUE_DESC Desc = {};
+	Desc.Type = Type;
+	Desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+	Desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	Desc.NodeMask = 0;
+	ThrowIfFailed(pDevice->CreateCommandQueue(&Desc, IID_PPV_ARGS(mCmdQueue.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateCommandAllocator(Type, IID_PPV_ARGS(mCmdAlloc.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateCommandList1(1, Type, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(mCmdList.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(mFence.ReleaseAndGetAddressOf())));
+	Event.create();
 
 	while (true)
 	{
 		ScopedCriticalSection SCS(ConsumerCS);
-		::SleepConditionVariableCS(&ConsumerCV, &ConsumerCS, INFINITE);
+		ConsumerCV.Wait(ConsumerCS, INFINITE);
 
 		if (pResourceManager->ExitResourceProcessThread)
 		{
@@ -561,11 +600,40 @@ DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 		Uploader.Begin(D3D12_COMMAND_LIST_TYPE_COPY);
 
 		auto LocalTextureCache = ConsumeTexture(pRenderDevice, Uploader);
-		auto LocalMeshCache = ConsumeMesh(pRenderDevice, Uploader, GraphicsMemory);
+		auto LocalMeshCache = ConsumeMesh(pRenderDevice, Uploader);
 
 		// Upload the resources to the GPU.
-		auto finish = Uploader.End(CopyQueue);
+		auto finish = Uploader.End(pRenderDevice->CopyQueue);
 		finish.wait();
+
+		std::vector<std::shared_ptr<Resource>> TrackedScratchBuffers;
+		TrackedScratchBuffers.reserve(LocalMeshCache.size());
+		mCmdAlloc->Reset();
+		mCmdList->Reset(mCmdAlloc.Get(), nullptr);
+		for (auto& iter : LocalMeshCache)
+		{
+			auto& Mesh = iter.second;
+			auto& BLAS = iter.second.BLAS;
+
+			UINT64 ScratchSIB, ResultSIB;
+			BLAS.ComputeMemoryRequirements(pDevice, &ScratchSIB, &ResultSIB);
+
+			D3D12MA::ALLOCATION_DESC AllocDesc = {};
+			AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+			auto Scratch = pRenderDevice->CreateBuffer(&AllocDesc, ScratchSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			auto Result = pRenderDevice->CreateBuffer(&AllocDesc, ResultSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+
+			BLAS.Generate(mCmdList.Get(), Scratch->pResource.Get(), Result->pResource.Get());
+
+			Mesh.AccelerationStructure = std::move(Result);
+			TrackedScratchBuffers.push_back(std::move(Scratch));
+		}
+		mCmdList->Close();
+		mCmdQueue->ExecuteCommandLists(1, CommandListCast(mCmdList.GetAddressOf()));
+		auto FenceToWait = ++FenceValue;
+		mCmdQueue->Signal(mFence.Get(), FenceToWait);
+		mFence->SetEventOnCompletion(FenceToWait, Event.get());
+		Event.wait();
 
 		ScopedWriteLock SWL0(pResourceManager->TextureCacheLock);
 		pResourceManager->TextureCache.insert(std::make_move_iterator(LocalTextureCache.begin()), std::make_move_iterator(LocalTextureCache.end()));

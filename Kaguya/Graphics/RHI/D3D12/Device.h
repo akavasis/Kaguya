@@ -4,6 +4,7 @@
 #include <d3d12.h>
 
 #include <D3D12MemAlloc.h>
+#include <GraphicsMemory.h>
 
 class Device
 {
@@ -17,6 +18,7 @@ public:
 	operator auto() const { return m_Device5.Get(); }
 	auto operator->() { return m_Device5.Get(); }
 
+	inline auto GraphicsMemory() const { return m_GraphicsMemory.get(); }
 	inline auto Allocator() const { return m_Allocator; }
 private:
 	void CheckRootSignature_1_1Support();
@@ -25,6 +27,7 @@ private:
 	void CheckMeshShaderSupport();
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> m_Device5;
+	std::unique_ptr<DirectX::GraphicsMemory> m_GraphicsMemory;
 	D3D12MA::Allocator* m_Allocator = nullptr;
 };
 

@@ -8,8 +8,6 @@ Mesh::Mesh(const std::string& Name)
 {
 	IndexCount = 0;
 	VertexCount = 0;
-
-	BottomLevelAccelerationStructureIndex = -1;
 }
 
 void Mesh::RenderGui()
@@ -19,8 +17,6 @@ void Mesh::RenderGui()
 		ImGui::Text("Attributes");
 		ImGui::Text("Index Count: %u", IndexCount);
 		ImGui::Text("Vertex Count: %u", VertexCount);
-
-		ImGui::Text("BLAS Index: %u", BottomLevelAccelerationStructureIndex);
 
 		ImGui::TreePop();
 	}

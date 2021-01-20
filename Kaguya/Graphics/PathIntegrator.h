@@ -7,16 +7,16 @@ class PathIntegrator
 public:
 	PathIntegrator();
 
-	void Create(RenderDevice* pRenderDevice, RTScene* pRTScene);
+	void Create(RenderDevice* pRenderDevice);
 
 	void SetResolution(UINT Width, UINT Height);
 
 	void RenderGui();
-	void Render(CommandList& CommandList);
 
+	void UpdateShaderTable(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList);
+	void Render(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList);
 private:
 	RenderDevice* pRenderDevice;
-	RTScene* pRTScene;
 
 	UINT Width = 0, Height = 0;
 

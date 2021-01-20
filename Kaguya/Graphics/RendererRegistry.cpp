@@ -17,18 +17,18 @@ void Shaders::Register(const ShaderCompiler& ShaderCompiler)
 
 	// Load PS
 	{
-		PS::PostProcess_Tonemapping						= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl",	PSEntryPoint, {});
+		//PS::PostProcess_Tonemapping						= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/Tonemapping.hlsl",	PSEntryPoint, {});
 	}
 
 	// Load CS
 	{
 		CS::InstanceGeneration							= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/InstanceGeneration.hlsl",		CSEntryPoint, {});
 
-		CS::PostProcess_BloomMask						= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl",						CSEntryPoint, {});
-		CS::PostProcess_BloomDownsample					= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl",				CSEntryPoint, {});
-		CS::PostProcess_BloomBlur						= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl",						CSEntryPoint, {});
-		CS::PostProcess_BloomUpsampleBlurAccumulation	= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl",	CSEntryPoint, {});
-		CS::PostProcess_BloomComposition				= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl",				CSEntryPoint, {});
+		//CS::PostProcess_BloomMask						= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl",						CSEntryPoint, {});
+		//CS::PostProcess_BloomDownsample					= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl",				CSEntryPoint, {});
+		//CS::PostProcess_BloomBlur						= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomBlur.hlsl",						CSEntryPoint, {});
+		//CS::PostProcess_BloomUpsampleBlurAccumulation	= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomUpsampleBlurAccumulation.hlsl",	CSEntryPoint, {});
+		//CS::PostProcess_BloomComposition				= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomComposition.hlsl",				CSEntryPoint, {});
 	}
 }
 
@@ -36,8 +36,8 @@ void Libraries::Register(const ShaderCompiler& ShaderCompiler)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 
-	Pathtracing			= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Pathtracing.hlsl");
-	Picking				= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");
+	PathTrace			= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/PathTrace.hlsl");
+	//Picking				= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");
 }
 
 //void RootSignatures::Register(RenderDevice* pRenderDevice)

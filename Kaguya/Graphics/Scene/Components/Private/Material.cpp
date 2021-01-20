@@ -40,9 +40,8 @@ bool RenderDiffuseLightModelGui(XMFLOAT3* pEmissive)
 	return ImGui::DragFloat3("Emissive", &pEmissive->x, 0.25f, 0, 10000);
 }
 
-Material::Material(const std::string& Name)
-	: Name(Name),
-	Dirty(true)
+Material::Material()
+	: Dirty(true)
 {
 	Albedo					= { 0.0f, 0.0f, 0.0f };
 	Emissive				= { 0.0f, 0.0f, 0.0f };
@@ -66,7 +65,7 @@ Material::Material(const std::string& Name)
 
 void Material::RenderGui()
 {
-	if (ImGui::TreeNode(Name.data()))
+	if (ImGui::TreeNode("Material"))
 	{
 		ImGui::Text("Attributes");
 

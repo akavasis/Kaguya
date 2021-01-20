@@ -15,8 +15,6 @@ class Shader;
 class PipelineStateBuilder
 {
 public:
-	PipelineStateBuilder() = default;
-
 	const RootSignature* pRootSignature = nullptr;
 };
 
@@ -24,8 +22,6 @@ public:
 class GraphicsPipelineStateBuilder : public PipelineStateBuilder
 {
 public:
-	GraphicsPipelineStateBuilder() = default;
-
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC Build();
 	D3DX12_MESH_SHADER_PIPELINE_STATE_DESC BuildMSPSODesc();
 
@@ -56,8 +52,6 @@ public:
 class ComputePipelineStateBuilder : public PipelineStateBuilder
 {
 public:
-	ComputePipelineStateBuilder() = default;
-
 	D3D12_COMPUTE_PIPELINE_STATE_DESC Build();
 
 	const Shader* pCS = nullptr;	// Default value: nullptr, must be set

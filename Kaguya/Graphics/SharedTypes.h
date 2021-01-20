@@ -3,18 +3,6 @@
 
 namespace HLSL
 {
-	struct PolygonalLight
-	{
-		float3	Position;
-		float4	Orientation;
-		matrix	World;
-		float3	Color;
-		float	Luminance;
-		float	Width;
-		float	Height;
-		float3	Points[4]; // World-space points that are pre-computed on the Cpu so we don't have to compute them in shader for every ray
-	};
-
 	struct Material
 	{
 		float3	Albedo;
@@ -71,18 +59,5 @@ namespace HLSL
 		matrix	InvView;
 		matrix	InvProjection;
 		matrix	InvViewProjection;
-	};
-
-	struct SystemConstants
-	{
-		Camera Camera, PreviousCamera;
-
-		float4 OutputSize;
-
-		uint TotalFrameCount;
-
-		int NumPolygonalLights;
-
-		uint Skybox;
 	};
 }

@@ -98,7 +98,6 @@ ${SPDLOG}
 # Submodules
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/D3D12MemoryAllocator/src")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/entt/single_include/entt")
-include_directories("${CMAKE_SOURCE_DIR}/Submodules/glm")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/imgui")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/ImGuizmo")
 include_directories("${CMAKE_SOURCE_DIR}/Submodules/spdlog/include")
