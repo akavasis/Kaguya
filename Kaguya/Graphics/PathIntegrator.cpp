@@ -10,12 +10,12 @@ using namespace DirectX;
 namespace
 {
 	// Symbols
-	const LPCWSTR RayGeneration = L"RayGeneration";
-	const LPCWSTR Miss = L"Miss";
-	const LPCWSTR ClosestHit = L"ClosestHit";
+	constexpr LPCWSTR RayGeneration = L"RayGeneration";
+	constexpr LPCWSTR Miss = L"Miss";
+	constexpr LPCWSTR ClosestHit = L"ClosestHit";
 
 	// HitGroup Exports
-	const LPCWSTR HitGroupExport = L"Default";
+	constexpr LPCWSTR HitGroupExport = L"Default";
 
 	ShaderIdentifier RayGenerationSID;
 	ShaderIdentifier MissSID;

@@ -14,6 +14,16 @@ struct Scene
 	static constexpr UINT64 MAX_MATERIAL_SUPPORTED = 1000;
 	static constexpr UINT64 MAX_MESH_INSTANCE_SUPPORTED = 1000;
 
+	auto& operator->()
+	{
+		return Registry;
+	}
+
+	auto& operator->() const
+	{
+		return Registry;
+	}
+
 	Entity CreateEntity(const std::string& Name);
 	void DestroyEntity(Entity Entity);
 

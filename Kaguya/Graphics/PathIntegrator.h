@@ -5,6 +5,8 @@
 class PathIntegrator
 {
 public:
+	static constexpr UINT NumHitGroups = 1;
+
 	PathIntegrator();
 
 	void Create(RenderDevice* pRenderDevice);

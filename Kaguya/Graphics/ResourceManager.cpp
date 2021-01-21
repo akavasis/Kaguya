@@ -552,7 +552,6 @@ auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader)
 		{
 			PendingMesh.Desc.Callback();
 		}
-
 	}
 
 	return LocalMeshCache;
@@ -597,6 +596,7 @@ DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 			break;
 		}
 
+		PIXScopedCapture();
 		Uploader.Begin(D3D12_COMMAND_LIST_TYPE_COPY);
 
 		auto LocalTextureCache = ConsumeTexture(pRenderDevice, Uploader);
@@ -618,7 +618,10 @@ DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 			UINT64 ScratchSIB, ResultSIB;
 			BLAS.ComputeMemoryRequirements(pDevice, &ScratchSIB, &ResultSIB);
 
+			// ASB seems to require a committed resource otherwise PIX gives you invalid
+			// parameter
 			D3D12MA::ALLOCATION_DESC AllocDesc = {};
+			AllocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
 			AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 			auto Scratch = pRenderDevice->CreateBuffer(&AllocDesc, ScratchSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			auto Result = pRenderDevice->CreateBuffer(&AllocDesc, ResultSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);

@@ -48,7 +48,7 @@ bool Renderer::Initialize()
 
 	RenderDevice.CreateCommandContexts(5);
 
-	RaytracingAccelerationStructure.Create(&RenderDevice);
+	RaytracingAccelerationStructure.Create(&RenderDevice, PathIntegrator::NumHitGroups);
 
 	Editor.SetContext(&ResourceManager, &Scene);
 
@@ -116,6 +116,31 @@ void Renderer::Render()
 
 	RenderGui();
 	Editor.RenderGui();
+
+	RaytracingAccelerationStructure.Clear();
+	auto view = Scene.Registry.view<MeshRenderer>();
+	for (auto [handle, meshRenderer] : view.each())
+	{
+		if (meshRenderer.pMeshFilter && meshRenderer.pMeshFilter->pMesh)
+		{
+			RaytracingAccelerationStructure.AddInstance(&meshRenderer);
+		}
+	}
+
+	if (!RaytracingAccelerationStructure.Empty())
+	{
+		auto& AsyncComputeContext = RenderDevice.GetDefaultAsyncComputeContext();
+		AsyncComputeContext.Reset(RenderDevice.ComputeFenceValue, RenderDevice.ComputeFence->GetCompletedValue(), &RenderDevice.ComputeQueue);
+
+		RaytracingAccelerationStructure.Build(AsyncComputeContext);
+
+		CommandList* pCommandContexts[] = { &AsyncComputeContext };
+		RenderDevice.ExecuteAsyncComputeContexts(1, pCommandContexts);
+		RenderDevice.Device.GraphicsMemory()->Commit(RenderDevice.ComputeQueue);
+		RenderDevice.ComputeQueue->Signal(RenderDevice.ComputeFence.Get(), RenderDevice.ComputeFenceValue);
+		RenderDevice.GraphicsQueue->Wait(RenderDevice.ComputeFence.Get(), RenderDevice.ComputeFenceValue);
+		RenderDevice.ComputeFenceValue++;
+	}
 
 	auto& GraphicsContext = RenderDevice.GetDefaultGraphicsContext();
 	GraphicsContext.Reset(RenderDevice.GraphicsFenceValue, RenderDevice.GraphicsFence->GetCompletedValue(), &RenderDevice.GraphicsQueue);
@@ -269,52 +294,6 @@ void Renderer::RenderGui()
 	{
 		// Debug gui here
 		ImGui::Text("Mouse::X: %i Mouse::Y: %i", Application::InputHandler.Mouse.X, Application::InputHandler.Mouse.Y);
-
-		if (ImGui::Button("Load Mesh..."))
-		{
-			nfdchar_t* outPath = nullptr;
-			nfdresult_t result = NFD_OpenDialog("obj", nullptr, &outPath);
-
-			if (result == NFD_OKAY)
-			{
-				std::filesystem::path Path = outPath;
-
-				ResourceManager.AsyncLoadMesh(Path, true);
-
-				free(outPath);
-			}
-			else if (result == NFD_CANCEL)
-			{
-				UNREFERENCED_PARAMETER(result);
-			}
-			else
-			{
-				printf("Error: %s\n", NFD_GetError());
-			}
-		}
-
-		if (ImGui::Button("Load Texture..."))
-		{
-			nfdchar_t* outPath = nullptr;
-			nfdresult_t result = NFD_OpenDialog("dds,tga,hdr", nullptr, &outPath);
-
-			if (result == NFD_OKAY)
-			{
-				std::filesystem::path Path = outPath;
-
-				ResourceManager.AsyncLoadTexture2D(Path, false);
-
-				free(outPath);
-			}
-			else if (result == NFD_CANCEL)
-			{
-				UNREFERENCED_PARAMETER(result);
-			}
-			else
-			{
-				printf("Error: %s\n", NFD_GetError());
-			}
-		}
 	}
 	ImGui::End();
 }

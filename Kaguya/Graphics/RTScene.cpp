@@ -5,9 +5,10 @@
 
 using namespace DirectX;
 
-void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice)
+void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice, UINT NumHitGroups)
 {
 	this->pRenderDevice = pRenderDevice;
+	this->NumHitGroups = NumHitGroups;
 
 	//RS = pRenderDevice->CreateRootSignature([](RootSignatureBuilder& Builder)
 	//{
@@ -48,30 +49,8 @@ void RaytracingAccelerationStructure::AddInstance(MeshRenderer* pMeshRenderer)
 
 	TopLevelAccelerationStructure.AddInstance(Desc);
 
-	InstanceContributionToHitGroupIndex += pMeshRenderer->pMeshFilter->pMesh->BLAS.Size();
+	InstanceContributionToHitGroupIndex += pMeshRenderer->pMeshFilter->pMesh->BLAS.Size() * NumHitGroups;
 }
-
-//void RaytracingAccelerationStructure::AddRTGeometry(const Mesh& Mesh)
-//{
-//	//// Update mesh's BLAS Index
-//	//Mesh.BottomLevelAccelerationStructureIndex = m_RaytracingBottomLevelAccelerationStructures.size();
-//
-//	//D3D12_RAYTRACING_GEOMETRY_DESC Desc = {};
-//	//Desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-//	//Desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-//	//Desc.Triangles.Transform3x4 = NULL;
-//	//Desc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
-//	//Desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
-//	//Desc.Triangles.IndexCount = Mesh.IndexCount;
-//	//Desc.Triangles.VertexCount = Mesh.VertexCount;
-//	//Desc.Triangles.IndexBuffer = Mesh.IndexResource->GetGPUVirtualAddress();
-//	//Desc.Triangles.VertexBuffer.StartAddress = Mesh.VertexResource->GetGPUVirtualAddress();
-//	//Desc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
-//
-//	//rtblas.BottomLevelAccelerationStructure.AddGeometry(Desc);
-//
-//	//m_RaytracingBottomLevelAccelerationStructures.push_back(rtblas);
-//}
 
 void RaytracingAccelerationStructure::Build(CommandList& CommandList)
 {
@@ -90,32 +69,34 @@ void RaytracingAccelerationStructure::Build(CommandList& CommandList)
 	//CommandList.UAVBarrier(pInstanceDescsBuffer);
 	//CommandList.FlushResourceBarriers();
 
-	UINT64 ScratchSizeInBytes, ResultSizeInBytes;
-	TopLevelAccelerationStructure.ComputeMemoryRequirements(pRenderDevice->Device, &ScratchSizeInBytes, &ResultSizeInBytes);
+	UINT64 ScratchSIB, ResultSIB;
+	TopLevelAccelerationStructure.ComputeMemoryRequirements(pRenderDevice->Device, &ScratchSIB, &ResultSIB);
 
-	//if (!TLASScratch || TLASScratch->GetDesc().Width < ScratchSizeInBytes)
-	//{
-	//	TLASScratch.Reset();
+	D3D12MA::ALLOCATION_DESC AllocDesc = {};
+	AllocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
+	AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-	//	// TLAS Scratch
-	//	auto HeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	//	auto ResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(ScratchSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-	//	Context.pRenderDevice->Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE,
-	//		&ResourceDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr,
-	//		IID_PPV_ARGS(TLASScratch.ReleaseAndGetAddressOf()));
-	//}
+	if (!TLASScratch || TLASScratch->pResource->GetDesc().Width < ScratchSIB)
+	{
+		// TLAS Scratch
+		TLASScratch = pRenderDevice->CreateBuffer(&AllocDesc, ScratchSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	}
 
-	//if (!TLASResult || TLASResult->GetDesc().Width < ResultSizeInBytes)
-	//{
-	//	TLASResult.Reset();
+	if (!TLASResult || TLASResult->pResource->GetDesc().Width < ResultSIB)
+	{
+		// TLAS Result
+		TLASResult = pRenderDevice->CreateBuffer(&AllocDesc, ResultSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+	}
 
-	//	// TLAS Result
-	//	auto HeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	//	auto ResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(ResultSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-	//	Context.pRenderDevice->Device->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE,
-	//		&ResourceDesc, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, nullptr,
-	//		IID_PPV_ARGS(TLASResult.ReleaseAndGetAddressOf()));
-	//}
+	UINT64 InstanceDescsSizeInBytes = TopLevelAccelerationStructure.Size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+	GraphicsResource InstanceDescs = pRenderDevice->Device.GraphicsMemory()->Allocate(InstanceDescsSizeInBytes);
 
-	//TopLevelAccelerationStructure.Generate(CommandList, TLASScratch.Get(), TLASResult.Get(), pInstanceDescsBuffer);
+	auto pInstanceDesc = static_cast<D3D12_RAYTRACING_INSTANCE_DESC*>(InstanceDescs.Memory());
+	// Create the description for each instance
+	for (auto [i, instance] : enumerate(TopLevelAccelerationStructure))
+	{
+		pInstanceDesc[i] = instance;
+	}
+
+	TopLevelAccelerationStructure.Generate(CommandList, TLASScratch->pResource.Get(), TLASResult->pResource.Get(), InstanceDescs.GpuAddress());
 }

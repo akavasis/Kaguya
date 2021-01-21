@@ -11,15 +11,26 @@
 class RaytracingAccelerationStructure
 {
 public:
-	void Create(RenderDevice* pRenderDevice);
+	void Create(RenderDevice* pRenderDevice, UINT NumHitGroups);
+
+	operator auto() const
+	{
+		return TLASResult->pResource.Get();
+	}
 
 	void Clear();
+
+	bool Empty() const
+	{
+		return TopLevelAccelerationStructure.Empty();
+	}
+
 	void AddInstance(MeshRenderer* pMeshRenderer);
 
 	void Build(CommandList& CommandList);
 private:
-	RenderDevice* pRenderDevice;
-	Scene* pScene;
+	RenderDevice* pRenderDevice = nullptr;
+	UINT NumHitGroups = 0;
 
 	RootSignature RS;
 	PipelineState PSO;
@@ -27,5 +38,5 @@ private:
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
 	UINT InstanceContributionToHitGroupIndex = 0;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> TLASScratch, TLASResult;
+	std::shared_ptr<Resource> TLASScratch, TLASResult;
 };

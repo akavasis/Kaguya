@@ -66,4 +66,6 @@ private:
 
 	wil::unique_handle ResourceThreads[2];
 	std::atomic<bool> ExitResourceProcessThread = false;
+
+	friend class AssetWindow;
 };

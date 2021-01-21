@@ -97,14 +97,14 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDe
 	*pResultSizeInBytes			= ResultSizeInBytes;
 }
 
-void TopLevelAccelerationStructure::Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult, ID3D12Resource* pInstanceDescs)
+void TopLevelAccelerationStructure::Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult, D3D12_GPU_VIRTUAL_ADDRESS InstanceDescs)
 {
 	if (ScratchSizeInBytes == 0 || ResultSizeInBytes == 0)
 	{
 		throw std::logic_error("Invalid allocation - ComputeMemoryRequirements needs to be called before Generate");
 	}
 
-	if (!pResult || !pScratch || !pInstanceDescs)
+	if (!pResult || !pScratch)
 	{
 		throw std::logic_error("Invalid pResult, pScratch, and pInstanceDescs buffers");
 	}
@@ -117,7 +117,7 @@ void TopLevelAccelerationStructure::Generate(ID3D12GraphicsCommandList6* pComman
 	Desc.Inputs.Flags										= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
 	Desc.Inputs.NumDescs									= Size();
 	Desc.Inputs.DescsLayout									= D3D12_ELEMENTS_LAYOUT_ARRAY;
-	Desc.Inputs.InstanceDescs								= pInstanceDescs->GetGPUVirtualAddress();
+	Desc.Inputs.InstanceDescs								= InstanceDescs;
 	Desc.SourceAccelerationStructureData					= NULL;
 	Desc.ScratchAccelerationStructureData					= pScratch->GetGPUVirtualAddress();
 

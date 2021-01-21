@@ -36,14 +36,39 @@ public:
 		return RaytracingInstanceDescs.size();
 	}
 
+	bool Empty() const
+	{
+		return RaytracingInstanceDescs.empty();
+	}
+
 	void Clear()
 	{
 		RaytracingInstanceDescs.clear();
 	}
 
+	auto& operator[](size_t i)
+	{
+		return RaytracingInstanceDescs[i];
+	}
+
+	auto& operator[](size_t i) const
+	{
+		return RaytracingInstanceDescs[i];
+	}
+
+	auto begin()
+	{
+		return RaytracingInstanceDescs.begin();
+	}
+
+	auto end()
+	{
+		return RaytracingInstanceDescs.end();
+	}
+
 	void AddInstance(const D3D12_RAYTRACING_INSTANCE_DESC& Desc);
 	void ComputeMemoryRequirements(ID3D12Device5* pDevice, UINT64* pScratchSizeInBytes, UINT64* pResultSizeInBytes);
-	void Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult, ID3D12Resource* pInstanceDescs);
+	void Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult, D3D12_GPU_VIRTUAL_ADDRESS InstanceDescs);
 private:
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> RaytracingInstanceDescs;
 	UINT64	ScratchSizeInBytes;

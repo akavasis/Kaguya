@@ -16,5 +16,5 @@ private:
 #define GetScopedCaptureVariableName(a, b) PIXConcatenate(a, b)
 #define PIXScopedCapture() PIXCapture GetScopedCaptureVariableName(pixCapture, __LINE__)
 #else
-#define ScopedCapture(context, ...)
+#define PIXScopedCapture()
 #endif

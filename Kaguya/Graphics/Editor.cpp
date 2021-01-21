@@ -61,7 +61,7 @@ void HierarchyWindow::RenderGui()
 		}
 
 		// Right-click on blank space
-		if (ImGui::BeginPopupContextWindow(0, 1, false))
+		if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::MenuItem("Create Empty"))
 			{
@@ -167,11 +167,21 @@ void InspectorWindow::RenderGui()
 			{
 				if (MeshFilter.pMesh)
 				{
-					ImGui::Text(MeshFilter.pMesh->Name.data());
+					ImGui::Button(MeshFilter.pMesh->Name.data());
 				}
 				else
 				{
-					ImGui::Text("NULL");
+					ImGui::Button("NULL");
+					if (ImGui::BeginDragDropTarget())
+					{
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MESH"))
+						{
+							IM_ASSERT(payload->DataSize == sizeof(Mesh*));
+							auto payload_n = (Mesh*)(*(LONG_PTR*)payload->Data); // Yea, ik, ugly
+							MeshFilter.pMesh = payload_n;
+						}
+						ImGui::EndDragDropTarget();
+					}
 				}
 			});
 
@@ -204,9 +214,84 @@ void InspectorWindow::RenderGui()
 	ImGui::End();
 }
 
+void AssetWindow::RenderGui()
+{
+	if (ImGui::Begin("Asset"))
+	{
+		if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight))
+		{
+			if (ImGui::MenuItem("Import Mesh"))
+			{
+				nfdchar_t* outPath = nullptr;
+				nfdresult_t result = NFD_OpenDialog("obj", nullptr, &outPath);
+
+				if (result == NFD_OKAY)
+				{
+					std::filesystem::path Path = outPath;
+
+					pResourceManager->AsyncLoadMesh(Path, true);
+
+					free(outPath);
+				}
+				else if (result == NFD_CANCEL)
+				{
+					UNREFERENCED_PARAMETER(result);
+				}
+				else
+				{
+					printf("Error: %s\n", NFD_GetError());
+				}
+			}
+
+			if (ImGui::MenuItem("Import Texture"))
+			{
+				nfdchar_t* outPath = nullptr;
+				nfdresult_t result = NFD_OpenDialog("dds,tga,hdr", nullptr, &outPath);
+
+				if (result == NFD_OKAY)
+				{
+					std::filesystem::path Path = outPath;
+
+					pResourceManager->AsyncLoadTexture2D(Path, false);
+
+					free(outPath);
+				}
+				else if (result == NFD_CANCEL)
+				{
+					UNREFERENCED_PARAMETER(result);
+				}
+				else
+				{
+					printf("Error: %s\n", NFD_GetError());
+				}
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ScopedReadLock SRL(pResourceManager->MeshCacheLock);
+		for (auto& iter : pResourceManager->MeshCache)
+		{
+			ImGui::Button(iter.first.data());
+
+			// Our buttons are both drag sources and drag targets here!
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+			{
+				LONG_PTR MeshAddr = (LONG_PTR)&iter.second; // Yea ik, ugly
+				// Set payload to carry the index of our item (could be anything)
+				ImGui::SetDragDropPayload("ASSET_MESH", &MeshAddr, sizeof(MeshAddr));
+
+				ImGui::EndDragDropSource();
+			}
+		}
+	}
+	ImGui::End();
+}
+
 void Editor::RenderGui()
 {
 	HierarchyWindow.RenderGui();
 	InspectorWindow.SetContext(HierarchyWindow.GetSelectedEntity());
 	InspectorWindow.RenderGui();
+	AssetWindow.RenderGui();
 }
