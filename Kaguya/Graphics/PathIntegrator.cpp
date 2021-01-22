@@ -46,6 +46,7 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 {
 	this->pRenderDevice = pRenderDevice;
 
+	SRV = pRenderDevice->AllocateShaderResourceView();
 	UAV = pRenderDevice->AllocateUnorderedAccessView();
 
 	GlobalRS = pRenderDevice->CreateRootSignature([](RootSignatureBuilder& Builder)
@@ -108,52 +109,47 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 
 	// Ray Generation Shader Table
 	{
-		ShaderTable<void> ShaderTable;
-		ShaderTable.AddShaderRecord(RayGenerationSID);
+		ShaderTable<void>::Record Record = {};
+		Record.ShaderIdentifier = RayGenerationSID;
 
-		UINT64 shaderTableSizeInBytes;
-		ShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+		RayGenerationShaderTable.AddShaderRecord(Record);
+
+		UINT64 shaderTableSizeInBytes = RayGenerationShaderTable.GetSizeInBytes();
 
 		SharedGraphicsResource rayGenSBTUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
-
-		ShaderTable.Generate(static_cast<BYTE*>(rayGenSBTUpload.Memory()));
-
 		m_RayGenerationShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
 
-		Uploader.Upload(m_RayGenerationShaderTable->pResource.Get(), rayGenSBTUpload);
+		RayGenerationShaderTable.AssociateResource(m_RayGenerationShaderTable->pResource.Get());
+		RayGenerationShaderTable.Generate(static_cast<BYTE*>(rayGenSBTUpload.Memory()));
 
-		RayGenerationShaderRecord.StartAddress = m_RayGenerationShaderTable->pResource->GetGPUVirtualAddress();
-		RayGenerationShaderRecord.SizeInBytes = shaderTableSizeInBytes;
+		Uploader.Upload(RayGenerationShaderTable.Resource(), rayGenSBTUpload);
 	}
 
 	// Miss Shader Table
 	{
-		ShaderTable<void> ShaderTable;
-		ShaderTable.AddShaderRecord(MissSID);
+		ShaderTable<void>::Record Record = {};
+		Record.ShaderIdentifier = MissSID;
 
-		UINT64 shaderTableSizeInBytes, stride;
-		ShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
-		stride = ShaderTable.GetShaderRecordStride();
+		MissShaderTable.AddShaderRecord(Record);
+
+		UINT64 shaderTableSizeInBytes = MissShaderTable.GetSizeInBytes();
 
 		SharedGraphicsResource missSBTUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
-
-		ShaderTable.Generate(static_cast<BYTE*>(missSBTUpload.Memory()));
-
 		m_MissShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
 
-		Uploader.Upload(m_MissShaderTable->pResource.Get(), missSBTUpload);
+		MissShaderTable.AssociateResource(m_MissShaderTable->pResource.Get());
+		MissShaderTable.Generate(static_cast<BYTE*>(missSBTUpload.Memory()));
 
-		MissShaderTable.StartAddress = m_MissShaderTable->pResource->GetGPUVirtualAddress();
-		MissShaderTable.SizeInBytes = shaderTableSizeInBytes;
-		MissShaderTable.StrideInBytes = stride;
+		Uploader.Upload(m_MissShaderTable->pResource.Get(), missSBTUpload);
 	}
 
 	auto finish = Uploader.End(pRenderDevice->CopyQueue);
 	finish.wait();
 
-	HitGroupShaderTable.Reserve(Scene::MAX_INSTANCE_SUPPORTED);
+	m_HitGroupShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, HitGroupShaderTable.GetStrideInBytes() * Scene::MAX_INSTANCE_SUPPORTED);
 
-	m_HitGroupShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, HitGroupShaderTable.GetShaderRecordStride() * Scene::MAX_INSTANCE_SUPPORTED);
+	HitGroupShaderTable.Reserve(Scene::MAX_INSTANCE_SUPPORTED);
+	HitGroupShaderTable.AssociateResource(m_HitGroupShaderTable->pResource.Get());
 }
 
 void PathIntegrator::SetResolution(UINT Width, UINT Height)
@@ -173,6 +169,7 @@ void PathIntegrator::SetResolution(UINT Width, UINT Height)
 		&ResourceDesc, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr);
 
 	pRenderDevice->CreateUnorderedAccessView(m_RenderTarget->pResource.Get(), UAV);
+	pRenderDevice->CreateShaderResourceView(m_RenderTarget->pResource.Get(), SRV);
 }
 
 void PathIntegrator::RenderGui()
@@ -198,6 +195,11 @@ void PathIntegrator::RenderGui()
 	}
 }
 
+void PathIntegrator::Reset()
+{
+	g_Settings.NumAccumulatedSamples = 0;
+}
+
 void PathIntegrator::UpdateShaderTable(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList)
 {
 	HitGroupShaderTable.Clear();
@@ -206,26 +208,24 @@ void PathIntegrator::UpdateShaderTable(const RaytracingAccelerationStructure& Ra
 		const auto& VB = MeshRenderer->pMeshFilter->pMesh->VertexResource->pResource;
 		const auto& IB = MeshRenderer->pMeshFilter->pMesh->IndexResource->pResource;
 
-		RootArgument argument =
+		ShaderTable<RootArgument>::Record Record = {};
+		Record.ShaderIdentifier = DefaultSID;
+		Record.RootArguments = 
 		{
-			.MaterialIndex = (UINT) i,
+			.MaterialIndex = (UINT)i,
 			.Padding = 0,
 			.VertexBuffer = VB->GetGPUVirtualAddress(),
 			.IndexBuffer = IB->GetGPUVirtualAddress()
 		};
-		HitGroupShaderTable.AddShaderRecord(DefaultSID, argument);
+
+		HitGroupShaderTable.AddShaderRecord(Record);
 	}
 
-	UINT64 shaderTableSizeInBytes;
-	HitGroupShaderTable.ComputeMemoryRequirements(&shaderTableSizeInBytes);
+	UINT64 shaderTableSizeInBytes = HitGroupShaderTable.GetSizeInBytes();
 
 	GraphicsResource HitGroupUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
 
 	HitGroupShaderTable.Generate(static_cast<BYTE*>(HitGroupUpload.Memory()));
-
-	HitGroupTable.StartAddress = m_HitGroupShaderTable->pResource->GetGPUVirtualAddress();
-	HitGroupTable.SizeInBytes = shaderTableSizeInBytes;
-	HitGroupTable.StrideInBytes = HitGroupShaderTable.GetShaderRecordStride();
 
 	CommandList.TransitionBarrier(m_HitGroupShaderTable->pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST);
 	CommandList->CopyBufferRegion(m_HitGroupShaderTable->pResource.Get(), 0, HitGroupUpload.Resource(), HitGroupUpload.ResourceOffset(), HitGroupUpload.Size());
@@ -265,9 +265,9 @@ void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 
 	D3D12_DISPATCH_RAYS_DESC Desc =
 	{
-		.RayGenerationShaderRecord = RayGenerationShaderRecord,
+		.RayGenerationShaderRecord = RayGenerationShaderTable,
 		.MissShaderTable = MissShaderTable,
-		.HitGroupTable = HitGroupTable,
+		.HitGroupTable = HitGroupShaderTable,
 		.Width = Width,
 		.Height = Height,
 		.Depth = 1

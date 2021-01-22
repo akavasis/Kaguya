@@ -3,6 +3,7 @@
 
 struct Component
 {
-	entt::entity Handle;
-	struct Scene* pScene;
+	entt::entity Handle = entt::null;
+	struct Scene* pScene = nullptr;
+	bool IsEdited = false;
 };

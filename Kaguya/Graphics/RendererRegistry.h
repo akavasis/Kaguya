@@ -10,7 +10,7 @@ struct Shaders
 	// Vertex Shaders
 	struct VS
 	{
-		inline static Shader Quad;
+		inline static Shader FullScreenTriangle;
 	};
 
 	// Mesh Shaders
@@ -21,7 +21,7 @@ struct Shaders
 	// Pixel Shaders
 	struct PS
 	{
-		inline static Shader PostProcess_Tonemapping;
+		inline static Shader ToneMap;
 	};
 
 	// Compute Shaders

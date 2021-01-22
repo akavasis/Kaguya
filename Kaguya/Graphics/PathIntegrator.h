@@ -13,11 +13,20 @@ public:
 
 	void RenderGui();
 
-	void UpdateShaderTable(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList);
+	void Reset();
+
+	void UpdateShaderTable(const RaytracingAccelerationStructure& RaytracingAccelerationStructure,
+		CommandList& CommandList);
+
 	void Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 		const RaytracingAccelerationStructure& RaytracingAccelerationStructure,
 		D3D12_GPU_VIRTUAL_ADDRESS Materials,
 		CommandList& CommandList);
+
+	auto GetSRV()
+	{
+		return SRV;
+	}
 private:
 	RenderDevice* pRenderDevice;
 
@@ -26,16 +35,14 @@ private:
 	RootSignature GlobalRS, LocalHitGroupRS;
 	RaytracingPipelineState RTPSO;
 	Descriptor UAV;
+	Descriptor SRV;
 
 	std::shared_ptr<Resource> m_RenderTarget;
 	std::shared_ptr<Resource> m_RayGenerationShaderTable;
 	std::shared_ptr<Resource> m_MissShaderTable;
 	std::shared_ptr<Resource> m_HitGroupShaderTable;
 
-	D3D12_GPU_VIRTUAL_ADDRESS_RANGE RayGenerationShaderRecord;
-	D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE MissShaderTable;
-	D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE HitGroupTable;
-
+	// Pad local root arguments explicitly
 	struct RootArgument
 	{
 		UINT64 MaterialIndex : 32;
@@ -44,5 +51,7 @@ private:
 		D3D12_GPU_VIRTUAL_ADDRESS IndexBuffer;
 	};
 
+	ShaderTable<void> RayGenerationShaderTable;
+	ShaderTable<void> MissShaderTable;
 	ShaderTable<RootArgument> HitGroupShaderTable;
 };

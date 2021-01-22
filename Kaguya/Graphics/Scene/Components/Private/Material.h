@@ -28,9 +28,6 @@ enum TextureTypes
 struct Material
 {
 	Material();
-	void RenderGui();
-
-	bool		Dirty;
 
 	float3		Albedo;
 	float3		Emissive;

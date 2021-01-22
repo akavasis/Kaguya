@@ -16,9 +16,9 @@ using Microsoft::WRL::ComPtr;
 Renderer::Renderer()
 	: RenderSystem(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight())
 	, RenderDevice(Application::Window)
+	, ResourceManager(&RenderDevice)
 {
 	RenderDevice.ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
-	ResourceManager.Create(&RenderDevice);
 }
 
 Renderer::~Renderer()
@@ -28,21 +28,8 @@ Renderer::~Renderer()
 
 bool Renderer::Initialize()
 {
-	try
-	{
-		Shaders::Register(RenderDevice.ShaderCompiler);
-		Libraries::Register(RenderDevice.ShaderCompiler);
-	}
-	catch (std::exception& e)
-	{
-		MessageBoxA(nullptr, e.what(), "Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
-		return false;
-	}
-	catch (...)
-	{
-		MessageBoxA(nullptr, nullptr, "Unknown Error", MB_OK | MB_ICONERROR | MB_DEFAULT_DESKTOP_ONLY);
-		return false;
-	}
+	Shaders::Register(RenderDevice.ShaderCompiler);
+	Libraries::Register(RenderDevice.ShaderCompiler);
 
 	RenderDevice.CreateCommandContexts(5);
 
@@ -52,6 +39,8 @@ bool Renderer::Initialize()
 
 	PathIntegrator.Create(&RenderDevice);
 	PathIntegrator.SetResolution(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight());
+
+	ToneMapper.Create(&RenderDevice);
 
 	D3D12MA::ALLOCATION_DESC Desc = {};
 	Desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
@@ -64,6 +53,8 @@ bool Renderer::Initialize()
 void Renderer::Update(const Time& Time)
 {
 	Scene.Camera.AspectRatio = AspectRatio;
+
+	Scene.PreviousCamera = Scene.Camera;
 }
 
 void Renderer::HandleInput(float DeltaTime)
@@ -115,17 +106,20 @@ void Renderer::Render()
 	RenderGui();
 	Editor.RenderGui();
 
+	Scene.Update();
+
 	UINT MaterialIndex = 0;
 	RaytracingAccelerationStructure.Clear();
-	auto view = Scene.Registry.view<MeshRenderer>();
-	for (auto [handle, meshRenderer] : view.each())
+	auto view = Scene.Registry.view<MeshFilter, MeshRenderer>();
+	for (auto [handle, meshFilter, meshRenderer] : view.each())
 	{
-		if (meshRenderer.pMeshFilter && meshRenderer.pMeshFilter->pMesh)
+		Entity e(handle, &Scene);
+		auto& meshR = e.GetComponent<MeshRenderer>();
+		if (meshFilter.pMesh)
 		{
 			RaytracingAccelerationStructure.AddInstance(&meshRenderer);
+			pMaterials[MaterialIndex++] = GetHLSLMaterialDesc(meshRenderer.Material);
 		}
-
-		pMaterials[MaterialIndex++] = GetHLSLMaterialDesc(meshRenderer.Material);
 	}
 
 	if (!RaytracingAccelerationStructure.Empty())
@@ -167,6 +161,11 @@ void Renderer::Render()
 
 	if (!RaytracingAccelerationStructure.Empty())
 	{
+		if (Scene.SceneState == Scene::SCENE_STATE_UPDATED)
+		{
+			PathIntegrator.Reset();
+		}
+
 		PathIntegrator.UpdateShaderTable(RaytracingAccelerationStructure, GraphicsContext);
 		PathIntegrator.Render(SceneConstants.GpuAddress(), RaytracingAccelerationStructure, Materials->pResource->GetGPUVirtualAddress(), GraphicsContext);
 	}
@@ -176,14 +175,23 @@ void Renderer::Render()
 
 	GraphicsContext.TransitionBarrier(pBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	{
-		D3D12_VIEWPORT	Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, Width, Height);
-		D3D12_RECT		ScissorRect = CD3DX12_RECT(0, 0, Width, Height);
+		auto Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, Width, Height);
+		auto ScissorRect = CD3DX12_RECT(0, 0, Width, Height);
 
 		GraphicsContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		GraphicsContext->RSSetViewports(1, &Viewport);
 		GraphicsContext->RSSetScissorRects(1, &ScissorRect);
 		GraphicsContext->OMSetRenderTargets(1, &RTV.CpuHandle, TRUE, nullptr);
 		GraphicsContext->ClearRenderTargetView(RTV.CpuHandle, DirectX::Colors::White, 0, nullptr);
+		
+		// Tone Map
+		{
+			if (!RaytracingAccelerationStructure.Empty())
+			{
+				ToneMapper.Apply(PathIntegrator.GetSRV(), RTV, GraphicsContext);
+			}
+		}
+		
 		// ImGui Render
 		{
 			PIXScopedEvent(GraphicsContext.GetApiHandle(), 0, L"ImGui Render");
@@ -224,9 +232,6 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 
 void Renderer::Destroy()
 {
-	Materials->pResource->Unmap(0, nullptr);
-	RaytracingAccelerationStructure.Destroy();
-
 	RenderDevice.FlushGraphicsQueue();
 	RenderDevice.FlushComputeQueue();
 	RenderDevice.FlushCopyQueue();

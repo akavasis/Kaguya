@@ -8,6 +8,46 @@ Scene::Scene()
 	Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
 }
 
+void Scene::Update()
+{
+	SceneState = SCENE_STATE_RENDER;
+
+	// Update all transform
+	{
+		auto view = Registry.view<Transform>();
+		for (auto [handle, transform] : view.each())
+		{
+			if (transform.IsEdited)
+			{
+				transform.IsEdited = false;
+
+				SceneState = SCENE_STATE_UPDATED;
+			}
+		}
+	}
+
+	// Update all mesh renderers
+	{
+		auto view = Registry.view<MeshFilter, MeshRenderer>();
+		for (auto [handle, meshFilter, meshRenderer] : view.each())
+		{
+			meshRenderer.pMeshFilter = &meshFilter;
+
+			if (meshRenderer.IsEdited)
+			{
+				meshRenderer.IsEdited = false;
+
+				SceneState = SCENE_STATE_UPDATED;
+			}
+		}
+	}
+
+	if (PreviousCamera != Camera)
+	{
+		SceneState = SCENE_STATE_UPDATED;
+	}
+}
+
 Entity Scene::CreateEntity(const std::string& Name)
 {
 	Entity NewEntity = { Registry.create(), this };

@@ -11,7 +11,6 @@
 #include "PathIntegrator.h"
 #include "ToneMapper.h"
 
-//----------------------------------------------------------------------------------------------------
 class Renderer : public RenderSystem
 {
 public:
@@ -42,7 +41,7 @@ private:
 	RaytracingAccelerationStructure			RaytracingAccelerationStructure;
 	Editor									Editor;
 	PathIntegrator							PathIntegrator;
-	//ToneMapper								ToneMapper;
+	ToneMapper								ToneMapper;
 
 	std::shared_ptr<Resource> Materials;
 	HLSL::Material* pMaterials = nullptr;

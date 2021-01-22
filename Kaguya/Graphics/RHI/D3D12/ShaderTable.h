@@ -13,18 +13,18 @@
 *	========== Hit group table indexing ==========
 	HitGroupRecordAddress = D3D12_DISPATCH_RAYS_DESC.HitGroupTable.StartAddress + D3D12_DISPATCH_RAYS_DESC.HitGroupTable.StrideInBytes * HitGroupEntryIndex
 
-	where HitGroupEntryIndex = 
+	where HitGroupEntryIndex =
 	(RayContributionToHitGroupIndex + (MultiplierForGeometryContributionToHitGroupIndex * GeometryContributionToHitGroupIndex) + D3D12_RAYTRACING_INSTANCE_DESC.InstanceContributionToHitGroupIndex)
 
 	GeometryContributionToHitGroupIndex is a system generated index of geometry in bottom-level acceleration structure (0,1,2,3..)
 */
 
 // ShaderRecord = {{Shader Identifier}, {RootArguments}}
-template<typename TRootArguments>
+template<typename T>
 struct ShaderRecord
 {
 	ShaderIdentifier	ShaderIdentifier;
-	TRootArguments		RootArguments;
+	T					RootArguments;
 };
 
 template<>
@@ -33,15 +33,41 @@ struct ShaderRecord<void>
 	ShaderIdentifier	ShaderIdentifier;
 };
 
-template<typename TRootArguments>
+template<typename T>
 class ShaderTable
 {
 public:
-	ShaderTable()
-	{
-		constexpr UINT64 RecordSizeInBytes = sizeof(ShaderIdentifier) + sizeof(TRootArguments);
+	using Record = ShaderRecord<T>;
 
-		m_ShaderRecordStride = Math::AlignUp<UINT64>(RecordSizeInBytes, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+	ShaderTable()
+		: m_StrideInBytes(Math::AlignUp<UINT64>(sizeof(Record), D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT))
+		, m_Resource(nullptr)
+	{
+
+	}
+
+	operator D3D12_GPU_VIRTUAL_ADDRESS_RANGE() const
+	{
+		return
+		{
+			.StartAddress = m_Resource->GetGPUVirtualAddress(),
+			.SizeInBytes = GetSizeInBytes()
+		};
+	}
+
+	operator D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE() const
+	{
+		return
+		{
+			.StartAddress = m_Resource->GetGPUVirtualAddress(),
+			.SizeInBytes = GetSizeInBytes(),
+			.StrideInBytes = GetStrideInBytes()
+		};
+	}
+
+	auto Resource() const
+	{
+		return m_Resource;
 	}
 
 	void Clear()
@@ -59,131 +85,53 @@ public:
 		m_ShaderRecords.resize(NumShaderRecords);
 	}
 
-	ShaderRecord<TRootArguments>& operator[](size_t Index)
+	Record& operator[](size_t Index)
 	{
 		return m_ShaderRecords[Index];
 	}
 
-	inline auto GetShaderRecordStride() const { return m_ShaderRecordStride; }
-
-	void AddShaderRecord(ShaderIdentifier ShaderIdentifier, TRootArguments RootArguments)
+	const Record& operator[](size_t Index) const
 	{
-		ShaderRecord<TRootArguments> ShaderRecord = {};
-		ShaderRecord.ShaderIdentifier = ShaderIdentifier;
-		ShaderRecord.RootArguments = RootArguments;
-
-		m_ShaderRecords.push_back(ShaderRecord);
+		return m_ShaderRecords[Index];
 	}
 
-	void Reset()
+	void AssociateResource(ID3D12Resource* pResource)
 	{
-		m_ShaderRecords.clear();
+		m_Resource = pResource;
 	}
 
-	void ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) const
+	void AddShaderRecord(const Record& Record)
 	{
-		if (pShaderTableSizeInBytes)
-		{
-			UINT64 ShaderTableSizeInBytes = static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
-			ShaderTableSizeInBytes = Math::AlignUp<UINT64>(ShaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+		m_ShaderRecords.push_back(Record);
+	}
 
-			*pShaderTableSizeInBytes = ShaderTableSizeInBytes;
-		}
+	auto GetSizeInBytes() const
+	{
+		UINT64 SizeInBytes = static_cast<UINT64>(m_ShaderRecords.size()) * m_StrideInBytes;
+		SizeInBytes = Math::AlignUp<UINT64>(SizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+		return SizeInBytes;
+	}
+
+	auto GetStrideInBytes() const
+	{
+		return m_StrideInBytes;
 	}
 
 	void Generate(BYTE* pHostMemory)
 	{
 		if (pHostMemory)
 		{
-			for (const auto& ShaderRecord : m_ShaderRecords)
+			for (const auto& Record : m_ShaderRecords)
 			{
-				// Copy the shader identifier
-				memcpy(pHostMemory, ShaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
-				// Copy all its resources pointers or values in bulk
-				memcpy(pHostMemory + sizeof(ShaderIdentifier), &ShaderRecord.RootArguments, sizeof(TRootArguments));
+				// Copy record data
+				memcpy(pHostMemory, &Record, sizeof(Record));
 
-				pHostMemory += m_ShaderRecordStride;
+				pHostMemory += m_StrideInBytes;
 			}
 		}
 	}
 private:
-	std::vector<ShaderRecord<TRootArguments>> m_ShaderRecords;
-	// The stride of a shader record type, this is the maximum record size for each type
-	UINT64 m_ShaderRecordStride;
-};
-
-template<>
-class ShaderTable<void>
-{
-public:
-	ShaderTable()
-	{
-		constexpr UINT64 RecordSizeInBytes = sizeof(ShaderIdentifier);
-
-		m_ShaderRecordStride = Math::AlignUp<UINT64>(RecordSizeInBytes, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
-	}
-
-	void Clear()
-	{
-		m_ShaderRecords.clear();
-	}
-
-	void Reserve(size_t NumShaderRecords)
-	{
-		m_ShaderRecords.reserve(NumShaderRecords);
-	}
-
-	void Resize(size_t NumShaderRecords)
-	{
-		m_ShaderRecords.resize(NumShaderRecords);
-	}
-
-	ShaderRecord<void>& operator[](size_t Index)
-	{
-		return m_ShaderRecords[Index];
-	}
-
-	inline auto GetShaderRecordStride() const { return m_ShaderRecordStride; }
-
-	void AddShaderRecord(ShaderIdentifier ShaderIdentifier)
-	{
-		ShaderRecord<void> ShaderRecord = {};
-		ShaderRecord.ShaderIdentifier = ShaderIdentifier;
-
-		m_ShaderRecords.push_back(ShaderRecord);
-	}
-
-	void Reset()
-	{
-		m_ShaderRecords.clear();
-	}
-
-	void ComputeMemoryRequirements(UINT64* pShaderTableSizeInBytes) const
-	{
-		if (pShaderTableSizeInBytes)
-		{
-			UINT64 ShaderTableSizeInBytes = static_cast<UINT64>(m_ShaderRecords.size()) * m_ShaderRecordStride;
-			ShaderTableSizeInBytes = Math::AlignUp<UINT64>(ShaderTableSizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-
-			*pShaderTableSizeInBytes = ShaderTableSizeInBytes;
-		}
-	}
-
-	void Generate(BYTE* pHostMemory)
-	{
-		if (pHostMemory)
-		{
-			for (const auto& ShaderRecord : m_ShaderRecords)
-			{
-				// Copy the shader identifier
-				memcpy(pHostMemory, ShaderRecord.ShaderIdentifier.Data, sizeof(ShaderIdentifier));
-
-				pHostMemory += m_ShaderRecordStride;
-			}
-		}
-	}
-private:
-	std::vector<ShaderRecord<void>> m_ShaderRecords;
-	// The stride of a shader record type, this is the maximum record size for each type
-	UINT64 m_ShaderRecordStride;
+	std::vector<Record> m_ShaderRecords;
+	UINT64 m_StrideInBytes;
+	ID3D12Resource* m_Resource;
 };

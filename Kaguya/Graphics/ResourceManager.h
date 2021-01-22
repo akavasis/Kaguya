@@ -7,12 +7,10 @@
 class ResourceManager
 {
 public:
-	ResourceManager() = default;
+	ResourceManager(RenderDevice* pRenderDevice);
 	ResourceManager(const ResourceManager&) = delete;
 	ResourceManager& operator=(const ResourceManager&) = delete;
 	~ResourceManager();
-
-	void Create(RenderDevice* pRenderDevice);
 
 	Descriptor GetDefaultWhiteTexture() { return SystemTextureSRVs[AssetTextures::DefaultWhite]; }
 	Descriptor GetDefaultBlackTexture() { return SystemTextureSRVs[AssetTextures::DefaultBlack]; }

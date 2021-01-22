@@ -66,6 +66,4 @@ private:
 	HierarchyWindow HierarchyWindow;
 	InspectorWindow InspectorWindow;
 	AssetWindow AssetWindow;
-
-	Camera Camera;
 };

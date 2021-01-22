@@ -13,10 +13,18 @@ struct Entity;
 
 struct Scene
 {
+	enum State
+	{
+		SCENE_STATE_RENDER,
+		SCENE_STATE_UPDATED,
+	};
+
 	static constexpr UINT64 MAX_MATERIAL_SUPPORTED = 1000;
 	static constexpr UINT64 MAX_INSTANCE_SUPPORTED = 1000;
 
 	Scene();
+
+	void Update();
 
 	Entity CreateEntity(const std::string& Name);
 	void DestroyEntity(Entity Entity);
@@ -24,9 +32,10 @@ struct Scene
 	template<typename T>
 	void OnComponentAdded(Entity entity, T& component);
 
+	State SceneState = SCENE_STATE_RENDER;
 	entt::registry Registry;
 
-	Camera Camera;
+	Camera Camera, PreviousCamera;
 };
 
 inline HLSL::Material GetHLSLMaterialDesc(const Material& Material)

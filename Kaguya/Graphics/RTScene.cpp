@@ -5,6 +5,14 @@
 
 using namespace DirectX;
 
+RaytracingAccelerationStructure::~RaytracingAccelerationStructure()
+{
+	if (InstanceDescs)
+	{
+		InstanceDescs->pResource->Unmap(0, nullptr);
+	}
+}
+
 void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice, UINT NumHitGroups)
 {
 	this->pRenderDevice = pRenderDevice;
@@ -28,14 +36,6 @@ void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice, UINT N
 	Desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
 	InstanceDescs = pRenderDevice->CreateBuffer(&Desc, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * Scene::MAX_INSTANCE_SUPPORTED, D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_GENERIC_READ);
 	ThrowIfFailed(InstanceDescs->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pInstanceDescs)));
-}
-
-void RaytracingAccelerationStructure::Destroy()
-{
-	if (InstanceDescs)
-	{
-		InstanceDescs->pResource->Unmap(0, nullptr);
-	}
 }
 
 void RaytracingAccelerationStructure::Clear()

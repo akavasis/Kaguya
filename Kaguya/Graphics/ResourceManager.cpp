@@ -65,19 +65,9 @@ namespace
 	ThreadSafeQueue<PendingMesh> PendingMeshes;
 }
 
-ResourceManager::~ResourceManager()
+ResourceManager::ResourceManager(RenderDevice* pRenderDevice)
+	: pRenderDevice(pRenderDevice)
 {
-	ExitResourceProcessThread = true;
-	ProducerCV.WakeAll();
-	ConsumerCV.WakeAll();
-
-	::WaitForMultipleObjects(ARRAYSIZE(ResourceThreads), ResourceThreads[0].addressof(), TRUE, INFINITE);
-}
-
-void ResourceManager::Create(RenderDevice* pRenderDevice)
-{
-	this->pRenderDevice = pRenderDevice;
-
 	CreateSystemTextures();
 
 	ResourceThreads[0].reset(
@@ -85,6 +75,15 @@ void ResourceManager::Create(RenderDevice* pRenderDevice)
 
 	ResourceThreads[1].reset(
 		::CreateThread(NULL, 0, ResourceManager::ResourceConsumerThreadProc, this, 0, nullptr));
+}
+
+ResourceManager::~ResourceManager()
+{
+	ExitResourceProcessThread = true;
+	ProducerCV.WakeAll();
+	ConsumerCV.WakeAll();
+
+	::WaitForMultipleObjects(ARRAYSIZE(ResourceThreads), ResourceThreads[0].addressof(), TRUE, INFINITE);
 }
 
 Descriptor ResourceManager::GetTexture(const std::string& Name)
