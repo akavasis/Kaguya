@@ -7,8 +7,6 @@ class PathIntegrator
 public:
 	static constexpr UINT NumHitGroups = 1;
 
-	PathIntegrator();
-
 	void Create(RenderDevice* pRenderDevice);
 
 	void SetResolution(UINT Width, UINT Height);
@@ -16,7 +14,10 @@ public:
 	void RenderGui();
 
 	void UpdateShaderTable(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList);
-	void Render(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList);
+	void Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
+		const RaytracingAccelerationStructure& RaytracingAccelerationStructure,
+		D3D12_GPU_VIRTUAL_ADDRESS Materials,
+		CommandList& CommandList);
 private:
 	RenderDevice* pRenderDevice;
 
@@ -37,6 +38,8 @@ private:
 
 	struct RootArgument
 	{
+		UINT64 MaterialIndex : 32;
+		UINT64 Padding : 32;
 		D3D12_GPU_VIRTUAL_ADDRESS VertexBuffer;
 		D3D12_GPU_VIRTUAL_ADDRESS IndexBuffer;
 	};

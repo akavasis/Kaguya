@@ -23,10 +23,8 @@ public:
 
 	Shader CompileShader(Shader::Type Type, const std::filesystem::path& Path, LPCWSTR pEntryPoint, const std::vector<DxcDefine>& ShaderDefines) const;
 	Library CompileLibrary(const std::filesystem::path& Path) const;
-
 private:
 	Microsoft::WRL::ComPtr<IDxcBlob> Compile(const std::filesystem::path& Path, LPCWSTR pEntryPoint, LPCWSTR pProfile, const std::vector<DxcDefine>& ShaderDefines) const;
-
 private:
 	Microsoft::WRL::ComPtr<IDxcCompiler>	m_DxcCompiler;
 	Microsoft::WRL::ComPtr<IDxcLibrary>		m_DxcLibrary;

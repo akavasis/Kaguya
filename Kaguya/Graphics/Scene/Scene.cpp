@@ -3,6 +3,11 @@
 
 #include "Entity.h"
 
+Scene::Scene()
+{
+	Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
+}
+
 Entity Scene::CreateEntity(const std::string& Name)
 {
 	Entity NewEntity = { Registry.create(), this };

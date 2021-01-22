@@ -19,7 +19,7 @@ public:
 
 	struct Settings
 	{
-		inline static bool		VSync				= false;
+		inline static bool		VSync				= true;
 	};
 
 	RenderSystem(uint32_t Width, uint32_t Height);

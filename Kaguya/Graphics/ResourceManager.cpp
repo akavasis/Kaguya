@@ -582,7 +582,8 @@ DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 	Desc.NodeMask = 0;
 	ThrowIfFailed(pDevice->CreateCommandQueue(&Desc, IID_PPV_ARGS(mCmdQueue.ReleaseAndGetAddressOf())));
 	ThrowIfFailed(pDevice->CreateCommandAllocator(Type, IID_PPV_ARGS(mCmdAlloc.ReleaseAndGetAddressOf())));
-	ThrowIfFailed(pDevice->CreateCommandList1(1, Type, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(mCmdList.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(pDevice->CreateCommandList(1, Type, mCmdAlloc.Get(), nullptr, IID_PPV_ARGS(mCmdList.ReleaseAndGetAddressOf())));
+	mCmdList->Close();
 	ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(mFence.ReleaseAndGetAddressOf())));
 	Event.create();
 
@@ -596,7 +597,6 @@ DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 			break;
 		}
 
-		PIXScopedCapture();
 		Uploader.Begin(D3D12_COMMAND_LIST_TYPE_COPY);
 
 		auto LocalTextureCache = ConsumeTexture(pRenderDevice, Uploader);

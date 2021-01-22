@@ -32,7 +32,7 @@ RaytracingPipelineState::RaytracingPipelineState(ID3D12Device5* pDevice, Raytrac
 
 	ThrowIfFailed(pDevice->CreateStateObject(&Desc, IID_PPV_ARGS(m_StateObject.ReleaseAndGetAddressOf())));
 	// Query the state object properties
-	ThrowIfFailed(m_StateObject->QueryInterface(IID_PPV_ARGS(m_StateObjectProperties.ReleaseAndGetAddressOf())));
+	ThrowIfFailed(m_StateObject.As(&m_StateObjectProperties));
 }
 
 ShaderIdentifier RaytracingPipelineState::GetShaderIdentifier(LPCWSTR pExportName)
@@ -41,8 +41,7 @@ ShaderIdentifier RaytracingPipelineState::GetShaderIdentifier(LPCWSTR pExportNam
 	void* pShaderIdentifier = m_StateObjectProperties->GetShaderIdentifier(pExportName);
 	if (!pShaderIdentifier)
 	{
-		LOG_WARN("Unknown ShaderIdentifier");
-		return ShaderIdentifier;
+		throw std::invalid_argument("Invalid pExportName");
 	}
 
 	memcpy(ShaderIdentifier.Data, pShaderIdentifier, sizeof(ShaderIdentifier));

@@ -10,7 +10,7 @@
 
 struct SystemConstants
 {
-	Camera Camera, PreviousCamera;
+	Camera Camera;
 	
 	// x, y = Resolution
 	// z, w = 1 / Resolution
@@ -32,8 +32,7 @@ ConstantBuffer<SystemConstants> 	g_SystemConstants 	: register(b0, space0);
 ConstantBuffer<RenderPassData> 		g_RenderPassData	: register(b1, space0);
 
 RaytracingAccelerationStructure		Scene				: register(t0, space0);
-StructuredBuffer<Mesh>				Meshes				: register(t1, space0);
-StructuredBuffer<Material>			Materials			: register(t2, space0);
+StructuredBuffer<Material>			Materials			: register(t1, space0);
 
 SamplerState						SamplerLinearWrap	: register(s0, space0);
 SamplerState						SamplerLinearClamp	: register(s1, space0);

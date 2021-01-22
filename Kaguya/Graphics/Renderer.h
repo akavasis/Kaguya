@@ -43,4 +43,7 @@ private:
 	Editor									Editor;
 	PathIntegrator							PathIntegrator;
 	//ToneMapper								ToneMapper;
+
+	std::shared_ptr<Resource> Materials;
+	HLSL::Material* pMaterials = nullptr;
 };

@@ -56,7 +56,9 @@ public:
 	{
 		NumSwapChainBuffers = 3,
 
-		NumGlobalOnlineDescriptors = 1024,
+		NumConstantBufferDescriptors = 512,
+		NumShaderResourceDescriptors = 512,
+		NumUnorderedAccessDescriptors = 512,
 		NumGlobalOnlineSamplerDescriptors = 512,
 		NumRenderTargetDescriptors = 64,
 		NumDepthStencilDescriptors = 64
@@ -99,7 +101,7 @@ public:
 	CommandList& GetDefaultCopyContext() { return GetCopyContext(0); }
 
 	void BindGlobalDescriptorHeap(CommandList& CommandList);
-	void BindShaderLayoutResource(PipelineState::Type Type, const RootSignature& RootSignature, CommandList& CommandList);
+	void BindDescriptorTable(PipelineState::Type Type, const RootSignature& RootSignature, CommandList& CommandList);
 
 	void ExecuteGraphicsContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_DIRECT, NumCommandLists, ppCommandLists); }
 	void ExecuteAsyncComputeContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_COMPUTE, NumCommandLists, ppCommandLists); }
@@ -212,7 +214,9 @@ private:
 	DescriptorHeap												m_RenderTargetDescriptorHeap;
 	DescriptorHeap												m_DepthStencilDescriptorHeap;
 
-	ThreadSafePool<void, NumGlobalOnlineDescriptors>			m_GlobalOnlineDescriptorIndexPool;
+	ThreadSafePool<void, NumConstantBufferDescriptors>			m_GlobalOnlineCBDescriptorIndexPool;
+	ThreadSafePool<void, NumShaderResourceDescriptors>			m_GlobalOnlineSRDescriptorIndexPool;
+	ThreadSafePool<void, NumUnorderedAccessDescriptors>			m_GlobalOnlineUADescriptorIndexPool;
 	ThreadSafePool<void, NumGlobalOnlineSamplerDescriptors>		m_GlobalOnlineSamplerDescriptorIndexPool;
 	ThreadSafePool<void, NumRenderTargetDescriptors>			m_RenderTargetDescriptorIndexPool;
 	ThreadSafePool<void, NumDepthStencilDescriptors>			m_DepthStencilDescriptorIndexPool;

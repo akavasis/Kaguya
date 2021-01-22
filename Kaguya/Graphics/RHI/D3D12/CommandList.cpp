@@ -3,9 +3,18 @@
 
 CommandList::CommandList(ID3D12Device4* pDevice, D3D12_COMMAND_LIST_TYPE Type)
 {
-	auto CommandListFlags = D3D12_COMMAND_LIST_FLAG_NONE;
-	ThrowIfFailed(pDevice->CreateCommandList1(1, Type, CommandListFlags, IID_PPV_ARGS(pCommandList.ReleaseAndGetAddressOf())));
-	ThrowIfFailed(pDevice->CreateCommandList1(1, Type, CommandListFlags, IID_PPV_ARGS(pPendingCommandList.ReleaseAndGetAddressOf())));
+	//auto CommandListFlags = D3D12_COMMAND_LIST_FLAG_NONE;
+	//ThrowIfFailed(pDevice->CreateCommandList1(1, Type, CommandListFlags, IID_PPV_ARGS(pCommandList.ReleaseAndGetAddressOf())));
+	//ThrowIfFailed(pDevice->CreateCommandList1(1, Type, CommandListFlags, IID_PPV_ARGS(pPendingCommandList.ReleaseAndGetAddressOf())));
+
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Alloc;
+	pDevice->CreateCommandAllocator(Type, IID_PPV_ARGS(&Alloc));
+	ThrowIfFailed(pDevice->CreateCommandList(1, Type, Alloc.Get(), nullptr, IID_PPV_ARGS(pCommandList.ReleaseAndGetAddressOf())));
+	pCommandList->Close();
+
+	pDevice->CreateCommandAllocator(Type, IID_PPV_ARGS(&Alloc));
+	ThrowIfFailed(pDevice->CreateCommandList(1, Type, Alloc.Get(), nullptr, IID_PPV_ARGS(pPendingCommandList.ReleaseAndGetAddressOf())));
+	pPendingCommandList->Close();
 }
 
 bool CommandList::Close(::ResourceStateTracker* pGlobalResourceStateTracker)
@@ -40,11 +49,11 @@ void CommandList::SetDescriptorHeaps(DescriptorHeap* pCBSRUADescriptorHeap, Desc
 	ID3D12DescriptorHeap*	pDescriptorHeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
 	if (pCBSRUADescriptorHeap)
 	{
-		pDescriptorHeapsToBind[NumDescriptorHeaps++] = pCBSRUADescriptorHeap->GetApiHandle();
+		pDescriptorHeapsToBind[NumDescriptorHeaps++] = *pCBSRUADescriptorHeap;
 	}
 	if (pSamplerDescriptorHeap)
 	{
-		pDescriptorHeapsToBind[NumDescriptorHeaps++] = pSamplerDescriptorHeap->GetApiHandle();
+		pDescriptorHeapsToBind[NumDescriptorHeaps++] = *pSamplerDescriptorHeap;
 	}
 
 	if (NumDescriptorHeaps > 0)

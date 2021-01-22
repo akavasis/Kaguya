@@ -23,11 +23,25 @@ void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice, UINT N
 	//	Builder.pRootSignature = &RS;
 	//	Builder.pCS = &Shaders::CS::InstanceGeneration;
 	//});
+
+	D3D12MA::ALLOCATION_DESC Desc = {};
+	Desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+	InstanceDescs = pRenderDevice->CreateBuffer(&Desc, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * Scene::MAX_INSTANCE_SUPPORTED, D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_GENERIC_READ);
+	ThrowIfFailed(InstanceDescs->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pInstanceDescs)));
+}
+
+void RaytracingAccelerationStructure::Destroy()
+{
+	if (InstanceDescs)
+	{
+		InstanceDescs->pResource->Unmap(0, nullptr);
+	}
 }
 
 void RaytracingAccelerationStructure::Clear()
 {
 	TopLevelAccelerationStructure.Clear();
+	MeshRenderers.clear();
 	InstanceContributionToHitGroupIndex = 0;
 }
 
@@ -48,6 +62,7 @@ void RaytracingAccelerationStructure::AddInstance(MeshRenderer* pMeshRenderer)
 	Desc.AccelerationStructure = AccelerationStructure->pResource->GetGPUVirtualAddress();
 
 	TopLevelAccelerationStructure.AddInstance(Desc);
+	MeshRenderers.push_back(pMeshRenderer);
 
 	InstanceContributionToHitGroupIndex += pMeshRenderer->pMeshFilter->pMesh->BLAS.Size() * NumHitGroups;
 }
@@ -88,15 +103,11 @@ void RaytracingAccelerationStructure::Build(CommandList& CommandList)
 		TLASResult = pRenderDevice->CreateBuffer(&AllocDesc, ResultSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
 	}
 
-	UINT64 InstanceDescsSizeInBytes = TopLevelAccelerationStructure.Size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
-	GraphicsResource InstanceDescs = pRenderDevice->Device.GraphicsMemory()->Allocate(InstanceDescsSizeInBytes);
-
-	auto pInstanceDesc = static_cast<D3D12_RAYTRACING_INSTANCE_DESC*>(InstanceDescs.Memory());
 	// Create the description for each instance
 	for (auto [i, instance] : enumerate(TopLevelAccelerationStructure))
 	{
-		pInstanceDesc[i] = instance;
+		pInstanceDescs[i] = instance;
 	}
 
-	TopLevelAccelerationStructure.Generate(CommandList, TLASScratch->pResource.Get(), TLASResult->pResource.Get(), InstanceDescs.GpuAddress());
+	TopLevelAccelerationStructure.Generate(CommandList, TLASScratch->pResource.Get(), TLASResult->pResource.Get(), InstanceDescs->pResource->GetGPUVirtualAddress());
 }

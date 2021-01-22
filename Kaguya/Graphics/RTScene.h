@@ -12,18 +12,24 @@ class RaytracingAccelerationStructure
 {
 public:
 	void Create(RenderDevice* pRenderDevice, UINT NumHitGroups);
+	void Destroy();
 
 	operator auto() const
 	{
-		return TLASResult->pResource.Get();
+		return TLASResult->pResource->GetGPUVirtualAddress();
 	}
 
-	void Clear();
+	auto Size() const
+	{
+		return TopLevelAccelerationStructure.Size();
+	}
 
 	bool Empty() const
 	{
 		return TopLevelAccelerationStructure.Empty();
 	}
+
+	void Clear();
 
 	void AddInstance(MeshRenderer* pMeshRenderer);
 
@@ -36,7 +42,12 @@ private:
 	PipelineState PSO;
 
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
+	std::vector<MeshRenderer*> MeshRenderers;
 	UINT InstanceContributionToHitGroupIndex = 0;
 
 	std::shared_ptr<Resource> TLASScratch, TLASResult;
+	std::shared_ptr<Resource> InstanceDescs;
+	D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDescs = nullptr;
+
+	friend class PathIntegrator;
 };

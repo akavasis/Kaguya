@@ -40,7 +40,7 @@ void Device::Create(IDXGIAdapter4* pAdapter)
 	ThrowIfFailed(::D3D12GetDebugInterface(IID_PPV_ARGS(&Debug1)));
 	Debug1->EnableDebugLayer();
 #if GPU_BASED_VALIDATION
-	pDebug1->SetEnableGPUBasedValidation(TRUE);
+	Debug1->SetEnableGPUBasedValidation(TRUE);
 #endif
 #endif
 

@@ -37,10 +37,10 @@ RenderDevice::RenderDevice(const Window& Window)
 
 	InitializeDXGISwapChain(Window);
 
-	m_GlobalOnlineDescriptorHeap.Create(Device, NumGlobalOnlineDescriptors, true, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	m_GlobalOnlineSamplerDescriptorHeap.Create(Device, NumGlobalOnlineSamplerDescriptors, true, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-	m_RenderTargetDescriptorHeap.Create(Device, NumRenderTargetDescriptors, false, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	m_DepthStencilDescriptorHeap.Create(Device, NumDepthStencilDescriptors, false, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	m_GlobalOnlineDescriptorHeap.Create(Device, { NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors }, true, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_GlobalOnlineSamplerDescriptorHeap.Create(Device, { NumGlobalOnlineSamplerDescriptors }, true, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	m_RenderTargetDescriptorHeap.Create(Device, { NumRenderTargetDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_DepthStencilDescriptorHeap.Create(Device, { NumDepthStencilDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 1;
 
@@ -61,7 +61,7 @@ RenderDevice::RenderDevice(const Window& Window)
 	ImGuiDescriptor = AllocateShaderResourceView();
 	// Initialize ImGui for d3d12
 	ImGui_ImplDX12_Init(Device, 1,
-		RenderDevice::SwapChainBufferFormat, m_GlobalOnlineDescriptorHeap.GetApiHandle(),
+		RenderDevice::SwapChainBufferFormat, m_GlobalOnlineDescriptorHeap,
 		ImGuiDescriptor.CpuHandle,
 		ImGuiDescriptor.GpuHandle);
 
@@ -165,26 +165,31 @@ void RenderDevice::BindGlobalDescriptorHeap(CommandList& CommandList)
 	CommandList.SetDescriptorHeaps(&m_GlobalOnlineDescriptorHeap, &m_GlobalOnlineSamplerDescriptorHeap);
 }
 
-void RenderDevice::BindShaderLayoutResource(PipelineState::Type Type, const RootSignature& RootSignature, CommandList& CommandList)
+void RenderDevice::BindDescriptorTable(PipelineState::Type Type, const RootSignature& RootSignature, CommandList& CommandList)
 {
-	//const auto RootParameterOffset = RootSignature.NumParameters - RootParameters::ShaderLayout::NumRootParameters;
-	//auto GlobalDescriptorFromStart = m_GlobalOnlineDescriptorHeap.GetDescriptorFromStart();
-	//auto GlobalSamplerDescriptorFromStart = m_
+	const auto RootParameterOffset = RootSignature.NumParameters - RootParameters::DescriptorTable::NumRootParameters;
+	auto GlobalSRDescriptorFromStart = m_GlobalOnlineDescriptorHeap.GetDescriptorAt(1, 0);
+	auto GlobalUADescriptorFromStart = m_GlobalOnlineDescriptorHeap.GetDescriptorAt(2, 0);
+	auto GlobalSamplerDescriptorFromStart = m_GlobalOnlineSamplerDescriptorHeap.GetDescriptorFromStart();
 
-	//switch (Type)
-	//{
-	//case PipelineState::Type::Unknown: return;
+	auto Bind = [&](ID3D12GraphicsCommandList* pCommandList, void(ID3D12GraphicsCommandList::*pFunction)(UINT, D3D12_GPU_DESCRIPTOR_HANDLE))
+	{
+		(pCommandList->*pFunction)(RootParameters::DescriptorTable::ShaderResourceDescriptorTable + RootParameterOffset, GlobalSRDescriptorFromStart.GpuHandle);
+		(pCommandList->*pFunction)(RootParameters::DescriptorTable::UnorderedAccessDescriptorTable + RootParameterOffset, GlobalUADescriptorFromStart.GpuHandle);
+		(pCommandList->*pFunction)(RootParameters::DescriptorTable::SamplerDescriptorTable + RootParameterOffset, GlobalSamplerDescriptorFromStart.GpuHandle);
+	};
 
-	//case PipelineState::Type::Graphics:
-	//	CommandList->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::ShaderResourceDescriptorTable + RootParameterOffset, GlobalDescriptorFromStart.GpuHandle);
-	//	CommandList->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::UnorderedAccessDescriptorTable + RootParameterOffset, GlobalDescriptorFromStart.GpuHandle);
-	//	CommandList->SetGraphicsRootDescriptorTable(RootParameters::ShaderLayout::SamplerDescriptorTable + RootParameterOffset, SamplerDescriptorFromStart.GpuHandle);
-	//	break;
-	//case PipelineState::Type::Compute:
-	//	break;
-	//default:
-	//	break;
-	//}
+	switch (Type)
+	{
+	case PipelineState::Type::Graphics:
+		Bind(CommandList.pCommandList.Get(), &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
+		break;
+	case PipelineState::Type::Compute:
+		Bind(CommandList.pCommandList.Get(), &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
+		break;
+	default:
+		break;
+	}
 }
 
 void RenderDevice::FlushGraphicsQueue()
@@ -262,26 +267,26 @@ RaytracingPipelineState RenderDevice::CreateRaytracingPipelineState(std::functio
 
 Descriptor RenderDevice::AllocateShaderResourceView()
 {
-	UINT Index = m_GlobalOnlineDescriptorIndexPool.Allocate();
-	return m_GlobalOnlineDescriptorHeap[Index];
+	UINT Index = m_GlobalOnlineSRDescriptorIndexPool.Allocate();
+	return m_GlobalOnlineDescriptorHeap.GetDescriptorAt(1, Index);
 }
 
 Descriptor RenderDevice::AllocateUnorderedAccessView()
 {
-	UINT Index = m_GlobalOnlineDescriptorIndexPool.Allocate();
-	return m_GlobalOnlineDescriptorHeap[Index];
+	UINT Index = m_GlobalOnlineUADescriptorIndexPool.Allocate();
+	return m_GlobalOnlineDescriptorHeap.GetDescriptorAt(2, Index);
 }
 
 Descriptor RenderDevice::AllocateRenderTargetView()
 {
 	UINT Index = m_RenderTargetDescriptorIndexPool.Allocate();
-	return m_RenderTargetDescriptorHeap[Index];
+	return m_RenderTargetDescriptorHeap.GetDescriptorAt(0, Index);
 }
 
 Descriptor RenderDevice::AllocateDepthStencilView()
 {
 	UINT Index = m_DepthStencilDescriptorIndexPool.Allocate();
-	return m_DepthStencilDescriptorHeap[Index];
+	return m_DepthStencilDescriptorHeap.GetDescriptorAt(0, Index);
 }
 
 void RenderDevice::CreateShaderResourceView(ID3D12Resource* pResource,

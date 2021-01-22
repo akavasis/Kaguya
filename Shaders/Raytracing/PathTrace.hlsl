@@ -2,6 +2,11 @@
 
 // Local Root Signature
 // ====================
+cbuffer RootConstants : register(b0, space1)
+{
+	uint MaterialIndex;
+};
+
 StructuredBuffer<Vertex> VertexBuffer : register(t0, space1);
 StructuredBuffer<uint> IndexBuffer : register(t1, space1);
 
@@ -43,11 +48,10 @@ SurfaceInteraction GetSurfaceInteraction(in BuiltInTriangleIntersectionAttribute
 {
 	SurfaceInteraction si;
 	
-	Mesh mesh = Meshes[InstanceID()];
 	Vertex vertex = GetInterpolatedVertex(attrib);
-	Material material = Materials[mesh.MaterialIndex];
+	Material material = Materials[MaterialIndex];
 	
-	vertex.Normal = normalize(mul(vertex.Normal, (float3x3) mesh.World));
+	vertex.Normal = normalize(mul(vertex.Normal, (float3x3) ObjectToWorld3x4()));
 	ONB onb = InitONB(vertex.Normal);
 	
 	si.frontFace = dot(WorldRayDirection(), vertex.Normal) < 0.0f;

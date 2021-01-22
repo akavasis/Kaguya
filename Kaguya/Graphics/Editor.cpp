@@ -24,7 +24,7 @@ void HierarchyWindow::RenderGui()
 			}
 
 			bool DeleteContext = false;
-			if (ImGui::BeginPopupContextItem())
+			if (ImGui::BeginPopupContextItem("Entity", ImGuiPopupFlags_MouseButtonRight))
 			{
 				if (ImGui::MenuItem("Delete"))
 				{
