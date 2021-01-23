@@ -16,3 +16,6 @@
 [submodule "Submodules/entt"]
 	path = Submodules/entt
 	url = https://github.com/skypjack/entt.git
+[submodule "Submodules/yaml-cpp"]
+	path = Submodules/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
