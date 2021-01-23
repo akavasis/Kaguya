@@ -5,14 +5,6 @@
 
 using namespace DirectX;
 
-RaytracingAccelerationStructure::~RaytracingAccelerationStructure()
-{
-	if (InstanceDescs)
-	{
-		InstanceDescs->pResource->Unmap(0, nullptr);
-	}
-}
-
 void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice, UINT NumHitGroups)
 {
 	this->pRenderDevice = pRenderDevice;

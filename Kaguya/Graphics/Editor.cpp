@@ -4,6 +4,8 @@
 #include <type_traits>
 #include <imgui_internal.h>
 
+#include "Scene/SceneSerializer.h"
+
 using namespace DirectX;
 
 void HierarchyWindow::RenderGui()
@@ -28,7 +30,9 @@ void HierarchyWindow::RenderGui()
 			if (ImGui::BeginPopupContextItem())
 			{
 				if (ImGui::MenuItem("Delete"))
+				{
 					Delete = true;
+				}
 
 				ImGui::EndPopup();
 			}
@@ -59,6 +63,36 @@ void HierarchyWindow::RenderGui()
 			if (ImGui::MenuItem("Create Empty"))
 			{
 				pScene->CreateEntity("GameObject");
+			}
+
+			if (ImGui::MenuItem("Serialize"))
+			{
+				SceneSerializer SceneSerializer(pScene);
+				SceneSerializer.Serialize(Application::ExecutableFolderPath / "Scene.yaml");
+			}
+
+			if (ImGui::MenuItem("Deserialize"))
+			{
+				nfdchar_t* outPath = nullptr;
+				nfdresult_t result = NFD_OpenDialog("yaml", nullptr, &outPath);
+
+				if (result == NFD_OKAY)
+				{
+					std::filesystem::path Path = outPath;
+
+					SceneSerializer SceneSerializer(pScene);
+					*pScene = SceneSerializer.Deserialize(Path);
+
+					free(outPath);
+				}
+				else if (result == NFD_CANCEL)
+				{
+					UNREFERENCED_PARAMETER(result);
+				}
+				else
+				{
+					printf("Error: %s\n", NFD_GetError());
+				}
 			}
 
 			ImGui::EndPopup();

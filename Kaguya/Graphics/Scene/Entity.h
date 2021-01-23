@@ -23,6 +23,16 @@ struct Entity
 		return pScene->Registry.get<T>(Handle);
 	}
 
+	template<typename T, typename... Args>
+	T& GetOrAddComponent(Args&&... args)
+	{
+		if (HasComponent<T>())
+		{
+			return GetComponent<T>();
+		}
+		return AddComponent<T>(args...);
+	}
+
 	template<typename T>
 	bool HasComponent()
 	{

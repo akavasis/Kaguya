@@ -11,8 +11,6 @@
 class RaytracingAccelerationStructure
 {
 public:
-	~RaytracingAccelerationStructure();
-
 	void Create(RenderDevice* pRenderDevice, UINT NumHitGroups);
 
 	operator auto() const

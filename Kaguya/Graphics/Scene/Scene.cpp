@@ -31,6 +31,8 @@ void Scene::Update()
 		auto view = Registry.view<MeshFilter, MeshRenderer>();
 		for (auto [handle, meshFilter, meshRenderer] : view.each())
 		{
+			// I have to manually update the mesh filters here because I keep on getting
+			// segfault when I add new mesh filter to entt, need to investigate
 			meshRenderer.pMeshFilter = &meshFilter;
 
 			if (meshRenderer.IsEdited)
