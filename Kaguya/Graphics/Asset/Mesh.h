@@ -4,15 +4,11 @@
 
 struct Mesh
 {
-	Mesh() = default;
-	Mesh(const std::string& Name);
-	void RenderGui();
-
 	std::string						Name;
 	DirectX::BoundingBox			BoundingBox;
 
-	uint32_t						IndexCount;
-	uint32_t						VertexCount;
+	uint32_t						VertexCount = 0;
+	uint32_t						IndexCount = 0;
 
 	std::vector<Vertex>				Vertices;
 	std::vector<uint32_t>			Indices;

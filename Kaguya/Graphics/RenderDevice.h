@@ -43,12 +43,6 @@ struct Resource
 	D3D12MA::Allocation* pAllocation = nullptr;
 };
 
-struct Texture2D
-{
-	std::shared_ptr<Resource> Resource;
-	Descriptor SRV;
-};
-
 class RenderDevice
 {
 public:

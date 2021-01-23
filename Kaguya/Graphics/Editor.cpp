@@ -67,8 +67,7 @@ void HierarchyWindow::RenderGui()
 
 			if (ImGui::MenuItem("Serialize"))
 			{
-				SceneSerializer SceneSerializer(pScene);
-				SceneSerializer.Serialize(Application::ExecutableFolderPath / "Scene.yaml");
+				SceneSerializer::Serialize(Application::ExecutableFolderPath / "Scene.yaml", pScene);
 			}
 
 			if (ImGui::MenuItem("Deserialize"))
@@ -80,8 +79,7 @@ void HierarchyWindow::RenderGui()
 				{
 					std::filesystem::path Path = outPath;
 
-					SceneSerializer SceneSerializer(pScene);
-					*pScene = SceneSerializer.Deserialize(Path);
+					SceneSerializer::Deserialize(Path);
 
 					free(outPath);
 				}
@@ -104,19 +102,14 @@ void HierarchyWindow::RenderGui()
 template<class T>
 concept IsAComponent = std::is_base_of<Component, T>::value;
 
-template<IsAComponent T>
+template<IsAComponent T, bool IsCoreComponent>
 static void RenderComponent(const char* pName, Entity Entity, bool(*UIFunction)(T&))
 {
-	// Component filters
-	constexpr bool IsTagComponent = std::is_same<T, Tag>::value;
-	constexpr bool IsTransformComponent = std::is_same<T, Transform>::value;
-	constexpr bool IsAnyFilteredComponent = IsTagComponent || IsTransformComponent;
-
 	if (Entity.HasComponent<T>())
 	{
 		auto& Component = Entity.GetComponent<T>();
 
-		if constexpr (IsAnyFilteredComponent)
+		if constexpr (IsCoreComponent)
 		{
 			Component.IsEdited = UIFunction(Component);
 		}
@@ -183,18 +176,13 @@ static void AddNewComponent(const char* pName, Entity Entity)
 	}
 }
 
-void InspectorWindow::SetContext(Entity Entity)
-{
-	SelectedEntity = Entity;
-}
-
 void InspectorWindow::RenderGui()
 {
 	if (ImGui::Begin("Inspector"))
 	{
 		if (SelectedEntity)
 		{
-			RenderComponent<Tag>("Tag", SelectedEntity, [](Tag& Tag)
+			RenderComponent<Tag, true>("Tag", SelectedEntity, [](Tag& Tag)
 			{
 				char Buffer[MAX_PATH] = {};
 				memcpy(Buffer, Tag.Name.data(), MAX_PATH);
@@ -206,7 +194,7 @@ void InspectorWindow::RenderGui()
 				return false;
 			});
 
-			RenderComponent<Transform>("Transform", SelectedEntity, [](Transform& Transform)
+			RenderComponent<Transform, true>("Transform", SelectedEntity, [](Transform& Transform)
 			{
 				bool IsEdited = false;
 
@@ -231,7 +219,7 @@ void InspectorWindow::RenderGui()
 				return IsEdited;
 			});
 
-			RenderComponent<MeshFilter>("Mesh Filter", SelectedEntity, [](MeshFilter& MeshFilter)
+			RenderComponent<MeshFilter, false>("Mesh Filter", SelectedEntity, [](MeshFilter& MeshFilter)
 			{
 				bool IsEdited = false;
 
@@ -242,24 +230,25 @@ void InspectorWindow::RenderGui()
 				else
 				{
 					ImGui::Button("NULL");
-					if (ImGui::BeginDragDropTarget())
-					{
-						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MESH"))
-						{
-							IM_ASSERT(payload->DataSize == sizeof(Mesh*));
-							auto payload_n = (Mesh*)(*(LONG_PTR*)payload->Data); // Yea, ik, ugly
-							MeshFilter.pMesh = payload_n;
+				}
 
-							IsEdited = true;
-						}
-						ImGui::EndDragDropTarget();
+				if (ImGui::BeginDragDropTarget())
+				{
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MESH"))
+					{
+						IM_ASSERT(payload->DataSize == sizeof(Mesh*));
+						auto payload_n = (Mesh*)(*(LONG_PTR*)payload->Data); // Yea, ik, ugly
+						MeshFilter.pMesh = payload_n;
+
+						IsEdited = true;
 					}
+					ImGui::EndDragDropTarget();
 				}
 
 				return IsEdited;
 			});
 
-			RenderComponent<MeshRenderer>("Mesh Renderer", SelectedEntity, [](MeshRenderer& MeshRenderer)
+			RenderComponent<MeshRenderer, false>("Mesh Renderer", SelectedEntity, [](MeshRenderer& MeshRenderer)
 			{
 				bool IsEdited = false;
 
@@ -368,7 +357,7 @@ void AssetWindow::RenderGui()
 				{
 					std::filesystem::path Path = outPath;
 
-					pResourceManager->AsyncLoadTexture2D(Path, false);
+					pResourceManager->AsyncLoadImage(Path, false);
 
 					free(outPath);
 				}
@@ -385,15 +374,18 @@ void AssetWindow::RenderGui()
 			ImGui::EndPopup();
 		}
 
-		ScopedReadLock SRL(pResourceManager->MeshCacheLock);
-		for (auto& iter : pResourceManager->MeshCache)
+		auto& MeshCache = pResourceManager->AssetManager.MeshCache;
+		ScopedReadLock SRL(MeshCache.RWLock);
+		for (auto& iter : MeshCache)
 		{
 			ImGui::Button(iter.first.data());
 
 			// Our buttons are both drag sources and drag targets here!
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
 			{
-				LONG_PTR MeshAddr = (LONG_PTR)&iter.second; // Yea ik, ugly
+				auto pMesh = pResourceManager->AssetManager.MeshCache.GetResource(iter.second);
+
+				LONG_PTR MeshAddr = (LONG_PTR)pMesh.get(); // Yea ik, ugly
 				// Set payload to carry the index of our item (could be anything)
 				ImGui::SetDragDropPayload("ASSET_MESH", &MeshAddr, sizeof(MeshAddr));
 
@@ -407,7 +399,7 @@ void AssetWindow::RenderGui()
 void Editor::RenderGui()
 {
 	HierarchyWindow.RenderGui();
-	InspectorWindow.SetContext(HierarchyWindow.GetSelectedEntity());
+	InspectorWindow.SetContext(pResourceManager, HierarchyWindow.GetSelectedEntity());
 	InspectorWindow.RenderGui();
 	AssetWindow.RenderGui();
 }

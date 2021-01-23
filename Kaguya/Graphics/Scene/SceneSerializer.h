@@ -5,15 +5,7 @@
 class SceneSerializer
 {
 public:
-	SceneSerializer(Scene* pScene)
-		: pScene(pScene)
-	{
+	static void Serialize(const std::filesystem::path& Path, Scene* pScene);
 
-	}
-
-	void Serialize(const std::filesystem::path& Path);
-
-	Scene Deserialize(const std::filesystem::path& Path);
-private:
-	Scene* pScene;
+	static Scene Deserialize(const std::filesystem::path& Path);
 };

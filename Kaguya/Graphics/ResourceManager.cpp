@@ -13,139 +13,66 @@
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
-struct TextureDesc
-{
-	std::filesystem::path Path;
-	bool sRGB;
-	std::function<void()> Callback;
-};
-
-struct MeshDesc
-{
-	std::filesystem::path Path;
-	bool KeepGeometryInRAM;
-	std::function<void()> Callback;
-};
-
-struct PendingTexture2D
-{
-	PendingTexture2D() = default;
-	PendingTexture2D(const PendingTexture2D&) = delete;
-	PendingTexture2D& operator=(const PendingTexture2D&) = delete;
-	PendingTexture2D(PendingTexture2D&&) = default;
-	PendingTexture2D& operator=(PendingTexture2D&&) = default;
-
-	TextureDesc Desc;
-	ScratchImage Image;
-};
-
-struct PendingMesh
-{
-	PendingMesh() = default;
-	PendingMesh(const PendingMesh&) = delete;
-	PendingMesh& operator=(const PendingMesh&) = delete;
-	PendingMesh(PendingMesh&&) = default;
-	PendingMesh& operator=(PendingMesh&&) = default;
-
-	MeshDesc Desc;
-	std::vector<Vertex> Vertices;
-	std::vector<unsigned int> Indices;
-};
-
-namespace
-{
-	static Assimp::Importer Importer;
-
-	ConditionVariable ProducerCV, ConsumerCV;
-	CriticalSection ProducerCS, ConsumerCS;
-
-	ThreadSafeQueue<TextureDesc> TextureDescQueue;
-	ThreadSafeQueue<MeshDesc> MeshDescQueue;
-	ThreadSafeQueue<PendingTexture2D> PendingTextures;
-	ThreadSafeQueue<PendingMesh> PendingMeshes;
-}
-
 ResourceManager::ResourceManager(RenderDevice* pRenderDevice)
 	: pRenderDevice(pRenderDevice)
 {
 	CreateSystemTextures();
 
-	ResourceThreads[0].reset(
-		::CreateThread(NULL, 0, ResourceManager::ResourceProducerThreadProc, this, 0, nullptr));
-
-	ResourceThreads[1].reset(
-		::CreateThread(NULL, 0, ResourceManager::ResourceConsumerThreadProc, this, 0, nullptr));
+	Thread.reset(::CreateThread(nullptr, 0, &ResourceUploadThreadProc, this, 0, 0));
 }
 
 ResourceManager::~ResourceManager()
 {
-	ExitResourceProcessThread = true;
-	ProducerCV.WakeAll();
-	ConsumerCV.WakeAll();
+	Shutdown = true;
+	UploadConditionVariable.WakeAll();
 
-	::WaitForMultipleObjects(ARRAYSIZE(ResourceThreads), ResourceThreads[0].addressof(), TRUE, INFINITE);
+	::WaitForSingleObject(Thread.get(), INFINITE);
 }
 
-Descriptor ResourceManager::GetTexture(const std::string& Name)
-{
-	ScopedReadLock SRL(TextureCacheLock);
-	if (auto iter = TextureCache.find(Name);
-		iter != TextureCache.end())
-	{
-		return iter->second.SRV;
-	}
-
-	return GetDefaultBlackTexture();
-}
-
-void ResourceManager::AsyncLoadTexture2D(const std::filesystem::path& Path, bool sRGB, std::function<void()> Callback /*= nullptr*/)
+void ResourceManager::AsyncLoadImage(const std::filesystem::path& Path, bool sRGB)
 {
 	if (!std::filesystem::exists(Path))
 	{
 		return;
 	}
 
-	ScopedReadLock SRL(TextureCacheLock);
-	const auto Key = Path.string();
-	if (TextureCache.find(Key) != TextureCache.end())
+	std::string Name = AssetManager.GetName(Path);
+	if (AssetManager.ImageCache.Exist(Name))
 	{
 		return;
 	}
 
-	TextureDesc Info =
+	AssetManager.AsyncLoadImage(Path, sRGB, [&](auto pImage)
 	{
-		.Path = Path,
-		.sRGB = sRGB,
-		.Callback = std::move(Callback)
-	};
-	TextureDescQueue.Enqueue(std::move(Info));
+		ScopedCriticalSection SCS(UploadCriticalSection);
 
-	ProducerCV.Wake();
+		ImageUploadQueue.Enqueue(std::move(pImage));
+
+		UploadConditionVariable.Wake();
+	});
 }
 
-void ResourceManager::AsyncLoadMesh(const std::filesystem::path& Path, bool KeepGeometryInRAM, std::function<void()> Callback /*= nullptr*/)
+void ResourceManager::AsyncLoadMesh(const std::filesystem::path& Path, bool KeepGeometryInRAM)
 {
 	if (!std::filesystem::exists(Path))
 	{
 		return;
 	}
 
-	ScopedReadLock SRL(MeshCacheLock);
-	const auto Key = Path.string();
-	if (MeshCache.find(Key) != MeshCache.end())
+	std::string Name = AssetManager.GetName(Path);
+	if (AssetManager.MeshCache.Exist(Name))
 	{
 		return;
 	}
 
-	MeshDesc Info =
+	AssetManager.AsyncLoadMesh(Path, KeepGeometryInRAM, [&](auto pMesh)
 	{
-		.Path = Path,
-		.KeepGeometryInRAM = KeepGeometryInRAM,
-		.Callback = std::move(Callback)
-	};
-	MeshDescQueue.Enqueue(std::move(Info));
+		ScopedCriticalSection SCS(UploadCriticalSection);
 
-	ProducerCV.Wake();
+		MeshUploadQueue.Enqueue(pMesh);
+
+		UploadConditionVariable.Wake();
+	});
 }
 
 void ResourceManager::CreateSystemTextures()
@@ -239,332 +166,13 @@ void ResourceManager::CreateSystemTextures()
 	finish.wait();
 }
 
-bool ProcessTexture()
+DWORD WINAPI ResourceManager::ResourceUploadThreadProc(_In_ PVOID pParameter)
 {
-	bool Processed = false;
-
-	TextureDesc Desc;
-	while (TextureDescQueue.Dequeue(Desc, 0))
-	{
-		Processed = true;
-
-		const auto& Path = Desc.Path;
-		const auto Extension = Desc.Path.extension().string();
-
-		ScratchImage Image;
-		if (Extension == ".dds")
-		{
-			ThrowIfFailed(LoadFromDDSFile(Path.c_str(), DDS_FLAGS::DDS_FLAGS_FORCE_RGB, nullptr, Image));
-		}
-		else if (Extension == ".tga")
-		{
-			ScratchImage BaseImage;
-			ThrowIfFailed(LoadFromTGAFile(Path.c_str(), nullptr, BaseImage));
-			ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
-		}
-		else if (Extension == ".hdr")
-		{
-			ScratchImage BaseImage;
-			ThrowIfFailed(LoadFromHDRFile(Path.c_str(), nullptr, BaseImage));
-			ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
-		}
-		else
-		{
-			ScratchImage BaseImage;
-			ThrowIfFailed(LoadFromWICFile(Desc.Path.c_str(), WIC_FLAGS::WIC_FLAGS_FORCE_RGB, nullptr, BaseImage));
-			ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
-		}
-
-		PendingTexture2D PendingTexture;
-		PendingTexture.Desc = std::move(Desc);
-		PendingTexture.Image = std::move(Image);
-
-		PendingTextures.Enqueue(std::move(PendingTexture));
-	}
-
-	return Processed;
-}
-
-bool ProcessMesh()
-{
-	bool Processed = false;
-
-	MeshDesc Desc;
-	while (MeshDescQueue.Dequeue(Desc, 0))
-	{
-		Processed = true;
-
-		const auto& Path = Desc.Path;
-		const auto Key = Path.string();
-
-		const aiScene* paiScene = Importer.ReadFile(Key.data(),
-			aiProcess_ConvertToLeftHanded |
-			aiProcessPreset_TargetRealtime_MaxQuality |
-			aiProcess_OptimizeMeshes |
-			aiProcess_OptimizeGraph);
-
-		if (paiScene == nullptr)
-		{
-			LOG_ERROR("Assimp::Importer error: {}", Importer.GetErrorString());
-			continue;
-		}
-
-		if (paiScene->mNumMeshes != 1)
-		{
-			LOG_ERROR("Num Meshes is greater than 1!");
-			continue;
-		}
-
-		const aiMesh* paiMesh = paiScene->mMeshes[0];
-
-		// Parse vertex data
-		std::vector<Vertex> vertices(paiMesh->mNumVertices);
-
-		// Parse vertex data
-		for (unsigned int vertexIndex = 0; vertexIndex < paiMesh->mNumVertices; ++vertexIndex)
-		{
-			Vertex v = {};
-			// Position
-			v.Position = DirectX::XMFLOAT3(paiMesh->mVertices[vertexIndex].x, paiMesh->mVertices[vertexIndex].y, paiMesh->mVertices[vertexIndex].z);
-
-			// Texture coords
-			if (paiMesh->HasTextureCoords(0))
-			{
-				v.Texture = DirectX::XMFLOAT2(paiMesh->mTextureCoords[0][vertexIndex].x, paiMesh->mTextureCoords[0][vertexIndex].y);
-			}
-
-			// Normal
-			if (paiMesh->HasNormals())
-			{
-				v.Normal = DirectX::XMFLOAT3(paiMesh->mNormals[vertexIndex].x, paiMesh->mNormals[vertexIndex].y, paiMesh->mNormals[vertexIndex].z);
-			}
-
-			vertices[vertexIndex] = v;
-		}
-
-		// Parse index data
-		std::vector<std::uint32_t> indices;
-		indices.reserve(size_t(paiMesh->mNumFaces) * 3);
-		for (unsigned int faceIndex = 0; faceIndex < paiMesh->mNumFaces; ++faceIndex)
-		{
-			const aiFace& aiFace = paiMesh->mFaces[faceIndex];
-			assert(aiFace.mNumIndices == 3);
-
-			indices.push_back(aiFace.mIndices[0]);
-			indices.push_back(aiFace.mIndices[1]);
-			indices.push_back(aiFace.mIndices[2]);
-		}
-
-		PendingMesh PendingMesh;
-		PendingMesh.Desc = std::move(Desc);
-		PendingMesh.Vertices = std::move(vertices);
-		PendingMesh.Indices = std::move(indices);
-
-		PendingMeshes.Enqueue(std::move(PendingMesh));
-
-		LOG_INFO("{} Loaded", Key);
-	}
-
-	return Processed;
-}
-
-DWORD WINAPI ResourceManager::ResourceProducerThreadProc(_In_ PVOID pParameter)
-{
-	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
-
-	auto pResourceManager = reinterpret_cast<ResourceManager*>(pParameter);
-	auto pRenderDevice = pResourceManager->pRenderDevice;
-	ID3D12Device* pDevice = pRenderDevice->Device;
-
-	while (true)
-	{
-		ScopedCriticalSection SCS(ProducerCS);
-		ProducerCV.Wait(ProducerCS, INFINITE);
-
-		if (pResourceManager->ExitResourceProcessThread)
-		{
-			break;
-		}
-
-		bool Notify = ProcessTexture();
-		Notify |= ProcessMesh();
-
-		if (Notify)
-		{
-			ConsumerCV.Wake();
-		}
-	}
-
-	return EXIT_SUCCESS;
-}
-
-auto ConsumeTexture(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader)
-{
-	std::unordered_map<std::string, Texture2D> LocalTextureCache;
-
-	PendingTexture2D PendingTexture2D;
-	while (PendingTextures.Dequeue(PendingTexture2D, 0))
-	{
-		const auto Key = PendingTexture2D.Desc.Path.string();
-		if (LocalTextureCache.find(Key) != LocalTextureCache.end())
-		{
-			continue;
-		}
-
-		const auto& Image = PendingTexture2D.Image;
-		const auto& Metadata = Image.GetMetadata();
-		DXGI_FORMAT Format = Metadata.format;
-		if (PendingTexture2D.Desc.sRGB)
-			Format = DirectX::MakeSRGB(Format);
-
-		D3D12_RESOURCE_DESC Desc = {};
-		switch (Metadata.dimension)
-		{
-		case TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
-			Desc = CD3DX12_RESOURCE_DESC::Tex1D(Format,
-				static_cast<UINT64>(Metadata.width),
-				static_cast<UINT16>(Metadata.arraySize));
-			break;
-
-		case TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
-			Desc = CD3DX12_RESOURCE_DESC::Tex2D(Format,
-				static_cast<UINT64>(Metadata.width),
-				static_cast<UINT>(Metadata.height),
-				static_cast<UINT16>(Metadata.arraySize));
-			break;
-
-		case TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
-			Desc = CD3DX12_RESOURCE_DESC::Tex3D(Format,
-				static_cast<UINT64>(Metadata.width),
-				static_cast<UINT>(Metadata.height),
-				static_cast<UINT16>(Metadata.depth));
-			break;
-		}
-
-		std::vector<D3D12_SUBRESOURCE_DATA> subresources(Image.GetImageCount());
-		const auto pImages = Image.GetImages();
-		for (size_t i = 0; i < Image.GetImageCount(); ++i)
-		{
-			subresources[i].RowPitch = pImages[i].rowPitch;
-			subresources[i].SlicePitch = pImages[i].slicePitch;
-			subresources[i].pData = pImages[i].pixels;
-		}
-
-		D3D12MA::ALLOCATION_DESC AllocDesc = {};
-		AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-		auto Texture = pRenderDevice->CreateResource(&AllocDesc, &Desc, D3D12_RESOURCE_STATE_COMMON, nullptr);
-
-		Uploader.Upload(Texture->pResource.Get(), 0, subresources.data(), subresources.size());
-
-		Descriptor SRV = pRenderDevice->AllocateShaderResourceView();
-
-		pRenderDevice->CreateShaderResourceView(Texture->pResource.Get(), SRV);
-
-		Texture2D Texture2D;
-		Texture2D.Resource = std::move(Texture);
-		Texture2D.SRV = SRV;
-
-		LocalTextureCache[Key] = std::move(Texture2D);
-
-		if (PendingTexture2D.Desc.Callback)
-		{
-			PendingTexture2D.Desc.Callback();
-		}
-	}
-
-	return LocalTextureCache;
-}
-
-auto ConsumeMesh(RenderDevice* pRenderDevice, ResourceUploadBatch& Uploader)
-{
-	std::unordered_map<std::string, Mesh> LocalMeshCache;
-
-	PendingMesh PendingMesh;
-	while (PendingMeshes.Dequeue(PendingMesh, 0))
-	{
-		const auto Key = PendingMesh.Desc.Path.string();
-		if (LocalMeshCache.find(Key) != LocalMeshCache.end())
-		{
-			continue;
-		}
-
-		UINT64 VBSizeInBytes = PendingMesh.Vertices.size() * sizeof(Vertex);
-		UINT64 IBSizeInBytes = PendingMesh.Indices.size() * sizeof(unsigned int);
-
-		D3D12MA::ALLOCATION_DESC AllocDesc = {};
-		AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-
-		auto VB = pRenderDevice->CreateBuffer(&AllocDesc, VBSizeInBytes);
-		auto IB = pRenderDevice->CreateBuffer(&AllocDesc, IBSizeInBytes);
-
-		// Upload vertex data
-		D3D12_SUBRESOURCE_DATA Subresource = {};
-		Subresource.pData = PendingMesh.Vertices.data();
-		Subresource.RowPitch = VBSizeInBytes;
-		Subresource.SlicePitch = VBSizeInBytes;
-
-		Uploader.Upload(VB->pResource.Get(), 0, &Subresource, 1);
-
-		// Upload index data
-		Subresource = {};
-		Subresource.pData = PendingMesh.Indices.data();
-		Subresource.RowPitch = IBSizeInBytes;
-		Subresource.SlicePitch = IBSizeInBytes;
-
-		Uploader.Upload(IB->pResource.Get(), 0, &Subresource, 1);
-
-		Mesh Mesh(Key);
-
-		// Parse aabb data for mesh
-		DirectX::BoundingBox::CreateFromPoints(Mesh.BoundingBox, PendingMesh.Vertices.size(), &PendingMesh.Vertices[0].Position, sizeof(Vertex));
-
-		// Parse mesh indices
-		Mesh.VertexCount = PendingMesh.Vertices.size();
-		Mesh.IndexCount = PendingMesh.Indices.size();
-
-		if (PendingMesh.Desc.KeepGeometryInRAM)
-		{
-			Mesh.Vertices = std::move(PendingMesh.Vertices);
-			Mesh.Indices = std::move(PendingMesh.Indices);
-		}
-
-		Mesh.VertexResource = std::move(VB);
-		Mesh.IndexResource = std::move(IB);
-
-		D3D12_RAYTRACING_GEOMETRY_DESC Desc = {};
-		Desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-		Desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-		Desc.Triangles.Transform3x4 = NULL;
-		Desc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
-		Desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
-		Desc.Triangles.IndexCount = Mesh.IndexCount;
-		Desc.Triangles.VertexCount = Mesh.VertexCount;
-		Desc.Triangles.IndexBuffer = Mesh.IndexResource->pResource->GetGPUVirtualAddress();
-		Desc.Triangles.VertexBuffer.StartAddress = Mesh.VertexResource->pResource->GetGPUVirtualAddress();
-		Desc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
-
-		Mesh.BLAS.AddGeometry(Desc);
-
-		LocalMeshCache[Key] = std::move(Mesh);
-
-		if (PendingMesh.Desc.Callback)
-		{
-			PendingMesh.Desc.Callback();
-		}
-	}
-
-	return LocalMeshCache;
-}
-
-DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
-{
-	SetThreadDescription(GetCurrentThread(), __FUNCTIONW__);
-
-	auto pResourceManager = reinterpret_cast<ResourceManager*>(pParameter);
+	auto pResourceManager = static_cast<ResourceManager*>(pParameter);
 	auto pRenderDevice = pResourceManager->pRenderDevice;
 	ID3D12Device5* pDevice = pRenderDevice->Device;
 
-	ResourceUploadBatch Uploader(pDevice);
+	ResourceUploadBatch Uploader(pRenderDevice->Device);
 
 	ComPtr<ID3D12CommandQueue> mCmdQueue;
 	ComPtr<ID3D12CommandAllocator> mCmdAlloc;
@@ -588,48 +196,154 @@ DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 
 	while (true)
 	{
-		ScopedCriticalSection SCS(ConsumerCS);
-		ConsumerCV.Wait(ConsumerCS, INFINITE);
+		ScopedCriticalSection SCS(pResourceManager->UploadCriticalSection);
+		pResourceManager->UploadConditionVariable.Wait(pResourceManager->UploadCriticalSection, INFINITE);
 
-		if (pResourceManager->ExitResourceProcessThread)
+		if (pResourceManager->Shutdown)
 		{
 			break;
 		}
 
 		Uploader.Begin(D3D12_COMMAND_LIST_TYPE_COPY);
-
-		auto LocalTextureCache = ConsumeTexture(pRenderDevice, Uploader);
-		auto LocalMeshCache = ConsumeMesh(pRenderDevice, Uploader);
-
-		// Upload the resources to the GPU.
-		auto finish = Uploader.End(pRenderDevice->CopyQueue);
-		finish.wait();
-
-		std::vector<std::shared_ptr<Resource>> TrackedScratchBuffers;
-		TrackedScratchBuffers.reserve(LocalMeshCache.size());
 		mCmdAlloc->Reset();
 		mCmdList->Reset(mCmdAlloc.Get(), nullptr);
-		for (auto& iter : LocalMeshCache)
+
+		std::vector<std::shared_ptr<Resource>> TrackedScratchBuffers;
+
+		std::vector<std::shared_ptr<Asset::Image>> Images;
+		std::vector<std::shared_ptr<Mesh>> Meshes;
+
+		// Process Image
 		{
-			auto& Mesh = iter.second;
-			auto& BLAS = iter.second.BLAS;
+			std::shared_ptr<Asset::Image> pImage;
+			while (pResourceManager->ImageUploadQueue.Dequeue(pImage, 0))
+			{
+				const auto& Image = pImage->Image;
+				const auto& Metadata = Image.GetMetadata();
+				DXGI_FORMAT Format = Metadata.format;
+				if (pImage->sRGB)
+					Format = DirectX::MakeSRGB(Format);
 
-			UINT64 ScratchSIB, ResultSIB;
-			BLAS.ComputeMemoryRequirements(pDevice, &ScratchSIB, &ResultSIB);
+				D3D12_RESOURCE_DESC Desc = {};
+				switch (Metadata.dimension)
+				{
+				case TEX_DIMENSION::TEX_DIMENSION_TEXTURE1D:
+					Desc = CD3DX12_RESOURCE_DESC::Tex1D(Format,
+						static_cast<UINT64>(Metadata.width),
+						static_cast<UINT16>(Metadata.arraySize));
+					break;
 
-			// ASB seems to require a committed resource otherwise PIX gives you invalid
-			// parameter
-			D3D12MA::ALLOCATION_DESC AllocDesc = {};
-			AllocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
-			AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-			auto Scratch = pRenderDevice->CreateBuffer(&AllocDesc, ScratchSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			auto Result = pRenderDevice->CreateBuffer(&AllocDesc, ResultSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+				case TEX_DIMENSION::TEX_DIMENSION_TEXTURE2D:
+					Desc = CD3DX12_RESOURCE_DESC::Tex2D(Format,
+						static_cast<UINT64>(Metadata.width),
+						static_cast<UINT>(Metadata.height),
+						static_cast<UINT16>(Metadata.arraySize));
+					break;
 
-			BLAS.Generate(mCmdList.Get(), Scratch->pResource.Get(), Result->pResource.Get());
+				case TEX_DIMENSION::TEX_DIMENSION_TEXTURE3D:
+					Desc = CD3DX12_RESOURCE_DESC::Tex3D(Format,
+						static_cast<UINT64>(Metadata.width),
+						static_cast<UINT>(Metadata.height),
+						static_cast<UINT16>(Metadata.depth));
+					break;
+				}
 
-			Mesh.AccelerationStructure = std::move(Result);
-			TrackedScratchBuffers.push_back(std::move(Scratch));
+				std::vector<D3D12_SUBRESOURCE_DATA> subresources(Image.GetImageCount());
+				const auto pImages = Image.GetImages();
+				for (size_t i = 0; i < Image.GetImageCount(); ++i)
+				{
+					subresources[i].RowPitch = pImages[i].rowPitch;
+					subresources[i].SlicePitch = pImages[i].slicePitch;
+					subresources[i].pData = pImages[i].pixels;
+				}
+
+				D3D12MA::ALLOCATION_DESC AllocDesc = {};
+				AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+				auto Resource = pRenderDevice->CreateResource(&AllocDesc, &Desc, D3D12_RESOURCE_STATE_COMMON, nullptr);
+
+				Uploader.Upload(Resource->pResource.Get(), 0, subresources.data(), subresources.size());
+
+				Descriptor SRV = pRenderDevice->AllocateShaderResourceView();
+
+				pRenderDevice->CreateShaderResourceView(Resource->pResource.Get(), SRV);
+
+				pImage->Resource = std::move(Resource);
+				pImage->SRV = std::move(SRV);
+
+				Images.push_back(pImage);
+			}
 		}
+
+		// Process mesh
+		{
+			std::shared_ptr<Mesh> pMesh;
+			while (pResourceManager->MeshUploadQueue.Dequeue(pMesh, 0))
+			{
+				UINT64 VBSizeInBytes = pMesh->Vertices.size() * sizeof(Vertex);
+				UINT64 IBSizeInBytes = pMesh->Indices.size() * sizeof(unsigned int);
+
+				D3D12MA::ALLOCATION_DESC AllocDesc = {};
+				AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+				auto VB = pRenderDevice->CreateBuffer(&AllocDesc, VBSizeInBytes);
+				auto IB = pRenderDevice->CreateBuffer(&AllocDesc, IBSizeInBytes);
+
+				// Upload vertex data
+				D3D12_SUBRESOURCE_DATA Subresource = {};
+				Subresource.pData = pMesh->Vertices.data();
+				Subresource.RowPitch = VBSizeInBytes;
+				Subresource.SlicePitch = VBSizeInBytes;
+
+				Uploader.Upload(VB->pResource.Get(), 0, &Subresource, 1);
+
+				// Upload index data
+				Subresource = {};
+				Subresource.pData = pMesh->Indices.data();
+				Subresource.RowPitch = IBSizeInBytes;
+				Subresource.SlicePitch = IBSizeInBytes;
+
+				Uploader.Upload(IB->pResource.Get(), 0, &Subresource, 1);
+
+				pMesh->VertexResource = std::move(VB);
+				pMesh->IndexResource = std::move(IB);
+
+				D3D12_RAYTRACING_GEOMETRY_DESC Desc = {};
+				Desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+				Desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+				Desc.Triangles.Transform3x4 = NULL;
+				Desc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
+				Desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
+				Desc.Triangles.IndexCount = pMesh->IndexCount;
+				Desc.Triangles.VertexCount = pMesh->VertexCount;
+				Desc.Triangles.IndexBuffer = pMesh->IndexResource->pResource->GetGPUVirtualAddress();
+				Desc.Triangles.VertexBuffer.StartAddress = pMesh->VertexResource->pResource->GetGPUVirtualAddress();
+				Desc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
+
+				pMesh->BLAS.AddGeometry(Desc);
+
+				UINT64 ScratchSIB, ResultSIB;
+				pMesh->BLAS.ComputeMemoryRequirements(pDevice, &ScratchSIB, &ResultSIB);
+
+				// ASB seems to require a committed resource otherwise PIX gives you invalid
+				// parameter
+				AllocDesc = {};
+				AllocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
+				AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+				auto Scratch = pRenderDevice->CreateBuffer(&AllocDesc, ScratchSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				auto Result = pRenderDevice->CreateBuffer(&AllocDesc, ResultSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+
+				pMesh->BLAS.Generate(mCmdList.Get(), Scratch->pResource.Get(), Result->pResource.Get());
+
+				pMesh->AccelerationStructure = std::move(Result);
+				TrackedScratchBuffers.push_back(std::move(Scratch));
+
+				Meshes.push_back(pMesh);
+			}
+		}
+
+		auto Future = Uploader.End(pRenderDevice->CopyQueue);
+		Future.wait();
+
 		mCmdList->Close();
 		mCmdQueue->ExecuteCommandLists(1, CommandListCast(mCmdList.GetAddressOf()));
 		auto FenceToWait = ++FenceValue;
@@ -637,11 +351,21 @@ DWORD WINAPI ResourceManager::ResourceConsumerThreadProc(_In_ PVOID pParameter)
 		mFence->SetEventOnCompletion(FenceToWait, Event.get());
 		Event.wait();
 
-		ScopedWriteLock SWL0(pResourceManager->TextureCacheLock);
-		pResourceManager->TextureCache.insert(std::make_move_iterator(LocalTextureCache.begin()), std::make_move_iterator(LocalTextureCache.end()));
+		for (auto& Image : Images)
+		{
+			pResourceManager->AssetManager.ImageCache.Create(Image->Name);
+			auto AssetHandle = pResourceManager->AssetManager.ImageCache.GetAssetHandle(Image->Name);
+			auto Asset = pResourceManager->AssetManager.ImageCache.GetResource(AssetHandle);
+			*Asset = std::move(*Image);
+		}
 
-		ScopedWriteLock SWL1(pResourceManager->MeshCacheLock);
-		pResourceManager->MeshCache.insert(std::make_move_iterator(LocalMeshCache.begin()), std::make_move_iterator(LocalMeshCache.end()));
+		for (auto& Mesh : Meshes)
+		{
+			pResourceManager->AssetManager.MeshCache.Create(Mesh->Name);
+			auto AssetHandle = pResourceManager->AssetManager.MeshCache.GetAssetHandle(Mesh->Name);
+			auto Asset = pResourceManager->AssetManager.MeshCache.GetResource(AssetHandle);
+			*Asset = std::move(*Mesh);
+		}
 	}
 
 	return EXIT_SUCCESS;

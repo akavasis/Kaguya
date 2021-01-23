@@ -3,29 +3,11 @@
 
 using namespace DirectX;
 
-Mesh::Mesh(const std::string& Name)
-	: Name(Name)
-{
-	IndexCount = 0;
-	VertexCount = 0;
-}
-
-void Mesh::RenderGui()
-{
-	if (ImGui::TreeNode(Name.data()))
-	{
-		ImGui::Text("Attributes");
-		ImGui::Text("Index Count: %u", IndexCount);
-		ImGui::Text("Vertex Count: %u", VertexCount);
-
-		ImGui::TreePop();
-	}
-}
-
 Mesh CreateFromProceduralGeometryData(std::string Name, std::vector<Vertex> Vertices, std::vector<uint32_t> Indices)
 {
 	// Create mesh
-	auto mesh = Mesh(Name);
+	auto mesh = Mesh();
+	mesh.Name = Name;
 	BoundingBox::CreateFromPoints(mesh.BoundingBox, Vertices.size(), &Vertices[0].Position, sizeof(Vertex));
 
 	mesh.IndexCount = Indices.size();

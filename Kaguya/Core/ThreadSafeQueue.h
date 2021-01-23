@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Synchronization/CriticalSection.h"
 #include "Synchronization/ConditionVariable.h"
 #include <queue>
@@ -14,15 +13,19 @@ public:
 
 	void Enqueue(const T& Item)
 	{
-		ScopedCriticalSection SCS(CriticalSection);
-		Queue.push(Item);
+		{
+			ScopedCriticalSection SCS(CriticalSection);
+			Queue.push(Item);
+		}
 		::WakeConditionVariable(&ConditionVariable);
 	}
 
 	void Enqueue(T&& Item)
 	{
-		ScopedCriticalSection SCS(CriticalSection);
-		Queue.push(std::move(Item));
+		{
+			ScopedCriticalSection SCS(CriticalSection);
+			Queue.push(std::move(Item));
+		}
 		::WakeConditionVariable(&ConditionVariable);
 	}
 

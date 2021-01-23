@@ -113,8 +113,6 @@ void Renderer::Render()
 	auto view = Scene.Registry.view<MeshFilter, MeshRenderer>();
 	for (auto [handle, meshFilter, meshRenderer] : view.each())
 	{
-		Entity e(handle, &Scene);
-		auto& meshR = e.GetComponent<MeshRenderer>();
 		if (meshFilter.pMesh)
 		{
 			RaytracingAccelerationStructure.AddInstance(&meshRenderer);

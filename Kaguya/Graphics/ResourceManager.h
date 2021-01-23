@@ -2,7 +2,7 @@
 #include <Core/Synchronization/RWLock.h>
 #include "RenderDevice.h"
 
-#include "Asset/Mesh.h"
+#include "Asset/AssetManager.h"
 
 class ResourceManager
 {
@@ -18,23 +18,12 @@ public:
 	Descriptor GetDefaultNormalTexture() { return SystemTextureSRVs[AssetTextures::DefaultNormal]; }
 	Descriptor GetDefaultRoughnessTexture() { return SystemTextureSRVs[AssetTextures::DefaultRoughness]; }
 
-	Descriptor GetTexture(const std::string& Name);
-
-	void AsyncLoadTexture2D(const std::filesystem::path& Path, bool sRGB, std::function<void()> Callback = nullptr);
-	void AsyncLoadMesh(const std::filesystem::path& Path, bool KeepGeometryInRAM, std::function<void()> Callback = nullptr);
+	void AsyncLoadImage(const std::filesystem::path& Path, bool sRGB);
+	void AsyncLoadMesh(const std::filesystem::path& Path, bool KeepGeometryInRAM);
 private:
 	void CreateSystemTextures();
 
-	/*
-		AsyncLoad methods will wake this thread to start producing the resources
-	*/
-	static DWORD WINAPI ResourceProducerThreadProc(_In_ PVOID pParameter);
-
-	/*
-		This thread consumes the resource produced by ResourceProducerThreadProc
-		and creates Descriptor and GPU Resources
-	*/
-	static DWORD WINAPI ResourceConsumerThreadProc(_In_ PVOID pParameter);
+	static DWORD WINAPI ResourceUploadThreadProc(_In_ PVOID pParameter);
 private:
 	struct AssetTextures
 	{
@@ -56,14 +45,15 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> SystemTextures[AssetTextures::NumSystemTextures];
 	Descriptor SystemTextureSRVs[AssetTextures::NumSystemTextures];
 
-	RWLock TextureCacheLock;
-	std::unordered_map<std::string, Texture2D> TextureCache;
+	AssetManager AssetManager;
 
-	RWLock MeshCacheLock;
-	std::unordered_map<std::string, Mesh> MeshCache;
+	CriticalSection UploadCriticalSection;
+	ConditionVariable UploadConditionVariable;
+	ThreadSafeQueue<std::shared_ptr<Asset::Image>> ImageUploadQueue;
+	ThreadSafeQueue<std::shared_ptr<Mesh>> MeshUploadQueue;
 
-	wil::unique_handle ResourceThreads[2];
-	std::atomic<bool> ExitResourceProcessThread = false;
+	wil::unique_handle Thread;
+	std::atomic<bool> Shutdown = false;
 
 	friend class AssetWindow;
 };

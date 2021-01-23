@@ -21,18 +21,23 @@ public:
 
 	Entity GetSelectedEntity() const { return SelectedEntity; }
 private:
-	Scene* pScene;
-	Entity SelectedEntity;
+	Scene* pScene = nullptr;
+	Entity SelectedEntity = {};
 };
 
 class InspectorWindow
 {
 public:
-	void SetContext(Entity Entity);
+	void SetContext(ResourceManager* pResourceManager, Entity Entity)
+	{
+		this->pResourceManager = pResourceManager;
+		SelectedEntity = Entity;
+	}
 
 	void RenderGui();
 private:
-	Entity SelectedEntity;
+	ResourceManager* pResourceManager = nullptr;
+	Entity SelectedEntity = {};
 };
 
 class AssetWindow
@@ -55,7 +60,7 @@ public:
 	{
 		this->pResourceManager = pResourceManager;
 		HierarchyWindow.SetContext(pScene);
-		InspectorWindow.SetContext({});
+		InspectorWindow.SetContext(pResourceManager, {});
 		AssetWindow.SetContext(pResourceManager);
 	}
 
