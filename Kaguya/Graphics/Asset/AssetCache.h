@@ -1,125 +1,150 @@
 #pragma once
 #include <basetsd.h>
-#include <compare>
 #include <memory>
-#include <vector>
-#include <unordered_set>
+#include <type_traits>
 #include <unordered_map>
+
 #include <Core/Synchronization/RWLock.h>
 #include <Core/Utility.h>
 
-constexpr UINT64 MAX_UID = (1ull << 32ull);
-constexpr UINT64 MAX_PTR = (1ull << 32ull);
+template<typename T>
+class AssetCache;
 
-struct AssetHandle
+template<typename T>
+class AssetHandle
 {
-	AssetHandle()
+	friend class AssetCache<T>;
+
+	AssetHandle(std::shared_ptr<T> Resource)
+		: Resource(std::move(Resource))
 	{
-		UID = MAX_UID;
-		Ptr = MAX_PTR;
+
 	}
+public:
+	AssetHandle() = default;
 
 	auto operator<=>(const AssetHandle&) const = default;
 
 	operator bool() const
 	{
-		return UID != MAX_UID && Ptr != MAX_PTR;
+		return Resource;
 	}
 
-	UINT64 UID : 32ull;
-	UINT64 Ptr : 32ull;
-};
-
-static_assert(sizeof(AssetHandle) == sizeof(UINT64));
-
-namespace std
-{
-	template<>
-	struct hash<AssetHandle>
+	[[nodiscard]] const T& Get() const
 	{
-		size_t operator()(const AssetHandle& AssetHandle) const noexcept
-		{
-			size_t seed = 0;
-			hash_combine(seed, size_t(AssetHandle.UID));
-			hash_combine(seed, size_t(AssetHandle.Ptr));
-			return seed;
-		}
-	};
-}
+		return *Resource;
+	}
+
+	[[nodiscard]] T& Get()
+	{
+		return *Resource;
+	}
+
+	[[nodiscard]] const T& operator*() const
+	{
+		return Get();
+	}
+
+	[[nodiscard]] T& operator*()
+	{
+		return Get();
+	}
+
+	T* operator->() const
+	{
+		return Resource.get();
+	}
+
+	T* operator->()
+	{
+		return Resource.get();
+	}
+private:
+	std::shared_ptr<T> Resource;
+};
 
 template<typename T>
 class AssetCache
 {
 public:
-	AssetCache()
-	{
-		UniqueIdentifier = 0;
-	}
+	using Handle = AssetHandle<T>;
 
-	auto begin()
-	{
-		return AssetHashTable.begin();
-	}
+	AssetCache() = default;
 
-	auto end()
+	AssetCache(AssetCache&&) = default;
+
+	AssetCache& operator=(AssetCache&&) = default;
+
+	template<typename... Args>
+	void Create(UINT64 Key, Args&&... args)
 	{
-		return AssetHashTable.end();
+		ScopedWriteLock SWL(RWLock);
+
+		if (Cache.find(Key) == Cache.end())
+		{
+			Cache[Key] = std::make_shared<T>(std::forward<Args>(args)...);
+		}
 	}
 
 	template<typename... Args>
-	void Create(const std::string& Name, Args... args)
+	Handle Load(UINT64 Key, Args&&... args)
 	{
-		std::shared_ptr<T> Asset = std::make_shared<T>(std::forward<Args>(args)...);
-
 		ScopedWriteLock SWL(RWLock);
-		AssetHandle Handle;
-		Handle.UID = UniqueIdentifier++;
-		Handle.Ptr = Assets.size();
 
-		Assets.push_back(std::move(Asset));
-		Handles.insert(Handle);
-		AssetHashTable[Name] = Handle;
-	}
-
-	AssetHandle GetAssetHandle(const std::string& Name)
-	{
-		ScopedReadLock SRL(RWLock);
-
-		if (auto iter = AssetHashTable.find(Name);
-			iter != AssetHashTable.end())
+		Handle Handle = {};
+		if (auto it = Cache.find(Key);
+			it != Cache.end())
 		{
-			return iter->second;
+			Handle = it->second;
 		}
 
-		return AssetHandle();
+		return Handle;
 	}
 
-	std::shared_ptr<T> GetResource(AssetHandle Handle)
+	void Discard(UINT64 Key)
 	{
-		ScopedReadLock SRL(RWLock);
+		ScopedWriteLock SWL(RWLock);
 
-		if (auto iter = Handles.find(Handle);
-			iter != Handles.end())
+		if (auto it = Cache.find(Key);
+			it != Cache.end())
 		{
-			return Assets[iter->Ptr];
+			Cache.erase(it);
 		}
-
-		return {};
 	}
 
-	bool Exist(const std::string& Name)
+	bool Exist(UINT64 Key) const
 	{
 		ScopedReadLock SRL(RWLock);
 
-		auto iter = AssetHashTable.find(Name);
-		return iter != AssetHashTable.end();
+		return Cache.find(Key) != Cache.end();
+	}
+
+	template<typename Functor>
+	void Each(Functor F) const
+	{
+		ScopedReadLock SRL(RWLock);
+
+		auto begin = Cache.begin();
+		auto end = Cache.end();
+		while (begin != end)
+		{
+			auto current = begin++;
+
+			if constexpr (std::is_invocable_v<Functor, UINT64>)
+			{
+				F(current->first);
+			}
+			else if constexpr (std::is_invocable_v<Functor, Handle>)
+			{
+				F(Handle(current->second));
+			}
+			else
+			{
+				F(current->first, Handle(current->second));
+			}
+		}
 	}
 private:
-	RWLock RWLock;
-	UINT64 UniqueIdentifier;
-	std::vector<std::shared_ptr<T>> Assets;
-	std::unordered_set<AssetHandle> Handles;
-	std::unordered_map<std::string, AssetHandle> AssetHashTable;
-
-	friend class AssetWindow;
+	mutable RWLock RWLock;
+	std::unordered_map<UINT64, std::shared_ptr<T>> Cache;
 };

@@ -3,10 +3,10 @@
 
 using namespace DirectX;
 
-Mesh CreateFromProceduralGeometryData(std::string Name, std::vector<Vertex> Vertices, std::vector<uint32_t> Indices)
+Asset::Mesh CreateFromProceduralGeometryData(std::string Name, std::vector<Vertex> Vertices, std::vector<uint32_t> Indices)
 {
 	// Create mesh
-	auto mesh = Mesh();
+	auto mesh = Asset::Mesh();
 	mesh.Name = Name;
 	BoundingBox::CreateFromPoints(mesh.BoundingBox, Vertices.size(), &Vertices[0].Position, sizeof(Vertex));
 
@@ -19,7 +19,7 @@ Mesh CreateFromProceduralGeometryData(std::string Name, std::vector<Vertex> Vert
 	return mesh;
 }
 
-Mesh CreateBox(float Width, float Height, float Depth)
+Asset::Mesh CreateBox(float Width, float Height, float Depth)
 {
 	std::vector<Vertex> Vertices;
 	std::vector<uint32_t> Indices;
@@ -98,7 +98,7 @@ Mesh CreateBox(float Width, float Height, float Depth)
 	return CreateFromProceduralGeometryData("Box " + std::to_string(BOX_ID++), Vertices, Indices);
 }
 
-Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
+Asset::Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 {
 	assert(M != 1);
 	assert(N != 1);

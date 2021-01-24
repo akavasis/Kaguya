@@ -5,8 +5,18 @@
 
 namespace Asset
 {
+	struct Image;
+
+	struct ImageMetadata
+	{
+		std::filesystem::path Path;
+		bool sRGB;
+	};
+
 	struct Image
 	{
+		ImageMetadata Metadata;
+
 		std::string Name;
 		DirectX::ScratchImage Image;
 		bool sRGB = false;

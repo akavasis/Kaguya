@@ -1,23 +1,39 @@
 #pragma once
+#include <memory>
+#include <functional>
+
 #include "../RenderDevice.h"
 #include "../Vertex.h"
 
-struct Mesh
+namespace Asset
 {
-	std::string						Name;
-	DirectX::BoundingBox			BoundingBox;
+	struct Mesh;
 
-	uint32_t						VertexCount = 0;
-	uint32_t						IndexCount = 0;
+	struct MeshMetadata
+	{
+		std::filesystem::path Path;
+		bool KeepGeometryInRAM;
+	};
 
-	std::vector<Vertex>				Vertices;
-	std::vector<uint32_t>			Indices;
+	struct Mesh
+	{
+		MeshMetadata Metadata;
 
-	std::shared_ptr<Resource> VertexResource;
-	std::shared_ptr<Resource> IndexResource;
-	std::shared_ptr<Resource> AccelerationStructure;
-	BottomLevelAccelerationStructure BLAS;
-};
+		std::string						Name;
+		DirectX::BoundingBox			BoundingBox;
 
-Mesh CreateBox(float Width, float Height, float Depth);
-Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N);
+		uint32_t						VertexCount = 0;
+		uint32_t						IndexCount = 0;
+
+		std::vector<Vertex>				Vertices;
+		std::vector<uint32_t>			Indices;
+
+		std::shared_ptr<Resource> VertexResource;
+		std::shared_ptr<Resource> IndexResource;
+		std::shared_ptr<Resource> AccelerationStructure;
+		BottomLevelAccelerationStructure BLAS;
+	};
+}
+
+Asset::Mesh CreateBox(float Width, float Height, float Depth);
+Asset::Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N);

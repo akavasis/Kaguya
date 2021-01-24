@@ -2,13 +2,6 @@
 #include "ResourceManager.h"
 
 #include <ResourceUploadBatch.h>
-#include <DDSTextureLoader.h>
-#include <WICTextureLoader.h>
-
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <assimp/pbrmaterial.h>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -18,7 +11,7 @@ ResourceManager::ResourceManager(RenderDevice* pRenderDevice)
 {
 	CreateSystemTextures();
 
-	Thread.reset(::CreateThread(nullptr, 0, &ResourceUploadThreadProc, this, 0, 0));
+	Thread.reset(::CreateThread(nullptr, 0, &ResourceUploadThreadProc, this, 0, nullptr));
 }
 
 ResourceManager::~ResourceManager()
@@ -36,13 +29,20 @@ void ResourceManager::AsyncLoadImage(const std::filesystem::path& Path, bool sRG
 		return;
 	}
 
-	std::string Name = AssetManager.GetName(Path);
-	if (AssetManager.ImageCache.Exist(Name))
+	entt::id_type hs = entt::hashed_string(Path.string().data());
+	if (ImageCache.Exist(hs))
 	{
+		LOG_INFO("{} Exists", Path.string());
 		return;
 	}
 
-	AssetManager.AsyncLoadImage(Path, sRGB, [&](auto pImage)
+	Asset::ImageMetadata Metadata =
+	{
+		.Path = Path,
+		.sRGB = sRGB
+	};
+	AsyncImageLoader.RequestAsyncLoad(1, &Metadata,
+		[&](auto pImage)
 	{
 		ScopedCriticalSection SCS(UploadCriticalSection);
 
@@ -59,17 +59,24 @@ void ResourceManager::AsyncLoadMesh(const std::filesystem::path& Path, bool Keep
 		return;
 	}
 
-	std::string Name = AssetManager.GetName(Path);
-	if (AssetManager.MeshCache.Exist(Name))
+	entt::id_type hs = entt::hashed_string(Path.string().data());
+	if (MeshCache.Exist(hs))
 	{
+		LOG_INFO("{} Exists", Path.string());
 		return;
 	}
 
-	AssetManager.AsyncLoadMesh(Path, KeepGeometryInRAM, [&](auto pMesh)
+	Asset::MeshMetadata Metadata =
+	{
+		.Path = Path,
+		.KeepGeometryInRAM = KeepGeometryInRAM,
+	};
+	AsyncMeshLoader.RequestAsyncLoad(1, &Metadata,
+		[&](auto pMesh)
 	{
 		ScopedCriticalSection SCS(UploadCriticalSection);
 
-		MeshUploadQueue.Enqueue(pMesh);
+		MeshUploadQueue.Enqueue(std::move(pMesh));
 
 		UploadConditionVariable.Wake();
 	});
@@ -211,7 +218,7 @@ DWORD WINAPI ResourceManager::ResourceUploadThreadProc(_In_ PVOID pParameter)
 		std::vector<std::shared_ptr<Resource>> TrackedScratchBuffers;
 
 		std::vector<std::shared_ptr<Asset::Image>> Images;
-		std::vector<std::shared_ptr<Mesh>> Meshes;
+		std::vector<std::shared_ptr<Asset::Mesh>> Meshes;
 
 		// Process Image
 		{
@@ -274,9 +281,9 @@ DWORD WINAPI ResourceManager::ResourceUploadThreadProc(_In_ PVOID pParameter)
 			}
 		}
 
-		// Process mesh
+		// Process Mesh
 		{
-			std::shared_ptr<Mesh> pMesh;
+			std::shared_ptr<Asset::Mesh> pMesh;
 			while (pResourceManager->MeshUploadQueue.Dequeue(pMesh, 0))
 			{
 				UINT64 VBSizeInBytes = pMesh->Vertices.size() * sizeof(Vertex);
@@ -353,17 +360,19 @@ DWORD WINAPI ResourceManager::ResourceUploadThreadProc(_In_ PVOID pParameter)
 
 		for (auto& Image : Images)
 		{
-			pResourceManager->AssetManager.ImageCache.Create(Image->Name);
-			auto AssetHandle = pResourceManager->AssetManager.ImageCache.GetAssetHandle(Image->Name);
-			auto Asset = pResourceManager->AssetManager.ImageCache.GetResource(AssetHandle);
+			entt::id_type hs = entt::hashed_string(Image->Metadata.Path.string().data());
+
+			pResourceManager->ImageCache.Create(hs);
+			auto Asset = pResourceManager->ImageCache.Load(hs);
 			*Asset = std::move(*Image);
 		}
 
 		for (auto& Mesh : Meshes)
 		{
-			pResourceManager->AssetManager.MeshCache.Create(Mesh->Name);
-			auto AssetHandle = pResourceManager->AssetManager.MeshCache.GetAssetHandle(Mesh->Name);
-			auto Asset = pResourceManager->AssetManager.MeshCache.GetResource(AssetHandle);
+			entt::id_type hs = entt::hashed_string(Mesh->Metadata.Path.string().data());
+
+			pResourceManager->MeshCache.Create(hs);
+			auto Asset = pResourceManager->MeshCache.Load(hs);
 			*Asset = std::move(*Mesh);
 		}
 	}

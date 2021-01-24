@@ -2,7 +2,7 @@
 #include <Core/Synchronization/RWLock.h>
 #include "RenderDevice.h"
 
-#include "Asset/AssetManager.h"
+#include "Asset/AsyncLoader.h"
 
 class ResourceManager
 {
@@ -45,12 +45,16 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> SystemTextures[AssetTextures::NumSystemTextures];
 	Descriptor SystemTextureSRVs[AssetTextures::NumSystemTextures];
 
-	AssetManager AssetManager;
+	AsyncImageLoader AsyncImageLoader;
+	AsyncMeshLoader AsyncMeshLoader;
+
+	AssetCache<Asset::Image> ImageCache;
+	AssetCache<Asset::Mesh> MeshCache;
 
 	CriticalSection UploadCriticalSection;
 	ConditionVariable UploadConditionVariable;
 	ThreadSafeQueue<std::shared_ptr<Asset::Image>> ImageUploadQueue;
-	ThreadSafeQueue<std::shared_ptr<Mesh>> MeshUploadQueue;
+	ThreadSafeQueue<std::shared_ptr<Asset::Mesh>> MeshUploadQueue;
 
 	wil::unique_handle Thread;
 	std::atomic<bool> Shutdown = false;

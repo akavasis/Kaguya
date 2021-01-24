@@ -1,7 +1,12 @@
 #pragma once
 #include "Component.h"
 
+namespace Asset
+{
+	struct Mesh;
+}
+
 struct MeshFilter : Component
 {
-	struct Mesh* pMesh = nullptr;
+	Asset::Mesh* pMesh = nullptr;
 };
