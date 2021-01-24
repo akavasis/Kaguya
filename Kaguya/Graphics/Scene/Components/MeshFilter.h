@@ -1,12 +1,10 @@
 #pragma once
 #include "Component.h"
-
-namespace Asset
-{
-	struct Mesh;
-}
+#include "../../Asset/Mesh.h"
+#include "../../Asset/AssetCache.h"
 
 struct MeshFilter : Component
 {
-	Asset::Mesh* pMesh = nullptr;
+	UINT64 MeshID = 0;
+	AssetHandle<Asset::Mesh> Mesh = {};
 };

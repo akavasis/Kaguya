@@ -205,8 +205,10 @@ void PathIntegrator::UpdateShaderTable(const RaytracingAccelerationStructure& Ra
 	HitGroupShaderTable.Clear();
 	for (auto [i, MeshRenderer] : enumerate(RaytracingAccelerationStructure.MeshRenderers))
 	{
-		const auto& VB = MeshRenderer->pMeshFilter->pMesh->VertexResource->pResource;
-		const auto& IB = MeshRenderer->pMeshFilter->pMesh->IndexResource->pResource;
+		auto MeshFilter = MeshRenderer->pMeshFilter;
+
+		const auto& VB = MeshFilter->Mesh->VertexResource->pResource;
+		const auto& IB = MeshFilter->Mesh->IndexResource->pResource;
 
 		ShaderTable<RootArgument>::Record Record = {};
 		Record.ShaderIdentifier = DefaultSID;

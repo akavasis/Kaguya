@@ -19,6 +19,8 @@ Renderer::Renderer()
 	, ResourceManager(&RenderDevice)
 {
 	RenderDevice.ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
+
+	Scene.SetContext(&ResourceManager);
 }
 
 Renderer::~Renderer()
@@ -65,7 +67,6 @@ void Renderer::HandleInput(float DeltaTime)
 	// instance id for editor
 	if (Mouse.IsLMBPressed() && !Mouse.UseRawInput && !ImGui::GetIO().WantCaptureMouse)
 	{
-		//m_pGpuScene->SetSelectedInstanceID(InstanceID);
 	}
 }
 
@@ -113,7 +114,7 @@ void Renderer::Render()
 	auto view = Scene.Registry.view<MeshFilter, MeshRenderer>();
 	for (auto [handle, meshFilter, meshRenderer] : view.each())
 	{
-		if (meshFilter.pMesh)
+		if (ResourceManager.GetMeshCache().Exist(meshFilter.MeshID))
 		{
 			RaytracingAccelerationStructure.AddInstance(&meshRenderer);
 			pMaterials[MaterialIndex++] = GetHLSLMaterialDesc(meshRenderer.Material);

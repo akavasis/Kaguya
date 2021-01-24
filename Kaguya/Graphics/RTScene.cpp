@@ -5,7 +5,8 @@
 
 using namespace DirectX;
 
-void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice, UINT NumHitGroups)
+void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice,
+	UINT NumHitGroups)
 {
 	this->pRenderDevice = pRenderDevice;
 	this->NumHitGroups = NumHitGroups;
@@ -39,7 +40,7 @@ void RaytracingAccelerationStructure::Clear()
 
 void RaytracingAccelerationStructure::AddInstance(MeshRenderer* pMeshRenderer)
 {
-	auto& AccelerationStructure = pMeshRenderer->pMeshFilter->pMesh->AccelerationStructure;
+	auto& AccelerationStructure = pMeshRenderer->pMeshFilter->Mesh->AccelerationStructure;
 
 	Entity Entity(pMeshRenderer->Handle, pMeshRenderer->pScene);
 
@@ -56,7 +57,7 @@ void RaytracingAccelerationStructure::AddInstance(MeshRenderer* pMeshRenderer)
 	TopLevelAccelerationStructure.AddInstance(Desc);
 	MeshRenderers.push_back(pMeshRenderer);
 
-	InstanceContributionToHitGroupIndex += pMeshRenderer->pMeshFilter->pMesh->BLAS.Size() * NumHitGroups;
+	InstanceContributionToHitGroupIndex += pMeshRenderer->pMeshFilter->Mesh->BLAS.Size() * NumHitGroups;
 }
 
 void RaytracingAccelerationStructure::Build(CommandList& CommandList)

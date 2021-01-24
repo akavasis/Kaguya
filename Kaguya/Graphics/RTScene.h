@@ -11,7 +11,8 @@
 class RaytracingAccelerationStructure
 {
 public:
-	void Create(RenderDevice* pRenderDevice, UINT NumHitGroups);
+	void Create(RenderDevice* pRenderDevice,
+		UINT NumHitGroups);
 
 	operator auto() const
 	{
@@ -35,6 +36,7 @@ public:
 	void Build(CommandList& CommandList);
 private:
 	RenderDevice* pRenderDevice = nullptr;
+
 	UINT NumHitGroups = 0;
 
 	RootSignature RS;

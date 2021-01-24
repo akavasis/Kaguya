@@ -25,9 +25,9 @@ public:
 
 	auto operator<=>(const AssetHandle&) const = default;
 
-	operator bool() const
+	explicit operator bool() const
 	{
-		return Resource;
+		return static_cast<bool>(Resource);
 	}
 
 	[[nodiscard]] const T& Get() const
@@ -74,6 +74,13 @@ public:
 	AssetCache(AssetCache&&) = default;
 
 	AssetCache& operator=(AssetCache&&) = default;
+
+	void DestroyAll()
+	{
+		ScopedWriteLock SWL(RWLock);
+
+		Cache.clear();
+	}
 
 	template<typename... Args>
 	void Create(UINT64 Key, Args&&... args)

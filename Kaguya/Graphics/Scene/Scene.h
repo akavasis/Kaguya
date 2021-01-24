@@ -11,6 +11,7 @@
 #include "../Camera.h"
 #include "../SharedTypes.h"
 
+class ResourceManager;
 struct Entity;
 
 struct Scene
@@ -26,6 +27,8 @@ struct Scene
 
 	Scene();
 
+	void SetContext(ResourceManager* pResourceManager);
+
 	void Update();
 
 	Entity CreateEntity(const std::string& Name);
@@ -33,6 +36,8 @@ struct Scene
 
 	template<typename T>
 	void OnComponentAdded(Entity entity, T& component);
+
+	ResourceManager* pResourceManager = nullptr;
 
 	State SceneState = SCENE_STATE_RENDER;
 	entt::registry Registry;

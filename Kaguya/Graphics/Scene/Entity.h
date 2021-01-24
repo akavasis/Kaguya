@@ -13,6 +13,7 @@ struct Entity
 		T& Component = pScene->Registry.emplace<T>(Handle, std::forward<Args>(args)...);
 		Component.Handle = Handle;
 		Component.pScene = pScene;
+		Component.IsEdited = true;
 		pScene->OnComponentAdded<T>(*this, Component);
 		return Component;
 	}

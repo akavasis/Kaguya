@@ -36,7 +36,7 @@ private:
 	// but because we are using ImGui and rendering directly into the back buffer
 	// the Renderer contains Editor...
 	// TODO: Renderer and Editor should be separate, come up with an alternative...
-	// (e.g. render onto offscreen texture and composite them)
+	// (e.g. render onto offscreen texture and composite them, or perhaps on a separate thread)
 	Scene									Scene;
 	RaytracingAccelerationStructure			RaytracingAccelerationStructure;
 	Editor									Editor;

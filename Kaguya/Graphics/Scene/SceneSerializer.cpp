@@ -134,8 +134,34 @@ static void SerializeEntity(YAML::Emitter& Emitter, Entity Entity)
 			Emitter << YAML::Key << "Mesh Filter";
 			Emitter << YAML::BeginMap;
 			{
-				std::string Value = MeshFilter.pMesh ? MeshFilter.pMesh->Name : "NULL";
+				std::string Value = MeshFilter.Mesh ? MeshFilter.Mesh->Metadata.Path.string() : "NULL";
 				Emitter << YAML::Key << "Name" << Value;
+			}
+			Emitter << YAML::EndMap;
+		});
+
+		SerializeComponent<MeshRenderer>(Emitter, Entity, [](auto& Emitter, auto& MeshRenderer)
+		{
+			Emitter << YAML::Key << "Mesh Renderer";
+			Emitter << YAML::BeginMap;
+			{
+				
+				auto& Material = MeshRenderer.Material;
+				Emitter << YAML::Key << "Material";
+				Emitter << YAML::BeginMap;
+				{
+					Emitter << YAML::Key << "Albedo" << Material.Albedo;
+					Emitter << YAML::Key << "Emissive" << Material.Emissive;
+					Emitter << YAML::Key << "Specular" << Material.Specular;
+					Emitter << YAML::Key << "Refraction" << Material.Refraction;
+					Emitter << YAML::Key << "Specular Chance" << Material.SpecularChance;
+					Emitter << YAML::Key << "Roughness" << Material.Roughness;
+					Emitter << YAML::Key << "Metallic" << Material.Metallic;
+					Emitter << YAML::Key << "Fuzziness" << Material.Fuzziness;
+					Emitter << YAML::Key << "Index Of Refraction" << Material.IndexOfRefraction;
+					Emitter << YAML::Key << "Model" << Material.Model;
+				}
+				Emitter << YAML::EndMap;
 			}
 			Emitter << YAML::EndMap;
 		});

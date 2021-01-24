@@ -102,8 +102,8 @@ void HierarchyWindow::RenderGui()
 template<class T>
 concept IsAComponent = std::is_base_of<Component, T>::value;
 
-template<IsAComponent T, bool IsCoreComponent>
-static void RenderComponent(const char* pName, Entity Entity, bool(*UIFunction)(T&), bool(*UISettingFunction)(T&))
+template<IsAComponent T, bool IsCoreComponent, typename UIFunction>
+static void RenderComponent(const char* pName, Entity Entity, UIFunction UI, bool(*UISettingFunction)(T&))
 {
 	if (Entity.HasComponent<T>())
 	{
@@ -150,7 +150,7 @@ static void RenderComponent(const char* pName, Entity Entity, bool(*UIFunction)(
 
 		if (Collapsed)
 		{
-			Component.IsEdited |= UIFunction(Component);
+			Component.IsEdited |= UI(Component);
 			ImGui::TreePop();
 		}
 
@@ -172,9 +172,88 @@ static void AddNewComponent(const char* pName, Entity Entity)
 		}
 		else
 		{
-			Entity.AddComponent<T>();
+			T& Component = Entity.AddComponent<T>();
 		}
 	}
+}
+
+static bool RenderFloat3Control(const char* pLabel, float* Float3, float ResetValue = 0.0f, float ColumnWidth = 100.0f)
+{
+	bool IsEdited = false;
+
+	ImGuiIO& io = ImGui::GetIO();
+	auto boldFont = io.Fonts->Fonts[0];
+
+	ImGui::PushID(pLabel);
+
+	ImGui::Columns(2);
+	ImGui::SetColumnWidth(0, ColumnWidth);
+	ImGui::Text(pLabel);
+	ImGui::NextColumn();
+
+	ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+
+	float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+	ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+	ImGui::PushFont(boldFont);
+	if (ImGui::Button("X", buttonSize))
+	{
+		Float3[0] = ResetValue;
+		IsEdited |= true;
+	}
+	ImGui::PopFont();
+	ImGui::PopStyleColor(3);
+
+	ImGui::SameLine();
+	IsEdited |= ImGui::DragFloat("##X", &Float3[0], 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+	ImGui::PushFont(boldFont);
+	if (ImGui::Button("Y", buttonSize))
+	{
+		Float3[1] = ResetValue;
+		IsEdited |= true;
+	}
+	ImGui::PopFont();
+	ImGui::PopStyleColor(3);
+
+	ImGui::SameLine();
+	IsEdited |= ImGui::DragFloat("##Y", &Float3[1], 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+	ImGui::PushFont(boldFont);
+	if (ImGui::Button("Z", buttonSize))
+	{
+		Float3[2] = ResetValue;
+		IsEdited |= true;
+	}
+	ImGui::PopFont();
+	ImGui::PopStyleColor(3);
+
+	ImGui::SameLine();
+	IsEdited |= ImGui::DragFloat("##Z", &Float3[2], 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::PopItemWidth();
+
+	ImGui::PopStyleVar();
+
+	ImGui::Columns(1);
+
+	ImGui::PopID();
+
+	return IsEdited;
 }
 
 void InspectorWindow::RenderGui()
@@ -184,7 +263,7 @@ void InspectorWindow::RenderGui()
 		if (SelectedEntity)
 		{
 			RenderComponent<Tag, true>("Tag", SelectedEntity,
-				[](auto Component)
+				[](Tag& Component)
 			{
 				char Buffer[MAX_PATH] = {};
 				memcpy(Buffer, Component.Name.data(), MAX_PATH);
@@ -198,7 +277,7 @@ void InspectorWindow::RenderGui()
 				nullptr);
 
 			RenderComponent<Transform, true>("Transform", SelectedEntity,
-				[](auto Component)
+				[](Transform& Component)
 			{
 				bool IsEdited = false;
 
@@ -209,9 +288,9 @@ void InspectorWindow::RenderGui()
 
 				float matrixTranslation[3], matrixRotation[3], matrixScale[3];
 				ImGuizmo::DecomposeMatrixToComponents(reinterpret_cast<float*>(&World), matrixTranslation, matrixRotation, matrixScale);
-				IsEdited |= ImGui::DragFloat3("Translation", matrixTranslation, 0.1f, 0.0f, 0.0f, "%.2f");
-				IsEdited |= ImGui::DragFloat3("Rotation", matrixRotation, 0.1f, 0.0f, 0.0f, "%.2f");
-				IsEdited |= ImGui::DragFloat3("Scale", matrixScale, 0.1f, 0.0f, 0.0f, "%.2f");
+				IsEdited |= RenderFloat3Control("Translation", matrixTranslation);
+				IsEdited |= RenderFloat3Control("Rotation", matrixRotation);
+				IsEdited |= RenderFloat3Control("Scale", matrixScale, 1);
 				ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, reinterpret_cast<float*>(&World));
 
 				if (IsEdited)
@@ -235,13 +314,17 @@ void InspectorWindow::RenderGui()
 			});
 
 			RenderComponent<MeshFilter, false>("Mesh Filter", SelectedEntity,
-				[](auto Component)
+				[&](MeshFilter& Component)
 			{
 				bool IsEdited = false;
 
-				if (Component.pMesh)
+				auto Handle = pResourceManager->GetMeshCache().Load(Component.MeshID);
+
+				ImGui::Text("Mesh: ");
+				ImGui::SameLine();
+				if (Handle)
 				{
-					ImGui::Button(Component.pMesh->Name.data());
+					ImGui::Button(Handle->Name.data());
 				}
 				else
 				{
@@ -250,11 +333,11 @@ void InspectorWindow::RenderGui()
 
 				if (ImGui::BeginDragDropTarget())
 				{
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MESH"))
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MESH");
+						payload)
 					{
-						IM_ASSERT(payload->DataSize == sizeof(Asset::Mesh*));
-						auto payload_n = (Asset::Mesh*)(*(LONG_PTR*)payload->Data); // Yea, ik, ugly
-						Component.pMesh = payload_n;
+						IM_ASSERT(payload->DataSize == sizeof(UINT64));
+						Component.MeshID = (*(UINT64*)payload->Data);
 
 						IsEdited = true;
 					}
@@ -266,7 +349,7 @@ void InspectorWindow::RenderGui()
 				nullptr);
 
 			RenderComponent<MeshRenderer, false>("Mesh Renderer", SelectedEntity,
-				[](auto Component)
+				[](MeshRenderer& Component)
 			{
 				bool IsEdited = false;
 
@@ -401,9 +484,8 @@ void AssetWindow::RenderGui()
 			// Our buttons are both drag sources and drag targets here!
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
 			{
-				LONG_PTR MeshAddr = (LONG_PTR)&Resource.Get(); // Yea ik, ugly
 				// Set payload to carry the index of our item (could be anything)
-				ImGui::SetDragDropPayload("ASSET_MESH", &MeshAddr, sizeof(MeshAddr));
+				ImGui::SetDragDropPayload("ASSET_MESH", &Key, sizeof(UINT64));
 
 				ImGui::EndDragDropSource();
 			}

@@ -18,6 +18,16 @@ public:
 	Descriptor GetDefaultNormalTexture() { return SystemTextureSRVs[AssetTextures::DefaultNormal]; }
 	Descriptor GetDefaultRoughnessTexture() { return SystemTextureSRVs[AssetTextures::DefaultRoughness]; }
 
+	auto& GetImageCache()
+	{
+		return ImageCache;
+	}
+
+	auto& GetMeshCache()
+	{
+		return MeshCache;
+	}
+
 	void AsyncLoadImage(const std::filesystem::path& Path, bool sRGB);
 	void AsyncLoadMesh(const std::filesystem::path& Path, bool KeepGeometryInRAM);
 private:

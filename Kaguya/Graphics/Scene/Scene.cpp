@@ -3,9 +3,16 @@
 
 #include "Entity.h"
 
+#include "../ResourceManager.h"
+
 Scene::Scene()
 {
 	Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
+}
+
+void Scene::SetContext(ResourceManager* pResourceManager)
+{
+	this->pResourceManager = pResourceManager;
 }
 
 void Scene::Update()
@@ -22,6 +29,30 @@ void Scene::Update()
 				transform.IsEdited = false;
 
 				SceneState = SCENE_STATE_UPDATED;
+			}
+		}
+	}
+
+	// Update all mesh filters
+	{
+		auto view = Registry.view<MeshFilter>();
+		for (auto [handle, meshFilter] : view.each())
+		{
+			if (meshFilter.IsEdited)
+			{
+				meshFilter.IsEdited = false;
+
+				SceneState = SCENE_STATE_UPDATED;
+			}
+
+			auto Mesh = pResourceManager->GetMeshCache().Load(meshFilter.MeshID);
+			if (Mesh)
+			{
+				meshFilter.Mesh = Mesh;
+			}
+			else
+			{
+				meshFilter.Mesh = {};
 			}
 		}
 	}
@@ -93,6 +124,8 @@ void Scene::OnComponentAdded<MeshFilter>(Entity Entity, MeshFilter& Component)
 	{
 		auto& MeshRendererComponent = Entity.GetComponent<MeshRenderer>();
 		MeshRendererComponent.pMeshFilter = &Component;
+
+		MeshRendererComponent.IsEdited = true;
 	}
 }
 
@@ -105,5 +138,7 @@ void Scene::OnComponentAdded<MeshRenderer>(Entity Entity, MeshRenderer& Componen
 	{
 		auto& MeshFilterComponent = Entity.GetComponent<MeshFilter>();
 		Component.pMeshFilter = &MeshFilterComponent;
+
+		Component.IsEdited = true;
 	}
 }
