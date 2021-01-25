@@ -188,7 +188,7 @@ void PathIntegrator::RenderGui()
 
 		if (Dirty)
 		{
-			g_Settings.NumAccumulatedSamples = 0;
+			Reset();
 		}
 
 		ImGui::TreePop();

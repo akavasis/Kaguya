@@ -1,6 +1,6 @@
 #pragma once
 #include "RenderDevice.h"
-#include "RTScene.h"
+#include "RaytracingAccelerationStructure.h"
 
 class PathIntegrator
 {

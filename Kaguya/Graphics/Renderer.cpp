@@ -114,7 +114,7 @@ void Renderer::Render()
 	auto view = Scene.Registry.view<MeshFilter, MeshRenderer>();
 	for (auto [handle, meshFilter, meshRenderer] : view.each())
 	{
-		if (ResourceManager.GetMeshCache().Exist(meshFilter.MeshID))
+		if (meshFilter.Mesh)
 		{
 			RaytracingAccelerationStructure.AddInstance(&meshRenderer);
 			pMaterials[MaterialIndex++] = GetHLSLMaterialDesc(meshRenderer.Material);
@@ -225,7 +225,13 @@ void Renderer::Render()
 
 bool Renderer::Resize(uint32_t Width, uint32_t Height)
 {
+	RenderDevice.FlushGraphicsQueue();
+	
 	RenderDevice.Resize(Width, Height);
+	PathIntegrator.SetResolution(Width, Height);
+	PathIntegrator.Reset();
+
+	RenderDevice.FlushGraphicsQueue();
 	return true;
 }
 
@@ -240,7 +246,8 @@ void Renderer::RenderGui()
 {
 	constexpr ImGuiWindowFlags Flags =
 		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoResize;
+		ImGuiWindowFlags_NoResize | 
+		ImGuiWindowFlags_AlwaysAutoResize;
 
 	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(240, 480), ImGuiCond_Always);

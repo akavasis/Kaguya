@@ -6,6 +6,8 @@
 #include <fstream>
 #include <yaml-cpp/yaml.h>
 
+#include "../ResourceManager.h"
+
 namespace Version
 {
 	const int Major = 0;
@@ -88,7 +90,7 @@ namespace YAML
 }
 
 template<class T>
-concept IsAComponent = std::is_base_of<Component, T>::value;
+concept IsAComponent = std::is_base_of_v<Component, T>;
 
 template<IsAComponent T>
 void SerializeComponent(YAML::Emitter& Emitter, Entity Entity, void(*pSerializeFunction)(YAML::Emitter&, T&))
@@ -145,7 +147,6 @@ static void SerializeEntity(YAML::Emitter& Emitter, Entity Entity)
 			Emitter << YAML::Key << "Mesh Renderer";
 			Emitter << YAML::BeginMap;
 			{
-				
 				auto& Material = MeshRenderer.Material;
 				Emitter << YAML::Key << "Material";
 				Emitter << YAML::BeginMap;
@@ -197,18 +198,18 @@ void SceneSerializer::Serialize(const std::filesystem::path& Path, Scene* pScene
 	fout << Emitter.c_str();
 }
 
-template<IsAComponent T>
-void DeserializeComponent(const YAML::Node& Node, Entity* pEntity, void(*pDeserializeFunction)(const YAML::Node&, T&))
+template<IsAComponent T, typename DeserializeFunction>
+void DeserializeComponent(const YAML::Node& Node, Entity* pEntity, DeserializeFunction Deserialize)
 {
 	if (Node)
 	{
 		auto& Component = pEntity->GetOrAddComponent<T>();
 
-		pDeserializeFunction(Node, Component);
+		Deserialize(Node, Component);
 	}
 }
 
-static void DeserializeEntity(const YAML::Node& Node, Scene* pScene)
+static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, ResourceManager* pResourceManager)
 {
 	// Tag component have to exist
 	std::string Name = Node["Tag"]["Name"].as<std::string>();
@@ -222,10 +223,40 @@ static void DeserializeEntity(const YAML::Node& Node, Scene* pScene)
 		Transform.Scale = Node["Scale"].as<DirectX::XMFLOAT3>();
 		Transform.Orientation = Node["Orientation"].as<DirectX::XMFLOAT4>();
 	});
+
+	DeserializeComponent<MeshFilter>(Node["Mesh Filter"], &Entity, [&](auto& Node, auto& MeshFilter)
+	{
+		auto Path = Node["Name"].as<std::string>();
+		if (Path != "NULL")
+		{
+			pResourceManager->AsyncLoadMesh(Path, true);
+		}
+
+		MeshFilter.MeshID = entt::hashed_string(Path.data());
+	});
+
+	DeserializeComponent<MeshRenderer>(Node["Mesh Renderer"], &Entity, [](auto& Node, auto& MeshRenderer)
+	{
+		auto& Material = Node["Material"];
+		MeshRenderer.Material.Albedo = Material["Albedo"].as<DirectX::XMFLOAT3>();
+		MeshRenderer.Material.Emissive = Material["Emissive"].as<DirectX::XMFLOAT3>();
+		MeshRenderer.Material.Specular = Material["Specular"].as<DirectX::XMFLOAT3>();
+		MeshRenderer.Material.Refraction = Material["Refraction"].as<DirectX::XMFLOAT3>();
+		MeshRenderer.Material.SpecularChance = Material["Specular Chance"].as<float>();
+		MeshRenderer.Material.Roughness = Material["Roughness"].as<float>();
+		MeshRenderer.Material.Metallic = Material["Metallic"].as<float>();
+		MeshRenderer.Material.Fuzziness = Material["Fuzziness"].as<float>();
+		MeshRenderer.Material.IndexOfRefraction = Material["Index Of Refraction"].as<float>();
+		MeshRenderer.Material.Model = Material["Model"].as<int>();
+	});
 }
 
-Scene SceneSerializer::Deserialize(const std::filesystem::path& Path)
+void SceneSerializer::Deserialize(const std::filesystem::path& Path, Scene* pScene, ResourceManager* pResourceManager)
 {
+	pScene->Clear();
+	pResourceManager->GetImageCache().DestroyAll();
+	pResourceManager->GetMeshCache().DestroyAll();
+
 	std::ifstream fin(Path);
 	std::stringstream ss;
 	ss << fin.rdbuf();
@@ -243,8 +274,6 @@ Scene SceneSerializer::Deserialize(const std::filesystem::path& Path)
 		throw std::exception("Invalid version");
 	}
 
-	Scene Scene;
-
 	auto Entities = Data["Entities"];
 	if (Entities)
 	{
@@ -252,9 +281,7 @@ Scene SceneSerializer::Deserialize(const std::filesystem::path& Path)
 		{
 			UINT64 ID = Entity["Entity"].as<UINT64>();
 
-			DeserializeEntity(Entity, &Scene);
+			DeserializeEntity(Entity, pScene, pResourceManager);
 		}
 	}
-
-	return Scene;
 }

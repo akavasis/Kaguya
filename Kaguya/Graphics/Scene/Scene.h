@@ -29,6 +29,8 @@ struct Scene
 
 	void SetContext(ResourceManager* pResourceManager);
 
+	void Clear();
+
 	void Update();
 
 	Entity CreateEntity(const std::string& Name);

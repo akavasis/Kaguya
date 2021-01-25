@@ -15,7 +15,7 @@
 #include "RHI/D3D12/ShaderCompiler.h"
 #include "RHI/D3D12/DescriptorHeap.h"
 #include "RHI/D3D12/CommandList.h"
-#include "RHI/D3D12/RaytracingAccelerationStructure.h"
+#include "RHI/D3D12/AccelerationStructure.h"
 
 #include "RHI/D3D12/RootSignatureBuilder.h"
 #include "RHI/D3D12/PipelineStateBuilder.h"
@@ -129,10 +129,10 @@ public:
 
 	// Resource view creation
 	// Thread-Safe
-	Descriptor AllocateShaderResourceView();
-	Descriptor AllocateUnorderedAccessView();
-	Descriptor AllocateRenderTargetView();
-	Descriptor AllocateDepthStencilView();
+	[[nodiscard]] Descriptor AllocateShaderResourceView();
+	[[nodiscard]] Descriptor AllocateUnorderedAccessView();
+	[[nodiscard]] Descriptor AllocateRenderTargetView();
+	[[nodiscard]] Descriptor AllocateDepthStencilView();
 
 	// Thread-Safe
 	void CreateShaderResourceView(ID3D12Resource* pResource,

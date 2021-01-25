@@ -4,15 +4,16 @@
 
 #include "Camera.h"
 
-#include "RTScene.h"
+#include "RaytracingAccelerationStructure.h"
 
 class ResourceManager;
 
 class HierarchyWindow
 {
 public:
-	void SetContext(Scene* pScene)
+	void SetContext(ResourceManager* pResourceManager, Scene* pScene)
 	{
+		this->pResourceManager = pResourceManager;
 		this->pScene = pScene;
 		SelectedEntity = {};
 	}
@@ -21,6 +22,7 @@ public:
 
 	Entity GetSelectedEntity() const { return SelectedEntity; }
 private:
+	ResourceManager* pResourceManager = nullptr;
 	Scene* pScene = nullptr;
 	Entity SelectedEntity = {};
 };
@@ -59,7 +61,7 @@ public:
 	void SetContext(ResourceManager* pResourceManager, Scene* pScene)
 	{
 		this->pResourceManager = pResourceManager;
-		HierarchyWindow.SetContext(pScene);
+		HierarchyWindow.SetContext(pResourceManager, pScene);
 		InspectorWindow.SetContext(pResourceManager, {});
 		AssetWindow.SetContext(pResourceManager);
 	}

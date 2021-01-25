@@ -1,15 +1,11 @@
 #pragma once
-#include "Core/RenderSystem.h"
-
-#include "RenderDevice.h"
-#include "ResourceManager.h"
-
-#include "RTScene.h"
-
-#include "Editor.h"
-
-#include "PathIntegrator.h"
-#include "ToneMapper.h"
+#include <Core/RenderSystem.h>
+#include <Graphics/RenderDevice.h>
+#include <Graphics/ResourceManager.h>
+#include <Graphics/RaytracingAccelerationStructure.h>
+#include <Graphics/Editor.h>
+#include <Graphics/PathIntegrator.h>
+#include <Graphics/ToneMapper.h>
 
 class Renderer : public RenderSystem
 {

@@ -8,11 +8,20 @@
 Scene::Scene()
 {
 	Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
+	PreviousCamera = Camera;
 }
 
 void Scene::SetContext(ResourceManager* pResourceManager)
 {
 	this->pResourceManager = pResourceManager;
+}
+
+void Scene::Clear()
+{
+	SceneState = SCENE_STATE_RENDER;
+	Registry.clear();
+	Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
+	PreviousCamera = Camera;
 }
 
 void Scene::Update()
@@ -45,15 +54,7 @@ void Scene::Update()
 				SceneState = SCENE_STATE_UPDATED;
 			}
 
-			auto Mesh = pResourceManager->GetMeshCache().Load(meshFilter.MeshID);
-			if (Mesh)
-			{
-				meshFilter.Mesh = Mesh;
-			}
-			else
-			{
-				meshFilter.Mesh = {};
-			}
+			meshFilter.Mesh = pResourceManager->GetMeshCache().Load(meshFilter.MeshID);
 		}
 	}
 

@@ -72,6 +72,7 @@ void HierarchyWindow::RenderGui()
 
 			if (ImGui::MenuItem("Deserialize"))
 			{
+				// TODO: Write a function for this
 				nfdchar_t* outPath = nullptr;
 				nfdresult_t result = NFD_OpenDialog("yaml", nullptr, &outPath);
 
@@ -79,7 +80,7 @@ void HierarchyWindow::RenderGui()
 				{
 					std::filesystem::path Path = outPath;
 
-					Scene Scene = SceneSerializer::Deserialize(Path);
+					SceneSerializer::Deserialize(Path, pScene, pResourceManager);
 
 					free(outPath);
 				}
@@ -100,9 +101,15 @@ void HierarchyWindow::RenderGui()
 }
 
 template<class T>
-concept IsAComponent = std::is_base_of<Component, T>::value;
+concept IsAComponent = std::is_base_of_v<Component, T>;
 
-template<IsAComponent T, bool IsCoreComponent, typename UIFunction>
+template<class T, class Component>
+concept IsUIFunction = requires(T F, Component C)
+{
+	{ F(C) } -> std::convertible_to<bool>;
+};
+
+template<IsAComponent T, bool IsCoreComponent, IsUIFunction<T> UIFunction>
 static void RenderComponent(const char* pName, Entity Entity, UIFunction UI, bool(*UISettingFunction)(T&))
 {
 	if (Entity.HasComponent<T>())
@@ -429,6 +436,7 @@ void AssetWindow::RenderGui()
 		{
 			if (ImGui::MenuItem("Import Texture"))
 			{
+				// TODO: Write a function for this
 				nfdchar_t* outPath = nullptr;
 				nfdresult_t result = NFD_OpenDialog("dds,tga,hdr", nullptr, &outPath);
 
@@ -452,6 +460,7 @@ void AssetWindow::RenderGui()
 
 			if (ImGui::MenuItem("Import Mesh"))
 			{
+				// TODO: Write a function for this
 				nfdchar_t* outPath = nullptr;
 				nfdresult_t result = NFD_OpenDialog("obj", nullptr, &outPath);
 
@@ -477,6 +486,7 @@ void AssetWindow::RenderGui()
 		}
 
 		auto& MeshCache = pResourceManager->MeshCache;
+		ScopedWriteLock SWL(MeshCache.RWLock);
 		MeshCache.Each([&](UINT64 Key, AssetHandle<Asset::Mesh> Resource)
 		{
 			ImGui::Button(Resource->Name.data());
@@ -503,7 +513,11 @@ void AssetWindow::RenderGui()
 
 			if (Delete)
 			{
-				MeshCache.Discard(Key);
+				if (auto it = MeshCache.Cache.find(Key);
+					it != MeshCache.Cache.end())
+				{
+					MeshCache.Cache.erase(it);
+				}
 			}
 		});
 	}

@@ -93,21 +93,6 @@ public:
 		}
 	}
 
-	template<typename... Args>
-	Handle Load(UINT64 Key, Args&&... args)
-	{
-		ScopedWriteLock SWL(RWLock);
-
-		Handle Handle = {};
-		if (auto it = Cache.find(Key);
-			it != Cache.end())
-		{
-			Handle = it->second;
-		}
-
-		return Handle;
-	}
-
 	void Discard(UINT64 Key)
 	{
 		ScopedWriteLock SWL(RWLock);
@@ -117,6 +102,21 @@ public:
 		{
 			Cache.erase(it);
 		}
+	}
+
+	template<typename... Args>
+	Handle Load(UINT64 Key, Args&&... args) const
+	{
+		ScopedReadLock SWL(RWLock);
+
+		Handle Handle = {};
+		if (auto it = Cache.find(Key);
+			it != Cache.end())
+		{
+			Handle = it->second;
+		}
+
+		return Handle;
 	}
 
 	bool Exist(UINT64 Key) const
@@ -129,8 +129,6 @@ public:
 	template<typename Functor>
 	void Each(Functor F) const
 	{
-		ScopedReadLock SRL(RWLock);
-
 		auto begin = Cache.begin();
 		auto end = Cache.end();
 		while (begin != end)
@@ -154,4 +152,6 @@ public:
 private:
 	mutable RWLock RWLock;
 	std::unordered_map<UINT64, std::shared_ptr<T>> Cache;
+
+	friend class AssetWindow;
 };

@@ -124,40 +124,36 @@ void RenderDevice::Present(bool VSync)
 
 void RenderDevice::Resize(UINT Width, UINT Height)
 {
-	FlushGraphicsQueue();
+	// Release resources before resize swap chain
+	for (auto& SwapChainBuffer : m_SwapChainBuffers)
 	{
-		// Release resources before resize swap chain
-		for (auto& SwapChainBuffer : m_SwapChainBuffers)
-		{
-			SwapChainBuffer.Reset();
-		}
-
-		// Resize backbuffer
-		// Note: Cannot use ResizeBuffers1 when debugging in Nsight Graphics, it will crash
-		uint32_t SwapChainFlags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		ThrowIfFailed(m_DXGISwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
-
-		// Recreate descriptors
-		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
-		{
-			ComPtr<ID3D12Resource> pBackBuffer;
-			ThrowIfFailed(m_DXGISwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
-
-			CreateRenderTargetView(pBackBuffer.Get(), SwapChainBufferDescriptors[i]);
-
-			m_SwapChainBuffers[i] = std::move(pBackBuffer);
-		}
-
-		ScopedWriteLock SWL(g_ResourceStateTrackerLock);
-		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
-		{
-			g_ResourceStateTracker.AddResourceState(m_SwapChainBuffers[i].Get(), D3D12_RESOURCE_STATE_COMMON);
-		}
-
-		// Reset back buffer index
-		m_BackBufferIndex = 0;
+		SwapChainBuffer.Reset();
 	}
-	FlushGraphicsQueue();
+
+	// Resize backbuffer
+	// Note: Cannot use ResizeBuffers1 when debugging in Nsight Graphics, it will crash
+	uint32_t SwapChainFlags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	ThrowIfFailed(m_DXGISwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
+
+	// Recreate descriptors
+	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+	{
+		ComPtr<ID3D12Resource> pBackBuffer;
+		ThrowIfFailed(m_DXGISwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
+
+		CreateRenderTargetView(pBackBuffer.Get(), SwapChainBufferDescriptors[i]);
+
+		m_SwapChainBuffers[i] = std::move(pBackBuffer);
+	}
+
+	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
+	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+	{
+		g_ResourceStateTracker.AddResourceState(m_SwapChainBuffers[i].Get(), D3D12_RESOURCE_STATE_COMMON);
+	}
+
+	// Reset back buffer index
+	m_BackBufferIndex = 0;
 }
 
 void RenderDevice::BindGlobalDescriptorHeap(CommandList& CommandList)
@@ -172,7 +168,7 @@ void RenderDevice::BindDescriptorTable(PipelineState::Type Type, const RootSigna
 	auto GlobalUADescriptorFromStart = m_GlobalOnlineDescriptorHeap.GetDescriptorAt(2, 0);
 	auto GlobalSamplerDescriptorFromStart = m_GlobalOnlineSamplerDescriptorHeap.GetDescriptorFromStart();
 
-	auto Bind = [&](ID3D12GraphicsCommandList* pCommandList, void(ID3D12GraphicsCommandList::*pFunction)(UINT, D3D12_GPU_DESCRIPTOR_HANDLE))
+	auto Bind = [&](ID3D12GraphicsCommandList* pCommandList, void(ID3D12GraphicsCommandList::* pFunction)(UINT, D3D12_GPU_DESCRIPTOR_HANDLE))
 	{
 		(pCommandList->*pFunction)(RootParameters::DescriptorTable::ShaderResourceDescriptorTable + RootParameterOffset, GlobalSRDescriptorFromStart.GpuHandle);
 		(pCommandList->*pFunction)(RootParameters::DescriptorTable::UnorderedAccessDescriptorTable + RootParameterOffset, GlobalUADescriptorFromStart.GpuHandle);
