@@ -7,3 +7,6 @@ struct Component
 	struct Scene* pScene = nullptr;
 	bool IsEdited = false;
 };
+
+template<class T>
+concept IsAComponent = std::is_base_of_v<Component, T>;

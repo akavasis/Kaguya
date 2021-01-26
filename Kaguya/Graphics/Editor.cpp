@@ -67,7 +67,28 @@ void HierarchyWindow::RenderGui()
 
 			if (ImGui::MenuItem("Serialize"))
 			{
-				SceneSerializer::Serialize(Application::ExecutableFolderPath / "Scene.yaml", pScene);
+				nfdchar_t* savePath = nullptr;
+				nfdresult_t result = NFD_SaveDialog("yaml", nullptr, &savePath);
+				if (result == NFD_OKAY)
+				{
+					std::filesystem::path Path = savePath;
+					if (!Path.has_extension())
+					{
+						Path += ".yaml";
+					}
+
+					SceneSerializer::Serialize(Path, pScene);
+
+					free(savePath);
+				}
+				else if (result == NFD_CANCEL)
+				{
+					UNREFERENCED_PARAMETER(result);
+				}
+				else
+				{
+					printf("Error: %s\n", NFD_GetError());
+				}
 			}
 
 			if (ImGui::MenuItem("Deserialize"))
@@ -99,9 +120,6 @@ void HierarchyWindow::RenderGui()
 	}
 	ImGui::End();
 }
-
-template<class T>
-concept IsAComponent = std::is_base_of_v<Component, T>;
 
 template<class T, class Component>
 concept IsUIFunction = requires(T F, Component C)
@@ -217,7 +235,7 @@ static bool RenderFloat3Control(const char* pLabel, float* Float3, float ResetVa
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	IsEdited |= ImGui::DragFloat("##X", &Float3[0], 0.1f, 0.0f, 0.0f, "%.2f");
+	IsEdited |= ImGui::DragFloat("##X", &Float3[0], 0.1f, 0.0f, 0.0f, "%.3f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -234,7 +252,7 @@ static bool RenderFloat3Control(const char* pLabel, float* Float3, float ResetVa
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	IsEdited |= ImGui::DragFloat("##Y", &Float3[1], 0.1f, 0.0f, 0.0f, "%.2f");
+	IsEdited |= ImGui::DragFloat("##Y", &Float3[1], 0.1f, 0.0f, 0.0f, "%.3f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -251,7 +269,7 @@ static bool RenderFloat3Control(const char* pLabel, float* Float3, float ResetVa
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	IsEdited |= ImGui::DragFloat("##Z", &Float3[2], 0.1f, 0.0f, 0.0f, "%.2f");
+	IsEdited |= ImGui::DragFloat("##Z", &Float3[2], 0.1f, 0.0f, 0.0f, "%.3f");
 	ImGui::PopItemWidth();
 
 	ImGui::PopStyleVar();

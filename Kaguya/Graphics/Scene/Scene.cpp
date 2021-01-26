@@ -7,7 +7,7 @@
 
 Scene::Scene()
 {
-	Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
+	Camera.Transform.Position = { 0.0f, 5.0f, -10.0f };
 	PreviousCamera = Camera;
 }
 

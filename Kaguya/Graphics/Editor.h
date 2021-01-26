@@ -2,8 +2,6 @@
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"
 
-#include "Camera.h"
-
 #include "RaytracingAccelerationStructure.h"
 
 class ResourceManager;

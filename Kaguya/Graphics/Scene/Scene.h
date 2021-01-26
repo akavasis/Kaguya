@@ -6,9 +6,8 @@
 #include "Components/MeshFilter.h"
 #include "Components/MeshRenderer.h"
 
-#include "../Asset/Mesh.h"
+#include "Camera.h"
 
-#include "../Camera.h"
 #include "../SharedTypes.h"
 
 class ResourceManager;
