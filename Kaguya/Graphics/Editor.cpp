@@ -8,9 +8,11 @@
 
 using namespace DirectX;
 
+static constexpr ImGuiWindowFlags Flags = 0;
+
 void HierarchyWindow::RenderGui()
 {
-	if (ImGui::Begin("Hierarchy"))
+	if (ImGui::Begin("Hierarchy", nullptr, Flags))
 	{
 		pScene->Registry.each([&](auto Handle)
 		{
@@ -283,7 +285,7 @@ static bool RenderFloat3Control(const char* pLabel, float* Float3, float ResetVa
 
 void InspectorWindow::RenderGui()
 {
-	if (ImGui::Begin("Inspector"))
+	if (ImGui::Begin("Inspector", nullptr, Flags))
 	{
 		if (SelectedEntity)
 		{
@@ -448,7 +450,7 @@ void InspectorWindow::RenderGui()
 
 void AssetWindow::RenderGui()
 {
-	if (ImGui::Begin("Asset"))
+	if (ImGui::Begin("Asset", nullptr, Flags))
 	{
 		if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight))
 		{

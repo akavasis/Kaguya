@@ -21,9 +21,10 @@ bool Keyboard::KeyBufferIsEmpty() const
 
 unsigned char Keyboard::ReadChar()
 {
-	if (unsigned char e;
-		m_CharBuffer.Dequeue(e, 0))
+	if (unsigned char e; m_CharBuffer.Dequeue(e, 0))
+	{
 		return e;
+	}
 	return NULL;
 }
 

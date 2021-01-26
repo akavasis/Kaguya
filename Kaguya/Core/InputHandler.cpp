@@ -10,17 +10,17 @@ void InputHandler::Create(Window* pWindow)
 	m_pWindow = pWindow;
 
 	// Register RID for handling input
-	RAWINPUTDEVICE RID[2]	= {};
+	RAWINPUTDEVICE RID[2] = {};
 
-	RID[0].usUsagePage		= HID_USAGE_PAGE_GENERIC;
-	RID[0].usUsage			= HID_USAGE_GENERIC_MOUSE;
-	RID[0].dwFlags			= RIDEV_INPUTSINK;
-	RID[0].hwndTarget		= pWindow->GetWindowHandle();
+	RID[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	RID[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+	RID[0].dwFlags = RIDEV_INPUTSINK;
+	RID[0].hwndTarget = pWindow->GetWindowHandle();
 
-	RID[1].usUsagePage		= HID_USAGE_PAGE_GENERIC;
-	RID[1].usUsage			= HID_USAGE_GENERIC_KEYBOARD;
-	RID[1].dwFlags			= RIDEV_INPUTSINK;
-	RID[1].hwndTarget		= pWindow->GetWindowHandle();
+	RID[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	RID[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+	RID[1].dwFlags = RIDEV_INPUTSINK;
+	RID[1].hwndTarget = pWindow->GetWindowHandle();
 
 	if (!::RegisterRawInputDevices(RID, 2, sizeof(RID[0])))
 	{
@@ -39,38 +39,18 @@ void InputHandler::Handle(const MSG* pMsg)
 	{
 	case WM_ENTERSIZEMOVE:
 	{
-		Mouse.OnLMBDown();
+		Mouse.OnMouseButtonDown(Mouse::Left);
 	}
 	break;
 
 	case WM_EXITSIZEMOVE:
 	{
-		Mouse.OnLMBUp();
+		Mouse.OnMouseButtonUp(Mouse::Left);
 	}
 	break;
 
-	case WM_LBUTTONDOWN:
-	{
-		if (ImGui::GetIO().WantCaptureMouse)
-		{
-			break;
-		}
-
-		Mouse.OnLMBDown();
-	}
-	break;
-
-	case WM_MBUTTONDOWN:
-	{
-		if (ImGui::GetIO().WantCaptureMouse)
-		{
-			break;
-		}
-
-		Mouse.OnMMBDown();
-	}
-	break;
-
+	case WM_LBUTTONDOWN: [[fallthrough]];
+	case WM_MBUTTONDOWN: [[fallthrough]];
 	case WM_RBUTTONDOWN:
 	{
 		if (ImGui::GetIO().WantCaptureMouse)
@@ -78,32 +58,17 @@ void InputHandler::Handle(const MSG* pMsg)
 			break;
 		}
 
-		Mouse.OnRMBDown();
+		Mouse::Button Button = {};
+		if ((pMsg->message == WM_LBUTTONDOWN)) { Button = Mouse::Left; }
+		if ((pMsg->message == WM_MBUTTONDOWN)) { Button = Mouse::Middle; }
+		if ((pMsg->message == WM_RBUTTONDOWN)) { Button = Mouse::Right; }
+
+		Mouse.OnMouseButtonDown(Button);
 	}
 	break;
 
-	case WM_LBUTTONUP:
-	{
-		if (ImGui::GetIO().WantCaptureMouse)
-		{
-			break;
-		}
-
-		Mouse.OnLMBUp();
-	}
-	break;
-
-	case WM_MBUTTONUP:
-	{
-		if (ImGui::GetIO().WantCaptureMouse)
-		{
-			break;
-		}
-
-		Mouse.OnMMBUp();
-	}
-	break;
-
+	case WM_LBUTTONUP: [[fallthrough]];
+	case WM_MBUTTONUP: [[fallthrough]];
 	case WM_RBUTTONUP:
 	{
 		if (ImGui::GetIO().WantCaptureMouse)
@@ -111,7 +76,12 @@ void InputHandler::Handle(const MSG* pMsg)
 			break;
 		}
 
-		Mouse.OnRMBUp();
+		Mouse::Button Button = {};
+		if ((pMsg->message == WM_LBUTTONUP)) { Button = Mouse::Left; }
+		if ((pMsg->message == WM_MBUTTONUP)) { Button = Mouse::Middle; }
+		if ((pMsg->message == WM_RBUTTONUP)) { Button = Mouse::Right; }
+
+		Mouse.OnMouseButtonUp(Button);
 	}
 	break;
 
@@ -149,13 +119,13 @@ void InputHandler::Handle(const MSG* pMsg)
 		{
 			const auto& mouse = pRawInput->data.mouse;
 
-			if ((mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN))		Mouse.OnLMBDown();
-			if ((mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN))	Mouse.OnMMBDown();
-			if ((mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN))		Mouse.OnRMBDown();
+			if ((mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)) { Mouse.OnMouseButtonDown(Mouse::Left); }
+			if ((mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)) { Mouse.OnMouseButtonDown(Mouse::Middle); }
+			if ((mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)) { Mouse.OnMouseButtonDown(Mouse::Right); }
 
-			if ((mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP))		Mouse.OnLMBUp();
-			if ((mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP))		Mouse.OnMMBUp();
-			if ((mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP))		Mouse.OnRMBUp();
+			if ((mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)) { Mouse.OnMouseButtonUp(Mouse::Left); }
+			if ((mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)) { Mouse.OnMouseButtonUp(Mouse::Middle); }
+			if ((mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)) { Mouse.OnMouseButtonUp(Mouse::Right); }
 
 			Mouse.OnRawInput(mouse.lLastX, mouse.lLastY);
 		}

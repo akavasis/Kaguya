@@ -9,7 +9,7 @@ RenderSystem::RenderSystem(uint32_t Width, uint32_t Height)
 	, AspectRatio(static_cast<float>(Width) / static_cast<float>(Height))
 	, Screenshot(false)
 {
-
+	Settings::RestoreDefaults();
 }
 
 RenderSystem::~RenderSystem()

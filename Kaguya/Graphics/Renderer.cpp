@@ -148,7 +148,7 @@ void Renderer::Render()
 		float4 Resolution;
 
 		uint TotalFrameCount;
-	} g_SystemConstants;
+	} g_SystemConstants = {};
 
 	g_SystemConstants.Camera = GetHLSLCameraDesc(Scene.Camera);
 	g_SystemConstants.Resolution = { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
@@ -275,7 +275,7 @@ void Renderer::RenderGui()
 		{
 			if (ImGui::Button("Restore Defaults"))
 			{
-				Settings::VSync = false;
+				Settings::RestoreDefaults();
 			}
 			ImGui::Checkbox("V-Sync", &Settings::VSync);
 			ImGui::TreePop();

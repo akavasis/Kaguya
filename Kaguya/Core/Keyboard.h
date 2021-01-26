@@ -1,5 +1,4 @@
 #pragma once
-
 #include <bitset>
 #include "ThreadSafeQueue.h"
 
@@ -46,7 +45,6 @@ public:
 
 	unsigned char ReadChar();
 	bool CharBufferIsEmpty() const;
-
 private:
 	void ResetKeyState();
 	void OnKeyDown(unsigned char KeyCode);
@@ -62,10 +60,8 @@ private:
 			QueueBuffer.Dequeue(item, 0);
 		}
 	}
-
 public:
 	bool								AutoRepeat = false;
-
 private:
 	std::bitset<NumKeyStates>			m_KeyStates;
 	ThreadSafeQueue<Keyboard::Event>	m_KeyBuffer;
