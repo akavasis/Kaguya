@@ -3,87 +3,41 @@
 
 // This file defines global root signature for raytracing shaders
 #include <HLSLCommon.hlsli>
-#include <Random.hlsli>
-#include <Sampling.hlsli>
-#include <BxDF.hlsli>
-#include "Common.hlsli"
 
 #define RAYTRACING_INSTANCEMASK_ALL 	(0xff)
 #define RAYTRACING_INSTANCEMASK_OPAQUE 	(1 << 0)
 #define RAYTRACING_INSTANCEMASK_LIGHT	(1 << 1)
 
+struct SystemConstants
+{
+	Camera Camera;
+	
+	// x, y = Resolution
+	// z, w = 1 / Resolution
+	float4 Resolution;
+
+	uint TotalFrameCount;
+};
+
+struct RenderPassData
+{
+	uint NumSamplesPerPixel;
+	uint MaxDepth;
+	uint NumAccumulatedSamples;
+
+	uint RenderTarget;
+};
+
+ConstantBuffer<SystemConstants> 	g_SystemConstants 	: register(b0, space0);
+ConstantBuffer<RenderPassData> 		g_RenderPassData	: register(b1, space0);
+
 RaytracingAccelerationStructure		Scene				: register(t0, space0);
-StructuredBuffer<Mesh>				Meshes				: register(t1, space0);
-StructuredBuffer<PolygonalLight>	Lights				: register(t2, space0);
-StructuredBuffer<Material>			Materials			: register(t3, space0);
+StructuredBuffer<Material>			Materials			: register(t1, space0);
 
 SamplerState						SamplerLinearWrap	: register(s0, space0);
 SamplerState						SamplerLinearClamp	: register(s1, space0);
 
-#include <ShaderLayout.hlsli>
-
-// Local Root Signature
-// ====================
-StructuredBuffer<Vertex>			VertexBuffer		: register(t0, space1);
-StructuredBuffer<uint>				IndexBuffer			: register(t1, space1);
-
-Triangle GetTriangle()
-{
-	Mesh mesh = Meshes[InstanceID()];
-
-	const uint primIndex = PrimitiveIndex();
-	const uint idx0 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 0];
-	const uint idx1 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 1];
-	const uint idx2 = IndexBuffer[primIndex * 3 + mesh.IndexOffset + 2];
-	
-	const Vertex vtx0 = VertexBuffer[idx0 + mesh.VertexOffset];
-	const Vertex vtx1 = VertexBuffer[idx1 + mesh.VertexOffset];
-	const Vertex vtx2 = VertexBuffer[idx2 + mesh.VertexOffset];
-	
-	Triangle t = { vtx0, vtx1, vtx2 };
-	return t;
-}
-
-Vertex GetInterpolatedVertex(in HitAttributes attrib)
-{
-	float3 barycentrics = float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
-
-	Triangle t = GetTriangle();
-	return BarycentricInterpolation(t, barycentrics);
-}
-
-struct SurfaceInteraction
-{
-	bool frontFace;
-	float3 position;
-	float2 uv;
-	float3 tangent;
-	float3 bitangent;
-	float3 normal;
-	Material material;
-};
-
-SurfaceInteraction GetSurfaceInteraction(in HitAttributes attrib)
-{
-	SurfaceInteraction si;
-	
-	Mesh mesh = Meshes[InstanceID()];
-	Vertex vertex = GetInterpolatedVertex(attrib);
-	Material material = Materials[mesh.MaterialIndex];
-	
-	vertex.Normal = normalize(mul(vertex.Normal, (float3x3) mesh.World));
-	ONB onb = InitONB(vertex.Normal);
-	
-	si.frontFace = dot(WorldRayDirection(), vertex.Normal) < 0.0f;
-	si.position = WorldRayOrigin() + (WorldRayDirection() * RayTCurrent());
-	si.uv = vertex.Texture;
-	si.tangent = onb.tangent;
-	si.bitangent = onb.bitangent;
-	si.normal = onb.normal;
-	si.material = material;
-	
-	return si;
-}
+#include <DescriptorTable.hlsli>
 
 RayDesc GenerateCameraRay(in float2 ndc, inout uint seed)
 {
@@ -105,4 +59,4 @@ RayDesc GenerateCameraRay(in float2 ndc, inout uint seed)
 	return ray;
 }
 
-#endif
+#endif // GLOBAL_HLSLI

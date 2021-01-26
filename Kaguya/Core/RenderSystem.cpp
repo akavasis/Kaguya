@@ -4,9 +4,10 @@
 #include "Time.h"
 
 RenderSystem::RenderSystem(uint32_t Width, uint32_t Height)
-	: Width(Width), Height(Height),
-	AspectRatio(static_cast<float>(Width) / static_cast<float>(Height)),
-	Screenshot(false)
+	: Width(Width)
+	, Height(Height)
+	, AspectRatio(static_cast<float>(Width) / static_cast<float>(Height))
+	, Screenshot(false)
 {
 
 }

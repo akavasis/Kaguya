@@ -7,7 +7,10 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers.
 #endif
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif 
+
 #include <Windows.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
@@ -28,6 +31,8 @@
 #include <variant>
 #include <sstream>
 #include <codecvt>
+#include <optional>
+#include <future>
 
 // C++ STL
 #include <array>
@@ -42,21 +47,23 @@
 #include <compare>
 
 // Submodules
-#define GLM_FORCE_XYZW_ONLY
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>
 #include <backends/imgui_impl_dx12.h>
 
 #include <ImGuizmo.h>
 
+#include <entt.hpp>
+
 #include <wil/resource.h>
 
 // External
 #include <DirectXMesh.h>
 #include <DirectXTex.h>
+
+#include <nfd.h>
+#include <cstdio>
+#include <cstdlib>
 
 // DXGI
 #include <dxgi1_6.h>

@@ -7,37 +7,26 @@
 #include <functional>
 #include <unordered_map>
 
-#include <Template/Pool.h>
+#include <Core/Pool.h>
 
-#include "RenderResourceHandle.h"
-#include "RenderResourceHandleRegistry.h"
-#include "RenderResourceContainer.h"
+#include "RHI/D3D12/Device.h"
+#include "RHI/D3D12/CommandQueue.h"
+#include "RHI/D3D12/ResourceStateTracker.h"
+#include "RHI/D3D12/ShaderCompiler.h"
+#include "RHI/D3D12/DescriptorHeap.h"
+#include "RHI/D3D12/CommandList.h"
+#include "RHI/D3D12/AccelerationStructure.h"
 
-#include "API/D3D12/Device.h"
-#include "API/D3D12/CommandQueue.h"
-#include "API/D3D12/ResourceStateTracker.h"
-#include "API/D3D12/ShaderCompiler.h"
-#include "API/D3D12/DescriptorHeap.h"
-#include "API/D3D12/CommandList.h"
-#include "API/D3D12/RaytracingAccelerationStructure.h"
-
-#include "API/Proxy/BufferProxy.h"
-#include "API/Proxy/TextureProxy.h"
-
-#include "API/D3D12/Heap.h"
-
-#include "API/D3D12/RootSignatureBuilder.h"
-#include "API/D3D12/PipelineStateBuilder.h"
-#include "API/D3D12/RaytracingPipelineStateBuilder.h"
+#include "RHI/D3D12/RootSignatureBuilder.h"
+#include "RHI/D3D12/PipelineStateBuilder.h"
+#include "RHI/D3D12/RaytracingPipelineStateBuilder.h"
 
 struct RootParameters
 {
-	struct ShaderLayout
+	struct DescriptorTable
 	{
 		enum
 		{
-			SystemConstants,
-			RenderPassDataCB,
 			ShaderResourceDescriptorTable,
 			UnorderedAccessDescriptorTable,
 			SamplerDescriptorTable,
@@ -46,48 +35,47 @@ struct RootParameters
 	};
 };
 
-struct RenderBuffer
+struct Resource
 {
-	Buffer* pBuffer;
-	Descriptor ShaderResourceView;
-	Descriptor UnorderedAccessView;
+	~Resource();
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
+	D3D12MA::Allocation* pAllocation = nullptr;
 };
 
-struct RenderTexture
-{
-	Texture* pTexture;
-	std::unordered_map<UINT64, Descriptor> ShaderResourceViews;
-	std::unordered_map<UINT64, Descriptor> UnorderedAccessViews;
-	std::unordered_map<UINT64, Descriptor> RenderTargetViews;
-	std::unordered_map<UINT64, Descriptor> DepthStencilViews;
-};
-
-/*
-	Abstraction of underlying GPU Device, its able to create gpu resources
-	and contains underlying gpu resources as well, resources are referred by using
-	RenderResourceHandles
-*/
 class RenderDevice
 {
 public:
 	enum
 	{
-		NumSwapChainBuffers				= 3,
+		NumSwapChainBuffers = 3,
 
-		NumConstantBufferDescriptors	= 512,
-		NumShaderResourceDescriptors	= 512,
-		NumUnorderedAccessDescriptors	= 512,
-		NumSamplerDescriptors			= 512,
-		NumRenderTargetDescriptors		= 64,
-		NumDepthStencilDescriptors		= 64
+		NumConstantBufferDescriptors = 512,
+		NumShaderResourceDescriptors = 512,
+		NumUnorderedAccessDescriptors = 512,
+		NumGlobalOnlineSamplerDescriptors = 512,
+		NumRenderTargetDescriptors = 64,
+		NumDepthStencilDescriptors = 64
 	};
 
-	static constexpr DXGI_FORMAT SwapChainBufferFormat	= DXGI_FORMAT_R8G8B8A8_UNORM;
-	static constexpr DXGI_FORMAT DepthFormat			= DXGI_FORMAT_D32_FLOAT;
-	static constexpr DXGI_FORMAT DepthStencilFormat		= DXGI_FORMAT_D24_UNORM_S8_UINT;
+	static constexpr DXGI_FORMAT SwapChainBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	static constexpr DXGI_FORMAT DepthFormat = DXGI_FORMAT_D32_FLOAT;
+	static constexpr DXGI_FORMAT DepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	RenderDevice(const Window& pWindow);
+	RenderDevice(const Window& Window);
+	RenderDevice(const RenderDevice&) = delete;
+	RenderDevice& operator=(const RenderDevice&) = delete;
 	~RenderDevice();
+
+	ID3D12Resource* GetCurrentBackBuffer() const
+	{
+		return m_SwapChainBuffers[m_BackBufferIndex].Get();
+	}
+
+	Descriptor GetCurrentBackBufferRenderTargetView() const
+	{
+		return SwapChainBufferDescriptors[m_BackBufferIndex];
+	}
 
 	void CreateCommandContexts(UINT NumGraphicsContext);
 
@@ -106,11 +94,8 @@ public:
 	CommandList& GetDefaultAsyncComputeContext() { return GetAsyncComputeContext(0); }
 	CommandList& GetDefaultCopyContext() { return GetCopyContext(0); }
 
-	void BindGpuDescriptorHeap(CommandList& CommandList);
-	inline auto GetGpuDescriptorHeapCBDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetCBDescriptorAt(0); }
-	inline auto GetGpuDescriptorHeapSRDescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(0); }
-	inline auto GetGpuDescriptorHeapUADescriptorFromStart() const { return m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(0); }
-	inline auto GetSamplerDescriptorHeapDescriptorFromStart() const { return m_SamplerDescriptorHeap.GetDescriptorFromStart(); }
+	void BindGlobalDescriptorHeap(CommandList& CommandList);
+	void BindDescriptorTable(PipelineState::Type Type, const RootSignature& RootSignature, CommandList& CommandList);
 
 	void ExecuteGraphicsContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_DIRECT, NumCommandLists, ppCommandLists); }
 	void ExecuteAsyncComputeContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_COMPUTE, NumCommandLists, ppCommandLists); }
@@ -120,52 +105,79 @@ public:
 	void FlushComputeQueue();
 	void FlushCopyQueue();
 
-	RenderResourceHandle InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name);
-	std::string GetRenderResourceHandleName(RenderResourceHandle RenderResourceHandle);
-
-	RenderResourceHandle GetCurrentBackBufferHandle() const { return m_BackBufferHandle[m_BackBufferIndex]; }
-
 	// Resource creation
-	void CreateBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator);
-	void CreateBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator);
+	[[nodiscard]] std::shared_ptr<Resource> CreateResource(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
+		const D3D12_RESOURCE_DESC* pResourceDesc,
+		D3D12_RESOURCE_STATES InitialResourceState,
+		const D3D12_CLEAR_VALUE* pOptimizedClearValue);
 
-	void CreateTexture(RenderResourceHandle Handle, Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState);
-	void CreateTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(TextureProxy&)> Configurator);
-	void CreateTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator);
+	[[nodiscard]] std::shared_ptr<Resource> CreateBuffer(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
+		UINT64 Width,
+		D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE,
+		UINT64 Alignment = 0,
+		D3D12_RESOURCE_STATES InitialResourceState = D3D12_RESOURCE_STATE_COMMON)
+	{
+		auto Desc = CD3DX12_RESOURCE_DESC::Buffer(Width, Flags, Alignment);
+		return CreateResource(pAllocDesc, &Desc, InitialResourceState, nullptr);
+	}
 
-	void CreateHeap(RenderResourceHandle Handle, const D3D12_HEAP_DESC& Desc);
+	[[nodiscard]] RootSignature CreateRootSignature(std::function<void(RootSignatureBuilder&)> Configurator, bool AddDescriptorTableRootParameters = true);
 
-	void CreateRootSignature(RenderResourceHandle Handle, std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters = true);
-	
-	void CreateGraphicsPipelineState(RenderResourceHandle Handle, std::function<void(GraphicsPipelineStateBuilder&)> Configurator);
-	void CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateBuilder&)> Configurator);
-	void CreateRaytracingPipelineState(RenderResourceHandle Handle, std::function<void(RaytracingPipelineStateBuilder&)> Configurator);
-
-	void Destroy(RenderResourceHandle Handle);
+	[[nodiscard]] PipelineState CreateGraphicsPipelineState(std::function<void(GraphicsPipelineStateBuilder&)> Configurator);
+	[[nodiscard]] PipelineState CreateComputePipelineState(std::function<void(ComputePipelineStateBuilder&)> Configurator);
+	[[nodiscard]] RaytracingPipelineState CreateRaytracingPipelineState(std::function<void(RaytracingPipelineStateBuilder&)> Configurator);
 
 	// Resource view creation
-	void CreateShaderResourceView(RenderResourceHandle Handle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {});
-	void CreateUnorderedAccessView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {});
-	void CreateRenderTargetView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
-	void CreateDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {});
+	// Thread-Safe
+	[[nodiscard]] Descriptor AllocateShaderResourceView();
+	[[nodiscard]] Descriptor AllocateUnorderedAccessView();
+	[[nodiscard]] Descriptor AllocateRenderTargetView();
+	[[nodiscard]] Descriptor AllocateDepthStencilView();
 
-	// Returns nullptr if a resource is not found
-	[[nodiscard]] inline auto GetBuffer(RenderResourceHandle Handle)		{ return m_Buffers.GetResource(Handle); }
-	[[nodiscard]] inline auto GetTexture(RenderResourceHandle Handle)		{ return m_Textures.GetResource(Handle); }
-	[[nodiscard]] inline auto GetRootSignature(RenderResourceHandle Handle)	{ return m_RootSignatures.GetResource(Handle); }
-	[[nodiscard]] inline auto GetPipelineState(RenderResourceHandle Handle)	{ return m_PipelineStates.GetResource(Handle); }
-	[[nodiscard]] inline auto GetRaytracingPipelineState(RenderResourceHandle Handle)	{ return m_RaytracingPipelineStates.GetResource(Handle); }
+	// Thread-Safe
+	void CreateShaderResourceView(ID3D12Resource* pResource,
+		const Descriptor& DestDescriptor,
+		UINT NumElements,
+		UINT Stride,
+		bool IsRawBuffer = false);
 
-	Descriptor GetShaderResourceView(RenderResourceHandle Handle, std::optional<UINT> MostDetailedMip = {}, std::optional<UINT> MipLevels = {}) const;
-	Descriptor GetUnorderedAccessView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}) const;
-	Descriptor GetRenderTargetView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
-	Descriptor GetDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice = {}, std::optional<UINT> MipSlice = {}, std::optional<UINT> ArraySize = {}) const;
+	template<typename T>
+	void CreateShaderResourceView(ID3D12Resource* pResource,
+		const Descriptor& DestDescriptor,
+		UINT NumElements)
+	{
+		return CreateShaderResourceView(pResource, DestDescriptor, NumElements, sizeof(T));
+	}
+
+	void CreateShaderResourceView(ID3D12Resource* pResource,
+		const Descriptor& DestDescriptor,
+		std::optional<UINT> MostDetailedMip = {},
+		std::optional<UINT> MipLevels = {});
+
+	void CreateUnorderedAccessView(ID3D12Resource* pResource,
+		const Descriptor& DestDescriptor,
+		std::optional<UINT> ArraySlice = {},
+		std::optional<UINT> MipSlice = {});
+
+	void CreateRenderTargetView(ID3D12Resource* pResource,
+		const Descriptor& DestDescriptor,
+		std::optional<UINT> ArraySlice = {},
+		std::optional<UINT> MipSlice = {},
+		std::optional<UINT> ArraySize = {});
+
+	void CreateDepthStencilView(ID3D12Resource* pResource,
+		const Descriptor& DestDescriptor,
+		std::optional<UINT> ArraySlice = {},
+		std::optional<UINT> MipSlice = {},
+		std::optional<UINT> ArraySize = {});
+
+	void UpdateResourceState(ID3D12Resource* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates);
 private:
 	void InitializeDXGIObjects();
 	void InitializeDXGISwapChain(const Window& pWindow);
 
 	CommandQueue& GetCommandQueue(D3D12_COMMAND_LIST_TYPE CommandListType);
-	void AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder);
+	void AddDescriptorTableRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder);
 
 	void ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE Type, UINT NumCommandLists, CommandList* ppCommandLists[]);
 private:
@@ -177,6 +189,7 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain4>						m_DXGISwapChain;
 	UINT														m_BackBufferIndex;
 
+	Microsoft::WRL::ComPtr<ID3D12Resource>						m_SwapChainBuffers[NumSwapChainBuffers];
 public:
 	Device														Device;
 	CommandQueue												GraphicsQueue, ComputeQueue, CopyQueue;
@@ -185,44 +198,23 @@ public:
 	wil::unique_event											GraphicsFenceCompletionEvent, ComputeFenceCompletionEvent, CopyFenceCompletionEvent;
 
 	ShaderCompiler												ShaderCompiler;
-
 private:
-	RenderResourceHandle										m_BackBufferHandle[NumSwapChainBuffers];
-	ResourceStateTracker										m_GlobalResourceStateTracker;
-	RWLock														m_GlobalResourceStateTrackerRWLock;
-
 	std::vector<CommandList>									m_GraphicsContexts;
 	std::vector<CommandList>									m_AsyncComputeContexts;
 	std::vector<CommandList>									m_CopyContexts;
 
-	RenderResourceHandleRegistry								m_BufferHandleRegistry;
-	RenderResourceHandleRegistry								m_TextureHandleRegistry;
-	RenderResourceHandleRegistry								m_HeapHandleRegistry;
-	RenderResourceHandleRegistry								m_RootSignatureHandleRegistry;
-	RenderResourceHandleRegistry								m_PipelineStateHandleRegistry;
-	RenderResourceHandleRegistry								m_RaytracingPipelineStateHandleRegistry;
+	DescriptorHeap												m_GlobalOnlineDescriptorHeap;
+	DescriptorHeap												m_GlobalOnlineSamplerDescriptorHeap;
+	DescriptorHeap												m_RenderTargetDescriptorHeap;
+	DescriptorHeap												m_DepthStencilDescriptorHeap;
 
-	RenderResourceContainer<Buffer>								m_Buffers;
-	RenderResourceContainer<Texture>							m_Textures;
-	RenderResourceContainer<Heap>								m_Heaps;
-	RenderResourceContainer<RootSignature>						m_RootSignatures;
-	RenderResourceContainer<PipelineState>						m_PipelineStates;
-	RenderResourceContainer<RaytracingPipelineState>			m_RaytracingPipelineStates;
+	ThreadSafePool<void, NumConstantBufferDescriptors>			m_GlobalOnlineCBDescriptorIndexPool;
+	ThreadSafePool<void, NumShaderResourceDescriptors>			m_GlobalOnlineSRDescriptorIndexPool;
+	ThreadSafePool<void, NumUnorderedAccessDescriptors>			m_GlobalOnlineUADescriptorIndexPool;
+	ThreadSafePool<void, NumGlobalOnlineSamplerDescriptors>		m_GlobalOnlineSamplerDescriptorIndexPool;
+	ThreadSafePool<void, NumRenderTargetDescriptors>			m_RenderTargetDescriptorIndexPool;
+	ThreadSafePool<void, NumDepthStencilDescriptors>			m_DepthStencilDescriptorIndexPool;
 
-	CBSRUADescriptorHeap										m_NonShaderVisibleCBSRUADescriptorHeap;
-	CBSRUADescriptorHeap										m_ShaderVisibleCBSRUADescriptorHeap;
-	SamplerDescriptorHeap										m_SamplerDescriptorHeap;
-	RenderTargetDescriptorHeap									m_RenderTargetDescriptorHeap;
-	DepthStencilDescriptorHeap									m_DepthStencilDescriptorHeap;
-
-	Pool<void, NumConstantBufferDescriptors>					m_ConstantBufferDescriptorIndexPool;
-	Pool<void, NumShaderResourceDescriptors>					m_ShaderResourceDescriptorIndexPool;
-	Pool<void, NumUnorderedAccessDescriptors>					m_UnorderedAccessDescriptorIndexPool;
-	Pool<void, NumSamplerDescriptors>							m_SamplerDescriptorIndexPool;
-	Pool<void, NumRenderTargetDescriptors>						m_RenderTargetDescriptorIndexPool;
-	Pool<void, NumDepthStencilDescriptors>						m_DepthStencilDescriptorIndexPool;
-
-	// Resource descriptor containers
-	std::unordered_map<RenderResourceHandle, RenderBuffer>		m_RenderBuffers;
-	std::unordered_map<RenderResourceHandle, RenderTexture>		m_RenderTextures;
+	Descriptor													ImGuiDescriptor;
+	Descriptor													SwapChainBufferDescriptors[NumSwapChainBuffers];
 };

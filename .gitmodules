@@ -1,6 +1,3 @@
-[submodule "Submodules/glm"]
-	path = Submodules/glm
-	url = https://github.com/g-truc/glm.git
 [submodule "Submodules/wil"]
 	path = Submodules/wil
 	url = https://github.com/microsoft/wil.git
@@ -16,3 +13,9 @@
 [submodule "Submodules/D3D12MemoryAllocator"]
 	path = Submodules/D3D12MemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git
+[submodule "Submodules/entt"]
+	path = Submodules/entt
+	url = https://github.com/skypjack/entt.git
+[submodule "Submodules/yaml-cpp"]
+	path = Submodules/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git

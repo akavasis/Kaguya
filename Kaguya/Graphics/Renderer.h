@@ -1,19 +1,19 @@
 #pragma once
+#include <Core/RenderSystem.h>
+#include <Graphics/RenderDevice.h>
+#include <Graphics/ResourceManager.h>
+#include <Graphics/RaytracingAccelerationStructure.h>
+#include <Graphics/Editor.h>
+#include <Graphics/PathIntegrator.h>
+#include <Graphics/ToneMapper.h>
 
-#include <memory>
-#include <atomic>
-#include <wil/resource.h>
-#include "Core/RenderSystem.h"
-
-#include "RenderDevice.h"
-#include "RenderGraph.h"
-#include "GpuScene.h"
-
-//----------------------------------------------------------------------------------------------------
 class Renderer : public RenderSystem
 {
 public:
 	Renderer();
+	Renderer(const Renderer&) = delete;
+	Renderer& operator=(const Renderer&) = delete;
+	~Renderer() override;
 protected:
 	bool Initialize() override;
 	void Update(const Time& Time) override;
@@ -23,17 +23,22 @@ protected:
 	bool Resize(uint32_t Width, uint32_t Height) override;
 	void Destroy() override;
 private:
-	void SetScene(Scene Scene);
 	void RenderGui();
-
-	static DWORD WINAPI AssetProcessThreadProc(_In_ PVOID pParameter);
 private:
-	std::unique_ptr<RenderDevice>			m_pRenderDevice;
-	std::unique_ptr<RenderGraph>			m_pRenderGraph;
+	RenderDevice							RenderDevice;
+	ResourceManager							ResourceManager;
 
-	Scene									m_Scene;
-	std::unique_ptr<GpuScene>				m_pGpuScene;
-	INT										InstanceID							= -1;
+	// Realistically, Editor and Renderer should be separate,
+	// but because we are using ImGui and rendering directly into the back buffer
+	// the Renderer contains Editor...
+	// TODO: Renderer and Editor should be separate, come up with an alternative...
+	// (e.g. render onto offscreen texture and composite them, or perhaps on a separate thread)
+	Scene									Scene;
+	RaytracingAccelerationStructure			RaytracingAccelerationStructure;
+	Editor									Editor;
+	PathIntegrator							PathIntegrator;
+	ToneMapper								ToneMapper;
 
-	CommandQueue							CopyQueue;
+	std::shared_ptr<Resource> Materials;
+	HLSL::Material* pMaterials = nullptr;
 };

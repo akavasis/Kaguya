@@ -51,36 +51,66 @@ void InputHandler::Handle(const MSG* pMsg)
 
 	case WM_LBUTTONDOWN:
 	{
+		if (ImGui::GetIO().WantCaptureMouse)
+		{
+			break;
+		}
+
 		Mouse.OnLMBDown();
 	}
 	break;
 
 	case WM_MBUTTONDOWN:
 	{
+		if (ImGui::GetIO().WantCaptureMouse)
+		{
+			break;
+		}
+
 		Mouse.OnMMBDown();
 	}
 	break;
 
 	case WM_RBUTTONDOWN:
 	{
+		if (ImGui::GetIO().WantCaptureMouse)
+		{
+			break;
+		}
+
 		Mouse.OnRMBDown();
 	}
 	break;
 
 	case WM_LBUTTONUP:
 	{
+		if (ImGui::GetIO().WantCaptureMouse)
+		{
+			break;
+		}
+
 		Mouse.OnLMBUp();
 	}
 	break;
 
 	case WM_MBUTTONUP:
 	{
+		if (ImGui::GetIO().WantCaptureMouse)
+		{
+			break;
+		}
+
 		Mouse.OnMMBUp();
 	}
 	break;
 
 	case WM_RBUTTONUP:
 	{
+		if (ImGui::GetIO().WantCaptureMouse)
+		{
+			break;
+		}
+
 		Mouse.OnRMBUp();
 	}
 	break;
@@ -154,6 +184,11 @@ void InputHandler::Handle(const MSG* pMsg)
 
 	case WM_MOUSEMOVE:
 	{
+		if (ImGui::GetIO().WantCaptureMouse)
+		{
+			break;
+		}
+
 		const POINTS Points = MAKEPOINTS(pMsg->lParam);
 
 		// Within the range of our window dimension -> log move, and log enter + capture mouse (if not previously in window)

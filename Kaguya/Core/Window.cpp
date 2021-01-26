@@ -52,7 +52,7 @@ void Window::Create(LPCWSTR WindowName,
 
 	// Create window
 	m_WindowHandle = wil::unique_hwnd(::CreateWindowW(WindowName, WindowName,
-		WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU,
+		WS_OVERLAPPEDWINDOW,
 		X, Y, Width, Height, NULL, NULL, GetModuleHandle(NULL), NULL));
 	if (m_WindowHandle)
 	{

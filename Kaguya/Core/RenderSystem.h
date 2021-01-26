@@ -1,10 +1,7 @@
 #pragma once
-
 #include <cstdint>
 
 //----------------------------------------------------------------------------------------------------
-class Mouse;
-class Keyboard;
 class Time;
 
 //----------------------------------------------------------------------------------------------------
@@ -26,7 +23,7 @@ public:
 	};
 
 	RenderSystem(uint32_t Width, uint32_t Height);
-	~RenderSystem();
+	virtual ~RenderSystem();
 
 	bool OnInitialize();
 	void OnUpdate(const Time& Time);
@@ -35,7 +32,6 @@ public:
 	void OnRender();
 	bool OnResize(uint32_t Width, uint32_t Height);
 	void OnDestroy();
-
 protected:
 	virtual bool Initialize() = 0;
 	virtual void Update(const Time& Time) = 0;
@@ -44,7 +40,6 @@ protected:
 	virtual void Render() = 0;
 	virtual bool Resize(uint32_t Width, uint32_t Height) = 0;
 	virtual void Destroy() = 0;
-
 protected:
 	uint32_t	Width;
 	uint32_t	Height;

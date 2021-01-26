@@ -1,7 +1,7 @@
-#ifndef __SAMPLING_HLSLI__
-#define __SAMPLING_HLSLI__
+#ifndef SAMPLING_HLSLI
+#define SAMPLING_HLSLI
 
-#include "Constants.hlsli"
+#include <Math.hlsli>
 
 // Section 13.6.1
 float3 UniformSampleHemisphere(in float2 u)
@@ -107,4 +107,4 @@ ONB InitONB(in float3 normal)
     return onb;
 }
 
-#endif
+#endif // SAMPLING_HLSLI

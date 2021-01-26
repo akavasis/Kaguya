@@ -3,6 +3,13 @@
 
 using Microsoft::WRL::ComPtr;
 
+namespace
+{
+	// Global resource state tracker
+	RWLock g_ResourceStateTrackerLock;
+	ResourceStateTracker g_ResourceStateTracker;
+}
+
 namespace D3D12Utility
 {
 	void FlushCommandQueue(UINT64 Value, ID3D12Fence* pFence, ID3D12CommandQueue* pCommandQueue, wil::unique_event& Event)
@@ -11,6 +18,11 @@ namespace D3D12Utility
 		ThrowIfFailed(pFence->SetEventOnCompletion(Value, Event.get()));
 		Event.wait();
 	}
+}
+
+Resource::~Resource()
+{
+	SafeRelease(pAllocation);
 }
 
 RenderDevice::RenderDevice(const Window& Window)
@@ -25,11 +37,10 @@ RenderDevice::RenderDevice(const Window& Window)
 
 	InitializeDXGISwapChain(Window);
 
-	m_NonShaderVisibleCBSRUADescriptorHeap	= { Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, false };
-	m_ShaderVisibleCBSRUADescriptorHeap		= { Device, NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors, true };
-	m_SamplerDescriptorHeap					= { Device, NumSamplerDescriptors, true };
-	m_RenderTargetDescriptorHeap			= { Device, NumRenderTargetDescriptors };
-	m_DepthStencilDescriptorHeap			= { Device, NumDepthStencilDescriptors };
+	m_GlobalOnlineDescriptorHeap.Create(Device, { NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors }, true, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_GlobalOnlineSamplerDescriptorHeap.Create(Device, { NumGlobalOnlineSamplerDescriptors }, true, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	m_RenderTargetDescriptorHeap.Create(Device, { NumRenderTargetDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_DepthStencilDescriptorHeap.Create(Device, { NumDepthStencilDescriptors }, false, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	GraphicsFenceValue = ComputeFenceValue = CopyFenceValue = 1;
 
@@ -41,19 +52,20 @@ RenderDevice::RenderDevice(const Window& Window)
 	ComputeFenceCompletionEvent.create();
 	CopyFenceCompletionEvent.create();
 
-	auto HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-	Descriptor ImGuiDescriptor = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
+	// Allocate RTV for SwapChain
+	for (auto& SwapChainDescriptor : SwapChainBufferDescriptors)
+	{
+		SwapChainDescriptor = AllocateRenderTargetView();
+	}
 
+	ImGuiDescriptor = AllocateShaderResourceView();
 	// Initialize ImGui for d3d12
 	ImGui_ImplDX12_Init(Device, 1,
-		RenderDevice::SwapChainBufferFormat, m_ShaderVisibleCBSRUADescriptorHeap.GetApiHandle(),
+		RenderDevice::SwapChainBufferFormat, m_GlobalOnlineDescriptorHeap,
 		ImGuiDescriptor.CpuHandle,
 		ImGuiDescriptor.GpuHandle);
 
-	for (size_t i = 0; i < NumSwapChainBuffers; ++i)
-	{
-		m_BackBufferHandle[i] = InitializeRenderResourceHandle(RenderResourceType::Texture, "SwapChain Buffer[" + std::to_string(i) + "]");
-	}
+	atexit(Device::ReportLiveObjects);
 }
 
 RenderDevice::~RenderDevice()
@@ -98,9 +110,9 @@ DXGI_QUERY_VIDEO_MEMORY_INFO RenderDevice::QueryLocalVideoMemoryInfo() const
 
 void RenderDevice::Present(bool VSync)
 {
-	UINT	SyncInterval	= VSync ? 1u : 0u;
-	UINT	PresentFlags	= (m_TearingSupport && !VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
-	HRESULT hr				= m_DXGISwapChain->Present(SyncInterval, PresentFlags);
+	UINT	SyncInterval = VSync ? 1u : 0u;
+	UINT	PresentFlags = (m_TearingSupport && !VSync) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
+	HRESULT hr = m_DXGISwapChain->Present(SyncInterval, PresentFlags);
 	if (hr == DXGI_ERROR_DEVICE_REMOVED)
 	{
 		// TODO: Handle device removal
@@ -112,37 +124,68 @@ void RenderDevice::Present(bool VSync)
 
 void RenderDevice::Resize(UINT Width, UINT Height)
 {
-	FlushGraphicsQueue();
+	// Release resources before resize swap chain
+	for (auto& SwapChainBuffer : m_SwapChainBuffers)
 	{
-		// Release resources before resize swap chain
-		for (auto SwapChainTexture : m_BackBufferHandle)
-		{
-			Destroy(SwapChainTexture);
-		}
-
-		// Resize backbuffer
-		// Note: Cannot use ResizeBuffers1 when debugging in Nsight Graphics, it will crash
-		uint32_t SwapChainFlags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		ThrowIfFailed(m_DXGISwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
-
-		// Recreate descriptors
-		for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
-		{
-			ComPtr<ID3D12Resource> pBackBuffer;
-			ThrowIfFailed(m_DXGISwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
-			CreateTexture(m_BackBufferHandle[i], pBackBuffer, Resource::State::Common);
-			CreateRenderTargetView(m_BackBufferHandle[i]);
-		}
-
-		// Reset back buffer index
-		m_BackBufferIndex = 0;
+		SwapChainBuffer.Reset();
 	}
-	FlushGraphicsQueue();
+
+	// Resize backbuffer
+	// Note: Cannot use ResizeBuffers1 when debugging in Nsight Graphics, it will crash
+	uint32_t SwapChainFlags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	ThrowIfFailed(m_DXGISwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
+
+	// Recreate descriptors
+	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+	{
+		ComPtr<ID3D12Resource> pBackBuffer;
+		ThrowIfFailed(m_DXGISwapChain->GetBuffer(i, IID_PPV_ARGS(pBackBuffer.ReleaseAndGetAddressOf())));
+
+		CreateRenderTargetView(pBackBuffer.Get(), SwapChainBufferDescriptors[i]);
+
+		m_SwapChainBuffers[i] = std::move(pBackBuffer);
+	}
+
+	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
+	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
+	{
+		g_ResourceStateTracker.AddResourceState(m_SwapChainBuffers[i].Get(), D3D12_RESOURCE_STATE_COMMON);
+	}
+
+	// Reset back buffer index
+	m_BackBufferIndex = 0;
 }
 
-void RenderDevice::BindGpuDescriptorHeap(CommandList& CommandList)
+void RenderDevice::BindGlobalDescriptorHeap(CommandList& CommandList)
 {
-	CommandList.SetDescriptorHeaps(&m_ShaderVisibleCBSRUADescriptorHeap, &m_SamplerDescriptorHeap);
+	CommandList.SetDescriptorHeaps(&m_GlobalOnlineDescriptorHeap, &m_GlobalOnlineSamplerDescriptorHeap);
+}
+
+void RenderDevice::BindDescriptorTable(PipelineState::Type Type, const RootSignature& RootSignature, CommandList& CommandList)
+{
+	const auto RootParameterOffset = RootSignature.NumParameters - RootParameters::DescriptorTable::NumRootParameters;
+	auto GlobalSRDescriptorFromStart = m_GlobalOnlineDescriptorHeap.GetDescriptorAt(1, 0);
+	auto GlobalUADescriptorFromStart = m_GlobalOnlineDescriptorHeap.GetDescriptorAt(2, 0);
+	auto GlobalSamplerDescriptorFromStart = m_GlobalOnlineSamplerDescriptorHeap.GetDescriptorFromStart();
+
+	auto Bind = [&](ID3D12GraphicsCommandList* pCommandList, void(ID3D12GraphicsCommandList::* pFunction)(UINT, D3D12_GPU_DESCRIPTOR_HANDLE))
+	{
+		(pCommandList->*pFunction)(RootParameters::DescriptorTable::ShaderResourceDescriptorTable + RootParameterOffset, GlobalSRDescriptorFromStart.GpuHandle);
+		(pCommandList->*pFunction)(RootParameters::DescriptorTable::UnorderedAccessDescriptorTable + RootParameterOffset, GlobalUADescriptorFromStart.GpuHandle);
+		(pCommandList->*pFunction)(RootParameters::DescriptorTable::SamplerDescriptorTable + RootParameterOffset, GlobalSamplerDescriptorFromStart.GpuHandle);
+	};
+
+	switch (Type)
+	{
+	case PipelineState::Type::Graphics:
+		Bind(CommandList.pCommandList.Get(), &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
+		break;
+	case PipelineState::Type::Compute:
+		Bind(CommandList.pCommandList.Get(), &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
+		break;
+	default:
+		break;
+	}
 }
 
 void RenderDevice::FlushGraphicsQueue()
@@ -163,606 +206,312 @@ void RenderDevice::FlushCopyQueue()
 	D3D12Utility::FlushCommandQueue(Value, CopyFence.Get(), CopyQueue, CopyFenceCompletionEvent);
 }
 
-RenderResourceHandle RenderDevice::InitializeRenderResourceHandle(RenderResourceType Type, const std::string& Name)
+std::shared_ptr<Resource> RenderDevice::CreateResource(const D3D12MA::ALLOCATION_DESC* pAllocDesc,
+	const D3D12_RESOURCE_DESC* pResourceDesc,
+	D3D12_RESOURCE_STATES InitialResourceState,
+	const D3D12_CLEAR_VALUE* pOptimizedClearValue)
 {
-	switch (Type)
-	{
-	case RenderResourceType::Buffer:					return m_BufferHandleRegistry.Allocate(Type, Name);
-	case RenderResourceType::Texture:					return m_TextureHandleRegistry.Allocate(Type, Name);
-	case RenderResourceType::Heap:						return m_HeapHandleRegistry.Allocate(Type, Name);
-	case RenderResourceType::RootSignature:				return m_RootSignatureHandleRegistry.Allocate(Type, Name);
-	case RenderResourceType::PipelineState:				return m_PipelineStateHandleRegistry.Allocate(Type, Name);
-	case RenderResourceType::RaytracingPipelineState:	return m_RaytracingPipelineStateHandleRegistry.Allocate(Type, Name);
-	default:											return RenderResourceHandle();
-	}
-}
+	std::shared_ptr<Resource> pResource = std::make_shared<Resource>();
 
-std::string RenderDevice::GetRenderResourceHandleName(RenderResourceHandle Handle)
-{
-	switch (Handle.Type)
-	{
-	case RenderResourceType::Buffer:					return m_BufferHandleRegistry.GetName(Handle);
-	case RenderResourceType::Texture:					return m_TextureHandleRegistry.GetName(Handle);
-	case RenderResourceType::Heap:						return m_HeapHandleRegistry.GetName(Handle);
-	case RenderResourceType::RootSignature:				return m_RootSignatureHandleRegistry.GetName(Handle);
-	case RenderResourceType::PipelineState:				return m_PipelineStateHandleRegistry.GetName(Handle);
-	case RenderResourceType::RaytracingPipelineState:	return m_RaytracingPipelineStateHandleRegistry.GetName(Handle);
-	default:											return std::string();
-	}
-}
-
-void RenderDevice::CreateBuffer(RenderResourceHandle Handle, std::function<void(BufferProxy&)> Configurator)
-{
-	BufferProxy proxy;
-	Configurator(proxy);
-
-	auto pBuffer = m_Buffers.CreateResource(Handle, Device, proxy);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pBuffer->GetApiHandle()->SetName(Name.data());
+	ThrowIfFailed(Device.Allocator()->CreateResource(pAllocDesc,
+		pResourceDesc, InitialResourceState, pOptimizedClearValue,
+		&pResource->pAllocation, IID_PPV_ARGS(pResource->pResource.ReleaseAndGetAddressOf())));
 
 	// No need to track resources that have constant resource state throughout their lifetime
-	if (pBuffer->GetCpuAccess() == Buffer::CpuAccess::None)
-		m_GlobalResourceStateTracker.AddResourceState(pBuffer->GetApiHandle(), GetD3D12ResourceStates(proxy.InitialState));
+	if (pAllocDesc->HeapType == D3D12_HEAP_TYPE_DEFAULT)
+	{
+		ScopedWriteLock SWL(g_ResourceStateTrackerLock);
+		g_ResourceStateTracker.AddResourceState(pResource->pResource.Get(), InitialResourceState);
+	}
+
+	return pResource;
 }
 
-void RenderDevice::CreateBuffer(RenderResourceHandle Handle, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(BufferProxy&)> Configurator)
-{
-	BufferProxy proxy;
-	Configurator(proxy);
-
-	auto pHeap = m_Heaps.GetResource(HeapHandle);
-	auto pBuffer = m_Buffers.CreateResource(Handle, Device, pHeap->GetApiHandle(), HeapOffset, proxy);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pBuffer->GetApiHandle()->SetName(Name.data());
-
-	// No need to track resources that have constant resource state throughout their lifetime
-	if (pBuffer->GetCpuAccess() == Buffer::CpuAccess::None)
-		m_GlobalResourceStateTracker.AddResourceState(pBuffer->GetApiHandle(), GetD3D12ResourceStates(proxy.InitialState));
-}
-
-void RenderDevice::CreateTexture(RenderResourceHandle Handle, Microsoft::WRL::ComPtr<ID3D12Resource> ExistingResource, Resource::State InitialState)
-{
-	auto pTexture = m_Textures.CreateResource(Handle, ExistingResource);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pTexture->GetApiHandle()->SetName(Name.data());
-
-	m_GlobalResourceStateTracker.AddResourceState(ExistingResource.Get(), GetD3D12ResourceStates(InitialState));
-}
-
-void RenderDevice::CreateTexture(RenderResourceHandle Handle, Resource::Type Type, std::function<void(TextureProxy&)> Configurator)
-{
-	TextureProxy proxy(Type);
-	Configurator(proxy);
-
-	auto pTexture = m_Textures.CreateResource(Handle, Device, proxy);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pTexture->GetApiHandle()->SetName(Name.data());
-
-	m_GlobalResourceStateTracker.AddResourceState(pTexture->GetApiHandle(), GetD3D12ResourceStates(proxy.InitialState));
-}
-
-void RenderDevice::CreateTexture(RenderResourceHandle Handle, Resource::Type Type, RenderResourceHandle HeapHandle, UINT64 HeapOffset, std::function<void(TextureProxy&)> Configurator)
-{
-	TextureProxy proxy(Type);
-	Configurator(proxy);
-
-	auto pHeap = m_Heaps.GetResource(HeapHandle);
-	auto pTexture = m_Textures.CreateResource(Handle, Device, pHeap->GetApiHandle(), HeapOffset, proxy);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pTexture->GetApiHandle()->SetName(Name.data());
-
-	m_GlobalResourceStateTracker.AddResourceState(pTexture->GetApiHandle(), GetD3D12ResourceStates(proxy.InitialState));
-}
-
-void RenderDevice::CreateHeap(RenderResourceHandle Handle, const D3D12_HEAP_DESC& Desc)
-{
-	auto pHeap = m_Heaps.CreateResource(Handle, Device, Desc);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pHeap->GetApiHandle()->SetName(Name.data());
-}
-
-void RenderDevice::CreateRootSignature(RenderResourceHandle Handle, std::function<void(RootSignatureBuilder&)> Configurator, bool AddShaderLayoutRootParameters)
+RootSignature RenderDevice::CreateRootSignature(std::function<void(RootSignatureBuilder&)> Configurator, bool AddDescriptorTableRootParameters)
 {
 	RootSignatureBuilder Builder = {};
 	Configurator(Builder);
-	if (AddShaderLayoutRootParameters)
-		AddShaderLayoutRootParameterToBuilder(Builder);
+	if (AddDescriptorTableRootParameters)
+		AddDescriptorTableRootParameterToBuilder(Builder);
 
-	auto pRootSignature = m_RootSignatures.CreateResource(Handle, Device, Builder);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pRootSignature->GetApiHandle()->SetName(Name.data());
+	return RootSignature(Device, Builder);
 }
 
-void RenderDevice::CreateGraphicsPipelineState(RenderResourceHandle Handle, std::function<void(GraphicsPipelineStateBuilder&)> Configurator)
+PipelineState RenderDevice::CreateGraphicsPipelineState(std::function<void(GraphicsPipelineStateBuilder&)> Configurator)
 {
 	GraphicsPipelineStateBuilder Builder = {};
 	Configurator(Builder);
 
-	auto pGraphicsPSO = m_PipelineStates.CreateResource(Handle, Device, Builder);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pGraphicsPSO->GetApiHandle()->SetName(Name.data());
+	return PipelineState(Device, Builder);
 }
 
-void RenderDevice::CreateComputePipelineState(RenderResourceHandle Handle, std::function<void(ComputePipelineStateBuilder&)> Configurator)
+PipelineState RenderDevice::CreateComputePipelineState(std::function<void(ComputePipelineStateBuilder&)> Configurator)
 {
 	ComputePipelineStateBuilder Builder = {};
 	Configurator(Builder);
 
-	auto pComputePSO = m_PipelineStates.CreateResource(Handle, Device, Builder);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pComputePSO->GetApiHandle()->SetName(Name.data());
+	return PipelineState(Device, Builder);
 }
 
-void RenderDevice::CreateRaytracingPipelineState(RenderResourceHandle Handle, std::function<void(RaytracingPipelineStateBuilder&)> Configurator)
+RaytracingPipelineState RenderDevice::CreateRaytracingPipelineState(std::function<void(RaytracingPipelineStateBuilder&)> Configurator)
 {
 	RaytracingPipelineStateBuilder Builder = {};
 	Configurator(Builder);
 
-	auto pRaytracingPSO = m_RaytracingPipelineStates.CreateResource(Handle, Device, Builder);
-	auto Name = UTF8ToUTF16(GetRenderResourceHandleName(Handle));
-	pRaytracingPSO->GetApiHandle()->SetName(Name.data());
+	return RaytracingPipelineState(Device, Builder);
 }
 
-void RenderDevice::Destroy(RenderResourceHandle Handle)
+Descriptor RenderDevice::AllocateShaderResourceView()
 {
-	if (!Handle)
+	UINT Index = m_GlobalOnlineSRDescriptorIndexPool.Allocate();
+	return m_GlobalOnlineDescriptorHeap.GetDescriptorAt(1, Index);
+}
+
+Descriptor RenderDevice::AllocateUnorderedAccessView()
+{
+	UINT Index = m_GlobalOnlineUADescriptorIndexPool.Allocate();
+	return m_GlobalOnlineDescriptorHeap.GetDescriptorAt(2, Index);
+}
+
+Descriptor RenderDevice::AllocateRenderTargetView()
+{
+	UINT Index = m_RenderTargetDescriptorIndexPool.Allocate();
+	return m_RenderTargetDescriptorHeap.GetDescriptorAt(0, Index);
+}
+
+Descriptor RenderDevice::AllocateDepthStencilView()
+{
+	UINT Index = m_DepthStencilDescriptorIndexPool.Allocate();
+	return m_DepthStencilDescriptorHeap.GetDescriptorAt(0, Index);
+}
+
+void RenderDevice::CreateShaderResourceView(ID3D12Resource* pResource,
+	const Descriptor& DestDescriptor,
+	UINT NumElements,
+	UINT Stride,
+	bool IsRawBuffer /*= false*/)
+{
+	const auto Desc = pResource->GetDesc();
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+
+	switch (Desc.Dimension)
+	{
+	case D3D12_RESOURCE_DIMENSION_BUFFER:
+		SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		SRVDesc.Buffer.FirstElement = 0;
+		SRVDesc.Buffer.NumElements = NumElements;
+		SRVDesc.Buffer.StructureByteStride = Stride;
+		SRVDesc.Buffer.Flags = IsRawBuffer ? D3D12_BUFFER_SRV_FLAG_NONE : D3D12_BUFFER_SRV_FLAG_RAW;
+		break;
+
+	default:
+		break;
+	}
+
+	Device->CreateShaderResourceView(pResource, &SRVDesc, DestDescriptor.CpuHandle);
+}
+
+void RenderDevice::CreateShaderResourceView(ID3D12Resource* pResource,
+	const Descriptor& DestDescriptor,
+	std::optional<UINT> MostDetailedMip /*= {}*/,
+	std::optional<UINT> MipLevels /*= {}*/)
+{
+	const auto Desc = pResource->GetDesc();
+
+	UINT mostDetailedMip = MostDetailedMip.value_or(0);
+	UINT mipLevels = MipLevels.value_or(Desc.MipLevels);
+
+	auto GetValidSRVFormat = [](DXGI_FORMAT Format)
+	{
+		switch (Format)
+		{
+		case DXGI_FORMAT_R32_TYPELESS:		return DXGI_FORMAT_R32_FLOAT;
+		case DXGI_FORMAT_D24_UNORM_S8_UINT: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		case DXGI_FORMAT_D32_FLOAT:			return DXGI_FORMAT_R32_FLOAT;
+		default:							return Format;
+		}
+	};
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Format = GetValidSRVFormat(Desc.Format);
+	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+	switch (Desc.Dimension)
+	{
+	case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+		if (Desc.DepthOrArraySize > 1)
+		{
+			SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+			SRVDesc.Texture2DArray.MostDetailedMip = mostDetailedMip;
+			SRVDesc.Texture2DArray.MipLevels = mipLevels;
+			SRVDesc.Texture2DArray.ArraySize = Desc.DepthOrArraySize;
+			SRVDesc.Texture2DArray.PlaneSlice = 0;
+			SRVDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+		}
+		else
+		{
+			SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			SRVDesc.Texture2D.MostDetailedMip = mostDetailedMip;
+			SRVDesc.Texture2D.MipLevels = mipLevels;
+			SRVDesc.Texture2D.PlaneSlice = 0;
+			SRVDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	Device->CreateShaderResourceView(pResource, &SRVDesc, DestDescriptor.CpuHandle);
+}
+
+void RenderDevice::CreateUnorderedAccessView(ID3D12Resource* pResource,
+	const Descriptor& DestDescriptor,
+	std::optional<UINT> ArraySlice /*= {}*/,
+	std::optional<UINT> MipSlice /*= {}*/)
+{
+	const auto Desc = pResource->GetDesc();
+
+	UINT arraySlice = ArraySlice.value_or(0);
+	UINT mipSlice = MipSlice.value_or(0);
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+	UAVDesc.Format = Desc.Format;
+
+	switch (Desc.Dimension)
+	{
+	case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+		if (Desc.DepthOrArraySize > 1)
+		{
+			UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			UAVDesc.Texture2DArray.MipSlice = mipSlice;
+			UAVDesc.Texture2DArray.FirstArraySlice = arraySlice;
+			UAVDesc.Texture2DArray.ArraySize = Desc.DepthOrArraySize;
+			UAVDesc.Texture2DArray.PlaneSlice = 0;
+		}
+		else
+		{
+			UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			UAVDesc.Texture2D.MipSlice = mipSlice;
+			UAVDesc.Texture2D.PlaneSlice = 0;
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	Device->CreateUnorderedAccessView(pResource, nullptr, &UAVDesc, DestDescriptor.CpuHandle);
+}
+
+void RenderDevice::CreateRenderTargetView(ID3D12Resource* pResource,
+	const Descriptor& DestDescriptor,
+	std::optional<UINT> ArraySlice /*= {}*/,
+	std::optional<UINT> MipSlice /*= {}*/,
+	std::optional<UINT> ArraySize /*= {}*/)
+{
+	const auto Desc = pResource->GetDesc();
+
+	UINT arraySlice = ArraySlice.value_or(0);
+	UINT mipSlice = MipSlice.value_or(0);
+	UINT arraySize = ArraySize.value_or(Desc.DepthOrArraySize);
+
+	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc = {};
+	RTVDesc.Format = Desc.Format;
+
+	// TODO: Add 1D/3D support
+	switch (Desc.Dimension)
+	{
+	case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+		if (Desc.DepthOrArraySize > 1)
+		{
+			RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			RTVDesc.Texture2DArray.MipSlice = mipSlice;
+			RTVDesc.Texture2DArray.FirstArraySlice = arraySlice;
+			RTVDesc.Texture2DArray.ArraySize = arraySize;
+			RTVDesc.Texture2DArray.PlaneSlice = 0;
+		}
+		else
+		{
+			RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+			RTVDesc.Texture2D.MipSlice = mipSlice;
+			RTVDesc.Texture2D.PlaneSlice = 0;
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	Device->CreateRenderTargetView(pResource, &RTVDesc, DestDescriptor.CpuHandle);
+}
+
+void RenderDevice::CreateDepthStencilView(ID3D12Resource* pResource,
+	const Descriptor& DestDescriptor,
+	std::optional<UINT> ArraySlice /*= {}*/,
+	std::optional<UINT> MipSlice /*= {}*/,
+	std::optional<UINT> ArraySize /*= {}*/)
+{
+	const auto Desc = pResource->GetDesc();
+
+	UINT arraySlice = ArraySlice.value_or(0);
+	UINT mipSlice = MipSlice.value_or(0);
+	UINT arraySize = ArraySize.value_or(Desc.DepthOrArraySize);
+
+	auto GetValidDSVFormat = [](DXGI_FORMAT Format)
+	{
+		// TODO: Add more
+		switch (Format)
+		{
+		case DXGI_FORMAT_R32_TYPELESS: return DXGI_FORMAT_D32_FLOAT;
+
+		default: return DXGI_FORMAT_UNKNOWN;
+		}
+	};
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc = {};
+	DSVDesc.Format = GetValidDSVFormat(Desc.Format);
+	DSVDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+	switch (Desc.Dimension)
+	{
+	case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+		if (Desc.DepthOrArraySize > 1)
+		{
+			DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+			DSVDesc.Texture2DArray.MipSlice = mipSlice;
+			DSVDesc.Texture2DArray.FirstArraySlice = arraySlice;
+			DSVDesc.Texture2DArray.ArraySize = arraySize;
+		}
+		else
+		{
+			DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			DSVDesc.Texture2D.MipSlice = mipSlice;
+		}
+		break;
+
+	case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+		throw std::invalid_argument("Invalid D3D12_RESOURCE_DIMENSION. Dimension: D3D12_RESOURCE_DIMENSION_TEXTURE3D");
+
+	default:
+		break;
+	}
+
+	Device->CreateDepthStencilView(pResource, &DSVDesc, DestDescriptor.CpuHandle);
+}
+
+void RenderDevice::UpdateResourceState(ID3D12Resource* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates)
+{
+	if (!pResource)
+	{
 		return;
-
-	switch (Handle.Type)
-	{
-	case RenderResourceType::Buffer:
-	{
-		auto pBuffer = m_Buffers.GetResource(Handle);
-		if (pBuffer)
-		{
-			// Remove from GRST
-			m_GlobalResourceStateTracker.RemoveResourceState(pBuffer->GetApiHandle());
-
-			// Remove all the resource views
-			if (auto iter = m_RenderBuffers.find(Handle);
-				iter != m_RenderBuffers.end())
-			{
-				if (iter->second.ShaderResourceView.IsValid())
-				{
-					m_ShaderResourceDescriptorIndexPool.Free(iter->second.ShaderResourceView.HeapIndex);
-				}
-				if (iter->second.UnorderedAccessView.IsValid())
-				{
-					m_UnorderedAccessDescriptorIndexPool.Free(iter->second.UnorderedAccessView.HeapIndex);
-				}
-				m_RenderBuffers.erase(iter);
-			}
-
-			// Finally, remove the actual resource
-			m_BufferHandleRegistry.Free(Handle);
-			m_Buffers.Destroy(Handle);
-		}
-	}
-	break;
-	case RenderResourceType::Texture:
-	{
-		auto pTexture = m_Textures.GetResource(Handle);
-		if (pTexture)
-		{
-			// Remove from GRST
-			m_GlobalResourceStateTracker.RemoveResourceState(pTexture->GetApiHandle());
-
-			// Remove all the resource views
-			if (auto iter = m_RenderTextures.find(Handle);
-				iter != m_RenderTextures.end())
-			{
-				for (const auto& srv : iter->second.ShaderResourceViews)
-				{
-					m_ShaderResourceDescriptorIndexPool.Free(srv.second.HeapIndex);
-				}
-				for (const auto& uav : iter->second.UnorderedAccessViews)
-				{
-					m_UnorderedAccessDescriptorIndexPool.Free(uav.second.HeapIndex);
-				}
-				for (const auto& rtv : iter->second.RenderTargetViews)
-				{
-					m_RenderTargetDescriptorIndexPool.Free(rtv.second.HeapIndex);
-				}
-				for (const auto& dsv : iter->second.DepthStencilViews)
-				{
-					m_RenderTargetDescriptorIndexPool.Free(dsv.second.HeapIndex);
-				}
-				m_RenderTextures.erase(iter);
-			}
-
-			// Finally, remove the actual resource
-			m_TextureHandleRegistry.Free(Handle);
-			m_Textures.Destroy(Handle);
-		}
-	}
-	break;
-	case RenderResourceType::Heap: m_HeapHandleRegistry.Free(Handle); m_Heaps.Destroy(Handle);															break;
-	case RenderResourceType::RootSignature: m_RootSignatureHandleRegistry.Free(Handle); m_RootSignatures.Destroy(Handle);								break;
-	case RenderResourceType::PipelineState:	m_PipelineStateHandleRegistry.Free(Handle); m_PipelineStates.Destroy(Handle);								break;
-	case RenderResourceType::RaytracingPipelineState: m_RaytracingPipelineStateHandleRegistry.Free(Handle); m_RaytracingPipelineStates.Destroy(Handle);	break;
-	}
-}
-
-void RenderDevice::CreateShaderResourceView(RenderResourceHandle Handle, std::optional<UINT> MostDetailedMip, std::optional<UINT> MipLevels)
-{
-	switch (Handle.Type)
-	{
-	case RenderResourceType::Buffer:
-	{
-		if (auto iter = m_RenderBuffers.find(Handle);
-			iter != m_RenderBuffers.end())
-		{
-			auto& renderBuffer = iter->second;
-
-			// Re-use descriptor
-			if (renderBuffer.ShaderResourceView.IsValid())
-			{
-				m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(renderBuffer.ShaderResourceView.HeapIndex,
-					renderBuffer.pBuffer);
-			}
-			// Create new one
-			else
-			{
-				size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-				m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, renderBuffer.pBuffer);
-				renderBuffer.ShaderResourceView = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
-			}
-		}
-		else
-		{
-			// First-time request
-			Buffer* pBuffer = GetBuffer(Handle);
-
-			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-			m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pBuffer);
-
-			RenderBuffer renderBuffer;
-			renderBuffer.pBuffer = pBuffer;
-			renderBuffer.ShaderResourceView = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
-
-			m_RenderBuffers[Handle] = renderBuffer;
-		}
-	}
-	break;
-
-	case RenderResourceType::Texture:
-	{
-		if (auto iter = m_RenderTextures.find(Handle);
-			iter != m_RenderTextures.end())
-		{
-			auto& renderTexture = iter->second;
-
-			UINT64 HashValue = CBSRUADescriptorHeap::GetHashValue(CBSRUADescriptorHeap::GetShaderResourceViewDesc(renderTexture.pTexture, MostDetailedMip, MipLevels));
-			if (auto srvIter = renderTexture.ShaderResourceViews.find(HashValue);
-				srvIter != renderTexture.ShaderResourceViews.end())
-			{
-				// Re-use descriptor
-				m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(srvIter->second.HeapIndex, renderTexture.pTexture, MostDetailedMip, MipLevels);
-			}
-			else
-			{
-				// Add a new descriptor
-				size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-				UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, renderTexture.pTexture, MostDetailedMip, MipLevels);
-
-				renderTexture.ShaderResourceViews[HashValue] = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
-			}
-		}
-		else
-		{
-			// First-time request
-			Texture* pTexture = GetTexture(Handle);
-
-			size_t HeapIndex = m_ShaderResourceDescriptorIndexPool.Allocate();
-			UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignSRDescriptor(HeapIndex, pTexture, MostDetailedMip, MipLevels);
-
-			RenderTexture renderTexture;
-			renderTexture.pTexture = pTexture;
-			renderTexture.ShaderResourceViews[HashValue] = m_ShaderVisibleCBSRUADescriptorHeap.GetSRDescriptorAt(HeapIndex);
-
-			m_RenderTextures[Handle] = renderTexture;
-		}
-	}
-	break;
-	}
-}
-
-void RenderDevice::CreateUnorderedAccessView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice)
-{
-	switch (Handle.Type)
-	{
-	case RenderResourceType::Buffer:
-	{
-		if (auto iter = m_RenderBuffers.find(Handle);
-			iter != m_RenderBuffers.end())
-		{
-			auto& renderBuffer = iter->second;
-
-			// Re-use descriptor
-			if (renderBuffer.UnorderedAccessView.IsValid())
-			{
-				m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(renderBuffer.UnorderedAccessView.HeapIndex,
-					renderBuffer.pBuffer);
-			}
-			// Create new one
-			else
-			{
-				size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
-				m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, renderBuffer.pBuffer);
-				renderBuffer.UnorderedAccessView = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
-			}
-		}
-		else
-		{
-			// First-time request
-			Buffer* pBuffer = GetBuffer(Handle);
-
-			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
-			m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pBuffer);
-
-			RenderBuffer renderBuffer;
-			renderBuffer.pBuffer = pBuffer;
-			renderBuffer.UnorderedAccessView = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
-
-			m_RenderBuffers[Handle] = renderBuffer;
-		}
-	}
-	break;
-
-	case RenderResourceType::Texture:
-	{
-		if (auto iter = m_RenderTextures.find(Handle);
-			iter != m_RenderTextures.end())
-		{
-			auto& renderTexture = iter->second;
-
-			UINT64 HashValue = CBSRUADescriptorHeap::GetHashValue(CBSRUADescriptorHeap::GetUnorderedAccessViewDesc(renderTexture.pTexture, ArraySlice, MipSlice));
-			if (auto uavIter = renderTexture.UnorderedAccessViews.find(HashValue);
-				uavIter != renderTexture.UnorderedAccessViews.end())
-			{
-				// Re-use descriptor
-				m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(uavIter->second.HeapIndex, renderTexture.pTexture, ArraySlice, MipSlice);
-			}
-			else
-			{
-				// Add a new descriptor
-				size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
-				UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, renderTexture.pTexture, ArraySlice, MipSlice);
-
-				renderTexture.UnorderedAccessViews[HashValue] = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
-			}
-		}
-		else
-		{
-			// First-time request
-			Texture* pTexture = GetTexture(Handle);
-
-			size_t HeapIndex = m_UnorderedAccessDescriptorIndexPool.Allocate();
-			UINT64 HashValue = m_ShaderVisibleCBSRUADescriptorHeap.AssignUADescriptor(HeapIndex, pTexture, ArraySlice, MipSlice);
-
-			RenderTexture renderTexture;
-			renderTexture.pTexture = pTexture;
-			renderTexture.UnorderedAccessViews[HashValue] = m_ShaderVisibleCBSRUADescriptorHeap.GetUADescriptorAt(HeapIndex);
-
-			m_RenderTextures[Handle] = renderTexture;
-		}
-	}
-	break;
-	}
-}
-
-void RenderDevice::CreateRenderTargetView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
-{
-	if (auto iter = m_RenderTextures.find(Handle);
-		iter != m_RenderTextures.end())
-	{
-		auto& renderTexture = iter->second;
-
-		UINT64 HashValue = RenderTargetDescriptorHeap::GetHashValue(RenderTargetDescriptorHeap::GetRenderTargetViewDesc(renderTexture.pTexture, ArraySlice, MipSlice, ArraySize));
-		if (auto rtvIter = renderTexture.RenderTargetViews.find(HashValue);
-			rtvIter != renderTexture.RenderTargetViews.end())
-		{
-			// Re-use descriptor
-			auto entry = m_RenderTargetDescriptorHeap[rtvIter->second.HeapIndex];
-			entry.ArraySlice = ArraySlice;
-			entry.MipSlice = MipSlice;
-			entry.ArraySize = ArraySize;
-			entry = renderTexture.pTexture;
-		}
-		else
-		{
-			// Add a new descriptor
-			size_t HeapIndex = m_RenderTargetDescriptorIndexPool.Allocate();
-			auto entry = m_RenderTargetDescriptorHeap[HeapIndex];
-			entry.ArraySlice = ArraySlice;
-			entry.MipSlice = MipSlice;
-			entry.ArraySize = ArraySize;
-			entry = renderTexture.pTexture;
-
-			UINT64 HashValue = entry.GetHashValue();
-			renderTexture.RenderTargetViews[HashValue] = m_RenderTargetDescriptorHeap.GetDescriptorAt(HeapIndex);
-		}
-	}
-	else
-	{
-		// First-time request
-		Texture* pTexture = GetTexture(Handle);
-
-		size_t HeapIndex = m_RenderTargetDescriptorIndexPool.Allocate();
-		auto entry = m_RenderTargetDescriptorHeap[HeapIndex];
-		entry.ArraySlice = ArraySlice;
-		entry.MipSlice = MipSlice;
-		entry.ArraySize = ArraySize;
-		entry = pTexture;
-
-		UINT64 HashValue = entry.GetHashValue();
-
-		RenderTexture renderTexture;
-		renderTexture.pTexture = pTexture;
-		renderTexture.RenderTargetViews[HashValue] = m_RenderTargetDescriptorHeap.GetDescriptorAt(HeapIndex);
-
-		m_RenderTextures[Handle] = renderTexture;
-	}
-}
-
-void RenderDevice::CreateDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice, std::optional<UINT> MipSlice, std::optional<UINT> ArraySize)
-{
-	if (auto iter = m_RenderTextures.find(Handle);
-		iter != m_RenderTextures.end())
-	{
-		auto& renderTexture = iter->second;
-
-		UINT64 HashValue = DepthStencilDescriptorHeap::GetHashValue(DepthStencilDescriptorHeap::GetDepthStencilViewDesc(renderTexture.pTexture, ArraySlice, MipSlice, ArraySize));
-		if (auto rtvIter = renderTexture.DepthStencilViews.find(HashValue);
-			rtvIter != renderTexture.DepthStencilViews.end())
-		{
-			// Re-use descriptor
-			auto entry = m_DepthStencilDescriptorHeap[rtvIter->second.HeapIndex];
-			entry.ArraySlice = ArraySlice;
-			entry.MipSlice = MipSlice;
-			entry.ArraySize = ArraySize;
-			entry = renderTexture.pTexture;
-		}
-		else
-		{
-			// Add a new descriptor
-			size_t HeapIndex = m_DepthStencilDescriptorIndexPool.Allocate();
-			auto entry = m_DepthStencilDescriptorHeap[HeapIndex];
-			entry.ArraySlice = ArraySlice;
-			entry.MipSlice = MipSlice;
-			entry.ArraySize = ArraySize;
-			entry = renderTexture.pTexture;
-
-			UINT64 HashValue = entry.GetHashValue();
-			renderTexture.DepthStencilViews[HashValue] = m_DepthStencilDescriptorHeap.GetDescriptorAt(HeapIndex);
-		}
-	}
-	else
-	{
-		// First-time request
-		Texture* pTexture = GetTexture(Handle);
-
-		size_t HeapIndex = m_DepthStencilDescriptorIndexPool.Allocate();
-		auto entry = m_DepthStencilDescriptorHeap[HeapIndex];
-		entry.ArraySlice = ArraySlice;
-		entry.MipSlice = MipSlice;
-		entry.ArraySize = ArraySize;
-		entry = pTexture;
-
-		UINT64 HashValue = entry.GetHashValue();
-
-		RenderTexture renderTexture;
-		renderTexture.pTexture = pTexture;
-		renderTexture.DepthStencilViews[HashValue] = m_DepthStencilDescriptorHeap.GetDescriptorAt(HeapIndex);
-
-		m_RenderTextures[Handle] = renderTexture;
-	}
-}
-
-Descriptor RenderDevice::GetShaderResourceView(RenderResourceHandle Handle, std::optional<UINT> MostDetailedMip /*= {}*/, std::optional<UINT> MipLevels /*= {}*/) const
-{
-	switch (Handle.Type)
-	{
-	case RenderResourceType::Buffer:
-	{
-		if (auto iter = m_RenderBuffers.find(Handle);
-			iter != m_RenderBuffers.end())
-		{
-			auto& renderBuffer = iter->second;
-
-			if (renderBuffer.ShaderResourceView.IsValid())
-				return renderBuffer.ShaderResourceView;
-		}
-	}
-	break;
-
-	case RenderResourceType::Texture:
-	{
-		if (auto iter = m_RenderTextures.find(Handle);
-			iter != m_RenderTextures.end())
-		{
-			auto& renderTexture = iter->second;
-
-			UINT64 HashValue = CBSRUADescriptorHeap::GetHashValue(CBSRUADescriptorHeap::GetShaderResourceViewDesc(renderTexture.pTexture, MostDetailedMip, MipLevels));
-			if (auto srvIter = renderTexture.ShaderResourceViews.find(HashValue);
-				srvIter != renderTexture.ShaderResourceViews.end())
-				return srvIter->second;
-		}
-	}
-	break;
-	}
-	return Descriptor();
-}
-
-Descriptor RenderDevice::GetUnorderedAccessView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/) const
-{
-	switch (Handle.Type)
-	{
-	case RenderResourceType::Buffer:
-	{
-		if (auto iter = m_RenderBuffers.find(Handle);
-			iter != m_RenderBuffers.end())
-		{
-			auto& renderBuffer = iter->second;
-
-			if (renderBuffer.UnorderedAccessView.IsValid())
-				return renderBuffer.UnorderedAccessView;
-		}
-	}
-	break;
-
-	case RenderResourceType::Texture:
-	{
-		if (auto iter = m_RenderTextures.find(Handle);
-			iter != m_RenderTextures.end())
-		{
-			auto& renderTexture = iter->second;
-
-			UINT64 HashValue = CBSRUADescriptorHeap::GetHashValue(CBSRUADescriptorHeap::GetUnorderedAccessViewDesc(renderTexture.pTexture, ArraySlice, MipSlice));
-			if (auto uavIter = renderTexture.UnorderedAccessViews.find(HashValue);
-				uavIter != renderTexture.UnorderedAccessViews.end())
-				return uavIter->second;
-		}
-	}
-	break;
-	}
-	return Descriptor();
-}
-
-Descriptor RenderDevice::GetRenderTargetView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/, std::optional<UINT> ArraySize /*= {}*/) const
-{
-	if (auto iter = m_RenderTextures.find(Handle);
-		iter != m_RenderTextures.end())
-	{
-		auto& renderTexture = iter->second;
-
-		UINT64 HashValue = RenderTargetDescriptorHeap::GetHashValue(RenderTargetDescriptorHeap::GetRenderTargetViewDesc(renderTexture.pTexture, ArraySlice, MipSlice, ArraySize));
-		if (auto rtvIter = renderTexture.RenderTargetViews.find(HashValue);
-			rtvIter != renderTexture.RenderTargetViews.end())
-		{
-			return rtvIter->second;
-		}
 	}
 
-	return Descriptor();
-}
-
-Descriptor RenderDevice::GetDepthStencilView(RenderResourceHandle Handle, std::optional<UINT> ArraySlice /*= {}*/, std::optional<UINT> MipSlice /*= {}*/, std::optional<UINT> ArraySize /*= {}*/) const
-{
-	if (auto iter = m_RenderTextures.find(Handle);
-		iter != m_RenderTextures.end())
-	{
-		auto& renderTexture = iter->second;
-
-		UINT64 HashValue = DepthStencilDescriptorHeap::GetHashValue(DepthStencilDescriptorHeap::GetDepthStencilViewDesc(renderTexture.pTexture, ArraySlice, MipSlice, ArraySize));
-		if (auto dsvIter = renderTexture.DepthStencilViews.find(HashValue);
-			dsvIter != renderTexture.DepthStencilViews.end())
-		{
-			return dsvIter->second;
-		}
-	}
-
-	return Descriptor();
+	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
+	g_ResourceStateTracker.SetResourceState(pResource, Subresource, ResourceStates);
 }
 
 void RenderDevice::InitializeDXGIObjects()
@@ -800,9 +549,9 @@ void RenderDevice::InitializeDXGIObjects()
 
 		if (SUCCEEDED(::D3D12CreateDevice(pAdapter4.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)))
 		{
-			m_DXGIAdapter			= pAdapter4;
-			m_AdapterID				= AdapterID;
-			m_AdapterDesc			= Desc;
+			m_DXGIAdapter = pAdapter4;
+			m_AdapterID = AdapterID;
+			m_AdapterDesc = Desc;
 			break;
 		}
 
@@ -813,18 +562,18 @@ void RenderDevice::InitializeDXGIObjects()
 void RenderDevice::InitializeDXGISwapChain(const Window& Window)
 {
 	// Create DXGISwapChain
-	DXGI_SWAP_CHAIN_DESC1 Desc	= {};
-	Desc.Width					= Window.GetWindowWidth();
-	Desc.Height					= Window.GetWindowHeight();
-	Desc.Format					= SwapChainBufferFormat;
-	Desc.Stereo					= FALSE;
-	Desc.SampleDesc				= DefaultSampleDesc();
-	Desc.BufferUsage			= DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	Desc.BufferCount			= NumSwapChainBuffers;
-	Desc.Scaling				= DXGI_SCALING_NONE;
-	Desc.SwapEffect				= DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-	Desc.AlphaMode				= DXGI_ALPHA_MODE_UNSPECIFIED;
-	Desc.Flags					= m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	DXGI_SWAP_CHAIN_DESC1 Desc = {};
+	Desc.Width = Window.GetWindowWidth();
+	Desc.Height = Window.GetWindowHeight();
+	Desc.Format = SwapChainBufferFormat;
+	Desc.Stereo = FALSE;
+	Desc.SampleDesc = DefaultSampleDesc();
+	Desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	Desc.BufferCount = NumSwapChainBuffers;
+	Desc.Scaling = DXGI_SCALING_NONE;
+	Desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+	Desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+	Desc.Flags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	ComPtr<IDXGISwapChain1> pSwapChain1;
 	ThrowIfFailed(m_DXGIFactory->CreateSwapChainForHwnd(GraphicsQueue, Window.GetWindowHandle(), &Desc, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf()));
 	ThrowIfFailed(m_DXGIFactory->MakeWindowAssociation(Window.GetWindowHandle(), DXGI_MWA_NO_ALT_ENTER)); // No full screen via alt + enter
@@ -844,11 +593,8 @@ CommandQueue& RenderDevice::GetCommandQueue(D3D12_COMMAND_LIST_TYPE CommandListT
 	}
 }
 
-void RenderDevice::AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder)
+void RenderDevice::AddDescriptorTableRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder)
 {
-	RootSignatureBuilder.AddRootCBVParameter(RootCBV(0, 100)); // g_SystemConstants
-	RootSignatureBuilder.AddRootCBVParameter(RootCBV(1, 100)); // g_RenderPassData
-
 	/* Descriptor Tables */
 
 	// ShaderResource
@@ -887,14 +633,14 @@ void RenderDevice::AddShaderLayoutRootParameterToBuilder(RootSignatureBuilder& R
 
 void RenderDevice::ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE Type, UINT NumCommandLists, CommandList* ppCommandLists[])
 {
-	ScopedWriteLock SWL(m_GlobalResourceStateTrackerRWLock);
+	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
 
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
 	commandlistsToBeExecuted.reserve(size_t(NumCommandLists) * 2);
 	for (UINT i = 0; i < NumCommandLists; ++i)
 	{
 		CommandList* pCommandList = ppCommandLists[i];
-		if (pCommandList->Close(&m_GlobalResourceStateTracker))
+		if (pCommandList->Close(&g_ResourceStateTracker))
 		{
 			commandlistsToBeExecuted.push_back(pCommandList->pPendingCommandList.Get());
 		}

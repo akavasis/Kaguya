@@ -1,83 +1,124 @@
 #pragma once
-#include <cstdint>
-#include <list>
-#include <optional>
-#include <filesystem>
+#include <entt.hpp>
+
+#include "Components/Tag.h"
+#include "Components/Transform.h"
+#include "Components/MeshFilter.h"
+#include "Components/MeshRenderer.h"
 
 #include "Camera.h"
-#include "Light.h"
-#include "Material.h"
-#include "Mesh.h"
-#include "MeshInstance.h"
 
-#include "SharedTypes.h"
+#include "../SharedTypes.h"
 
-struct Skybox
-{
-	std::filesystem::path Path;
-};
+class ResourceManager;
+struct Entity;
 
 struct Scene
 {
-	static constexpr size_t MAX_LIGHT_SUPPORTED = 1000;
-	static constexpr size_t MAX_MATERIAL_SUPPORTED = 1000;
-	static constexpr size_t MAX_MESH_INSTANCE_SUPPORTED = 1000;
-
-	static Material LoadMaterial
-	(
-		const std::string& Name,
-		std::optional<std::filesystem::path> AlbedoMapPath = {},
-		std::optional<std::filesystem::path> NormalMapPath = {},
-		std::optional<std::filesystem::path> RoughnessMapPath = {},
-		std::optional<std::filesystem::path> MetallicMapPath = {},
-		std::optional<std::filesystem::path> EmissiveMapPath = {}
-	);
-	static Mesh LoadMeshFromFile(const std::filesystem::path& Path);
-	void LoadFromFile(const std::filesystem::path& Path);
-
-	void AddLight(PolygonalLight Light)
+	enum State
 	{
-		assert(Lights.size() < MAX_LIGHT_SUPPORTED);
+		SCENE_STATE_RENDER,
+		SCENE_STATE_UPDATED,
+	};
 
-		Lights.push_back(Light);
-	}
+	static constexpr UINT64 MAX_MATERIAL_SUPPORTED = 1000;
+	static constexpr UINT64 MAX_INSTANCE_SUPPORTED = 1000;
 
-	[[nodiscard]] size_t AddMaterial(Material Material)
-	{
-		assert(Materials.size() < MAX_MATERIAL_SUPPORTED);
+	Scene();
 
-		size_t Index = Materials.size();
-		Materials.push_back(Material);
-		return Index;
-	}
+	void SetContext(ResourceManager* pResourceManager);
 
-	[[nodiscard]] size_t AddMesh(Mesh Mesh)
-	{
-		size_t Index = Meshes.size();
-		Meshes.push_back(Mesh);
-		return Index;
-	}
+	void Clear();
 
-	// These are the ones going to be rendered
-	size_t AddMeshInstance(MeshInstance MeshInstance)
-	{
-		assert(MeshInstances.size() < MAX_MESH_INSTANCE_SUPPORTED);
+	void Update();
 
-		size_t Index = MeshInstances.size();
-		MeshInstances.push_back(MeshInstance);
-		return Index;
-	}
+	Entity CreateEntity(const std::string& Name);
+	void DestroyEntity(Entity Entity);
 
-	bool Empty()
-	{
-		return MeshInstances.size() != 0;
-	}
+	template<typename T>
+	void OnComponentAdded(Entity entity, T& component);
 
-	Skybox						Skybox;
-	Camera						Camera, PreviousCamera;
+	ResourceManager* pResourceManager = nullptr;
 
-	std::vector<PolygonalLight> Lights;
-	std::vector<Material>		Materials;
-	std::vector<Mesh>			Meshes;
-	std::vector<MeshInstance>	MeshInstances;
+	State SceneState = SCENE_STATE_RENDER;
+	entt::registry Registry;
+
+	Camera Camera, PreviousCamera;
 };
+
+inline HLSL::Material GetHLSLMaterialDesc(const Material& Material)
+{
+	return
+	{
+		.Albedo = Material.Albedo,
+		.Emissive = Material.Emissive,
+		.Specular = Material.Specular,
+		.Refraction = Material.Refraction,
+		.SpecularChance = Material.SpecularChance,
+		.Roughness = Material.Roughness,
+		.Metallic = Material.Metallic,
+		.Fuzziness = Material.Fuzziness,
+		.IndexOfRefraction = Material.IndexOfRefraction,
+		.Model = (uint)Material.Model,
+		.UseAttributeAsValues = (uint)Material.UseAttributes, // If this is true, then the attributes above will be used rather than actual textures
+		.TextureIndices =
+		{
+			Material.TextureIndices[0],
+			Material.TextureIndices[1],
+			Material.TextureIndices[2],
+			Material.TextureIndices[3],
+			Material.TextureIndices[4]
+		},
+		.TextureChannel =
+		{
+			Material.TextureChannel[0],
+			Material.TextureChannel[1],
+			Material.TextureChannel[2],
+			Material.TextureChannel[3],
+			Material.TextureChannel[4],
+		}
+	};
+}
+
+inline HLSL::Camera GetHLSLCameraDesc(const Camera& Camera)
+{
+	DirectX::XMFLOAT4 Position = { Camera.Transform.Position.x, Camera.Transform.Position.y, Camera.Transform.Position.z, 1.0f };
+	DirectX::XMFLOAT4 U, V, W;
+	DirectX::XMFLOAT4X4 View, Projection, ViewProjection, InvView, InvProjection, InvViewProjection;
+
+	XMStoreFloat4(&U, Camera.GetUVector());
+	XMStoreFloat4(&V, Camera.GetVVector());
+	XMStoreFloat4(&W, Camera.GetWVector());
+
+	XMStoreFloat4x4(&View, XMMatrixTranspose(Camera.ViewMatrix()));
+	XMStoreFloat4x4(&Projection, XMMatrixTranspose(Camera.ProjectionMatrix()));
+	XMStoreFloat4x4(&ViewProjection, XMMatrixTranspose(Camera.ViewProjectionMatrix()));
+	XMStoreFloat4x4(&InvView, XMMatrixTranspose(Camera.InverseViewMatrix()));
+	XMStoreFloat4x4(&InvProjection, XMMatrixTranspose(Camera.InverseProjectionMatrix()));
+	XMStoreFloat4x4(&InvViewProjection, XMMatrixTranspose(Camera.InverseViewProjectionMatrix()));
+
+	return
+	{
+		.NearZ = Camera.NearZ,
+		.FarZ = Camera.FarZ,
+		.ExposureValue100 = Camera.ExposureValue100(),
+		._padding1 = 0.0f,
+
+		.FocalLength = Camera.FocalLength,
+		.RelativeAperture = Camera.RelativeAperture,
+		.ShutterTime = Camera.ShutterTime,
+		.SensorSensitivity = Camera.SensorSensitivity,
+
+		.Position = Position,
+		.U = U,
+		.V = V,
+		.W = W,
+
+		.View = View,
+		.Projection = Projection,
+		.ViewProjection = ViewProjection,
+		.InvView = InvView,
+		.InvProjection = InvProjection,
+		.InvViewProjection = InvViewProjection
+	};
+}
