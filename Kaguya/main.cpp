@@ -26,7 +26,8 @@ int main(int argc, char* argv[])
 	{
 		.Title = L"Kaguya",
 		.Width = 1280,
-		.Height = 720
+		.Height = 720,
+		.Maximize = true
 	};
 
 	Application::Initialize(Config);

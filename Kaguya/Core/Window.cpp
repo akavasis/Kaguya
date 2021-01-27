@@ -24,36 +24,38 @@ void Window::SetCursor(HCURSOR Cursor)
 
 void Window::Create(LPCWSTR WindowName,
 	int Width /*= CW_USEDEFAULT*/, int Height /*= CW_USEDEFAULT*/,
-	int X /*= CW_USEDEFAULT*/, int Y /*= CW_USEDEFAULT*/)
+	int X /*= CW_USEDEFAULT*/, int Y /*= CW_USEDEFAULT*/,
+	bool Maximize /*= false*/)
 {
-	m_WindowName	= WindowName;
-	m_WindowWidth	= Width;
-	m_WindowHeight	= Height;
+	m_WindowName = WindowName;
+	m_WindowWidth = Width;
+	m_WindowHeight = Height;
 	m_CursorEnabled = true;
 
 	// Register window class
-	WNDCLASSEXW windowClass		= {};
-	windowClass.cbSize			= sizeof(WNDCLASSEX);
-	windowClass.style			= CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc		= Window::WindowProcedure;
-	windowClass.cbClsExtra		= 0;
-	windowClass.cbWndExtra		= 0;
-	windowClass.hInstance		= GetModuleHandle(NULL);
-	windowClass.hIcon			= m_Icon.get();
-	windowClass.hCursor			= m_Cursor.get();
-	windowClass.hbrBackground	= reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-	windowClass.lpszMenuName	= NULL;
-	windowClass.lpszClassName	= WindowName;
-	windowClass.hIconSm			= m_Icon.get();
-	if (!RegisterClassExW(&windowClass))
+	WNDCLASSEXW WndClassExW = {};
+	WndClassExW.cbSize = sizeof(WNDCLASSEX);
+	WndClassExW.style = CS_HREDRAW | CS_VREDRAW;
+	WndClassExW.lpfnWndProc = Window::WindowProcedure;
+	WndClassExW.cbClsExtra = 0;
+	WndClassExW.cbWndExtra = 0;
+	WndClassExW.hInstance = GetModuleHandle(NULL);
+	WndClassExW.hIcon = m_Icon.get();
+	WndClassExW.hCursor = m_Cursor.get();
+	WndClassExW.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+	WndClassExW.lpszMenuName = NULL;
+	WndClassExW.lpszClassName = WindowName;
+	WndClassExW.hIconSm = m_Icon.get();
+	if (!RegisterClassExW(&WndClassExW))
 	{
 		LOG_ERROR("RegisterClassExW Error: {}", ::GetLastError());
 	}
 
 	// Create window
+	DWORD dwStyle = WS_OVERLAPPEDWINDOW;
+	dwStyle |= Maximize ? WS_MAXIMIZE : 0;
 	m_WindowHandle = wil::unique_hwnd(::CreateWindowW(WindowName, WindowName,
-		WS_OVERLAPPEDWINDOW,
-		X, Y, Width, Height, NULL, NULL, GetModuleHandle(NULL), NULL));
+		dwStyle, X, Y, Width, Height, NULL, NULL, GetModuleHandle(NULL), NULL));
 	if (m_WindowHandle)
 	{
 		// Initialize ImGui for win32

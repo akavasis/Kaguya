@@ -27,7 +27,7 @@ void Application::Initialize(const Config& Config)
 
 	auto ImageFile = Application::ExecutableFolderPath / "Assets/Kaguya.ico";
 	Window.SetIcon(::LoadImage(0, ImageFile.wstring().data(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
-	Window.Create(Config.Title.data(), Config.Width, Config.Height, Config.X, Config.Y);
+	Window.Create(Config.Title.data(), Config.Width, Config.Height, Config.X, Config.Y, Config.Maximize);
 	InputHandler.Create(&Window);
 
 	MinimumWidth = GetSystemMetrics(SM_CXMINTRACK);

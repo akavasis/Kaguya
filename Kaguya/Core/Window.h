@@ -42,7 +42,7 @@ public:
 
 	void Create(LPCWSTR WindowName,
 		int Width = CW_USEDEFAULT, int Height = CW_USEDEFAULT,
-		int X = CW_USEDEFAULT, int Y = CW_USEDEFAULT);
+		int X = CW_USEDEFAULT, int Y = CW_USEDEFAULT, bool Maximize = false);
 
 	void EnableCursor();
 	void DisableCursor();
