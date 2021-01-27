@@ -37,27 +37,10 @@ void InputHandler::Handle(const MSG* pMsg)
 
 	switch (pMsg->message)
 	{
-	case WM_ENTERSIZEMOVE:
-	{
-		Mouse.OnMouseButtonDown(Mouse::Left);
-	}
-	break;
-
-	case WM_EXITSIZEMOVE:
-	{
-		Mouse.OnMouseButtonUp(Mouse::Left);
-	}
-	break;
-
 	case WM_LBUTTONDOWN: [[fallthrough]];
 	case WM_MBUTTONDOWN: [[fallthrough]];
 	case WM_RBUTTONDOWN:
 	{
-		if (ImGui::GetIO().WantCaptureMouse)
-		{
-			break;
-		}
-
 		Mouse::Button Button = {};
 		if ((pMsg->message == WM_LBUTTONDOWN)) { Button = Mouse::Left; }
 		if ((pMsg->message == WM_MBUTTONDOWN)) { Button = Mouse::Middle; }
@@ -71,11 +54,6 @@ void InputHandler::Handle(const MSG* pMsg)
 	case WM_MBUTTONUP: [[fallthrough]];
 	case WM_RBUTTONUP:
 	{
-		if (ImGui::GetIO().WantCaptureMouse)
-		{
-			break;
-		}
-
 		Mouse::Button Button = {};
 		if ((pMsg->message == WM_LBUTTONUP)) { Button = Mouse::Left; }
 		if ((pMsg->message == WM_MBUTTONUP)) { Button = Mouse::Middle; }
@@ -95,7 +73,7 @@ void InputHandler::Handle(const MSG* pMsg)
 	{
 		if (!Mouse.UseRawInput)
 		{
-			return;
+			break;
 		}
 
 		UINT dwSize = 0;
@@ -105,7 +83,7 @@ void InputHandler::Handle(const MSG* pMsg)
 		auto lpb = (LPBYTE)_malloca(dwSize);
 		if (!lpb)
 		{
-			return;
+			break;
 		}
 
 		::GetRawInputData(reinterpret_cast<HRAWINPUT>(pMsg->lParam), RID_INPUT, lpb, &dwSize,
@@ -154,11 +132,6 @@ void InputHandler::Handle(const MSG* pMsg)
 
 	case WM_MOUSEMOVE:
 	{
-		if (ImGui::GetIO().WantCaptureMouse)
-		{
-			break;
-		}
-
 		const POINTS Points = MAKEPOINTS(pMsg->lParam);
 
 		// Within the range of our window dimension -> log move, and log enter + capture mouse (if not previously in window)

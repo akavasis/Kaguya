@@ -302,7 +302,7 @@ static void DeserializeCamera(const YAML::Node& Node, Scene* pScene)
 	pScene->PreviousCamera = Camera;
 }
 
-static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, ResourceManager* pResourceManager)
+static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, std::unordered_set<std::string>* Resources)
 {
 	// Tag component have to exist
 	std::string Name = Node["Tag"]["Name"].as<std::string>();
@@ -320,10 +320,7 @@ static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, ResourceMan
 	DeserializeComponent<MeshFilter>(Node["Mesh Filter"], &Entity, [&](auto& Node, auto& MeshFilter)
 	{
 		auto Path = Node["Name"].as<std::string>();
-		if (Path != "NULL")
-		{
-			pResourceManager->AsyncLoadMesh(Path, true);
-		}
+		Resources->insert(Path);
 
 		MeshFilter.MeshID = entt::hashed_string(Path.data());
 	});
@@ -375,6 +372,7 @@ void SceneSerializer::Deserialize(const std::filesystem::path& Path, Scene* pSce
 
 	DeserializeCamera(Camera, pScene);
 
+	std::unordered_set<std::string> Resources;
 	auto Entities = Data["Entities"];
 	if (Entities)
 	{
@@ -382,7 +380,12 @@ void SceneSerializer::Deserialize(const std::filesystem::path& Path, Scene* pSce
 		{
 			UINT64 ID = Entity["Entity"].as<UINT64>();
 
-			DeserializeEntity(Entity, pScene, pResourceManager);
+			DeserializeEntity(Entity, pScene, &Resources);
 		}
+	}
+
+	for (const auto& iter : Resources)
+	{
+		pResourceManager->AsyncLoadMesh(iter, true);
 	}
 }

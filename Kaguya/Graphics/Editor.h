@@ -19,6 +19,8 @@ public:
 	void RenderGui();
 
 	Entity GetSelectedEntity() const { return SelectedEntity; }
+
+	void SetSelectedEntity(Entity Entity) { SelectedEntity = Entity; }
 private:
 	ResourceManager* pResourceManager = nullptr;
 	Scene* pScene = nullptr;
@@ -28,15 +30,17 @@ private:
 class InspectorWindow
 {
 public:
-	void SetContext(ResourceManager* pResourceManager, Entity Entity)
+	void SetContext(ResourceManager* pResourceManager, Scene* pScene, Entity Entity)
 	{
 		this->pResourceManager = pResourceManager;
+		this->pScene = pScene;
 		SelectedEntity = Entity;
 	}
 
 	void RenderGui();
 private:
 	ResourceManager* pResourceManager = nullptr;
+	Scene* pScene;
 	Entity SelectedEntity = {};
 };
 
@@ -59,16 +63,18 @@ public:
 	void SetContext(ResourceManager* pResourceManager, Scene* pScene)
 	{
 		this->pResourceManager = pResourceManager;
+		this->pScene = pScene;
 		HierarchyWindow.SetContext(pResourceManager, pScene);
-		InspectorWindow.SetContext(pResourceManager, {});
+		InspectorWindow.SetContext(pResourceManager, pScene, {});
 		AssetWindow.SetContext(pResourceManager);
 	}
 
 	void RenderGui();
-private:
-	ResourceManager* pResourceManager;
-
+public:
 	HierarchyWindow HierarchyWindow;
 	InspectorWindow InspectorWindow;
 	AssetWindow AssetWindow;
+private:
+	ResourceManager* pResourceManager;
+	Scene* pScene;
 };

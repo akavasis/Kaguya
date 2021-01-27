@@ -5,6 +5,7 @@
 #include <Graphics/RaytracingAccelerationStructure.h>
 #include <Graphics/Editor.h>
 #include <Graphics/PathIntegrator.h>
+#include <Graphics/Picking.h>
 #include <Graphics/ToneMapper.h>
 
 class Renderer : public RenderSystem
@@ -37,6 +38,7 @@ private:
 	RaytracingAccelerationStructure			RaytracingAccelerationStructure;
 	Editor									Editor;
 	PathIntegrator							PathIntegrator;
+	Picking									Picking;
 	ToneMapper								ToneMapper;
 
 	std::shared_ptr<Resource> Materials;

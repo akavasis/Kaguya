@@ -48,7 +48,7 @@ void RaytracingAccelerationStructure::AddInstance(MeshRenderer* pMeshRenderer)
 
 	D3D12_RAYTRACING_INSTANCE_DESC Desc = {};
 	XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(Desc.Transform), TransformComponent.Matrix());
-	Desc.InstanceID = 0;
+	Desc.InstanceID = TopLevelAccelerationStructure.Size();
 	Desc.InstanceMask = RAYTRACING_INSTANCEMASK_ALL;
 	Desc.InstanceContributionToHitGroupIndex = InstanceContributionToHitGroupIndex;
 	Desc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;

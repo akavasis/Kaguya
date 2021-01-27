@@ -42,6 +42,8 @@ bool Renderer::Initialize()
 	PathIntegrator.Create(&RenderDevice);
 	PathIntegrator.SetResolution(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight());
 
+	Picking.Create(&RenderDevice);
+
 	ToneMapper.Create(&RenderDevice);
 
 	D3D12MA::ALLOCATION_DESC Desc = {};
@@ -67,6 +69,8 @@ void Renderer::HandleInput(float DeltaTime)
 	// instance id for editor
 	if (Mouse.IsLMBPressed() && !Mouse.UseRawInput && !ImGui::GetIO().WantCaptureMouse)
 	{
+		auto SelectedEntity = Picking.GetSelectedEntity();
+		Editor.HierarchyWindow.SetSelectedEntity(SelectedEntity.value_or(Entity()));
 	}
 }
 
@@ -147,11 +151,14 @@ void Renderer::Render()
 		// z, w = 1 / Resolution
 		float4 Resolution;
 
+		int2 MousePosition;
+
 		uint TotalFrameCount;
 	} g_SystemConstants = {};
 
 	g_SystemConstants.Camera = GetHLSLCameraDesc(Scene.Camera);
 	g_SystemConstants.Resolution = { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
+	g_SystemConstants.MousePosition = { Application::InputHandler.Mouse.X, Application::InputHandler.Mouse.Y };
 	g_SystemConstants.TotalFrameCount = static_cast<unsigned int>(Statistics::TotalFrameCount);
 
 	GraphicsResource SceneConstants = RenderDevice.Device.GraphicsMemory()->AllocateConstant(g_SystemConstants);
@@ -167,6 +174,9 @@ void Renderer::Render()
 
 		PathIntegrator.UpdateShaderTable(RaytracingAccelerationStructure, GraphicsContext);
 		PathIntegrator.Render(SceneConstants.GpuAddress(), RaytracingAccelerationStructure, Materials->pResource->GetGPUVirtualAddress(), GraphicsContext);
+
+		Picking.UpdateShaderTable(RaytracingAccelerationStructure, GraphicsContext);
+		Picking.ShootPickingRay(SceneConstants.GpuAddress(), RaytracingAccelerationStructure, GraphicsContext);
 	}
 
 	auto pBackBuffer = RenderDevice.GetCurrentBackBuffer();
@@ -182,7 +192,7 @@ void Renderer::Render()
 		GraphicsContext->RSSetScissorRects(1, &ScissorRect);
 		GraphicsContext->OMSetRenderTargets(1, &RTV.CpuHandle, TRUE, nullptr);
 		GraphicsContext->ClearRenderTargetView(RTV.CpuHandle, DirectX::Colors::White, 0, nullptr);
-		
+
 		// Tone Map
 		{
 			if (!RaytracingAccelerationStructure.Empty())
@@ -190,7 +200,7 @@ void Renderer::Render()
 				ToneMapper.Apply(PathIntegrator.GetSRV(), RTV, GraphicsContext);
 			}
 		}
-		
+
 		// ImGui Render
 		{
 			PIXScopedEvent(GraphicsContext.GetApiHandle(), 0, L"ImGui Render");
@@ -226,7 +236,7 @@ void Renderer::Render()
 bool Renderer::Resize(uint32_t Width, uint32_t Height)
 {
 	RenderDevice.FlushGraphicsQueue();
-	
+
 	RenderDevice.Resize(Width, Height);
 	PathIntegrator.SetResolution(Width, Height);
 	PathIntegrator.Reset();
@@ -246,7 +256,7 @@ void Renderer::RenderGui()
 {
 	constexpr ImGuiWindowFlags Flags =
 		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoResize | 
+		ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_AlwaysAutoResize;
 
 	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);

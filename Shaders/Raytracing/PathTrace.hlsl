@@ -1,6 +1,6 @@
 #include "Global.hlsli"
 
-// Local Root Signature
+// HitGroup Local Root Signature
 // ====================
 cbuffer RootConstants : register(b0, space1)
 {
@@ -49,7 +49,7 @@ SurfaceInteraction GetSurfaceInteraction(in BuiltInTriangleIntersectionAttribute
 	SurfaceInteraction si;
 	
 	Vertex vertex = GetInterpolatedVertex(attrib);
-	Material material = Materials[MaterialIndex];
+	Material material = g_Materials[MaterialIndex];
 	
 	vertex.Normal = normalize(mul(vertex.Normal, (float3x3) ObjectToWorld3x4()));
 	ONB onb = InitONB(vertex.Normal);
@@ -313,7 +313,7 @@ float3 PathTrace(RayDesc Ray, inout uint Seed)
 		const uint RayContributionToHitGroupIndex = RayTypePrimary;
 		const uint MultiplierForGeometryContributionToHitGroupIndex = NumRayTypes;
 		const uint MissShaderIndex = RayTypePrimary;
-		TraceRay(Scene,
+		TraceRay(g_Scene,
 			RayFlags,
 			InstanceInclusionMask, 
 			RayContributionToHitGroupIndex, 

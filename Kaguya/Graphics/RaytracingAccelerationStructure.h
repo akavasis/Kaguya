@@ -51,4 +51,5 @@ private:
 	D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDescs = nullptr;
 
 	friend class PathIntegrator;
+	friend class Picking;
 };

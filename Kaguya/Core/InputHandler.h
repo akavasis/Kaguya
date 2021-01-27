@@ -18,7 +18,6 @@ public:
 public:
 	Mouse		Mouse;
 	Keyboard	Keyboard;
-
 private:
 	Window*		m_pWindow = nullptr;
 };

@@ -1,4 +1,6 @@
 #pragma once
+#include <atomic>
+#include <chrono>
 #include <optional>
 #include "ThreadSafeQueue.h"
 
@@ -113,4 +115,6 @@ private:
 	int								m_WheelDeltaCarry;
 	ThreadSafeQueue<Mouse::Event>	m_MouseBuffer;
 	ThreadSafeQueue<RawInput>		m_RawDeltaBuffer;
+
+	friend class InputHandler;
 };

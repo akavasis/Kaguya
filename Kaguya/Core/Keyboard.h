@@ -66,4 +66,6 @@ private:
 	std::bitset<NumKeyStates>			m_KeyStates;
 	ThreadSafeQueue<Keyboard::Event>	m_KeyBuffer;
 	ThreadSafeQueue<unsigned char>		m_CharBuffer;
+
+	friend class InputHandler;
 };

@@ -283,6 +283,59 @@ static bool RenderFloat3Control(const char* pLabel, float* Float3, float ResetVa
 	return IsEdited;
 }
 
+static bool EditTransform(
+	Transform& Transform,
+	const float* pCameraView,
+	float* pCameraProjection,
+	float* pMatrix,
+	bool EditTransformDecomposition)
+{
+	bool IsEdited = false;
+
+	static float				Snap[3] = { 1, 1, 1 };
+	static ImGuizmo::MODE		CurrentGizmoMode = ImGuizmo::WORLD;
+
+	if (EditTransformDecomposition)
+	{
+		ImGui::Text("Operation");
+
+		if (ImGui::RadioButton("Translate", Transform.CurrentGizmoOperation == ImGuizmo::TRANSLATE))
+			Transform.CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+		ImGui::SameLine();
+
+		if (ImGui::RadioButton("Rotate", Transform.CurrentGizmoOperation == ImGuizmo::ROTATE))
+			Transform.CurrentGizmoOperation = ImGuizmo::ROTATE;
+		ImGui::SameLine();
+
+		if (ImGui::RadioButton("Scale", Transform.CurrentGizmoOperation == ImGuizmo::SCALE))
+			Transform.CurrentGizmoOperation = ImGuizmo::SCALE;
+
+		ImGui::Checkbox("", &Transform.UseSnap);
+		ImGui::SameLine();
+
+		switch (Transform.CurrentGizmoOperation)
+		{
+		case ImGuizmo::TRANSLATE:
+			ImGui::InputFloat3("Snap", &Snap[0]);
+			break;
+		case ImGuizmo::ROTATE:
+			ImGui::InputFloat("Angle Snap", &Snap[0]);
+			break;
+		case ImGuizmo::SCALE:
+			ImGui::InputFloat("Scale Snap", &Snap[0]);
+			break;
+		}
+	}
+
+	IsEdited |= ImGuizmo::Manipulate(
+		pCameraView, pCameraProjection,
+		(ImGuizmo::OPERATION)Transform.CurrentGizmoOperation, CurrentGizmoMode,
+		pMatrix, nullptr,
+		Transform.UseSnap ? Snap : nullptr);
+
+	return IsEdited;
+}
+
 void InspectorWindow::RenderGui()
 {
 	if (ImGui::Begin("Inspector", nullptr, Flags))
@@ -304,11 +357,12 @@ void InspectorWindow::RenderGui()
 				nullptr);
 
 			RenderComponent<Transform, true>("Transform", SelectedEntity,
-				[](Transform& Component)
+				[&](Transform& Component)
 			{
 				bool IsEdited = false;
 
 				DirectX::XMFLOAT4X4 World;
+				DirectX::XMFLOAT4X4 View, Projection;
 
 				// Dont transpose this
 				XMStoreFloat4x4(&World, Component.Matrix());
@@ -319,6 +373,25 @@ void InspectorWindow::RenderGui()
 				IsEdited |= RenderFloat3Control("Rotation", matrixRotation);
 				IsEdited |= RenderFloat3Control("Scale", matrixScale, 1);
 				ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, reinterpret_cast<float*>(&World));
+
+				// Dont transpose this
+				XMStoreFloat4x4(&View, pScene->Camera.ViewMatrix());
+				XMStoreFloat4x4(&Projection, pScene->Camera.ProjectionMatrix());
+
+				ImGuiIO& io = ImGui::GetIO();
+				ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+				ImGui::Separator();
+
+				// I'm not sure what this does, I put it here because the example does it...
+				ImGuizmo::SetID(0);
+
+				// If we have edited the transform, update it and mark it as dirty so it will be updated on the GPU side
+				IsEdited |= EditTransform(
+					Component,
+					reinterpret_cast<float*>(&View),
+					reinterpret_cast<float*>(&Projection),
+					reinterpret_cast<float*>(&World),
+					true);
 
 				if (IsEdited)
 				{
@@ -547,7 +620,7 @@ void AssetWindow::RenderGui()
 void Editor::RenderGui()
 {
 	HierarchyWindow.RenderGui();
-	InspectorWindow.SetContext(pResourceManager, HierarchyWindow.GetSelectedEntity());
+	InspectorWindow.SetContext(pResourceManager, pScene, HierarchyWindow.GetSelectedEntity());
 	InspectorWindow.RenderGui();
 	AssetWindow.RenderGui();
 }

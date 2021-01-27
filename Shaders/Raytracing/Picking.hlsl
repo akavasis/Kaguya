@@ -1,9 +1,23 @@
-struct RenderPassData
+#include <HLSLCommon.hlsli>
+
+struct SystemConstants
 {
-    int2 MousePosition;
+	Camera Camera;
+	
+	// x, y = Resolution
+	// z, w = 1 / Resolution
+	float4 Resolution;
+
+	int2 MousePosition;
+
+	uint TotalFrameCount;
 };
-#define RenderPassDataType RenderPassData
-#include "Global.hlsli"
+
+ConstantBuffer<SystemConstants> 	g_SystemConstants 	: register(b0, space0);
+
+RaytracingAccelerationStructure		g_Scene				: register(t0, space0);
+
+RWStructuredBuffer<int>             g_PickingResult     : register(u0, space0);
 
 struct RayPayload
 {
@@ -16,16 +30,13 @@ enum RayType
     NumRayTypes
 };
 
-// ==================== Local Root Signature ====================
-RWStructuredBuffer<int> PickingResult : register(u0, space0);
-
 [shader("raygeneration")]
 void RayGeneration()
 {
-    int2 pixelIdx = g_RenderPassData.MousePosition;
-    float2 uv = (pixelIdx + float2(0.5f, 0.5f)) / g_SystemConstants.OutputSize.xy;
+    int2 pixelIdx = g_SystemConstants.MousePosition;
+    float2 uv = (pixelIdx + float2(0.5f, 0.5f)) / g_SystemConstants.Resolution.xy;
 
-    RayDesc ray = 
+    RayDesc Ray = 
     { 
         g_SystemConstants.Camera.Position.xyz, 
         g_SystemConstants.Camera.NearZ, 
@@ -33,16 +44,23 @@ void RayGeneration()
         g_SystemConstants.Camera.FarZ 
     };
 
-    RayPayload rayPayload = { -1 };
+    RayPayload RayPayload = { -1 };
 
-    const uint flags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
-	const uint mask = 0xffffffff;
-	const uint hitGroupIndex = RayTypePrimary;
-	const uint hitGroupIndexMultiplier = NumRayTypes;
-	const uint missShaderIndex = RayTypePrimary;
-	TraceRay(Scene, flags, mask, hitGroupIndex, hitGroupIndexMultiplier, missShaderIndex, ray, rayPayload);
+    const uint RayFlags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
+	const uint InstanceInclusionMask = 0xffffffff;
+	const uint RayContributionToHitGroupIndex = RayTypePrimary;
+	const uint MultiplierForGeometryContributionToHitGroupIndex = NumRayTypes;
+	const uint MissShaderIndex = RayTypePrimary;
+	TraceRay(g_Scene,
+			RayFlags,
+			InstanceInclusionMask, 
+			RayContributionToHitGroupIndex, 
+			MultiplierForGeometryContributionToHitGroupIndex, 
+			MissShaderIndex, 
+			Ray, 
+			RayPayload);
 
-    PickingResult[0] = rayPayload.InstanceID;
+    g_PickingResult[0] = RayPayload.InstanceID;
 }
 
 [shader("miss")]
@@ -52,7 +70,7 @@ void Miss(inout RayPayload rayPayload)
 }
 
 [shader("closesthit")]
-void ClosestHit(inout RayPayload rayPayload, in HitAttributes attrib)
+void ClosestHit(inout RayPayload rayPayload, in BuiltInTriangleIntersectionAttributes attrib)
 {
     rayPayload.InstanceID = InstanceID();
 }

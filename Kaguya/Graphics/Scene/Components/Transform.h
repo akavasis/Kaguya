@@ -25,4 +25,7 @@ struct Transform : Component
 	DirectX::XMFLOAT3 Position;
 	DirectX::XMFLOAT3 Scale;
 	DirectX::XMFLOAT4 Orientation;
+
+	bool UseSnap = false;
+	UINT CurrentGizmoOperation = 0;
 };

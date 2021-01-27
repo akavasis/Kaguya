@@ -16,6 +16,8 @@ struct SystemConstants
 	// z, w = 1 / Resolution
 	float4 Resolution;
 
+	int2 MousePosition;
+
 	uint TotalFrameCount;
 };
 
@@ -31,8 +33,8 @@ struct RenderPassData
 ConstantBuffer<SystemConstants> 	g_SystemConstants 	: register(b0, space0);
 ConstantBuffer<RenderPassData> 		g_RenderPassData	: register(b1, space0);
 
-RaytracingAccelerationStructure		Scene				: register(t0, space0);
-StructuredBuffer<Material>			Materials			: register(t1, space0);
+RaytracingAccelerationStructure		g_Scene				: register(t0, space0);
+StructuredBuffer<Material>			g_Materials			: register(t1, space0);
 
 SamplerState						SamplerLinearWrap	: register(s0, space0);
 SamplerState						SamplerLinearClamp	: register(s1, space0);

@@ -37,5 +37,5 @@ void Libraries::Register(const ShaderCompiler& ShaderCompiler)
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 
 	PathTrace = ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/PathTrace.hlsl");
-	//Picking				= ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");
+	Picking = ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");
 }
