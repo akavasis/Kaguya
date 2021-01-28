@@ -170,6 +170,8 @@ void PathIntegrator::SetResolution(UINT Width, UINT Height)
 
 	pRenderDevice->CreateUnorderedAccessView(m_RenderTarget->pResource.Get(), UAV);
 	pRenderDevice->CreateShaderResourceView(m_RenderTarget->pResource.Get(), SRV);
+
+	Reset();
 }
 
 void PathIntegrator::RenderGui()

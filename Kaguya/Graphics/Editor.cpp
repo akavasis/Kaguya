@@ -287,44 +287,40 @@ static bool EditTransform(
 	Transform& Transform,
 	const float* pCameraView,
 	float* pCameraProjection,
-	float* pMatrix,
-	bool EditTransformDecomposition)
+	float* pMatrix)
 {
 	bool IsEdited = false;
 
 	static float				Snap[3] = { 1, 1, 1 };
 	static ImGuizmo::MODE		CurrentGizmoMode = ImGuizmo::WORLD;
 
-	if (EditTransformDecomposition)
+	ImGui::Text("Operation");
+
+	if (ImGui::RadioButton("Translate", Transform.CurrentGizmoOperation == ImGuizmo::TRANSLATE))
+		Transform.CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+	ImGui::SameLine();
+
+	if (ImGui::RadioButton("Rotate", Transform.CurrentGizmoOperation == ImGuizmo::ROTATE))
+		Transform.CurrentGizmoOperation = ImGuizmo::ROTATE;
+	ImGui::SameLine();
+
+	if (ImGui::RadioButton("Scale", Transform.CurrentGizmoOperation == ImGuizmo::SCALE))
+		Transform.CurrentGizmoOperation = ImGuizmo::SCALE;
+
+	ImGui::Checkbox("Snap", &Transform.UseSnap);
+	ImGui::SameLine();
+
+	switch (Transform.CurrentGizmoOperation)
 	{
-		ImGui::Text("Operation");
-
-		if (ImGui::RadioButton("Translate", Transform.CurrentGizmoOperation == ImGuizmo::TRANSLATE))
-			Transform.CurrentGizmoOperation = ImGuizmo::TRANSLATE;
-		ImGui::SameLine();
-
-		if (ImGui::RadioButton("Rotate", Transform.CurrentGizmoOperation == ImGuizmo::ROTATE))
-			Transform.CurrentGizmoOperation = ImGuizmo::ROTATE;
-		ImGui::SameLine();
-
-		if (ImGui::RadioButton("Scale", Transform.CurrentGizmoOperation == ImGuizmo::SCALE))
-			Transform.CurrentGizmoOperation = ImGuizmo::SCALE;
-
-		ImGui::Checkbox("", &Transform.UseSnap);
-		ImGui::SameLine();
-
-		switch (Transform.CurrentGizmoOperation)
-		{
-		case ImGuizmo::TRANSLATE:
-			ImGui::InputFloat3("Snap", &Snap[0]);
-			break;
-		case ImGuizmo::ROTATE:
-			ImGui::InputFloat("Angle Snap", &Snap[0]);
-			break;
-		case ImGuizmo::SCALE:
-			ImGui::InputFloat("Scale Snap", &Snap[0]);
-			break;
-		}
+	case ImGuizmo::TRANSLATE:
+		ImGui::InputFloat3("Snap", &Snap[0]);
+		break;
+	case ImGuizmo::ROTATE:
+		ImGui::InputFloat("Angle Snap", &Snap[0]);
+		break;
+	case ImGuizmo::SCALE:
+		ImGui::InputFloat("Scale Snap", &Snap[0]);
+		break;
 	}
 
 	IsEdited |= ImGuizmo::Manipulate(
@@ -390,8 +386,7 @@ void InspectorWindow::RenderGui()
 					Component,
 					reinterpret_cast<float*>(&View),
 					reinterpret_cast<float*>(&Projection),
-					reinterpret_cast<float*>(&World),
-					true);
+					reinterpret_cast<float*>(&World));
 
 				if (IsEdited)
 				{

@@ -13,7 +13,7 @@ void Application::Initialize(const Config& Config)
 {
 	Log::Create();
 
-	ThrowIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
+	ThrowIfFailed(CoInitializeEx(nullptr, tagCOINIT::COINIT_APARTMENTTHREADED));
 	SetProcessDpiAwareness(PROCESS_DPI_AWARENESS::PROCESS_SYSTEM_DPI_AWARE);
 
 	int argc;
@@ -42,7 +42,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 	try
 	{
 		// Begin our render thread
-		RenderThread = wil::unique_handle(::CreateThread(NULL, 0, Application::RenderThreadProc, pRenderSystem, 0, nullptr));
+		RenderThread = wil::unique_handle(::CreateThread(nullptr, 0, Application::RenderThreadProc, pRenderSystem, 0, nullptr));
 		if (!RenderThread)
 		{
 			LOG_ERROR("Failed to create thread (error={})", ::GetLastError());
@@ -52,7 +52,7 @@ int Application::Run(RenderSystem* pRenderSystem)
 		MSG Msg = {};
 		while (Msg.message != WM_QUIT)
 		{
-			if (::PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE))
+			if (::PeekMessage(&Msg, nullptr, 0, 0, PM_REMOVE))
 			{
 				::TranslateMessage(&Msg);
 				::DispatchMessage(&Msg);
@@ -112,7 +112,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 {
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
 
-	ThrowIfFailed(CoInitializeEx(NULL, tagCOINIT::COINIT_APARTMENTTHREADED));
+	ThrowIfFailed(CoInitializeEx(nullptr, tagCOINIT::COINIT_APARTMENTTHREADED));
 	auto pRenderSystem = reinterpret_cast<RenderSystem*>(pParameter);
 	
 	Time Time;

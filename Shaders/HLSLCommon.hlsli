@@ -2,11 +2,11 @@
 #define HLSL_COMMON_HLSLI
 
 #include <Vertex.hlsli>
-#include <SharedTypes.hlsli>
 #include <Math.hlsli>
 #include <Sampling.hlsli>
 #include <Random.hlsli>
 #include <BxDF.hlsli>
+#include <SharedTypes.hlsli>
 
 float3 CartesianToSpherical(float x, float y, float z)
 {

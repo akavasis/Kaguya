@@ -22,7 +22,7 @@ void Shaders::Register(const ShaderCompiler& ShaderCompiler)
 
 	// Load CS
 	{
-		CS::InstanceGeneration			= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/InstanceGeneration.hlsl",		CSEntryPoint, {});
+		//CS::InstanceGeneration			= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/InstanceGeneration.hlsl",		CSEntryPoint, {});
 
 		//CS::PostProcess_BloomMask						= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomMask.hlsl",						CSEntryPoint, {});
 		//CS::PostProcess_BloomDownsample					= ShaderCompiler.CompileShader(Shader::Type::Compute, ExecutableFolderPath / L"Shaders/PostProcess/BloomDownsample.hlsl",				CSEntryPoint, {});

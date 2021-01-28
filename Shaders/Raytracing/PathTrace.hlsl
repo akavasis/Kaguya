@@ -349,7 +349,7 @@ void RayGeneration()
 		const float2 ndc = float2(2, -2) * pixel + float2(-1, 1);
 
 		// Initialize ray
-		RayDesc ray = GenerateCameraRay(ndc, seed);
+		RayDesc ray = g_SystemConstants.Camera.GenerateCameraRay(ndc, seed);
 	
 		color += PathTrace(ray, seed);
 	}

@@ -239,7 +239,6 @@ bool Renderer::Resize(uint32_t Width, uint32_t Height)
 
 	RenderDevice.Resize(Width, Height);
 	PathIntegrator.SetResolution(Width, Height);
-	PathIntegrator.Reset();
 
 	RenderDevice.FlushGraphicsQueue();
 	return true;
