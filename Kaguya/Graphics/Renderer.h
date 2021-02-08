@@ -29,7 +29,7 @@ private:
 	RenderDevice							RenderDevice;
 	ResourceManager							ResourceManager;
 
-	// Realistically, Editor and Renderer should be separate,
+	// Editor and Renderer should probably be separate,
 	// but because we are using ImGui and rendering directly into the back buffer
 	// the Renderer contains Editor...
 	// TODO: Renderer and Editor should be separate, come up with an alternative...

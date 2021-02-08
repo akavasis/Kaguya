@@ -12,6 +12,15 @@ struct Camera
 
 	auto operator<=>(const Camera&) const = default;
 
+	float static CalculateFoVX(int w, int h, float FoVY)
+	{
+		return 2.0f * atan(tan(FoVY * 0.5f) * float(w) / float(h));
+	}
+	float static CalculateFoVY(int w, int h, float FoVX)
+	{
+		return 2.0f * atan(tan(FoVX * 0.5f) * float(h) / float(w));
+	}
+
 	DirectX::XMVECTOR GetUVector() const;
 	DirectX::XMVECTOR GetVVector() const;
 	DirectX::XMVECTOR GetWVector() const;

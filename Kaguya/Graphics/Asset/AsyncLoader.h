@@ -6,6 +6,10 @@
 
 #include "AssetCache.h"
 
+/*
+*	All inherited loader must implement a method called AsyncLoad,
+*	it takes in the TMetadata and returns a TResourcePtr
+*/
 template<typename T, typename Metadata, typename Loader>
 class AsyncLoader
 {
@@ -59,12 +63,9 @@ private:
 			while (pAsyncLoader->MetadataQueue.Dequeue(Item, 0))
 			{
 				auto pResource = static_cast<Loader*>(pAsyncLoader)->AsyncLoad(Item);
-				if (pResource)
+				if (pResource && pAsyncLoader->Delegate)
 				{
-					if (pAsyncLoader->Delegate)
-					{
-						pAsyncLoader->Delegate(pResource);
-					}
+					pAsyncLoader->Delegate(pResource);
 				}
 			}
 		}
