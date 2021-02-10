@@ -457,4 +457,17 @@ void ClosestHit(inout RayPayload rayPayload, in BuiltInTriangleIntersectionAttri
 	{
 		TerminateRay(rayPayload);
 	}
+	
+	const float rrThreshold = 1.0f;
+	float3 rr = rayPayload.Throughput;
+	float rrMaxComponentValue = max(rr.x, max(rr.y, rr.z));
+	if (rrMaxComponentValue < rrThreshold && rayPayload.Depth > 3)
+	{
+		float q = max(0.05f, 1.0f - rrMaxComponentValue);
+		if (RandomFloat01(rayPayload.Seed) < q)
+		{
+			TerminateRay(rayPayload);
+		}
+		rayPayload.Throughput /= 1.0f - q;
+	}
 }
