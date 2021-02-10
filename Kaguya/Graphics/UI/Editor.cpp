@@ -3,12 +3,60 @@
 
 #include <type_traits>
 #include <imgui_internal.h>
+#include <string_view>
 
 #include "Scene/SceneSerializer.h"
 
 using namespace DirectX;
 
 static constexpr ImGuiWindowFlags Flags = 0;
+
+template<class T>
+concept IsDialogFunction = requires(T F, std::filesystem::path Path)
+{
+	{ F(Path) } -> std::convertible_to<void>;
+};
+
+template<IsDialogFunction DialogFunction>
+void OpenDialog(std::string_view FilterList, std::string_view DefaultPath, DialogFunction Function)
+{
+	nfdchar_t* outPath = nullptr;
+	nfdresult_t result = NFD_OpenDialog(FilterList.data(), DefaultPath.empty() ? DefaultPath.data() : nullptr, &outPath);
+
+	if (result == NFD_OKAY)
+	{
+		Function(outPath);
+		free(outPath);
+	}
+	else if (result == NFD_CANCEL)
+	{
+		UNREFERENCED_PARAMETER(result);
+	}
+	else
+	{
+		printf("Error: %s\n", NFD_GetError());
+	}
+}
+
+template<IsDialogFunction DialogFunction>
+void SaveDialog(std::string_view FilterList, std::string_view DefaultPath, DialogFunction Function)
+{
+	nfdchar_t* savePath = nullptr;
+	nfdresult_t result = NFD_SaveDialog(FilterList.data(), DefaultPath.empty() ? DefaultPath.data() : nullptr, &savePath);
+	if (result == NFD_OKAY)
+	{
+		Function(savePath);
+		free(savePath);
+	}
+	else if (result == NFD_CANCEL)
+	{
+		UNREFERENCED_PARAMETER(result);
+	}
+	else
+	{
+		printf("Error: %s\n", NFD_GetError());
+	}
+}
 
 void HierarchyWindow::RenderGui()
 {
@@ -69,52 +117,23 @@ void HierarchyWindow::RenderGui()
 
 			if (ImGui::MenuItem("Serialize"))
 			{
-				nfdchar_t* savePath = nullptr;
-				nfdresult_t result = NFD_SaveDialog("yaml", nullptr, &savePath);
-				if (result == NFD_OKAY)
+				SaveDialog("yaml", "", [&](auto Path)
 				{
-					std::filesystem::path Path = savePath;
 					if (!Path.has_extension())
 					{
 						Path += ".yaml";
 					}
 
 					SceneSerializer::Serialize(Path, pScene);
-
-					free(savePath);
-				}
-				else if (result == NFD_CANCEL)
-				{
-					UNREFERENCED_PARAMETER(result);
-				}
-				else
-				{
-					printf("Error: %s\n", NFD_GetError());
-				}
+				});
 			}
 
 			if (ImGui::MenuItem("Deserialize"))
 			{
-				// TODO: Write a function for this
-				nfdchar_t* outPath = nullptr;
-				nfdresult_t result = NFD_OpenDialog("yaml", nullptr, &outPath);
-
-				if (result == NFD_OKAY)
+				OpenDialog("yaml", "", [&](auto Path)
 				{
-					std::filesystem::path Path = outPath;
-
 					SceneSerializer::Deserialize(Path, pScene, pResourceManager);
-
-					free(outPath);
-				}
-				else if (result == NFD_CANCEL)
-				{
-					UNREFERENCED_PARAMETER(result);
-				}
-				else
-				{
-					printf("Error: %s\n", NFD_GetError());
-				}
+				});
 			}
 
 			ImGui::EndPopup();
@@ -524,50 +543,18 @@ void AssetWindow::RenderGui()
 		{
 			if (ImGui::MenuItem("Import Texture"))
 			{
-				// TODO: Write a function for this
-				nfdchar_t* outPath = nullptr;
-				nfdresult_t result = NFD_OpenDialog("dds,tga,hdr", nullptr, &outPath);
-
-				if (result == NFD_OKAY)
+				OpenDialog("dds,tga,hdr", "", [&](auto Path)
 				{
-					std::filesystem::path Path = outPath;
-
 					pResourceManager->AsyncLoadImage(Path, false);
-
-					free(outPath);
-				}
-				else if (result == NFD_CANCEL)
-				{
-					UNREFERENCED_PARAMETER(result);
-				}
-				else
-				{
-					printf("Error: %s\n", NFD_GetError());
-				}
+				});
 			}
 
 			if (ImGui::MenuItem("Import Mesh"))
 			{
-				// TODO: Write a function for this
-				nfdchar_t* outPath = nullptr;
-				nfdresult_t result = NFD_OpenDialog("obj", nullptr, &outPath);
-
-				if (result == NFD_OKAY)
+				OpenDialog("dds,tga,hdr", "", [&](auto Path)
 				{
-					std::filesystem::path Path = outPath;
-
 					pResourceManager->AsyncLoadMesh(Path, true);
-
-					free(outPath);
-				}
-				else if (result == NFD_CANCEL)
-				{
-					UNREFERENCED_PARAMETER(result);
-				}
-				else
-				{
-					printf("Error: %s\n", NFD_GetError());
-				}
+				});
 			}
 
 			ImGui::EndPopup();

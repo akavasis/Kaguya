@@ -3,7 +3,9 @@
 #include <Graphics/RenderDevice.h>
 #include <Graphics/ResourceManager.h>
 #include <Graphics/RaytracingAccelerationStructure.h>
-#include <Graphics/Editor.h>
+
+#include <Graphics/UI/Editor.h>
+
 #include <Graphics/PathIntegrator.h>
 #include <Graphics/Picking.h>
 #include <Graphics/ToneMapper.h>

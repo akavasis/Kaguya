@@ -8,7 +8,6 @@
 
 #include "Time.h"
 
-//----------------------------------------------------------------------------------------------------
 void Application::Initialize(const Config& Config)
 {
 	Log::Create();
@@ -34,7 +33,6 @@ void Application::Initialize(const Config& Config)
 	MinimumHeight = GetSystemMetrics(SM_CYMINTRACK);
 }
 
-//----------------------------------------------------------------------------------------------------
 int Application::Run(RenderSystem* pRenderSystem)
 {
 	int ExitCode = EXIT_SUCCESS;
@@ -107,7 +105,6 @@ void Application::Quit()
 	QuitApplication = true;
 }
 
-//----------------------------------------------------------------------------------------------------
 DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 {
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
@@ -174,7 +171,6 @@ Error:
 	return EXIT_SUCCESS;
 }
 
-//----------------------------------------------------------------------------------------------------
 bool Application::HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message)
 {
 	switch (Message.Type)
