@@ -16,7 +16,7 @@ struct SystemConstants
 	// z, w = 1 / Resolution
 	float4 Resolution;
 
-	int2 MousePosition;
+	float2 MousePosition;
 
 	uint TotalFrameCount;
 };

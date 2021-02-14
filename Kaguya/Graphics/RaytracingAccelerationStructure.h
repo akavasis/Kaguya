@@ -1,6 +1,4 @@
 #pragma once
-#include "RenderDevice.h"
-#include "ResourceManager.h"
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"
 
@@ -11,8 +9,7 @@
 class RaytracingAccelerationStructure
 {
 public:
-	void Create(RenderDevice* pRenderDevice,
-		UINT NumHitGroups);
+	void Create(UINT NumHitGroups);
 
 	operator auto() const
 	{
@@ -35,12 +32,7 @@ public:
 
 	void Build(CommandList& CommandList);
 private:
-	RenderDevice* pRenderDevice = nullptr;
-
 	UINT NumHitGroups = 0;
-
-	RootSignature RS;
-	PipelineState PSO;
 
 	TopLevelAccelerationStructure TopLevelAccelerationStructure;
 	std::vector<MeshRenderer*> MeshRenderers;

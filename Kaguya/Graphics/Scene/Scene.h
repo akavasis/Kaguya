@@ -10,7 +10,6 @@
 
 #include "../SharedTypes.h"
 
-class ResourceManager;
 struct Entity;
 
 struct Scene
@@ -26,8 +25,6 @@ struct Scene
 
 	Scene();
 
-	void SetContext(ResourceManager* pResourceManager);
-
 	void Clear();
 
 	void Update();
@@ -37,8 +34,6 @@ struct Scene
 
 	template<typename T>
 	void OnComponentAdded(Entity entity, T& component);
-
-	ResourceManager* pResourceManager = nullptr;
 
 	State SceneState = SCENE_STATE_RENDER;
 	entt::registry Registry;

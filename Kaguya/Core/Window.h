@@ -1,5 +1,4 @@
 #pragma once
-
 #include <Windows.h>
 #include <wil/resource.h>
 #include <string>
@@ -9,6 +8,8 @@
 class Window
 {
 public:
+	using ResizeFunc = std::function<void(UINT Width, UINT Height)>;
+
 	struct Message
 	{
 		enum class EType
@@ -49,11 +50,16 @@ public:
 	bool CursorEnabled() const;
 	bool IsFocused() const;
 
+	void Render();
+	void Resize(UINT Width, UINT Height);
+
 	inline auto GetWindowHandle() const { return m_WindowHandle.get(); }
 	inline auto GetWindowName() const { return m_WindowName; }
 	inline auto GetWindowWidth() const { return m_WindowWidth; }
 	inline auto GetWindowHeight() const { return m_WindowHeight; }
 
+	void SetRenderFunc(std::function<void()> RenderFunc);
+	void SetResizeFunc(ResizeFunc ResizeFunc);
 private:
 	LRESULT DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -72,7 +78,7 @@ private:
 
 public:
 	ThreadSafeQueue<Message>	MessageQueue;
-
+	bool						AllowCapture = false;
 private:
 	std::wstring				m_WindowName;
 	unsigned int				m_WindowWidth = 0;
@@ -84,4 +90,7 @@ private:
 	wil::unique_hwnd			m_WindowHandle;
 
 	ImGuiContextManager			m_ImGuiContextManager;
+
+	std::function<void()>		m_RenderFunc;
+	ResizeFunc					m_ResizeFunc;
 };

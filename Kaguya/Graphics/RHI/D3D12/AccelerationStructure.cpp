@@ -24,8 +24,8 @@ void BottomLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* 
 	pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
 
 	// Buffer sizes need to be 256-byte-aligned
-	ScratchSizeInBytes		= Math::AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
-	ResultSizeInBytes		= Math::AlignUp<UINT64>(PrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
+	ScratchSizeInBytes		= AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
+	ResultSizeInBytes		= AlignUp<UINT64>(PrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
 
 	*pScratchSizeInBytes	= ScratchSizeInBytes;
 	*pResultSizeInBytes		= ResultSizeInBytes;
@@ -90,8 +90,8 @@ void TopLevelAccelerationStructure::ComputeMemoryRequirements(ID3D12Device5* pDe
 	pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&Desc, &PrebuildInfo);
 
 	// Buffer sizes need to be 256-byte-aligned
-	ScratchSizeInBytes			= Math::AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
-	ResultSizeInBytes			= Math::AlignUp<UINT64>(PrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
+	ScratchSizeInBytes			= AlignUp<UINT64>(PrebuildInfo.ScratchDataSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
+	ResultSizeInBytes			= AlignUp<UINT64>(PrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
 
 	*pScratchSizeInBytes		= ScratchSizeInBytes;
 	*pResultSizeInBytes			= ResultSizeInBytes;

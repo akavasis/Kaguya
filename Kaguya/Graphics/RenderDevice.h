@@ -61,10 +61,9 @@ public:
 	static constexpr DXGI_FORMAT DepthFormat = DXGI_FORMAT_D32_FLOAT;
 	static constexpr DXGI_FORMAT DepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	RenderDevice(const Window& Window);
-	RenderDevice(const RenderDevice&) = delete;
-	RenderDevice& operator=(const RenderDevice&) = delete;
-	~RenderDevice();
+	static void Initialize();
+	static void Shutdown();
+	static RenderDevice& Instance();
 
 	ID3D12Resource* GetCurrentBackBuffer() const
 	{
@@ -162,7 +161,8 @@ public:
 		const Descriptor& DestDescriptor,
 		std::optional<UINT> ArraySlice = {},
 		std::optional<UINT> MipSlice = {},
-		std::optional<UINT> ArraySize = {});
+		std::optional<UINT> ArraySize = {},
+		bool sRGB = false);
 
 	void CreateDepthStencilView(ID3D12Resource* pResource,
 		const Descriptor& DestDescriptor,
@@ -172,8 +172,13 @@ public:
 
 	void UpdateResourceState(ID3D12Resource* pResource, UINT Subresource, D3D12_RESOURCE_STATES ResourceStates);
 private:
+	RenderDevice();
+	RenderDevice(const RenderDevice&) = delete;
+	RenderDevice& operator=(const RenderDevice&) = delete;
+	~RenderDevice();
+
 	void InitializeDXGIObjects();
-	void InitializeDXGISwapChain(const Window& pWindow);
+	void InitializeDXGISwapChain();
 
 	CommandQueue& GetCommandQueue(D3D12_COMMAND_LIST_TYPE CommandListType);
 	void AddDescriptorTableRootParameterToBuilder(RootSignatureBuilder& RootSignatureBuilder);

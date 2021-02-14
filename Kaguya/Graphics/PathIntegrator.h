@@ -7,7 +7,7 @@ class PathIntegrator
 public:
 	static constexpr UINT NumHitGroups = 1;
 
-	void Create(RenderDevice* pRenderDevice);
+	void Create();
 
 	void SetResolution(UINT Width, UINT Height);
 
@@ -23,13 +23,16 @@ public:
 		D3D12_GPU_VIRTUAL_ADDRESS Materials,
 		CommandList& CommandList);
 
-	auto GetSRV()
+	auto GetSRV() const
 	{
 		return SRV;
 	}
-private:
-	RenderDevice* pRenderDevice;
 
+	auto GetRenderTarget() const
+	{
+		return m_RenderTarget->pResource.Get();
+	}
+private:
 	UINT Width = 0, Height = 0;
 
 	RootSignature GlobalRS, LocalHitGroupRS;

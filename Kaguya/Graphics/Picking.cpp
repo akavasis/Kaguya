@@ -22,11 +22,11 @@ namespace
 	ShaderIdentifier DefaultSID;
 }
 
-void Picking::Create(RenderDevice* pRenderDevice)
+void Picking::Create()
 {
-	this->pRenderDevice = pRenderDevice;
+	auto& RenderDevice = RenderDevice::Instance();
 
-	GlobalRS = pRenderDevice->CreateRootSignature([](RootSignatureBuilder& Builder)
+	GlobalRS = RenderDevice.CreateRootSignature([](RootSignatureBuilder& Builder)
 	{
 		Builder.AddRootCBVParameter(RootCBV(0, 0)); // g_SystemConstants		b0 | space0
 
@@ -35,7 +35,7 @@ void Picking::Create(RenderDevice* pRenderDevice)
 		Builder.AddRootUAVParameter(RootUAV(0, 0));	// PickingResult,			u0 | space0
 	});
 
-	RTPSO = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateBuilder& Builder)
+	RTPSO = RenderDevice.CreateRaytracingPipelineState([&](RaytracingPipelineStateBuilder& Builder)
 	{
 		const Library* pRaytraceLibrary = &Libraries::Picking;
 
@@ -58,7 +58,7 @@ void Picking::Create(RenderDevice* pRenderDevice)
 	MissSID = RTPSO.GetShaderIdentifier(L"Miss");
 	DefaultSID = RTPSO.GetShaderIdentifier(L"Default");
 
-	ResourceUploadBatch Uploader(pRenderDevice->Device);
+	ResourceUploadBatch Uploader(RenderDevice.Device);
 
 	Uploader.Begin(D3D12_COMMAND_LIST_TYPE_COPY);
 
@@ -75,8 +75,8 @@ void Picking::Create(RenderDevice* pRenderDevice)
 
 		UINT64 shaderTableSizeInBytes = RayGenerationShaderTable.GetSizeInBytes();
 
-		SharedGraphicsResource rayGenSBTUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
-		m_RayGenerationShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
+		SharedGraphicsResource rayGenSBTUpload = RenderDevice.Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
+		m_RayGenerationShaderTable = RenderDevice.CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
 
 		RayGenerationShaderTable.AssociateResource(m_RayGenerationShaderTable->pResource.Get());
 		RayGenerationShaderTable.Generate(static_cast<BYTE*>(rayGenSBTUpload.Memory()));
@@ -93,8 +93,8 @@ void Picking::Create(RenderDevice* pRenderDevice)
 
 		UINT64 shaderTableSizeInBytes = MissShaderTable.GetSizeInBytes();
 
-		SharedGraphicsResource missSBTUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
-		m_MissShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
+		SharedGraphicsResource missSBTUpload = RenderDevice.Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
+		m_MissShaderTable = RenderDevice.CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
 
 		MissShaderTable.AssociateResource(m_MissShaderTable->pResource.Get());
 		MissShaderTable.Generate(static_cast<BYTE*>(missSBTUpload.Memory()));
@@ -102,20 +102,20 @@ void Picking::Create(RenderDevice* pRenderDevice)
 		Uploader.Upload(m_MissShaderTable->pResource.Get(), missSBTUpload);
 	}
 
-	auto finish = Uploader.End(pRenderDevice->CopyQueue);
+	auto finish = Uploader.End(RenderDevice.CopyQueue);
 	finish.wait();
 
-	m_HitGroupShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, HitGroupShaderTable.GetStrideInBytes() * Scene::MAX_INSTANCE_SUPPORTED);
+	m_HitGroupShaderTable = RenderDevice.CreateBuffer(&AllocDesc, HitGroupShaderTable.GetStrideInBytes() * Scene::MAX_INSTANCE_SUPPORTED);
 
 	AllocDesc = {};
 	AllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-	PickingResult = pRenderDevice->CreateBuffer(&AllocDesc, sizeof(int),
+	PickingResult = RenderDevice.CreateBuffer(&AllocDesc, sizeof(int),
 		D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 	AllocDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
 
-	PickingReadback = pRenderDevice->CreateBuffer(&AllocDesc, sizeof(int),
+	PickingReadback = RenderDevice.CreateBuffer(&AllocDesc, sizeof(int),
 		D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_COPY_DEST);
 
 	HitGroupShaderTable.Reserve(Scene::MAX_INSTANCE_SUPPORTED);
@@ -126,6 +126,8 @@ void Picking::Create(RenderDevice* pRenderDevice)
 
 void Picking::UpdateShaderTable(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList)
 {
+	auto& RenderDevice = RenderDevice::Instance();
+
 	HitGroupShaderTable.Clear();
 	Entities.clear();
 	for (auto [i, MeshRenderer] : enumerate(RaytracingAccelerationStructure.MeshRenderers))
@@ -141,7 +143,7 @@ void Picking::UpdateShaderTable(const RaytracingAccelerationStructure& Raytracin
 
 	UINT64 shaderTableSizeInBytes = HitGroupShaderTable.GetSizeInBytes();
 
-	GraphicsResource HitGroupUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
+	GraphicsResource HitGroupUpload = RenderDevice.Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
 
 	HitGroupShaderTable.Generate(static_cast<BYTE*>(HitGroupUpload.Memory()));
 

@@ -58,7 +58,6 @@
 #include <wil/resource.h>
 
 // External
-#include <DirectXMesh.h>
 #include <DirectXTex.h>
 
 #include <nfd.h>

@@ -9,12 +9,28 @@ public:
 		ACES
 	};
 
-	void Create(RenderDevice* pRenderDevice);
+	void Create();
 
-	// Apply tone mapping to input shader resource into output render target
-	void Apply(Descriptor ShaderResourceView, Descriptor RenderTargetView, CommandList& CommandList);
+	void SetResolution(UINT Width, UINT Height);
+
+	void Apply(Descriptor ShaderResourceView, CommandList& CommandList);
+
+	auto GetSRV() const
+	{
+		return SRV;
+	}
+
+	auto GetRenderTarget() const
+	{
+		return m_RenderTarget->pResource.Get();
+	}
 private:
-	RenderDevice* pRenderDevice;
+	UINT Width = 0, Height = 0;
+
+	Descriptor RTV;
+	Descriptor SRV;
+
+	std::shared_ptr<Resource> m_RenderTarget;
 
 	RootSignature RS;
 	PipelineState PSO;

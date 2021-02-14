@@ -42,14 +42,14 @@ namespace
 	} g_Settings;
 }
 
-void PathIntegrator::Create(RenderDevice* pRenderDevice)
+void PathIntegrator::Create()
 {
-	this->pRenderDevice = pRenderDevice;
+	auto& RenderDevice = RenderDevice::Instance();
 
-	SRV = pRenderDevice->AllocateShaderResourceView();
-	UAV = pRenderDevice->AllocateUnorderedAccessView();
+	UAV = RenderDevice.AllocateUnorderedAccessView();
+	SRV = RenderDevice.AllocateShaderResourceView();
 
-	GlobalRS = pRenderDevice->CreateRootSignature([](RootSignatureBuilder& Builder)
+	GlobalRS = RenderDevice.CreateRootSignature([](RootSignatureBuilder& Builder)
 	{
 		Builder.AddRootCBVParameter(RootCBV(0, 0)); // g_SystemConstants		b0 | space0
 		Builder.AddRootCBVParameter(RootCBV(1, 0)); // g_RenderPassData			b1 | space0
@@ -61,7 +61,7 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 		Builder.AddStaticSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);	// SamplerLinearClamp	s1 | space0;
 	});
 
-	LocalHitGroupRS = pRenderDevice->CreateRootSignature([](RootSignatureBuilder& Builder)
+	LocalHitGroupRS = RenderDevice::Instance().CreateRootSignature([](RootSignatureBuilder& Builder)
 	{
 		Builder.AddRootConstantsParameter<void>(RootConstants<void>(0, 1, 1)); // RootConstants b0 | space1
 
@@ -71,7 +71,7 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 		Builder.SetAsLocalRootSignature();
 	}, false);
 
-	RTPSO = pRenderDevice->CreateRaytracingPipelineState([&](RaytracingPipelineStateBuilder& Builder)
+	RTPSO = RenderDevice.CreateRaytracingPipelineState([&](RaytracingPipelineStateBuilder& Builder)
 	{
 		const Library* pRaytraceLibrary = &Libraries::PathTrace;
 
@@ -99,7 +99,7 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 	MissSID = RTPSO.GetShaderIdentifier(L"Miss");
 	DefaultSID = RTPSO.GetShaderIdentifier(L"Default");
 
-	ResourceUploadBatch Uploader(pRenderDevice->Device);
+	ResourceUploadBatch Uploader(RenderDevice.Device);
 
 	Uploader.Begin(D3D12_COMMAND_LIST_TYPE_COPY);
 
@@ -116,8 +116,8 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 
 		UINT64 shaderTableSizeInBytes = RayGenerationShaderTable.GetSizeInBytes();
 
-		SharedGraphicsResource rayGenSBTUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
-		m_RayGenerationShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
+		SharedGraphicsResource rayGenSBTUpload = RenderDevice.Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
+		m_RayGenerationShaderTable = RenderDevice.CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
 
 		RayGenerationShaderTable.AssociateResource(m_RayGenerationShaderTable->pResource.Get());
 		RayGenerationShaderTable.Generate(static_cast<BYTE*>(rayGenSBTUpload.Memory()));
@@ -134,8 +134,8 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 
 		UINT64 shaderTableSizeInBytes = MissShaderTable.GetSizeInBytes();
 
-		SharedGraphicsResource missSBTUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
-		m_MissShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
+		SharedGraphicsResource missSBTUpload = RenderDevice.Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
+		m_MissShaderTable = RenderDevice.CreateBuffer(&AllocDesc, shaderTableSizeInBytes);
 
 		MissShaderTable.AssociateResource(m_MissShaderTable->pResource.Get());
 		MissShaderTable.Generate(static_cast<BYTE*>(missSBTUpload.Memory()));
@@ -143,10 +143,10 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 		Uploader.Upload(m_MissShaderTable->pResource.Get(), missSBTUpload);
 	}
 
-	auto finish = Uploader.End(pRenderDevice->CopyQueue);
+	auto finish = Uploader.End(RenderDevice.CopyQueue);
 	finish.wait();
 
-	m_HitGroupShaderTable = pRenderDevice->CreateBuffer(&AllocDesc, HitGroupShaderTable.GetStrideInBytes() * Scene::MAX_INSTANCE_SUPPORTED);
+	m_HitGroupShaderTable = RenderDevice.CreateBuffer(&AllocDesc, HitGroupShaderTable.GetStrideInBytes() * Scene::MAX_INSTANCE_SUPPORTED);
 
 	HitGroupShaderTable.Reserve(Scene::MAX_INSTANCE_SUPPORTED);
 	HitGroupShaderTable.AssociateResource(m_HitGroupShaderTable->pResource.Get());
@@ -154,6 +154,13 @@ void PathIntegrator::Create(RenderDevice* pRenderDevice)
 
 void PathIntegrator::SetResolution(UINT Width, UINT Height)
 {
+	auto& RenderDevice = RenderDevice::Instance();
+
+	if (this->Width == Width && this->Height == Height)
+	{
+		return;
+	}
+
 	this->Width = Width;
 	this->Height = Height;
 
@@ -165,11 +172,11 @@ void PathIntegrator::SetResolution(UINT Width, UINT Height)
 	ResourceDesc.MipLevels = 1;
 	ResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-	m_RenderTarget = pRenderDevice->CreateResource(&AllocationDesc,
+	m_RenderTarget = RenderDevice.CreateResource(&AllocationDesc,
 		&ResourceDesc, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr);
 
-	pRenderDevice->CreateUnorderedAccessView(m_RenderTarget->pResource.Get(), UAV);
-	pRenderDevice->CreateShaderResourceView(m_RenderTarget->pResource.Get(), SRV);
+	RenderDevice.CreateUnorderedAccessView(m_RenderTarget->pResource.Get(), UAV);
+	RenderDevice.CreateShaderResourceView(m_RenderTarget->pResource.Get(), SRV);
 
 	Reset();
 }
@@ -204,6 +211,8 @@ void PathIntegrator::Reset()
 
 void PathIntegrator::UpdateShaderTable(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList)
 {
+	auto& RenderDevice = RenderDevice::Instance();
+
 	HitGroupShaderTable.Clear();
 	for (auto [i, MeshRenderer] : enumerate(RaytracingAccelerationStructure.MeshRenderers))
 	{
@@ -227,7 +236,7 @@ void PathIntegrator::UpdateShaderTable(const RaytracingAccelerationStructure& Ra
 
 	UINT64 shaderTableSizeInBytes = HitGroupShaderTable.GetSizeInBytes();
 
-	GraphicsResource HitGroupUpload = pRenderDevice->Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
+	GraphicsResource HitGroupUpload = RenderDevice.Device.GraphicsMemory()->Allocate(shaderTableSizeInBytes);
 
 	HitGroupShaderTable.Generate(static_cast<BYTE*>(HitGroupUpload.Memory()));
 
@@ -241,6 +250,14 @@ void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 	D3D12_GPU_VIRTUAL_ADDRESS Materials,
 	CommandList& CommandList)
 {
+	auto& RenderDevice = RenderDevice::Instance();
+
+	if (g_Settings.NumAccumulatedSamples == 10000)
+	{
+		LOG_INFO("Reached 10000");
+		return;
+	}
+
 	struct RenderPassData
 	{
 		uint NumSamplesPerPixel;
@@ -256,7 +273,7 @@ void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 
 	g_RenderPassData.RenderTarget = UAV.Index;
 
-	GraphicsResource ConstantBuffer = pRenderDevice->Device.GraphicsMemory()->AllocateConstant(g_RenderPassData);
+	GraphicsResource ConstantBuffer = RenderDevice.Device.GraphicsMemory()->AllocateConstant(g_RenderPassData);
 
 	CommandList->SetPipelineState1(RTPSO);
 	CommandList->SetComputeRootSignature(GlobalRS);
@@ -265,7 +282,7 @@ void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 	CommandList->SetComputeRootShaderResourceView(2, RaytracingAccelerationStructure);
 	CommandList->SetComputeRootShaderResourceView(3, Materials);
 
-	pRenderDevice->BindDescriptorTable(PipelineState::Type::Compute, GlobalRS, CommandList);
+	RenderDevice.BindDescriptorTable(PipelineState::Type::Compute, GlobalRS, CommandList);
 
 	D3D12_DISPATCH_RAYS_DESC Desc =
 	{

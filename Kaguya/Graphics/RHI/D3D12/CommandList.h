@@ -48,7 +48,7 @@ struct CommandList
 	template<UINT ThreadSizeX>
 	void Dispatch1D(UINT ThreadGroupCountX)
 	{
-		ThreadGroupCountX = Math::RoundUpAndDivide(ThreadGroupCountX, ThreadSizeX);
+		ThreadGroupCountX = RoundUpAndDivide(ThreadGroupCountX, ThreadSizeX);
 
 		Dispatch(ThreadGroupCountX, 1, 1);
 	}
@@ -56,8 +56,8 @@ struct CommandList
 	template<UINT ThreadSizeX, UINT ThreadSizeY>
 	void Dispatch2D(UINT ThreadGroupCountX, UINT ThreadGroupCountY)
 	{
-		ThreadGroupCountX = Math::RoundUpAndDivide(ThreadGroupCountX, ThreadSizeX);
-		ThreadGroupCountY = Math::RoundUpAndDivide(ThreadGroupCountY, ThreadSizeY);
+		ThreadGroupCountX = RoundUpAndDivide(ThreadGroupCountX, ThreadSizeX);
+		ThreadGroupCountY = RoundUpAndDivide(ThreadGroupCountY, ThreadSizeY);
 
 		Dispatch(ThreadGroupCountX, ThreadGroupCountY, 1);
 	}
@@ -65,9 +65,9 @@ struct CommandList
 	template<UINT ThreadSizeX, UINT ThreadSizeY, UINT ThreadSizeZ>
 	void Dispatch3D(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ)
 	{
-		ThreadGroupCountX = Math::RoundUpAndDivide(ThreadGroupCountX, ThreadSizeX);
-		ThreadGroupCountY = Math::RoundUpAndDivide(ThreadGroupCountY, ThreadSizeY);
-		ThreadGroupCountZ = Math::RoundUpAndDivide(ThreadGroupCountZ, ThreadSizeZ);
+		ThreadGroupCountX = RoundUpAndDivide(ThreadGroupCountX, ThreadSizeX);
+		ThreadGroupCountY = RoundUpAndDivide(ThreadGroupCountY, ThreadSizeY);
+		ThreadGroupCountZ = RoundUpAndDivide(ThreadGroupCountZ, ThreadSizeZ);
 
 		Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 	}

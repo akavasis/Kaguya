@@ -98,27 +98,60 @@ bool Window::IsFocused() const
 	return GetForegroundWindow() == m_WindowHandle.get();
 }
 
+void Window::Render()
+{
+	if (m_RenderFunc)
+	{
+		m_RenderFunc();
+	}
+}
+
+void Window::Resize(UINT Width, UINT Height)
+{
+	if (m_ResizeFunc)
+	{
+		m_ResizeFunc(Width, Height);
+	}
+}
+
+void Window::SetRenderFunc(std::function<void()> RenderFunc)
+{
+	m_RenderFunc = std::move(RenderFunc);
+}
+
+void Window::SetResizeFunc(ResizeFunc ResizeFunc)
+{
+	m_ResizeFunc = std::move(ResizeFunc);
+}
+
 LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(m_WindowHandle.get(), uMsg, wParam, lParam))
+	{
 		return true;
+	}
 
 	switch (uMsg)
 	{
 	case WM_SIZE:
 	{
-		RECT WindowRect = {};
-		::GetWindowRect(m_WindowHandle.get(), &WindowRect);
-		m_WindowWidth	= WindowRect.right - WindowRect.left;
-		m_WindowHeight	= WindowRect.bottom - WindowRect.top;
+		if (wParam == SIZE_MINIMIZED)
+		{
+			break;
+		}
 
-		Window::Message WindowMessage	= {};
-		WindowMessage.Type				= Message::EType::Resize;
-		WindowMessage.Data.Width		= m_WindowWidth;
-		WindowMessage.Data.Height		= m_WindowHeight;
+		RECT Rect = {};
+		::GetClientRect(m_WindowHandle.get(), &Rect);
+		m_WindowWidth = Rect.right - Rect.left;
+		m_WindowHeight = Rect.bottom - Rect.top;
+
+		Window::Message WindowMessage = {};
+		WindowMessage.Type = Message::EType::Resize;
+		WindowMessage.Data.Width = m_WindowWidth;
+		WindowMessage.Data.Height = m_WindowHeight;
 		MessageQueue.Enqueue(WindowMessage);
 	}
-	return 0;
+	break;
 
 	case WM_ACTIVATE:
 	{
@@ -146,13 +179,14 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		pMinMaxInfo->ptMinTrackSize.x = Application::MinimumWidth;
 		pMinMaxInfo->ptMinTrackSize.y = Application::MinimumHeight;
-		return 0;
 	}
 	break;
 
 	case WM_DESTROY:
+	{
 		::PostQuitMessage(0);
-		return 0;
+	}
+	break;
 
 	default:
 		return ::DefWindowProc(m_WindowHandle.get(), uMsg, wParam, lParam);

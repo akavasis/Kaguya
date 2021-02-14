@@ -8,7 +8,7 @@ struct SystemConstants
 	// z, w = 1 / Resolution
 	float4 Resolution;
 
-	int2 MousePosition;
+	float2 MousePosition;
 
 	uint TotalFrameCount;
 };
@@ -33,8 +33,7 @@ enum RayType
 [shader("raygeneration")]
 void RayGeneration()
 {
-    int2 pixelIdx = g_SystemConstants.MousePosition;
-    float2 uv = (pixelIdx + float2(0.5f, 0.5f)) / g_SystemConstants.Resolution.xy;
+	float2 uv = (g_SystemConstants.MousePosition + float2(0.5f, 0.5f)) / g_SystemConstants.Resolution.xy;
 
     RayDesc Ray = 
     { 

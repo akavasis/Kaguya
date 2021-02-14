@@ -3,24 +3,21 @@
 #include "Core/Window.h"
 #include "Core/Time.h"
 
+#include "RenderDevice.h"
+#include "Scene/Entity.h"
+
 #include <wincodec.h> // GUID for different file formats, needed for ScreenGrab
 #include <ScreenGrab.h> // DirectX::SaveWICTextureToFile
 
 #include "RendererRegistry.h"
-
-#define SHOW_IMGUI_DEMO_WINDOW 1
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 Renderer::Renderer()
 	: RenderSystem(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight())
-	, RenderDevice(Application::Window)
-	, ResourceManager(&RenderDevice)
 {
-	RenderDevice.ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
-
-	Scene.SetContext(&ResourceManager);
+	
 }
 
 Renderer::~Renderer()
@@ -28,92 +25,61 @@ Renderer::~Renderer()
 
 }
 
-bool Renderer::Initialize()
+Descriptor Renderer::GetViewportDescriptor()
 {
+	return ToneMapper.GetSRV();
+}
+
+Entity Renderer::GetSelectedEntity()
+{
+	return Picking.GetSelectedEntity().value_or(Entity());
+}
+
+void Renderer::SetViewportMousePosition(float MouseX, float MouseY)
+{
+	this->ViewportMouseX = MouseX;
+	this->ViewportMouseY = MouseY;
+}
+
+void Renderer::SetViewportResolution(uint32_t Width, uint32_t Height)
+{
+	this->ViewportWidth = Width;
+	this->ViewportHeight = Height;
+}
+
+void Renderer::Initialize()
+{
+	auto& RenderDevice = RenderDevice::Instance();
+
 	Shaders::Register(RenderDevice.ShaderCompiler);
 	Libraries::Register(RenderDevice.ShaderCompiler);
 
-	RenderDevice.CreateCommandContexts(5);
+	RenderDevice::Instance().CreateCommandContexts(5);
 
-	RaytracingAccelerationStructure.Create(&RenderDevice, PathIntegrator::NumHitGroups);
+	RaytracingAccelerationStructure.Create(PathIntegrator::NumHitGroups);
 
-	Editor.SetContext(&ResourceManager, &Scene);
-
-	PathIntegrator.Create(&RenderDevice);
-	PathIntegrator.SetResolution(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight());
-
-	Picking.Create(&RenderDevice);
-
-	ToneMapper.Create(&RenderDevice);
+	PathIntegrator.Create();
+	Picking.Create();
+	ToneMapper.Create();
 
 	D3D12MA::ALLOCATION_DESC Desc = {};
 	Desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
 	Materials = RenderDevice.CreateBuffer(&Desc, sizeof(HLSL::Material) * Scene::MAX_MATERIAL_SUPPORTED, D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_GENERIC_READ);
 	ThrowIfFailed(Materials->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pMaterials)));
 
-	return true;
+	Resize(Width, Height);
 }
 
 void Renderer::Update(const Time& Time)
 {
-	Scene.Camera.AspectRatio = AspectRatio;
 
-	Scene.PreviousCamera = Scene.Camera;
 }
 
-void Renderer::HandleInput(float DeltaTime)
+void Renderer::Render(Scene& Scene)
 {
-	auto& Mouse = Application::InputHandler.Mouse;
+	auto& RenderDevice = RenderDevice::Instance();
 
-	// If LMB is pressed and we are not handling raw input and if we are not hovering over any imgui stuff then we update the
-	// instance id for editor
-	if (Mouse.IsLMBPressed() && !Mouse.UseRawInput && !ImGui::GetIO().WantCaptureMouse)
-	{
-		auto SelectedEntity = Picking.GetSelectedEntity();
-		Editor.HierarchyWindow.SetSelectedEntity(SelectedEntity.value_or(Entity()));
-	}
-}
-
-void Renderer::HandleRawInput(float DeltaTime)
-{
-	auto& Mouse = Application::InputHandler.Mouse;
-	auto& Keyboard = Application::InputHandler.Keyboard;
-
-	if (Keyboard.IsKeyPressed('W'))
-		Scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
-	if (Keyboard.IsKeyPressed('A'))
-		Scene.Camera.Translate(-DeltaTime, 0.0f, 0.0f);
-	if (Keyboard.IsKeyPressed('S'))
-		Scene.Camera.Translate(0.0f, 0.0f, -DeltaTime);
-	if (Keyboard.IsKeyPressed('D'))
-		Scene.Camera.Translate(DeltaTime, 0.0f, 0.0f);
-	if (Keyboard.IsKeyPressed('E'))
-		Scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
-	if (Keyboard.IsKeyPressed('Q'))
-		Scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
-
-	while (const auto RawInput = Mouse.ReadRawInput())
-	{
-		Scene.Camera.Rotate(RawInput->Y * DeltaTime, RawInput->X * DeltaTime);
-	}
-}
-
-void Renderer::Render()
-{
-	ImGui_ImplDX12_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-	ImGuizmo::BeginFrame();
-#if SHOW_IMGUI_DEMO_WINDOW
-	ImGui::ShowDemoWindow();
-#endif
-
-	RenderGui();
-	Editor.RenderGui();
-
-	Scene.Update();
-
-	UINT MaterialIndex = 0;
+	UINT materialIndex = 0;
 	RaytracingAccelerationStructure.Clear();
 	auto view = Scene.Registry.view<MeshFilter, MeshRenderer>();
 	for (auto [handle, meshFilter, meshRenderer] : view.each())
@@ -121,7 +87,7 @@ void Renderer::Render()
 		if (meshFilter.Mesh)
 		{
 			RaytracingAccelerationStructure.AddInstance(&meshRenderer);
-			pMaterials[MaterialIndex++] = GetHLSLMaterialDesc(meshRenderer.Material);
+			pMaterials[materialIndex++] = GetHLSLMaterialDesc(meshRenderer.Material);
 		}
 	}
 
@@ -137,11 +103,19 @@ void Renderer::Render()
 		RenderDevice.ComputeQueue->Signal(RenderDevice.ComputeFence.Get(), RenderDevice.ComputeFenceValue);
 		RenderDevice.GraphicsQueue->Wait(RenderDevice.ComputeFence.Get(), RenderDevice.ComputeFenceValue);
 		RenderDevice.ComputeFenceValue++;
+
+		PathIntegrator.SetResolution(ViewportWidth, ViewportHeight);
+		ToneMapper.SetResolution(ViewportWidth, ViewportHeight);
+
+		if (Scene.SceneState == Scene::SCENE_STATE_UPDATED)
+		{
+			PathIntegrator.Reset();
+		}
 	}
 
 	// Begin recording graphics command
 	auto& GraphicsContext = RenderDevice.GetDefaultGraphicsContext();
-	GraphicsContext.Reset(RenderDevice.GraphicsFenceValue, RenderDevice.GraphicsFence->GetCompletedValue(), &RenderDevice.GraphicsQueue);
+	GraphicsContext.Reset(RenderDevice::Instance().GraphicsFenceValue, RenderDevice::Instance().GraphicsFence->GetCompletedValue(), &RenderDevice.GraphicsQueue);
 
 	struct SystemConstants
 	{
@@ -151,55 +125,44 @@ void Renderer::Render()
 		// z, w = 1 / Resolution
 		float4 Resolution;
 
-		int2 MousePosition;
+		float2 MousePosition;
 
 		uint TotalFrameCount;
 	} g_SystemConstants = {};
 
 	g_SystemConstants.Camera = GetHLSLCameraDesc(Scene.Camera);
-	g_SystemConstants.Resolution = { float(Width), float(Height), 1.0f / float(Width), 1.0f / float(Height) };
-	g_SystemConstants.MousePosition = { Application::InputHandler.Mouse.X, Application::InputHandler.Mouse.Y };
+	g_SystemConstants.Resolution = { float(ViewportWidth), float(ViewportHeight), 1.0f / float(ViewportWidth), 1.0f / float(ViewportHeight) };
+	g_SystemConstants.MousePosition = { ViewportMouseX, ViewportMouseY };
 	g_SystemConstants.TotalFrameCount = static_cast<unsigned int>(Statistics::TotalFrameCount);
 
-	GraphicsResource SceneConstants = RenderDevice.Device.GraphicsMemory()->AllocateConstant(g_SystemConstants);
+	GraphicsResource SceneConstants = RenderDevice::Instance().Device.GraphicsMemory()->AllocateConstant(g_SystemConstants);
 
-	RenderDevice.BindGlobalDescriptorHeap(GraphicsContext);
+	RenderDevice::Instance().BindGlobalDescriptorHeap(GraphicsContext);
 
 	if (!RaytracingAccelerationStructure.Empty())
 	{
-		if (Scene.SceneState == Scene::SCENE_STATE_UPDATED)
-		{
-			PathIntegrator.Reset();
-		}
-
 		PathIntegrator.UpdateShaderTable(RaytracingAccelerationStructure, GraphicsContext);
 		PathIntegrator.Render(SceneConstants.GpuAddress(), RaytracingAccelerationStructure, Materials->pResource->GetGPUVirtualAddress(), GraphicsContext);
 
 		Picking.UpdateShaderTable(RaytracingAccelerationStructure, GraphicsContext);
 		Picking.ShootPickingRay(SceneConstants.GpuAddress(), RaytracingAccelerationStructure, GraphicsContext);
+
+		ToneMapper.Apply(PathIntegrator.GetSRV(), GraphicsContext);
 	}
 
-	auto pBackBuffer = RenderDevice.GetCurrentBackBuffer();
-	auto RTV = RenderDevice.GetCurrentBackBufferRenderTargetView();
+	auto pBackBuffer = RenderDevice::Instance().GetCurrentBackBuffer();
+	auto RTV = RenderDevice::Instance().GetCurrentBackBufferRenderTargetView();
 
 	GraphicsContext.TransitionBarrier(pBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	{
-		auto Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, Width, Height);
-		auto ScissorRect = CD3DX12_RECT(0, 0, Width, Height);
+		Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, float(Width), float(Height));
+		ScissorRect = CD3DX12_RECT(0, 0, Width, Height);
 
 		GraphicsContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		GraphicsContext->RSSetViewports(1, &Viewport);
 		GraphicsContext->RSSetScissorRects(1, &ScissorRect);
 		GraphicsContext->OMSetRenderTargets(1, &RTV.CpuHandle, TRUE, nullptr);
 		GraphicsContext->ClearRenderTargetView(RTV.CpuHandle, DirectX::Colors::White, 0, nullptr);
-
-		// Tone Map
-		{
-			if (!RaytracingAccelerationStructure.Empty())
-			{
-				ToneMapper.Apply(PathIntegrator.GetSRV(), RTV, GraphicsContext);
-			}
-		}
 
 		// ImGui Render
 		{
@@ -212,89 +175,37 @@ void Renderer::Render()
 	GraphicsContext.TransitionBarrier(pBackBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
 	CommandList* CommandLists[] = { &GraphicsContext };
-	RenderDevice.ExecuteGraphicsContexts(1, CommandLists);
-	RenderDevice.Present(Settings::VSync);
-	RenderDevice.Device.GraphicsMemory()->Commit(RenderDevice.GraphicsQueue);
-	RenderDevice.FlushGraphicsQueue();
-
-	if (Screenshot)
-	{
-		Screenshot = false;
-
-		auto pTexture = RenderDevice.GetCurrentBackBuffer();
-
-		auto FileName = Application::ExecutableFolderPath / L"Screenshot.png";
-		if (FAILED(DirectX::SaveWICTextureToFile(RenderDevice.GraphicsQueue, pTexture,
-			GUID_ContainerFormatPng, FileName.c_str(),
-			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_PRESENT, nullptr, nullptr, true)))
-		{
-			LOG_WARN("Failed to save screenshot");
-		}
-	}
+	RenderDevice::Instance().ExecuteGraphicsContexts(1, CommandLists);
+	RenderDevice::Instance().Present(Settings::VSync);
+	RenderDevice::Instance().Device.GraphicsMemory()->Commit(RenderDevice::Instance().GraphicsQueue);
+	RenderDevice::Instance().FlushGraphicsQueue();
 }
 
-bool Renderer::Resize(uint32_t Width, uint32_t Height)
+void Renderer::Resize(uint32_t Width, uint32_t Height)
 {
-	RenderDevice.FlushGraphicsQueue();
+	RenderDevice::Instance().FlushGraphicsQueue();
 
-	RenderDevice.Resize(Width, Height);
+	RenderDevice::Instance().Resize(Width, Height);
 	PathIntegrator.SetResolution(Width, Height);
+	ToneMapper.SetResolution(Width, Height);
 
-	RenderDevice.FlushGraphicsQueue();
-	return true;
+	RenderDevice::Instance().FlushGraphicsQueue();
 }
 
 void Renderer::Destroy()
 {
-	RenderDevice.FlushGraphicsQueue();
-	RenderDevice.FlushComputeQueue();
-	RenderDevice.FlushCopyQueue();
+
 }
 
-void Renderer::RenderGui()
+void Renderer::RequestCapture()
 {
-	constexpr ImGuiWindowFlags Flags =
-		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_AlwaysAutoResize;
+	auto pTexture = ToneMapper.GetRenderTarget();
 
-	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(240, 480), ImGuiCond_Always);
-	if (ImGui::Begin("Renderer", nullptr, Flags))
+	auto FileName = Application::ExecutableFolderPath / L"Capture.png";
+	if (FAILED(DirectX::SaveWICTextureToFile(RenderDevice::Instance().GraphicsQueue, pTexture,
+		GUID_ContainerFormatPng, FileName.c_str(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_RENDER_TARGET, nullptr, nullptr, true)))
 	{
-		const auto& AdapterDesc = RenderDevice.GetAdapterDesc();
-		auto LocalVideoMemoryInfo = RenderDevice.QueryLocalVideoMemoryInfo();
-		auto UsageInMiB = ToMiB(LocalVideoMemoryInfo.CurrentUsage);
-		ImGui::Text("GPU: %ls", AdapterDesc.Description);
-		ImGui::Text("VRAM Usage: %d Mib", UsageInMiB);
-
-		ImGui::Text("");
-		ImGui::Text("Total Frame Count: %d", Statistics::TotalFrameCount);
-		ImGui::Text("FPS: %f", Statistics::FPS);
-		ImGui::Text("FPMS: %f", Statistics::FPMS);
-
-		ImGui::Text("");
-
-		if (ImGui::Button("Screenshot"))
-		{
-			Screenshot = true;
-		}
-
-		if (ImGui::TreeNode("Settings"))
-		{
-			if (ImGui::Button("Restore Defaults"))
-			{
-				Settings::RestoreDefaults();
-			}
-			ImGui::Checkbox("V-Sync", &Settings::VSync);
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Render Pipeline"))
-		{
-			PathIntegrator.RenderGui();
-			ImGui::TreePop();
-		}
+		LOG_WARN("Failed to capture");
 	}
-	ImGui::End();
 }

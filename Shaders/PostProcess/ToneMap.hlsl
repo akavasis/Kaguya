@@ -20,15 +20,14 @@ cbuffer Settings : register(b0, space0)
 
 #include <FullScreenTriangle.hlsl>
 
+SamplerState PointClamp : register(s0, space0);
+
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
 	Texture2D Input = g_Texture2DTable[InputIndex];
 	
-	uint2 pixel = uint2(IN.Position.xy + 0.5f);
-	
-	float3 color = Input[pixel].rgb;
+	float3 color = Input.Sample(PointClamp, IN.Texture).rgb;
 	
 	color = ACESFitted(color);
-	color = LinearTosRGB(color);
 	return float4(color, 1.0f);
 }

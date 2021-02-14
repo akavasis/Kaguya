@@ -30,11 +30,6 @@ void InputHandler::Create(Window* pWindow)
 
 void InputHandler::Handle(const MSG* pMsg)
 {
-	if (!m_pWindow->IsFocused())
-	{
-		return;
-	}
-
 	switch (pMsg->message)
 	{
 	case WM_LBUTTONDOWN: [[fallthrough]];

@@ -40,7 +40,7 @@ public:
 	using Record = ShaderRecord<T>;
 
 	ShaderTable()
-		: m_StrideInBytes(Math::AlignUp<UINT64>(sizeof(Record), D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT))
+		: m_StrideInBytes(AlignUp<UINT64>(sizeof(Record), D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT))
 		, m_Resource(nullptr)
 	{
 
@@ -108,7 +108,7 @@ public:
 	auto GetSizeInBytes() const
 	{
 		UINT64 SizeInBytes = static_cast<UINT64>(m_ShaderRecords.size()) * m_StrideInBytes;
-		SizeInBytes = Math::AlignUp<UINT64>(SizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+		SizeInBytes = AlignUp<UINT64>(SizeInBytes, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 		return SizeInBytes;
 	}
 

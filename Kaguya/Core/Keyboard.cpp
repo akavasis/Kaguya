@@ -6,12 +6,15 @@ bool Keyboard::IsKeyPressed(unsigned char KeyCode) const
 	return m_KeyStates[KeyCode];
 }
 
-Keyboard::Event Keyboard::ReadKey()
+std::optional<Keyboard::Event> Keyboard::ReadKey()
 {
 	if (Keyboard::Event e;
 		m_KeyBuffer.Dequeue(e, 0))
+	{
 		return e;
-	return Keyboard::Event(Keyboard::Event::EType::Invalid, NULL);
+	}
+
+	return {};
 }
 
 bool Keyboard::KeyBufferIsEmpty() const

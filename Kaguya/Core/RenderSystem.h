@@ -3,6 +3,7 @@
 
 //----------------------------------------------------------------------------------------------------
 class Time;
+struct Scene;
 
 //----------------------------------------------------------------------------------------------------
 class RenderSystem
@@ -30,24 +31,20 @@ public:
 	RenderSystem(uint32_t Width, uint32_t Height);
 	virtual ~RenderSystem();
 
-	bool OnInitialize();
+	void OnInitialize();
 	void OnUpdate(const Time& Time);
-	void OnHandleInput(float DeltaTime);
-	void OnHandleRawInput(float DeltaTime);
-	void OnRender();
-	bool OnResize(uint32_t Width, uint32_t Height);
+	void OnRender(Scene& Scene);
+	void OnResize(uint32_t Width, uint32_t Height);
 	void OnDestroy();
+	void OnRequestCapture();
 protected:
-	virtual bool Initialize() = 0;
+	virtual void Initialize() = 0;
 	virtual void Update(const Time& Time) = 0;
-	virtual void HandleInput(float DeltaTime) = 0;
-	virtual void HandleRawInput(float DeltaTime) = 0;
-	virtual void Render() = 0;
-	virtual bool Resize(uint32_t Width, uint32_t Height) = 0;
+	virtual void Render(Scene& Scene) = 0;
+	virtual void Resize(uint32_t Width, uint32_t Height) = 0;
 	virtual void Destroy() = 0;
+	virtual void RequestCapture() {};
 protected:
-	uint32_t	Width;
-	uint32_t	Height;
+	uint32_t	Width, Height;
 	float		AspectRatio;
-	bool		Screenshot;
 };

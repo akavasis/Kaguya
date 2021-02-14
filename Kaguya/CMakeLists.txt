@@ -118,10 +118,6 @@ include_directories("${CMAKE_SOURCE_DIR}/Submodules/yaml-cpp/include")
 include_directories("../External/assimp/include")
 target_link_libraries(${PROJECTNAME} ${CMAKE_SOURCE_DIR}/External/assimp/lib/Release/assimp-vc142-mt.lib)
 
-include_directories("../External/DirectXMesh/include")
-target_link_libraries(${PROJECTNAME} debug ${CMAKE_SOURCE_DIR}/External/DirectXMesh/lib/Debug/DirectXMesh.lib)
-target_link_libraries(${PROJECTNAME} optimized ${CMAKE_SOURCE_DIR}/External/DirectXMesh/lib/Release/DirectXMesh.lib)
-
 include_directories("../External/DirectXTex/include")
 target_link_libraries(${PROJECTNAME} debug ${CMAKE_SOURCE_DIR}/External/DirectXTex/lib/Debug/DirectXTex.lib)
 target_link_libraries(${PROJECTNAME} optimized ${CMAKE_SOURCE_DIR}/External/DirectXTex/lib/Release/DirectXTex.lib)

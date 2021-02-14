@@ -40,7 +40,7 @@ public:
 
 	bool IsKeyPressed(unsigned char KeyCode) const;
 
-	Keyboard::Event ReadKey();
+	std::optional<Keyboard::Event> ReadKey();
 	bool KeyBufferIsEmpty() const;
 
 	unsigned char ReadChar();

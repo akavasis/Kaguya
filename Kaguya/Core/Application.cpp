@@ -6,8 +6,6 @@
 #include <shellscalingapi.h>
 #pragma comment(lib, "shcore.lib")
 
-#include "Time.h"
-
 void Application::Initialize(const Config& Config)
 {
 	Log::Create();
@@ -33,14 +31,14 @@ void Application::Initialize(const Config& Config)
 	MinimumHeight = GetSystemMetrics(SM_CYMINTRACK);
 }
 
-int Application::Run(RenderSystem* pRenderSystem)
+int Application::Run(std::function<void()> ShutdownFunc)
 {
 	int ExitCode = EXIT_SUCCESS;
 
 	try
 	{
 		// Begin our render thread
-		RenderThread = wil::unique_handle(::CreateThread(nullptr, 0, Application::RenderThreadProc, pRenderSystem, 0, nullptr));
+		RenderThread = wil::unique_handle(::CreateThread(nullptr, 0, Application::RenderThreadProc, nullptr, 0, nullptr));
 		if (!RenderThread)
 		{
 			LOG_ERROR("Failed to create thread (error={})", ::GetLastError());
@@ -56,17 +54,6 @@ int Application::Run(RenderSystem* pRenderSystem)
 				::DispatchMessage(&Msg);
 
 				InputHandler.Handle(&Msg);
-
-				if (InputHandler.Mouse.IsRMBPressed() && !ImGui::GetIO().WantCaptureMouse)
-				{
-					Window.DisableCursor();
-					InputHandler.Mouse.UseRawInput = true;
-				}
-				else
-				{
-					Window.EnableCursor();
-					InputHandler.Mouse.UseRawInput = false;
-				}
 			}
 
 			if (QuitApplication)
@@ -95,6 +82,11 @@ int Application::Run(RenderSystem* pRenderSystem)
 		::WaitForSingleObject(RenderThread.get(), INFINITE);
 	}
 
+	if (ShutdownFunc)
+	{
+		ShutdownFunc();
+	}
+
 	CoUninitialize();
 	LOG_INFO("Exit Code: {}", ExitCode);
 	return ExitCode;
@@ -110,21 +102,9 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 	SetThreadDescription(GetCurrentThread(), L"Render Thread");
 
 	ThrowIfFailed(CoInitializeEx(nullptr, tagCOINIT::COINIT_APARTMENTTHREADED));
-	auto pRenderSystem = reinterpret_cast<RenderSystem*>(pParameter);
-	
-	Time Time;
-	Time.Restart();
-
-	if (!pRenderSystem->OnInitialize())
-		goto Error;
 
 	while (!ExitRenderThread)
 	{
-		if (!Window.IsFocused())
-			continue;
-
-		Time.Signal();
-
 		// Process window messages
 		Window::Message messsage;
 		Window::Message resizeMessage(Window::Message::EType::None, {});
@@ -136,34 +116,22 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 				continue;
 			}
 
-			HandleRenderMessage(pRenderSystem, messsage);
+			HandleRenderMessage(messsage);
 		}
 
 		// Now we process resize message
 		if (resizeMessage.Type == Window::Message::EType::Resize)
 		{
-			if (!HandleRenderMessage(pRenderSystem, resizeMessage))
+			if (!HandleRenderMessage(resizeMessage))
 			{
 				// Requeue this message if it failed to resize
 				Window.MessageQueue.Enqueue(resizeMessage);
 			}
 		}
 
-		// Update
-		pRenderSystem->OnUpdate(Time);
-
-		pRenderSystem->OnHandleInput(Time.DeltaTime());
-
-		if (!Window.CursorEnabled())
-		{
-			pRenderSystem->OnHandleRawInput(Time.DeltaTime());
-		}
-
-		pRenderSystem->OnRender();
+		Application::Window.Render();
 	}
 
-Error:
-	pRenderSystem->OnDestroy();
 	CoUninitialize();
 
 	Application::Quit();
@@ -171,13 +139,14 @@ Error:
 	return EXIT_SUCCESS;
 }
 
-bool Application::HandleRenderMessage(RenderSystem* pRenderSystem, const Window::Message& Message)
+bool Application::HandleRenderMessage(const Window::Message& Message)
 {
 	switch (Message.Type)
 	{
 	case Window::Message::EType::Resize:
 	{
-		return pRenderSystem->OnResize(Message.Data.Width, Message.Data.Height);
+		Application::Window.Resize(Message.Data.Width, Message.Data.Height);
+		return true;
 	}
 	break;
 	}

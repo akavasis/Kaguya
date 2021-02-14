@@ -7,7 +7,6 @@ RenderSystem::RenderSystem(uint32_t Width, uint32_t Height)
 	: Width(Width)
 	, Height(Height)
 	, AspectRatio(static_cast<float>(Width) / static_cast<float>(Height))
-	, Screenshot(false)
 {
 	Settings::RestoreDefaults();
 }
@@ -17,7 +16,7 @@ RenderSystem::~RenderSystem()
 
 }
 
-bool RenderSystem::OnInitialize()
+void RenderSystem::OnInitialize()
 {
 	return Initialize();
 }
@@ -36,22 +35,12 @@ void RenderSystem::OnUpdate(const Time& Time)
 	return Update(Time);
 }
 
-void RenderSystem::OnHandleInput(float DeltaTime)
+void RenderSystem::OnRender(Scene& Scene)
 {
-	return HandleInput(DeltaTime);
+	return Render(Scene);
 }
 
-void RenderSystem::OnHandleRawInput(float DeltaTime)
-{
-	return HandleRawInput(DeltaTime);
-}
-
-void RenderSystem::OnRender()
-{
-	return Render();
-}
-
-bool RenderSystem::OnResize(uint32_t Width, uint32_t Height)
+void RenderSystem::OnResize(uint32_t Width, uint32_t Height)
 {
 	this->Width = Width;
 	this->Height = Height;
@@ -62,4 +51,9 @@ bool RenderSystem::OnResize(uint32_t Width, uint32_t Height)
 void RenderSystem::OnDestroy()
 {
 	return Destroy();
+}
+
+void RenderSystem::OnRequestCapture()
+{
+	return RequestCapture();
 }

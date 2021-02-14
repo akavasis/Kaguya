@@ -1,14 +1,10 @@
 #pragma once
 #include <Core/RenderSystem.h>
-#include <Graphics/RenderDevice.h>
-#include <Graphics/ResourceManager.h>
-#include <Graphics/RaytracingAccelerationStructure.h>
 
-#include <Graphics/UI/Editor.h>
-
-#include <Graphics/PathIntegrator.h>
-#include <Graphics/Picking.h>
-#include <Graphics/ToneMapper.h>
+#include "RaytracingAccelerationStructure.h"
+#include "PathIntegrator.h"
+#include "Picking.h"
+#include "ToneMapper.h"
 
 class Renderer : public RenderSystem
 {
@@ -17,28 +13,26 @@ public:
 	Renderer(const Renderer&) = delete;
 	Renderer& operator=(const Renderer&) = delete;
 	~Renderer() override;
-protected:
-	bool Initialize() override;
-	void Update(const Time& Time) override;
-	void HandleInput(float DeltaTime) override;
-	void HandleRawInput(float DeltaTime) override;
-	void Render() override;
-	bool Resize(uint32_t Width, uint32_t Height) override;
-	void Destroy() override;
-private:
-	void RenderGui();
-private:
-	RenderDevice							RenderDevice;
-	ResourceManager							ResourceManager;
 
-	// Editor and Renderer should probably be separate,
-	// but because we are using ImGui and rendering directly into the back buffer
-	// the Renderer contains Editor...
-	// TODO: Renderer and Editor should be separate, come up with an alternative...
-	// (e.g. render onto offscreen texture and composite them, or perhaps on a separate thread)
-	Scene									Scene;
+	Descriptor GetViewportDescriptor();
+	Entity GetSelectedEntity();
+
+	void SetViewportMousePosition(float MouseX, float MouseY);
+	void SetViewportResolution(uint32_t Width, uint32_t Height);
+protected:
+	void Initialize() override;
+	void Update(const Time& Time) override;
+	void Render(Scene& Scene) override;
+	void Resize(uint32_t Width, uint32_t Height) override;
+	void Destroy() override;
+	void RequestCapture() override;
+private:
+	float ViewportMouseX, ViewportMouseY;
+	uint32_t ViewportWidth, ViewportHeight;
+	D3D12_VIEWPORT Viewport;
+	D3D12_RECT ScissorRect;
+
 	RaytracingAccelerationStructure			RaytracingAccelerationStructure;
-	Editor									Editor;
 	PathIntegrator							PathIntegrator;
 	Picking									Picking;
 	ToneMapper								ToneMapper;

@@ -3,17 +3,12 @@
 
 #include "Entity.h"
 
-#include "../ResourceManager.h"
+#include "../AssetManager.h"
 
 Scene::Scene()
 {
 	Camera.Transform.Position = { 0.0f, 5.0f, -10.0f };
 	PreviousCamera = Camera;
-}
-
-void Scene::SetContext(ResourceManager* pResourceManager)
-{
-	this->pResourceManager = pResourceManager;
 }
 
 void Scene::Clear()
@@ -54,7 +49,7 @@ void Scene::Update()
 				SceneState = SCENE_STATE_UPDATED;
 			}
 
-			meshFilter.Mesh = pResourceManager->GetMeshCache().Load(meshFilter.MeshID);
+			meshFilter.Mesh = AssetManager::Instance().GetMeshCache().Load(meshFilter.MeshID);
 		}
 	}
 

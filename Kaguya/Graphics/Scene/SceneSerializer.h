@@ -1,13 +1,12 @@
 #pragma once
 #include <filesystem>
-#include "Scene.h"
 
-class ResourceManager;
+struct Scene;
 
 class SceneSerializer
 {
 public:
 	static void Serialize(const std::filesystem::path& Path, Scene* pScene);
 
-	static [[nodiscard]] void Deserialize(const std::filesystem::path& Path, Scene* pScene, ResourceManager* pResourceManager);
+	static void Deserialize(const std::filesystem::path& Path, Scene* pScene);
 };

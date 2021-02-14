@@ -1,12 +1,13 @@
 #include "pch.h"
 #include "SceneSerializer.h"
 
+#include "Scene.h"
 #include "Entity.h"
 
 #include <fstream>
 #include <yaml-cpp/yaml.h>
 
-#include "../ResourceManager.h"
+#include "../AssetManager.h"
 
 namespace Version
 {
@@ -341,11 +342,13 @@ static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, std::unorde
 	});
 }
 
-void SceneSerializer::Deserialize(const std::filesystem::path& Path, Scene* pScene, ResourceManager* pResourceManager)
+void SceneSerializer::Deserialize(const std::filesystem::path& Path, Scene* pScene)
 {
+	auto& AssetManager = AssetManager::Instance();
+
 	pScene->Clear();
-	pResourceManager->GetImageCache().DestroyAll();
-	pResourceManager->GetMeshCache().DestroyAll();
+	AssetManager.GetImageCache().DestroyAll();
+	AssetManager.GetMeshCache().DestroyAll();
 
 	std::ifstream fin(Path);
 	std::stringstream ss;
@@ -386,6 +389,6 @@ void SceneSerializer::Deserialize(const std::filesystem::path& Path, Scene* pSce
 
 	for (const auto& iter : Resources)
 	{
-		pResourceManager->AsyncLoadMesh(iter, true);
+		AssetManager.AsyncLoadMesh(iter, true);
 	}
 }

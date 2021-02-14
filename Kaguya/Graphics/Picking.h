@@ -5,7 +5,7 @@
 class Picking
 {
 public:
-	void Create(RenderDevice* pRenderDevice);
+	void Create();
 
 	void UpdateShaderTable(const RaytracingAccelerationStructure& Scene, CommandList& CommandList);
 	void ShootPickingRay(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
@@ -13,8 +13,6 @@ public:
 
 	std::optional<Entity> GetSelectedEntity();
 private:
-	RenderDevice* pRenderDevice;
-
 	RootSignature GlobalRS;
 	RaytracingPipelineState RTPSO;
 

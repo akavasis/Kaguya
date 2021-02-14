@@ -3,6 +3,8 @@
 
 using Microsoft::WRL::ComPtr;
 
+static RenderDevice* pRenderDevice = nullptr;
+
 namespace
 {
 	// Global resource state tracker
@@ -25,7 +27,33 @@ Resource::~Resource()
 	SafeRelease(pAllocation);
 }
 
-RenderDevice::RenderDevice(const Window& Window)
+void RenderDevice::Initialize()
+{
+	if (!pRenderDevice)
+	{
+		pRenderDevice = new RenderDevice();
+	}
+}
+
+void RenderDevice::Shutdown()
+{
+	if (pRenderDevice)
+	{
+		pRenderDevice->FlushGraphicsQueue();
+		pRenderDevice->FlushComputeQueue();
+		pRenderDevice->FlushCopyQueue();
+		delete pRenderDevice;
+	}
+	Device::ReportLiveObjects();
+}
+
+RenderDevice& RenderDevice::Instance()
+{
+	assert(pRenderDevice);
+	return *pRenderDevice;
+}
+
+RenderDevice::RenderDevice()
 {
 	InitializeDXGIObjects();
 
@@ -35,7 +63,7 @@ RenderDevice::RenderDevice(const Window& Window)
 	ComputeQueue.Create(Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
 	CopyQueue.Create(Device, D3D12_COMMAND_LIST_TYPE_COPY);
 
-	InitializeDXGISwapChain(Window);
+	InitializeDXGISwapChain();
 
 	m_GlobalOnlineDescriptorHeap.Create(Device, { NumConstantBufferDescriptors, NumShaderResourceDescriptors, NumUnorderedAccessDescriptors }, true, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_GlobalOnlineSamplerDescriptorHeap.Create(Device, { NumGlobalOnlineSamplerDescriptors }, true, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
@@ -64,8 +92,6 @@ RenderDevice::RenderDevice(const Window& Window)
 		RenderDevice::SwapChainBufferFormat, m_GlobalOnlineDescriptorHeap,
 		ImGuiDescriptor.CpuHandle,
 		ImGuiDescriptor.GpuHandle);
-
-	atexit(Device::ReportLiveObjects);
 }
 
 RenderDevice::~RenderDevice()
@@ -86,17 +112,17 @@ void RenderDevice::CreateCommandContexts(UINT NumGraphicsContext)
 
 	for (UINT i = 0; i < NumGraphicsContext; ++i)
 	{
-		m_GraphicsContexts.push_back(CommandList(Device, D3D12_COMMAND_LIST_TYPE_DIRECT));
+		m_GraphicsContexts.emplace_back(Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	}
 
 	for (UINT i = 0; i < NumAsyncComputeContext; ++i)
 	{
-		m_AsyncComputeContexts.push_back(CommandList(Device, D3D12_COMMAND_LIST_TYPE_COMPUTE));
+		m_AsyncComputeContexts.emplace_back(Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
 	}
 
 	for (UINT i = 0; i < NumCopyContext; ++i)
 	{
-		m_CopyContexts.push_back(CommandList(Device, D3D12_COMMAND_LIST_TYPE_COPY));
+		m_CopyContexts.emplace_back(Device, D3D12_COMMAND_LIST_TYPE_COPY);
 	}
 }
 
@@ -411,7 +437,8 @@ void RenderDevice::CreateRenderTargetView(ID3D12Resource* pResource,
 	const Descriptor& DestDescriptor,
 	std::optional<UINT> ArraySlice /*= {}*/,
 	std::optional<UINT> MipSlice /*= {}*/,
-	std::optional<UINT> ArraySize /*= {}*/)
+	std::optional<UINT> ArraySize /*= {}*/,
+	bool sRGB /*= false*/)
 {
 	const auto Desc = pResource->GetDesc();
 
@@ -420,7 +447,7 @@ void RenderDevice::CreateRenderTargetView(ID3D12Resource* pResource,
 	UINT arraySize = ArraySize.value_or(Desc.DepthOrArraySize);
 
 	D3D12_RENDER_TARGET_VIEW_DESC RTVDesc = {};
-	RTVDesc.Format = Desc.Format;
+	RTVDesc.Format = sRGB ? DirectX::MakeSRGB(Desc.Format) : Desc.Format;
 
 	// TODO: Add 1D/3D support
 	switch (Desc.Dimension)
@@ -559,8 +586,10 @@ void RenderDevice::InitializeDXGIObjects()
 	}
 }
 
-void RenderDevice::InitializeDXGISwapChain(const Window& Window)
+void RenderDevice::InitializeDXGISwapChain()
 {
+	const Window& Window = Application::Window;
+
 	// Create DXGISwapChain
 	DXGI_SWAP_CHAIN_DESC1 Desc = {};
 	Desc.Width = Window.GetWindowWidth();

@@ -1,33 +1,19 @@
 #include "pch.h"
 #include "RaytracingAccelerationStructure.h"
 
-#include "RendererRegistry.h"
+#include "RenderDevice.h"
 
 using namespace DirectX;
 
-void RaytracingAccelerationStructure::Create(RenderDevice* pRenderDevice,
-	UINT NumHitGroups)
+void RaytracingAccelerationStructure::Create(UINT NumHitGroups)
 {
-	this->pRenderDevice = pRenderDevice;
+	auto& RenderDevice = RenderDevice::Instance();
+
 	this->NumHitGroups = NumHitGroups;
-
-	//RS = pRenderDevice->CreateRootSignature([](RootSignatureBuilder& Builder)
-	//{
-	//	Builder.AddRootConstantsParameter(RootConstants<void>(0, 0, 1));
-
-	//	Builder.AddRootSRVParameter(RootSRV(0, 0));
-	//	Builder.AddRootUAVParameter(RootUAV(0, 0));
-	//}, false);
-
-	//PSO = pRenderDevice->CreateComputePipelineState([=](ComputePipelineStateBuilder& Builder)
-	//{
-	//	Builder.pRootSignature = &RS;
-	//	Builder.pCS = &Shaders::CS::InstanceGeneration;
-	//});
 
 	D3D12MA::ALLOCATION_DESC Desc = {};
 	Desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
-	InstanceDescs = pRenderDevice->CreateBuffer(&Desc, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * Scene::MAX_INSTANCE_SUPPORTED, D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_GENERIC_READ);
+	InstanceDescs = RenderDevice.CreateBuffer(&Desc, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * Scene::MAX_INSTANCE_SUPPORTED, D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_GENERIC_READ);
 	ThrowIfFailed(InstanceDescs->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pInstanceDescs)));
 }
 
@@ -62,23 +48,12 @@ void RaytracingAccelerationStructure::AddInstance(MeshRenderer* pMeshRenderer)
 
 void RaytracingAccelerationStructure::Build(CommandList& CommandList)
 {
+	auto& RenderDevice = RenderDevice::Instance();
+
 	PIXScopedEvent(CommandList.GetApiHandle(), 0, L"Top Level Acceleration Structure Generation");
 
-	/*CommandList->SetPipelineState(PSO);
-	CommandList->SetComputeRootSignature(RS);
-
-	auto pMeshBuffer = pRenderDevice->GetBuffer(m_MeshTable)->GetApiHandle();
-	auto pInstanceDescsBuffer = pRenderDevice->GetBuffer(m_InstanceDescsBuffer)->GetApiHandle();
-	CommandList->SetComputeRoot32BitConstant(0, NumInstances, 0);
-	CommandList->SetComputeRootShaderResourceView(1, pMeshBuffer->GetGPUVirtualAddress());
-	CommandList->SetComputeRootUnorderedAccessView(2, pInstanceDescsBuffer->GetGPUVirtualAddress());*/
-
-	//CommandList.Dispatch1D<64>(NumInstances);
-	//CommandList.UAVBarrier(pInstanceDescsBuffer);
-	//CommandList.FlushResourceBarriers();
-
 	UINT64 ScratchSIB, ResultSIB;
-	TopLevelAccelerationStructure.ComputeMemoryRequirements(pRenderDevice->Device, &ScratchSIB, &ResultSIB);
+	TopLevelAccelerationStructure.ComputeMemoryRequirements(RenderDevice.Device, &ScratchSIB, &ResultSIB);
 
 	D3D12MA::ALLOCATION_DESC AllocDesc = {};
 	AllocDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
@@ -87,13 +62,13 @@ void RaytracingAccelerationStructure::Build(CommandList& CommandList)
 	if (!TLASScratch || TLASScratch->pResource->GetDesc().Width < ScratchSIB)
 	{
 		// TLAS Scratch
-		TLASScratch = pRenderDevice->CreateBuffer(&AllocDesc, ScratchSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		TLASScratch = RenderDevice.CreateBuffer(&AllocDesc, ScratchSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	}
 
 	if (!TLASResult || TLASResult->pResource->GetDesc().Width < ResultSIB)
 	{
 		// TLAS Result
-		TLASResult = pRenderDevice->CreateBuffer(&AllocDesc, ResultSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+		TLASResult = RenderDevice.CreateBuffer(&AllocDesc, ResultSIB, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
 	}
 
 	// Create the description for each instance
