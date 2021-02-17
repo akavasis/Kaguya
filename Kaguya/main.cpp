@@ -65,7 +65,7 @@ public:
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(IO.DisplaySize);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::Begin("Kaguya", 0, ImGuiWindowFlags_MenuBar
+		ImGui::Begin("Kaguya", nullptr, ImGuiWindowFlags_MenuBar
 			| ImGuiWindowFlags_NoTitleBar
 			| ImGuiWindowFlags_NoResize
 			| ImGuiWindowFlags_NoMove

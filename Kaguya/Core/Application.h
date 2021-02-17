@@ -18,7 +18,7 @@ public:
 		int Height			= CW_USEDEFAULT;
 		int X				= CW_USEDEFAULT;
 		int Y				= CW_USEDEFAULT;
-		bool Maximize		= false;
+		bool Maximize		= true;
 	};
 
 	static void Initialize(const Config& Config);

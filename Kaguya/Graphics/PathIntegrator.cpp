@@ -252,12 +252,6 @@ void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 {
 	auto& RenderDevice = RenderDevice::Instance();
 
-	if (g_Settings.NumAccumulatedSamples == 10000)
-	{
-		LOG_INFO("Reached 10000");
-		return;
-	}
-
 	struct RenderPassData
 	{
 		uint NumSamplesPerPixel;
