@@ -54,11 +54,6 @@ void HierarchyWindow::RenderGui()
 		}
 	});
 
-	if (ImGui::IsMouseDown(0) && IsHovered)
-	{
-		SelectedEntity = {};
-	}
-
 	// Right-click on blank space
 	if (ImGui::BeginPopupContextWindow("Hierarchy Popup Context Window", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 	{

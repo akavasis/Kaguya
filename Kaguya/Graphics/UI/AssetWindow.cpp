@@ -26,7 +26,7 @@ void AssetWindow::RenderGui()
 
 		if (ImGui::MenuItem("Import Mesh"))
 		{
-			OpenDialog("dds,tga,hdr", "", [&](auto Path)
+			OpenDialog("obj,stl,", "", [&](auto Path)
 			{
 				AssetManager::Instance().AsyncLoadMesh(Path, true);
 			});

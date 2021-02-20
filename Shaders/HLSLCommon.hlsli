@@ -30,7 +30,7 @@ void CoordinateSystem(float3 V1, out float3 V2, out float3 V3)
 		V2 = float3(-V1.z, 0, V1.x) / sqrt(V1.x * V1.x + V1.z * V1.z);
 	else
 		V2 = float3(0, V1.z, -V1.y) / sqrt(V1.y * V1.y + V1.z * V1.z);
-	V3 = normalize(cross(V1, V2));
+	V3 = cross(V1, V2);
 }
 
 float3x3 GetTBNMatrix(float3 Normal)

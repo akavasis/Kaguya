@@ -76,8 +76,9 @@ YAML::Emitter& operator<<(YAML::Emitter& Emitter, const MeshFilter& MeshFilter)
 	Emitter << YAML::Key << "Mesh Filter";
 	Emitter << YAML::BeginMap;
 	{
-		std::string Value = MeshFilter.Mesh ? MeshFilter.Mesh->Metadata.Path.string() : "NULL";
-		Emitter << YAML::Key << "Name" << Value;
+		std::filesystem::path RelativePath = MeshFilter.Mesh ? std::filesystem::relative(MeshFilter.Mesh->Metadata.Path, Application::ExecutableFolderPath) : "NULL";
+
+		Emitter << YAML::Key << "Name" << RelativePath.string();
 	}
 	Emitter << YAML::EndMap;
 	return Emitter;
@@ -306,7 +307,7 @@ static void DeserializeCamera(const YAML::Node& Node, Scene* pScene)
 static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, std::unordered_set<std::string>* Resources)
 {
 	// Tag component have to exist
-	std::string Name = Node["Tag"]["Name"].as<std::string>();
+	auto Name = Node["Tag"]["Name"].as<std::string>();
 
 	// Create entity after getting our tag component
 	Entity Entity = pScene->CreateEntity(Name);
@@ -321,6 +322,7 @@ static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, std::unorde
 	DeserializeComponent<MeshFilter>(Node["Mesh Filter"], &Entity, [&](auto& Node, auto& MeshFilter)
 	{
 		auto Path = Node["Name"].as<std::string>();
+		Path = std::filesystem::absolute(Path).string();
 		Resources->insert(Path);
 
 		MeshFilter.MeshID = entt::hashed_string(Path.data());
