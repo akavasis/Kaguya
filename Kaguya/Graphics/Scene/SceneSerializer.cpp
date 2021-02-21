@@ -322,7 +322,7 @@ static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, std::unorde
 	DeserializeComponent<MeshFilter>(Node["Mesh Filter"], &Entity, [&](auto& Node, auto& MeshFilter)
 	{
 		auto Path = Node["Name"].as<std::string>();
-		Path = std::filesystem::absolute(Path).string();
+		Path = (Application::ExecutableFolderPath / Path).string();
 		Resources->insert(Path);
 
 		MeshFilter.MeshID = entt::hashed_string(Path.data());
@@ -383,7 +383,7 @@ void SceneSerializer::Deserialize(const std::filesystem::path& Path, Scene* pSce
 	{
 		for (auto Entity : Entities)
 		{
-			UINT64 ID = Entity["Entity"].as<UINT64>();
+			auto ID = Entity["Entity"].as<UINT64>();
 
 			DeserializeEntity(Entity, pScene, &Resources);
 		}

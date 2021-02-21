@@ -158,8 +158,9 @@ void RenderDevice::Resize(UINT Width, UINT Height)
 
 	// Resize backbuffer
 	// Note: Cannot use ResizeBuffers1 when debugging in Nsight Graphics, it will crash
-	uint32_t SwapChainFlags = m_TearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	ThrowIfFailed(m_DXGISwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainFlags));
+	DXGI_SWAP_CHAIN_DESC1 Desc = {};
+	ThrowIfFailed(m_DXGISwapChain->GetDesc1(&Desc));
+	ThrowIfFailed(m_DXGISwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, Desc.Flags));
 
 	// Recreate descriptors
 	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
