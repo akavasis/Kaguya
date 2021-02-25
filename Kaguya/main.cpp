@@ -103,6 +103,9 @@ public:
 		auto [mX, mY] = ViewportWindow.GetMousePosition();
 		uint32_t viewportWidth = ViewportWindow.Resolution.x, viewportHeight = ViewportWindow.Resolution.y;
 
+		// Uncomment this and comment the viewport above for 1920x1080 captures
+		//uint32_t viewportWidth = 1920, viewportHeight = 1080;
+
 		// Update
 		Scene.PreviousCamera = Scene.Camera;
 
@@ -111,7 +114,7 @@ public:
 		// Update selected entity
 		// If LMB is pressed and we are not handling raw input and if we are not hovering over any imgui stuff then we update the
 		// instance id for editor
-		if (Mouse.IsLMBPressed() && !Mouse.UseRawInput && ViewportWindow.IsHovered)
+		if (Mouse.IsLMBPressed() && !Mouse.UseRawInput && ViewportWindow.IsHovered && !ImGuizmo::IsUsing())
 		{
 			HierarchyWindow.SetSelectedEntity(Renderer.GetSelectedEntity());
 		}
@@ -168,6 +171,7 @@ int main(int argc, char* argv[])
 	ENABLE_LEAK_DETECTION();
 	SET_LEAK_BREAKPOINT(-1);
 #endif
+
 	Application::Config Config =
 	{
 		.Title = L"Kaguya",
@@ -197,7 +201,7 @@ int main(int argc, char* argv[])
 	});
 
 	Application::Time.Restart();
-	Application::Run([&]()
+	return Application::Run([&]()
 	{
 		pEditor->Shutdown();
 		pEditor.reset();
@@ -205,6 +209,4 @@ int main(int argc, char* argv[])
 		AssetManager::Shutdown();
 		RenderDevice::Shutdown();
 	});
-
-	return EXIT_SUCCESS;
 }

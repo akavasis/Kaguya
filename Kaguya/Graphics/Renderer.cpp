@@ -66,8 +66,6 @@ void Renderer::Initialize()
 	Desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
 	Materials = RenderDevice.CreateBuffer(&Desc, sizeof(HLSL::Material) * Scene::MAX_MATERIAL_SUPPORTED, D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_GENERIC_READ);
 	ThrowIfFailed(Materials->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pMaterials)));
-
-	Resize(Width, Height);
 }
 
 void Renderer::Update(const Time& Time)
