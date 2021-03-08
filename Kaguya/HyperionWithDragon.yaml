@@ -1,0 +1,308 @@
+Version: 1.0.0
+Scene: HyperionWithDragon.yaml
+Camera:
+  Transform:
+    Position: [-10.4574804, 9.16670132, -3.15382457]
+    Scale: [1, 1, 1]
+    Orientation: [0.283477277, 0.56527555, -0.215358898, 0.744083643]
+  Field of View: 0.785398185
+  Clipping Planes: [0.100000001, 500]
+  Focal Length: 10
+  Relative Aperture: 0
+  Shutter Time: 0.00800000038
+  Sensor Sensitivity: 200
+Entities:
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Dragon
+    Transform:
+      Position: [-3.5, 1.5, -4]
+      Scale: [0.200000003, 0.200000003, 0.200000003]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\dragon\dragon.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0, 0, 0]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 3
+        Model: 3
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Egg
+    Transform:
+      Position: [3.5, 1.5, -5]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Egg.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0, 0, 0]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1.80400002
+        Model: 3
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Burr puzzle
+    Transform:
+      Position: [0, 2.5, -5]
+      Scale: [20.0000114, 20.0000114, 20.0000019]
+      Orientation: [-0, 0.382683426, -0, 0.923879504]
+    Mesh Filter:
+      Name: Assets\Models\BurrPuzzle.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.400000006, 0.219607845, 0.109803922]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 0
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Ring 2
+    Transform:
+      Position: [0, 1.25, -1.5]
+      Scale: [0.00499999989, 0.00499999989, 0.00499999989]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Ring.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.949019611, 0.929411769, 0.87843138]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 2
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Ring 1
+    Transform:
+      Position: [0.349999994, 1.35000002, 0]
+      Scale: [0.00500003435, 0.00500001945, 0.00500000827]
+      Orientation: [-0, 0, -0.195090339, 0.98078531]
+    Mesh Filter:
+      Name: Assets\Models\Ring.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.949019611, 0.929411769, 0.87843138]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 2
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Ring 0
+    Transform:
+      Position: [0, 1.25, 0]
+      Scale: [0.00499999989, 0.00499999989, 0.00499999989]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Ring.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.949019611, 0.929411769, 0.87843138]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 2
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Metal sphere
+    Transform:
+      Position: [-3.5, 2, 0]
+      Scale: [0.600000024, 0.600000024, 0.600000024]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.301960796, 0.301960796, 0.301960796]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0.0529999994
+        Index Of Refraction: 1
+        Model: 2
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Floor
+    Transform:
+      Position: [0, 0, 5.96046448e-08]
+      Scale: [40, 1, 40]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\cube\cube.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.749019623, 0.65882355, 0.556862772]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 0
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Table
+    Transform:
+      Position: [0, 1, 0]
+      Scale: [15, 0.5, 15]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\cube\cube.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.870588243, 0.78039217, 0.678431392]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 0
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Light
+    Transform:
+      Position: [-20, 20, 0]
+      Scale: [2, 2, 2]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0, 0, 0]
+        Emissive: [200, 200, 200]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 4
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Glass sphere
+    Transform:
+      Position: [3.5, 2, 0]
+      Scale: [0.5, 0.5, 0.5]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0, 0, 0]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1.51699996
+        Model: 3
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Red sphere
+    Transform:
+      Position: [-5, 2.5, 2.5]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.980392158, 0.0980392173, 0.0980392173]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 0
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Green sphere
+    Transform:
+      Position: [0, 2.5, 2.5]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.0980392173, 0.980392158, 0.0980392173]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 0
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Blue sphere
+    Transform:
+      Position: [5, 2.5, 2.5]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        Albedo: [0.0980392173, 0.0980392173, 0.980392158]
+        Emissive: [0, 0, 0]
+        Specular: [0, 0, 0]
+        Refraction: [0, 0, 0]
+        Specular Chance: 0
+        Roughness: 1
+        Metallic: 0
+        Fuzziness: 0
+        Index Of Refraction: 1
+        Model: 0
