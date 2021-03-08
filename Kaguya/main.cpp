@@ -65,15 +65,16 @@ public:
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(IO.DisplaySize);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::Begin("Kaguya", nullptr, ImGuiWindowFlags_MenuBar
-			| ImGuiWindowFlags_NoTitleBar
-			| ImGuiWindowFlags_NoResize
-			| ImGuiWindowFlags_NoMove
-			| ImGuiWindowFlags_NoScrollbar
-			| ImGuiWindowFlags_NoScrollWithMouse
-			| ImGuiWindowFlags_NoCollapse
-			| ImGuiWindowFlags_AlwaysAutoResize
-			| ImGuiWindowFlags_NoBringToFrontOnFocus);
+		ImGui::Begin("Kaguya", nullptr,
+			ImGuiWindowFlags_MenuBar |
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoScrollWithMouse |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_AlwaysAutoResize |
+			ImGuiWindowFlags_NoBringToFrontOnFocus);
 		{
 			ImGui::Spacing();
 
@@ -145,9 +146,8 @@ public:
 		// Render
 		Renderer.SetViewportMousePosition(mX, mY);
 		Renderer.SetViewportResolution(viewportWidth, viewportHeight);
-		Renderer.OnUpdate(Time);
 
-		Renderer.OnRender(Scene);
+		Renderer.OnRender(Time, Scene);
 	}
 
 	void Resize(uint32_t Width, uint32_t Height)

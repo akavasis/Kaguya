@@ -21,8 +21,7 @@ public:
 	void SetViewportResolution(uint32_t Width, uint32_t Height);
 protected:
 	void Initialize() override;
-	void Update(const Time& Time) override;
-	void Render(Scene& Scene) override;
+	void Render(const Time& Time, Scene& Scene) override;
 	void Resize(uint32_t Width, uint32_t Height) override;
 	void Destroy() override;
 	void RequestCapture() override;

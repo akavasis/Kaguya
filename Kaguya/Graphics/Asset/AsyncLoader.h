@@ -7,8 +7,8 @@
 #include "AssetCache.h"
 
 /*
-*	All inherited loader must implement a method called AsyncLoad,
-*	it takes in the TMetadata and returns a TResourcePtr
+* All inherited loader must implement a method called AsyncLoad,
+* it takes in the TMetadata and returns a TResourcePtr
 */
 template<typename T, typename Metadata, typename Loader>
 class AsyncLoader

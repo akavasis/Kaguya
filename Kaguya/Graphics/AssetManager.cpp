@@ -340,19 +340,22 @@ DWORD WINAPI AssetManager::ResourceUploadThreadProc(_In_ PVOID pParameter)
 				pMesh->VertexResource = std::move(VB);
 				pMesh->IndexResource = std::move(IB);
 
-				D3D12_RAYTRACING_GEOMETRY_DESC Desc = {};
-				Desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-				Desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-				Desc.Triangles.Transform3x4 = NULL;
-				Desc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
-				Desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
-				Desc.Triangles.IndexCount = pMesh->IndexCount;
-				Desc.Triangles.VertexCount = pMesh->VertexCount;
-				Desc.Triangles.IndexBuffer = pMesh->IndexResource->pResource->GetGPUVirtualAddress();
-				Desc.Triangles.VertexBuffer.StartAddress = pMesh->VertexResource->pResource->GetGPUVirtualAddress();
-				Desc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
+				for (const auto& Submesh : pMesh->Submeshes)
+				{
+					D3D12_RAYTRACING_GEOMETRY_DESC Desc = {};
+					Desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+					Desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+					Desc.Triangles.Transform3x4 = NULL;
+					Desc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
+					Desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; // Position attribute of the vertex
+					Desc.Triangles.IndexCount = Submesh.IndexCount;
+					Desc.Triangles.VertexCount = Submesh.VertexCount;
+					Desc.Triangles.IndexBuffer = pMesh->IndexResource->pResource->GetGPUVirtualAddress() + Submesh.StartIndexLocation * sizeof(unsigned int);
+					Desc.Triangles.VertexBuffer.StartAddress = pMesh->VertexResource->pResource->GetGPUVirtualAddress() + Submesh.BaseVertexLocation * sizeof(Vertex);
+					Desc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
 
-				pMesh->BLAS.AddGeometry(Desc);
+					pMesh->BLAS.AddGeometry(Desc);
+				}
 
 				UINT64 ScratchSIB, ResultSIB;
 				pMesh->BLAS.ComputeMemoryRequirements(pDevice, &ScratchSIB, &ResultSIB);

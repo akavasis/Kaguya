@@ -7,26 +7,30 @@
 
 namespace Asset
 {
-	struct Mesh;
-
 	struct MeshMetadata
 	{
 		std::filesystem::path Path;
 		bool KeepGeometryInRAM;
 	};
 
+	struct Submesh
+	{
+		uint32_t IndexCount;
+		uint32_t StartIndexLocation;
+		uint32_t VertexCount;
+		uint32_t BaseVertexLocation;
+	};
+
 	struct Mesh
 	{
 		MeshMetadata Metadata;
 
-		std::string						Name;
-		DirectX::BoundingBox			BoundingBox;
+		std::string Name;
 
-		uint32_t						VertexCount = 0;
-		uint32_t						IndexCount = 0;
+		std::vector<Vertex> Vertices;
+		std::vector<uint32_t> Indices;
 
-		std::vector<Vertex>				Vertices;
-		std::vector<uint32_t>			Indices;
+		std::vector<Submesh> Submeshes;
 
 		std::shared_ptr<Resource> VertexResource;
 		std::shared_ptr<Resource> IndexResource;
@@ -34,6 +38,3 @@ namespace Asset
 		BottomLevelAccelerationStructure BLAS;
 	};
 }
-
-Asset::Mesh CreateBox(float Width, float Height, float Depth);
-Asset::Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N);

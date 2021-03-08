@@ -21,7 +21,7 @@ void RenderSystem::OnInitialize()
 	return Initialize();
 }
 
-void RenderSystem::OnUpdate(const Time& Time)
+void RenderSystem::OnRender(const Time& Time, Scene& Scene)
 {
 	Statistics::TotalFrameCount++;
 	Statistics::FrameCount++;
@@ -32,12 +32,8 @@ void RenderSystem::OnUpdate(const Time& Time)
 		Statistics::FrameCount = 0;
 		Statistics::TimeElapsed += 1.0;
 	}
-	return Update(Time);
-}
 
-void RenderSystem::OnRender(Scene& Scene)
-{
-	return Render(Scene);
+	return Render(Time, Scene);
 }
 
 void RenderSystem::OnResize(uint32_t Width, uint32_t Height)

@@ -3,15 +3,14 @@
 
 using namespace DirectX;
 
+static uint32_t BOX_ID = 0;
+static uint32_t GRID_ID = 0;
+
 Asset::Mesh CreateFromProceduralGeometryData(std::string Name, std::vector<Vertex> Vertices, std::vector<uint32_t> Indices)
 {
 	// Create mesh
 	auto mesh = Asset::Mesh();
 	mesh.Name = Name;
-	BoundingBox::CreateFromPoints(mesh.BoundingBox, Vertices.size(), &Vertices[0].Position, sizeof(Vertex));
-
-	mesh.IndexCount = Indices.size();
-	mesh.VertexCount = Vertices.size();
 
 	mesh.Vertices = std::move(Vertices);
 	mesh.Indices = std::move(Indices);
@@ -21,8 +20,8 @@ Asset::Mesh CreateFromProceduralGeometryData(std::string Name, std::vector<Verte
 
 Asset::Mesh CreateBox(float Width, float Height, float Depth)
 {
-	std::vector<Vertex> Vertices;
-	std::vector<uint32_t> Indices;
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
 
 	float w2 = 0.5f * Width;
 	float h2 = 0.5f * Height;
@@ -65,7 +64,7 @@ Asset::Mesh CreateBox(float Width, float Height, float Depth)
 	v[22] = Vertex{ { +w2, +h2, +d2 }, { 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } };
 	v[23] = Vertex{ { +w2, -h2, +d2 }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } };
 
-	Vertices.assign(&v[0], &v[24]);
+	vertices.assign(&v[0], &v[24]);
 
 	uint32_t i[36] = {};
 	// Fill in the front face index data 
@@ -92,10 +91,9 @@ Asset::Mesh CreateBox(float Width, float Height, float Depth)
 	i[30] = 20; i[31] = 21; i[32] = 22;
 	i[33] = 20; i[34] = 22; i[35] = 23;
 
-	Indices.assign(&i[0], &i[36]);
+	indices.assign(&i[0], &i[36]);
 
-	static uint32_t BOX_ID = 0;
-	return CreateFromProceduralGeometryData("Box " + std::to_string(BOX_ID++), Vertices, Indices);
+	return CreateFromProceduralGeometryData("Box " + std::to_string(BOX_ID++), vertices, indices);
 }
 
 Asset::Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
@@ -103,11 +101,11 @@ Asset::Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 	assert(M != 1);
 	assert(N != 1);
 
-	std::vector<Vertex> Vertices;
-	std::vector<uint32_t> Indices;
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
 
-	uint32_t vertexCount = M * N;
-	uint32_t faceCount = (M - 1) * (N - 1) * 2;
+	uint32_t numVertices = M * N;
+	uint32_t numFaces = (M - 1) * (N - 1) * 2;
 
 	// Create the vertices.
 	float halfWidth = 0.5f * Width;
@@ -119,7 +117,7 @@ Asset::Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 	float du = 1.0f / (N - 1);
 	float dv = 1.0f / (M - 1);
 
-	Vertices.resize(vertexCount);
+	vertices.resize(numVertices);
 	for (uint32_t i = 0; i < M; ++i)
 	{
 		float z = halfDepth - i * dz;
@@ -127,17 +125,17 @@ Asset::Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 		{
 			float x = -halfWidth + j * dx;
 
-			Vertices[size_t(i) * N + size_t(j)].Position = DirectX::XMFLOAT3(x, 0.0f, z);
-			Vertices[size_t(i) * N + size_t(j)].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+			vertices[size_t(i) * N + size_t(j)].Position = DirectX::XMFLOAT3(x, 0.0f, z);
+			vertices[size_t(i) * N + size_t(j)].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
 
 			// Stretch texture over grid.
-			Vertices[size_t(i) * M + size_t(j)].Texture.x = j * du;
-			Vertices[size_t(i) * M + size_t(j)].Texture.y = i * dv;
+			vertices[size_t(i) * M + size_t(j)].Texture.x = j * du;
+			vertices[size_t(i) * M + size_t(j)].Texture.y = i * dv;
 		}
 	}
 
 	// Create the indices.
-	Indices.resize(size_t(faceCount) * 3); // 3 indices per face
+	indices.resize(size_t(numFaces) * 3); // 3 indices per face
 
 	// Iterate over each quad and compute indices.
 	uint32_t k = 0;
@@ -145,18 +143,17 @@ Asset::Mesh CreateGrid(float Width, float Depth, uint32_t M, uint32_t N)
 	{
 		for (uint32_t j = 0; j < N - 1; ++j)
 		{
-			Indices[k] = i * N + j;
-			Indices[size_t(k) + 1] = i * N + j + 1;
-			Indices[size_t(k) + 2] = (i + 1) * N + j;
+			indices[k] = i * N + j;
+			indices[size_t(k) + 1] = i * N + j + 1;
+			indices[size_t(k) + 2] = (i + 1) * N + j;
 
-			Indices[size_t(k) + 3] = (i + 1) * N + j;
-			Indices[size_t(k) + 4] = i * N + j + 1;
-			Indices[size_t(k) + 5] = (i + 1) * N + j + 1;
+			indices[size_t(k) + 3] = (i + 1) * N + j;
+			indices[size_t(k) + 4] = i * N + j + 1;
+			indices[size_t(k) + 5] = (i + 1) * N + j + 1;
 
 			k += 6; // next quad
 		}
 	}
 
-	static uint32_t GRID_ID = 0;
-	return CreateFromProceduralGeometryData("Grid " + std::to_string(GRID_ID++), Vertices, Indices);
+	return CreateFromProceduralGeometryData("Grid " + std::to_string(GRID_ID++), vertices, indices);
 }

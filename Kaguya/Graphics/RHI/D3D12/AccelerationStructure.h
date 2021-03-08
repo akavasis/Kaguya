@@ -20,8 +20,8 @@ public:
 	void Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult);
 private:
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>	RaytracingGeometryDescs;
-	UINT64										ScratchSizeInBytes;
-	UINT64										ResultSizeInBytes;
+	UINT64 ScratchSizeInBytes;
+	UINT64 ResultSizeInBytes;
 };
 
 // https://developer.nvidia.com/blog/rtx-best-practices/
@@ -71,6 +71,6 @@ public:
 	void Generate(ID3D12GraphicsCommandList6* pCommandList, ID3D12Resource* pScratch, ID3D12Resource* pResult, D3D12_GPU_VIRTUAL_ADDRESS InstanceDescs);
 private:
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> RaytracingInstanceDescs;
-	UINT64	ScratchSizeInBytes;
-	UINT64	ResultSizeInBytes;
+	UINT64 ScratchSizeInBytes;
+	UINT64 ResultSizeInBytes;
 };

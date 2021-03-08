@@ -3,14 +3,11 @@
 
 using Microsoft::WRL::ComPtr;
 
-static RenderDevice* pRenderDevice = nullptr;
+static RenderDevice* s_pRenderDevice = nullptr;
 
-namespace
-{
-	// Global resource state tracker
-	RWLock g_ResourceStateTrackerLock;
-	ResourceStateTracker g_ResourceStateTracker;
-}
+// Global resource state tracker
+static RWLock s_ResourceStateTrackerLock;
+static ResourceStateTracker s_ResourceStateTracker;
 
 namespace D3D12Utility
 {
@@ -29,28 +26,28 @@ Resource::~Resource()
 
 void RenderDevice::Initialize()
 {
-	if (!pRenderDevice)
+	if (!s_pRenderDevice)
 	{
-		pRenderDevice = new RenderDevice();
+		s_pRenderDevice = new RenderDevice();
 	}
 }
 
 void RenderDevice::Shutdown()
 {
-	if (pRenderDevice)
+	if (s_pRenderDevice)
 	{
-		pRenderDevice->FlushGraphicsQueue();
-		pRenderDevice->FlushComputeQueue();
-		pRenderDevice->FlushCopyQueue();
-		delete pRenderDevice;
+		s_pRenderDevice->FlushGraphicsQueue();
+		s_pRenderDevice->FlushComputeQueue();
+		s_pRenderDevice->FlushCopyQueue();
+		delete s_pRenderDevice;
 	}
 	Device::ReportLiveObjects();
 }
 
 RenderDevice& RenderDevice::Instance()
 {
-	assert(pRenderDevice);
-	return *pRenderDevice;
+	assert(s_pRenderDevice);
+	return *s_pRenderDevice;
 }
 
 RenderDevice::RenderDevice()
@@ -173,10 +170,10 @@ void RenderDevice::Resize(UINT Width, UINT Height)
 		m_SwapChainBuffers[i] = std::move(pBackBuffer);
 	}
 
-	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
+	ScopedWriteLock SWL(s_ResourceStateTrackerLock);
 	for (uint32_t i = 0; i < RenderDevice::NumSwapChainBuffers; ++i)
 	{
-		g_ResourceStateTracker.AddResourceState(m_SwapChainBuffers[i].Get(), D3D12_RESOURCE_STATE_COMMON);
+		s_ResourceStateTracker.AddResourceState(m_SwapChainBuffers[i].Get(), D3D12_RESOURCE_STATE_COMMON);
 	}
 
 	// Reset back buffer index
@@ -247,8 +244,8 @@ std::shared_ptr<Resource> RenderDevice::CreateResource(const D3D12MA::ALLOCATION
 	// No need to track resources that have constant resource state throughout their lifetime
 	if (pAllocDesc->HeapType == D3D12_HEAP_TYPE_DEFAULT)
 	{
-		ScopedWriteLock SWL(g_ResourceStateTrackerLock);
-		g_ResourceStateTracker.AddResourceState(pResource->pResource.Get(), InitialResourceState);
+		ScopedWriteLock SWL(s_ResourceStateTrackerLock);
+		s_ResourceStateTracker.AddResourceState(pResource->pResource.Get(), InitialResourceState);
 	}
 
 	return pResource;
@@ -538,8 +535,8 @@ void RenderDevice::UpdateResourceState(ID3D12Resource* pResource, UINT Subresour
 		return;
 	}
 
-	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
-	g_ResourceStateTracker.SetResourceState(pResource, Subresource, ResourceStates);
+	ScopedWriteLock SWL(s_ResourceStateTrackerLock);
+	s_ResourceStateTracker.SetResourceState(pResource, Subresource, ResourceStates);
 }
 
 void RenderDevice::InitializeDXGIObjects()
@@ -663,14 +660,14 @@ void RenderDevice::AddDescriptorTableRootParameterToBuilder(RootSignatureBuilder
 
 void RenderDevice::ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE Type, UINT NumCommandLists, CommandList* ppCommandLists[])
 {
-	ScopedWriteLock SWL(g_ResourceStateTrackerLock);
+	ScopedWriteLock SWL(s_ResourceStateTrackerLock);
 
 	std::vector<ID3D12CommandList*> commandlistsToBeExecuted;
 	commandlistsToBeExecuted.reserve(size_t(NumCommandLists) * 2);
 	for (UINT i = 0; i < NumCommandLists; ++i)
 	{
 		CommandList* pCommandList = ppCommandLists[i];
-		if (pCommandList->Close(&g_ResourceStateTracker))
+		if (pCommandList->Close(&s_ResourceStateTracker))
 		{
 			commandlistsToBeExecuted.push_back(pCommandList->pPendingCommandList.Get());
 		}

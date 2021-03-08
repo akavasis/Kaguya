@@ -11,7 +11,17 @@
 
 using namespace DirectX;
 
-static Assimp::Importer Importer;
+static Assimp::Importer s_Importer;
+
+static constexpr uint32_t s_ImporterFlags =
+aiProcess_ConvertToLeftHanded |
+aiProcess_JoinIdenticalVertices |
+aiProcess_Triangulate |
+aiProcess_SortByPType |
+aiProcess_GenNormals |
+aiProcess_GenUVCoords |
+aiProcess_OptimizeMeshes |
+aiProcess_ValidateDataStructure;
 
 AsyncImageLoader::TResourcePtr AsyncImageLoader::AsyncLoad(const TMetadata& Metadata)
 {
@@ -58,77 +68,79 @@ AsyncMeshLoader::TResourcePtr AsyncMeshLoader::AsyncLoad(const TMetadata& Metada
 {
 	const auto Path = Metadata.Path.string();
 
-	const aiScene* paiScene = Importer.ReadFile(Path.data(),
-		aiProcess_ConvertToLeftHanded |
-		aiProcessPreset_TargetRealtime_MaxQuality |
-		aiProcess_OptimizeMeshes |
-		aiProcess_OptimizeGraph);
+	const aiScene* paiScene = s_Importer.ReadFile(Path.data(), s_ImporterFlags);
 
-	if (paiScene == nullptr)
+	if (!paiScene || !paiScene->HasMeshes())
 	{
-		LOG_ERROR("Assimp::Importer error: {}", Importer.GetErrorString());
+		LOG_ERROR("Assimp::Importer error: {}", s_Importer.GetErrorString());
 		return {};
-	}
-
-	if (paiScene->mNumMeshes != 1)
-	{
-		LOG_ERROR("Num Meshes is greater than 1!");
-		return {};
-	}
-
-	const aiMesh* paiMesh = paiScene->mMeshes[0];
-
-	// Parse vertex data
-	std::vector<Vertex> vertices(paiMesh->mNumVertices);
-
-	// Parse vertex data
-	for (unsigned int vertexIndex = 0; vertexIndex < paiMesh->mNumVertices; ++vertexIndex)
-	{
-		Vertex v = {};
-		// Position
-		v.Position = DirectX::XMFLOAT3(paiMesh->mVertices[vertexIndex].x, paiMesh->mVertices[vertexIndex].y, paiMesh->mVertices[vertexIndex].z);
-
-		// Texture coordinates
-		if (paiMesh->HasTextureCoords(0))
-		{
-			v.Texture = DirectX::XMFLOAT2(paiMesh->mTextureCoords[0][vertexIndex].x, paiMesh->mTextureCoords[0][vertexIndex].y);
-		}
-
-		// Normal
-		if (paiMesh->HasNormals())
-		{
-			v.Normal = DirectX::XMFLOAT3(paiMesh->mNormals[vertexIndex].x, paiMesh->mNormals[vertexIndex].y, paiMesh->mNormals[vertexIndex].z);
-		}
-
-		vertices[vertexIndex] = v;
-	}
-
-	// Parse index data
-	std::vector<std::uint32_t> indices;
-	indices.reserve(size_t(paiMesh->mNumFaces) * 3);
-	for (unsigned int faceIndex = 0; faceIndex < paiMesh->mNumFaces; ++faceIndex)
-	{
-		const aiFace& aiFace = paiMesh->mFaces[faceIndex];
-		assert(aiFace.mNumIndices == 3);
-
-		indices.push_back(aiFace.mIndices[0]);
-		indices.push_back(aiFace.mIndices[1]);
-		indices.push_back(aiFace.mIndices[2]);
 	}
 
 	auto pMesh = std::make_shared<Asset::Mesh>();
 	pMesh->Metadata = Metadata;
 
 	pMesh->Name = Metadata.Path.filename().string();
-	DirectX::BoundingBox::CreateFromPoints(pMesh->BoundingBox, vertices.size(), &vertices[0].Position, sizeof(Vertex));
 
-	pMesh->VertexCount = vertices.size();
-	pMesh->IndexCount = indices.size();
+	pMesh->Submeshes.reserve(paiScene->mNumMeshes);
 
-	if (Metadata.KeepGeometryInRAM)
+	uint32_t numVertices = 0;
+	uint32_t numIndices = 0;
+	for (size_t m = 0; m < paiScene->mNumMeshes; ++m)
 	{
-		pMesh->Vertices = std::move(vertices);
-		pMesh->Indices = std::move(indices);
+		const aiMesh* paiMesh = paiScene->mMeshes[m];
+
+		// Parse vertex data
+		std::vector<Vertex> vertices;
+		vertices.reserve(paiMesh->mNumVertices);
+
+		// Parse vertex data
+		for (unsigned int v = 0; v < paiMesh->mNumVertices; ++v)
+		{
+			Vertex& vertex = vertices.emplace_back();
+			// Position
+			vertex.Position = { paiMesh->mVertices[v].x, paiMesh->mVertices[v].y, paiMesh->mVertices[v].z };
+
+			// Texture coords
+			if (paiMesh->HasTextureCoords(0))
+			{
+				vertex.Texture = { paiMesh->mTextureCoords[0][v].x, paiMesh->mTextureCoords[0][v].y };
+			}
+
+			// Normal
+			if (paiMesh->HasNormals())
+			{
+				vertex.Normal = { paiMesh->mNormals[v].x, paiMesh->mNormals[v].y, paiMesh->mNormals[v].z };
+			}
+		}
+
+		// Parse index data
+		std::vector<std::uint32_t> indices;
+		indices.reserve(size_t(paiMesh->mNumFaces) * 3);
+		for (unsigned int f = 0; f < paiMesh->mNumFaces; ++f)
+		{
+			const aiFace& aiFace = paiMesh->mFaces[f];
+
+			indices.push_back(aiFace.mIndices[0]);
+			indices.push_back(aiFace.mIndices[1]);
+			indices.push_back(aiFace.mIndices[2]);
+		}
+
+		// Parse mesh indices
+		Asset::Submesh& Submesh = pMesh->Submeshes.emplace_back();
+		Submesh.IndexCount = indices.size();
+		Submesh.StartIndexLocation = numIndices;
+		Submesh.VertexCount = vertices.size();
+		Submesh.BaseVertexLocation = numVertices;
+
+		// Insert data into model if requested
+		if (Metadata.KeepGeometryInRAM)
+		{
+			pMesh->Vertices.insert(pMesh->Vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
+			pMesh->Indices.insert(pMesh->Indices.end(), std::make_move_iterator(indices.begin()), std::make_move_iterator(indices.end()));
+		}
+
+		numIndices += indices.size();
+		numVertices += vertices.size();
 	}
 
 	LOG_INFO("{} Loaded", Metadata.Path.string());

@@ -14,10 +14,29 @@
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
+struct SystemConstants
+{
+	HLSL::Camera Camera;
+
+	// x, y = Resolution
+	// z, w = 1 / Resolution
+	float4 Resolution;
+
+	float2 MousePosition;
+
+	uint TotalFrameCount;
+};
+
 Renderer::Renderer()
 	: RenderSystem(Application::Window.GetWindowWidth(), Application::Window.GetWindowHeight())
+	, ViewportMouseX(0)
+	, ViewportMouseY(0)
+	, ViewportWidth(0)
+	, ViewportHeight(0)
+	, Viewport()
+	, ScissorRect()
 {
-	
+
 }
 
 Renderer::~Renderer()
@@ -68,12 +87,7 @@ void Renderer::Initialize()
 	ThrowIfFailed(Materials->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pMaterials)));
 }
 
-void Renderer::Update(const Time& Time)
-{
-
-}
-
-void Renderer::Render(Scene& Scene)
+void Renderer::Render(const Time& Time, Scene& Scene)
 {
 	auto& RenderDevice = RenderDevice::Instance();
 
@@ -115,19 +129,7 @@ void Renderer::Render(Scene& Scene)
 	auto& GraphicsContext = RenderDevice.GetDefaultGraphicsContext();
 	GraphicsContext.Reset(RenderDevice::Instance().GraphicsFenceValue, RenderDevice::Instance().GraphicsFence->GetCompletedValue(), &RenderDevice.GraphicsQueue);
 
-	struct SystemConstants
-	{
-		HLSL::Camera Camera;
-
-		// x, y = Resolution
-		// z, w = 1 / Resolution
-		float4 Resolution;
-
-		float2 MousePosition;
-
-		uint TotalFrameCount;
-	} g_SystemConstants = {};
-
+	SystemConstants g_SystemConstants = {};
 	g_SystemConstants.Camera = GetHLSLCameraDesc(Scene.Camera);
 	g_SystemConstants.Resolution = { float(ViewportWidth), float(ViewportHeight), 1.0f / float(ViewportWidth), 1.0f / float(ViewportHeight) };
 	g_SystemConstants.MousePosition = { ViewportMouseX, ViewportMouseY };
