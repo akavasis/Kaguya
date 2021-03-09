@@ -5,13 +5,35 @@
 class PathIntegrator
 {
 public:
+	struct Settings
+	{
+		static constexpr UINT MinimumSamples = 1;
+		static constexpr UINT MaximumSamples = 16;
+
+		static constexpr UINT MinimumDepth = 1;
+		static constexpr UINT MaximumDepth = 16;
+
+		inline static UINT NumSamplesPerPixel;
+		inline static UINT MaxDepth;
+		inline static UINT NumAccumulatedSamples;
+
+		inline static PathIntegrator* pPathIntegrator = nullptr;
+
+		static void RestoreDefaults()
+		{
+			NumSamplesPerPixel = 4;
+			MaxDepth = 6;
+			NumAccumulatedSamples = 0;
+		}
+
+		static void RenderGui();
+	};
+
 	static constexpr UINT NumHitGroups = 1;
 
 	void Create();
 
 	void SetResolution(UINT Width, UINT Height);
-
-	void RenderGui();
 
 	void Reset();
 

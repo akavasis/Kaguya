@@ -3,6 +3,7 @@
 
 #include <Core/RenderSystem.h>
 #include <Graphics/RenderDevice.h>
+#include <Graphics/PathIntegrator.h>
 
 void RenderSystemWindow::RenderGui()
 {
@@ -40,6 +41,9 @@ void RenderSystemWindow::RenderGui()
 			RenderSystem::Settings::RestoreDefaults();
 		}
 		ImGui::Checkbox("V-Sync", &RenderSystem::Settings::VSync);
+
+		PathIntegrator::Settings::RenderGui();
+
 		ImGui::TreePop();
 	}
 	ImGui::EndChild();

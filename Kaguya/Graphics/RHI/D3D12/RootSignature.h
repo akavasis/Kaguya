@@ -153,7 +153,6 @@ public:
 	RootSignature(ID3D12Device* pDevice, RootSignatureBuilder& Builder);
 
 	operator auto() const { return m_RootSignature.Get(); }
-	auto GetApiHandle() const { return m_RootSignature.Get(); }
 
 	UINT NumParameters = 0;
 	UINT NumStaticSamplers = 0;

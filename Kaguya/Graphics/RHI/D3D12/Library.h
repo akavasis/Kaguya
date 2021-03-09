@@ -22,7 +22,6 @@ public:
 
 	inline auto GetDxcBlob() const { return m_DxcBlob.Get(); }
 	inline D3D12_SHADER_BYTECODE GetD3DShaderBytecode() const { return { m_DxcBlob->GetBufferPointer(), m_DxcBlob->GetBufferSize() }; }
-
 private:
 	Microsoft::WRL::ComPtr<IDxcBlob>				m_DxcBlob;
 	Microsoft::WRL::ComPtr<ID3D12LibraryReflection> m_LibraryReflection;

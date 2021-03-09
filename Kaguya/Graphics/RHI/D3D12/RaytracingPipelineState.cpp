@@ -4,23 +4,28 @@
 
 //----------------------------------------------------------------------------------------------------
 DXILLibrary::DXILLibrary(const Library* pLibrary, const std::vector<std::wstring>& Symbols)
-	: pLibrary(pLibrary), Symbols(Symbols)
+	: pLibrary(pLibrary)
+	, Symbols(Symbols)
 {
+
 }
 
 //----------------------------------------------------------------------------------------------------
 HitGroup::HitGroup(LPCWSTR pHitGroupName, LPCWSTR pAnyHitSymbol, LPCWSTR pClosestHitSymbol, LPCWSTR pIntersectionSymbol)
-	: HitGroupName(pHitGroupName ? pHitGroupName : L""),
-	AnyHitSymbol(pAnyHitSymbol ? pAnyHitSymbol : L""),
-	ClosestHitSymbol(pClosestHitSymbol ? pClosestHitSymbol : L""),
-	IntersectionSymbol(pIntersectionSymbol ? pIntersectionSymbol : L"")
+	: HitGroupName(pHitGroupName ? pHitGroupName : L"")
+	, AnyHitSymbol(pAnyHitSymbol ? pAnyHitSymbol : L"")
+	, ClosestHitSymbol(pClosestHitSymbol ? pClosestHitSymbol : L"")
+	, IntersectionSymbol(pIntersectionSymbol ? pIntersectionSymbol : L"")
 {
+
 }
 
 //----------------------------------------------------------------------------------------------------
 RootSignatureAssociation::RootSignatureAssociation(const RootSignature* pRootSignature, const std::vector<std::wstring>& Symbols)
-	: pRootSignature(pRootSignature), Symbols(Symbols)
+	: pRootSignature(pRootSignature)
+	, Symbols(Symbols)
 {
+
 }
 
 //----------------------------------------------------------------------------------------------------

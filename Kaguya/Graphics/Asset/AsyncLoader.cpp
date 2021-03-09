@@ -66,6 +66,8 @@ AsyncImageLoader::TResourcePtr AsyncImageLoader::AsyncLoad(const TMetadata& Meta
 
 AsyncMeshLoader::TResourcePtr AsyncMeshLoader::AsyncLoad(const TMetadata& Metadata)
 {
+	const auto start = std::chrono::high_resolution_clock::now();
+
 	const auto Path = Metadata.Path.string();
 
 	const aiScene* paiScene = s_Importer.ReadFile(Path.data(), s_ImporterFlags);
@@ -125,25 +127,23 @@ AsyncMeshLoader::TResourcePtr AsyncMeshLoader::AsyncLoad(const TMetadata& Metada
 			indices.push_back(aiFace.mIndices[2]);
 		}
 
-		// Parse mesh indices
+		// Parse submesh indices
 		Asset::Submesh& Submesh = pMesh->Submeshes.emplace_back();
 		Submesh.IndexCount = indices.size();
 		Submesh.StartIndexLocation = numIndices;
 		Submesh.VertexCount = vertices.size();
 		Submesh.BaseVertexLocation = numVertices;
 
-		// Insert data into model if requested
-		if (Metadata.KeepGeometryInRAM)
-		{
-			pMesh->Vertices.insert(pMesh->Vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
-			pMesh->Indices.insert(pMesh->Indices.end(), std::make_move_iterator(indices.begin()), std::make_move_iterator(indices.end()));
-		}
+		pMesh->Vertices.insert(pMesh->Vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
+		pMesh->Indices.insert(pMesh->Indices.end(), std::make_move_iterator(indices.begin()), std::make_move_iterator(indices.end()));
 
 		numIndices += indices.size();
 		numVertices += vertices.size();
 	}
 
-	LOG_INFO("{} Loaded", Metadata.Path.string());
+	const auto stop = std::chrono::high_resolution_clock::now();
+	const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+	LOG_INFO("{} loaded in {}(ms)", Metadata.Path.string(), duration.count());
 
 	return pMesh;
 }

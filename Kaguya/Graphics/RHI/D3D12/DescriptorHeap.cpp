@@ -20,9 +20,7 @@ void DescriptorHeap::Create(ID3D12Device* pDevice, std::vector<UINT> Ranges, boo
 	m_DescriptorIncrementSize = pDevice->GetDescriptorHandleIncrementSize(Type);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE StartCpuHandle = m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	D3D12_GPU_DESCRIPTOR_HANDLE StartGpuHandle = {};
-	if (m_ShaderVisible)
-		StartGpuHandle = m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE StartGpuHandle = m_ShaderVisible ? m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart() : D3D12_GPU_DESCRIPTOR_HANDLE{};
 	m_StartDescriptor = { StartCpuHandle, StartGpuHandle, 0 };
 
 	UINT Index = 0;

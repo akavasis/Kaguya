@@ -20,30 +20,39 @@ namespace
 	ShaderIdentifier RayGenerationSID;
 	ShaderIdentifier MissSID;
 	ShaderIdentifier DefaultSID;
+}
 
-	struct Settings
+void PathIntegrator::Settings::RenderGui()
+{
+	if (ImGui::TreeNode("Path Integrator"))
 	{
-		static constexpr UINT MinimumSamples = 1;
-		static constexpr UINT MaximumSamples = 16;
-
-		static constexpr UINT MinimumDepth = 1;
-		static constexpr UINT MaximumDepth = 16;
-
-		UINT NumSamplesPerPixel;
-		UINT MaxDepth;
-		UINT NumAccumulatedSamples;
-
-		Settings()
+		if (ImGui::Button("Restore Defaults"))
 		{
-			NumSamplesPerPixel = 4;
-			MaxDepth = 6;
-			NumAccumulatedSamples = 0;
+			Settings::RestoreDefaults();
 		}
-	} g_Settings;
+
+		bool Dirty = false;
+		Dirty |= ImGui::SliderScalar("Num Samples Per Pixel", ImGuiDataType_U32, &NumSamplesPerPixel, &MinimumSamples, &MaximumSamples);
+		Dirty |= ImGui::SliderScalar("Max Depth", ImGuiDataType_U32, &MaxDepth, &MinimumDepth, &MaximumDepth);
+		ImGui::Text("Num Samples Accumulated: %u", NumAccumulatedSamples);
+
+		if (Dirty)
+		{
+			if (pPathIntegrator)
+			{
+				pPathIntegrator->Reset();
+			}
+		}
+
+		ImGui::TreePop();
+	}
 }
 
 void PathIntegrator::Create()
 {
+	Settings::RestoreDefaults();
+	Settings::pPathIntegrator = this;
+
 	auto& RenderDevice = RenderDevice::Instance();
 
 	UAV = RenderDevice.AllocateUnorderedAccessView();
@@ -181,32 +190,9 @@ void PathIntegrator::SetResolution(UINT Width, UINT Height)
 	Reset();
 }
 
-void PathIntegrator::RenderGui()
-{
-	if (ImGui::TreeNode("Path Integrator"))
-	{
-		if (ImGui::Button("Restore Defaults"))
-		{
-			g_Settings = Settings();
-		}
-
-		bool Dirty = false;
-		Dirty |= ImGui::SliderScalar("Num Samples Per Pixel", ImGuiDataType_U32, &g_Settings.NumSamplesPerPixel, &Settings::MinimumSamples, &Settings::MaximumSamples);
-		Dirty |= ImGui::SliderScalar("Max Depth", ImGuiDataType_U32, &g_Settings.MaxDepth, &Settings::MinimumDepth, &Settings::MaximumDepth);
-		ImGui::Text("Num Samples Accumulated: %u", g_Settings.NumAccumulatedSamples);
-
-		if (Dirty)
-		{
-			Reset();
-		}
-
-		ImGui::TreePop();
-	}
-}
-
 void PathIntegrator::Reset()
 {
-	g_Settings.NumAccumulatedSamples = 0;
+	Settings::NumAccumulatedSamples = 0;
 }
 
 void PathIntegrator::UpdateShaderTable(const RaytracingAccelerationStructure& RaytracingAccelerationStructure, CommandList& CommandList)
@@ -261,9 +247,9 @@ void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 		uint RenderTarget;
 	} g_RenderPassData = {};
 
-	g_RenderPassData.NumSamplesPerPixel = g_Settings.NumSamplesPerPixel;
-	g_RenderPassData.MaxDepth = g_Settings.MaxDepth;
-	g_RenderPassData.NumAccumulatedSamples = g_Settings.NumAccumulatedSamples++;
+	g_RenderPassData.NumSamplesPerPixel = Settings::NumSamplesPerPixel;
+	g_RenderPassData.MaxDepth = Settings::MaxDepth;
+	g_RenderPassData.NumAccumulatedSamples = Settings::NumAccumulatedSamples++;
 
 	g_RenderPassData.RenderTarget = UAV.Index;
 

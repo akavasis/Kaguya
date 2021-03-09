@@ -20,6 +20,7 @@ RootParameter::RootParameter(Type Type)
 RootDescriptorTable::RootDescriptorTable()
 	: RootParameter(RootParameter::Type::DescriptorTable)
 {
+
 }
 
 void RootDescriptorTable::AddDescriptorRange(DescriptorRange::Type Type, const DescriptorRange& DescriptorRange)
@@ -58,8 +59,7 @@ RootSignature::RootSignature(ID3D12Device* pDevice, RootSignatureBuilder& Builde
 	// Serialize the root signature.
 	Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSignatureBlob;
 	Microsoft::WRL::ComPtr<ID3DBlob> pErrorBlob;
-	HRESULT hr = ::D3D12SerializeVersionedRootSignature(&VersionedRootSignatureDesc, &pSerializedRootSignatureBlob, &pErrorBlob);
-	if (FAILED(hr))
+	if (FAILED(::D3D12SerializeVersionedRootSignature(&VersionedRootSignatureDesc, &pSerializedRootSignatureBlob, &pErrorBlob)))
 	{
 		const char* pError = pErrorBlob ? reinterpret_cast<const char*>(pErrorBlob->GetBufferPointer()) : "";
 		LOG_ERROR("{} Failed: {}", "D3D12SerializeVersionedRootSignature", pError);

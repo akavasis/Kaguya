@@ -7,7 +7,7 @@
 D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateBuilder::Build()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc		= {};
-	Desc.pRootSignature							= pRootSignature->GetApiHandle();
+	Desc.pRootSignature							= *pRootSignature;
 	if (pVS) Desc.VS							= pVS->GetD3DShaderBytecode();
 	if (pPS) Desc.PS							= pPS->GetD3DShaderBytecode();
 	if (pDS) Desc.DS							= pDS->GetD3DShaderBytecode();
@@ -34,7 +34,7 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsPipelineStateBuilder::Build()
 D3DX12_MESH_SHADER_PIPELINE_STATE_DESC GraphicsPipelineStateBuilder::BuildMSPSODesc()
 {
 	D3DX12_MESH_SHADER_PIPELINE_STATE_DESC Desc = {};
-	Desc.pRootSignature							= pRootSignature->GetApiHandle();
+	Desc.pRootSignature							= *pRootSignature;
 	Desc.MS										= pMS->GetD3DShaderBytecode();
 	Desc.PS										= pPS->GetD3DShaderBytecode();
 	Desc.BlendState								= BlendState;
@@ -75,7 +75,7 @@ void GraphicsPipelineStateBuilder::SetSampleDesc(UINT Count, UINT Quality)
 D3D12_COMPUTE_PIPELINE_STATE_DESC ComputePipelineStateBuilder::Build()
 {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC Desc	= {};
-	Desc.pRootSignature						= pRootSignature->GetApiHandle();
+	Desc.pRootSignature						= *pRootSignature;
 	Desc.CS									= pCS->GetD3DShaderBytecode();
 	Desc.NodeMask							= 0;
 	Desc.CachedPSO							= {};
