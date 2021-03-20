@@ -185,8 +185,8 @@ std::optional<Entity> Picking::GetSelectedEntity()
 	if (SUCCEEDED(PickingReadback->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pHostMemory))))
 	{
 		InstanceID = pHostMemory[0];
+		PickingReadback->pResource->Unmap(0, nullptr);
 	}
-	PickingReadback->pResource->Unmap(0, nullptr);
 
 	if (InstanceID != -1 && InstanceID < Entities.size())
 	{

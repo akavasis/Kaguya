@@ -81,7 +81,7 @@ static void AddNewComponent(const char* pName, Entity Entity)
 		}
 		else
 		{
-			T& Component = Entity.AddComponent<T>();
+			Entity.AddComponent<T>();
 		}
 	}
 }
