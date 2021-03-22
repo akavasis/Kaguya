@@ -2,66 +2,187 @@
 #define BXDF_HLSLI
 
 #include <Math.hlsli>
+#include <Sampling.hlsli>
 
-// NDF: Normal distribution function
-// Approximates the amount the surface's microfacets are aligned to the halfway vector, 
-// influenced by the roughness of the surface.
-// this is the primary function approximating the microfacets.
-float D_TrowbridgeReitzGGX(float NoH, float roughness)
+inline float CosTheta(float3 w)
 {
-	float a2 = roughness * roughness;
-	float d = ((NoH * a2 - NoH) * NoH + 1);
-	return a2 / (s_PI * d * d);
+	return w.z;
+}
+inline float Cos2Theta(float3 w)
+{
+	return w.z * w.z;
+}
+inline float AbsCosTheta(float3 w)
+{
+	return abs(w.z);
+}
+inline float Sin2Theta(float3 w)
+{
+	return max(0.0f, 1.0f - Cos2Theta(w));
+}
+inline float SinTheta(float3 w)
+{
+	return sqrt(Sin2Theta(w));
+}
+inline float TanTheta(float3 w)
+{
+	return SinTheta(w) / CosTheta(w);
+}
+inline float Tan2Theta(float3 w)
+{
+	return Sin2Theta(w) / Cos2Theta(w);
+}
+inline float CosPhi(float3 w)
+{
+	float sinTheta = SinTheta(w);
+	return (sinTheta == 0.0f) ? 1.0f : clamp(w.x / sinTheta, -1.0f, 1.0f);
+}
+inline float SinPhi(float3 w)
+{
+	float sinTheta = SinTheta(w);
+	return (sinTheta == 0.0f) ? 0.0f : clamp(w.y / sinTheta, -1.0f, 1.0f);
+}
+inline float Cos2Phi(float3 w)
+{
+	return CosPhi(w) * CosPhi(w);
+}
+inline float Sin2Phi(float3 w)
+{
+	return SinPhi(w) * SinPhi(w);
 }
 
-// GF: Geometry function
-// Describes geometric masking of the microfacets. I.e., facets of various orientations will not always be visible; 
-// they may get occluded by other tiny facets. The model for geometric masking we use is from Schlick's BRDF model (or direct PDF).
-// https://onlinelibrary.wiley.com/doi/abs/10.1111/1467-8659.1330233
-float G_Schlick(float NoL, float NoV, float roughness)
+inline bool SameHemisphere(float3 v0, float3 v1)
 {
-	float k = roughness * roughness / 2.0f;
-	
-	float g_l = NoL / (NoL * (1.0f - k) + k);
-	float g_v = NoV / (NoV * (1.0f - k) + k);
-	
-	return g_l * g_v;
+	return v0.z * v1.z > 0;
 }
 
-// The Fresnel equation describes the ratio of surface reflection at different surface angles
-float3 F_Schlick(float cosTheta, float3 f0)
+inline float3 Reflect(float3 wo, float3 n)
 {
-	return f0 + (1.0f - f0) * pow(1.0f - cosTheta, 5.0f);
+	return -wo + 2.0f * dot(wo, n) * n;
 }
 
-float F_Schlick(float cosTheta, float IndexOfRefraction)
+inline bool Refract(float3 wi, float3 n, float eta, out float3 wt)
 {
-	float3 f0 = ((1.0f - IndexOfRefraction) / (1.0f + IndexOfRefraction)).xxx;
-	f0 = f0 * f0;
-	return F_Schlick(cosTheta, f0).r;
+	// Compute $\cos \theta_\roman{t}$ using Snell's law
+	float cosThetaI = dot(n, wi);
+	float sin2ThetaI = max(0.0f, float(1.0f - cosThetaI * cosThetaI));
+	float sin2ThetaT = eta * eta * sin2ThetaI;
+
+	// Handle total internal reflection for transmission
+	if (sin2ThetaT >= 1)
+		return false;
+	float cosThetaT = sqrt(1 - sin2ThetaT);
+	wt = eta * -wi + (eta * cosThetaI - cosThetaT) * n;
+	return true;
 }
 
-float3 BRDF(float3 N, float3 V, float3 H, float3 L, float3 albedo, float3 specular, float roughness, float3 radiance)
+#define BxDFTypes_Unknown (0)
+#define BxDFTypes_Reflection (1 << 0)
+#define BxDFTypes_Transmission (1 << 1)
+#define BxDFTypes_All (BxDFTypes_Reflection | BxDFTypes_Transmission)
+
+enum BxDFFlags
 {
-	// L will be facing towards the same direction as normal
-	float NoL = saturate(dot(N, L));
-	float NoH = saturate(dot(N, H));
-	float LoH = saturate(dot(L, H));
-	float NoV = saturate(dot(N, V));
-	
-	// CookTorrance BRDF
-	float D = D_TrowbridgeReitzGGX(NoH, roughness);
-	float G = G_Schlick(NoL, NoV, roughness);
-	float3 F = F_Schlick(LoH, specular);
-	
-	// Diffuse scattering happens due to light being refracted multiple times by a dielectric medium.
-	// Metals on the other hand either reflect or absorb energy, so diffuse contribution is always zero.
-	// To be energy conserving we must scale diffuse BRDF contribution based on Fresnel factor & metalness.
-	float3 kD = lerp(1.0f - F, 0.0f, roughness);
-	
-	float3 Fd = kD * albedo / s_PI;
-	float3 Fs = (D * F * G) / (4.0 * NoL * NoV + 0.00001f); // specular, aka cook torrance brdf
-	return (Fd + Fs) * radiance * NoL;
+	Unknown = 0,
+	Reflection = 1 << 0,
+	Transmission = 1 << 1,
+
+	Diffuse = 1 << 2,
+	Glossy = 1 << 3,
+	Specular = 1 << 4,
+	// Composite flags definitions
+	DiffuseReflection = Diffuse | Reflection,
+	DiffuseTransmission = Diffuse | Transmission,
+	GlossyReflection = Glossy | Reflection,
+	GlossyTransmission = Glossy | Transmission,
+	SpecularReflection = Specular | Reflection,
+	SpecularTransmission = Specular | Transmission,
+
+	All = Diffuse | Glossy | Specular | Reflection | Transmission
+};
+
+// BxDFFlags Inline Functions
+inline bool IsReflective(BxDFFlags f)
+{
+	return f & BxDFFlags::Reflection;
 }
+inline bool IsTransmissive(BxDFFlags f)
+{
+	return f & BxDFFlags::Transmission;
+}
+inline bool IsDiffuse(BxDFFlags f)
+{
+	return f & BxDFFlags::Diffuse;
+}
+inline bool IsGlossy(BxDFFlags f)
+{
+	return f & BxDFFlags::Glossy;
+}
+inline bool IsSpecular(BxDFFlags f)
+{
+	return f & BxDFFlags::Specular;
+}
+
+struct BSDFSample
+{
+	float3 f;
+	float3 wi;
+	float pdf;
+	BxDFFlags flags;
+};
+
+BSDFSample InitBSDFSample(float3 f, float3 wi, float pdf, BxDFFlags flags)
+{
+	BSDFSample bsdfSample;
+	bsdfSample.f = f;
+	bsdfSample.wi = wi;
+	bsdfSample.pdf = pdf;
+	bsdfSample.flags = flags;
+	
+	return bsdfSample;
+}
+
+struct LambertianReflection
+{
+	float3 f(float3 wo, float3 wi)
+	{
+		if (!SameHemisphere(wo, wi))
+		{
+			return float3(0.0f, 0.0f, 0.0f);
+		}
+		
+		return R * g_1DIVPI;
+	}
+	
+	float Pdf(float3 wo, float3 wi)
+	{
+		if (!SameHemisphere(wo, wi))
+		{
+			return 0.0f;
+		}
+		
+		return CosineHemispherePdf(AbsCosTheta(wi));
+	}
+	
+	bool Samplef(float3 wo, float2 Xi, out BSDFSample bsdfSample)
+	{
+		float3 wi = SampleCosineHemisphere(Xi);
+		if (wo.z < 0.0f)
+		{
+			wi.z *= -1.0f;
+		}
+		
+		bsdfSample = InitBSDFSample(f(wo, wi), wi, Pdf(wo, wi), Flags());
+		
+		return true;
+	}
+	
+	BxDFFlags Flags()
+	{
+		return BxDFFlags::DiffuseReflection;
+	}
+	
+	float3 R;
+};
 
 #endif // BXDF_HLSLI

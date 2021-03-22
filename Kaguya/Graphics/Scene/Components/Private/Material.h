@@ -1,15 +1,6 @@
 #pragma once
 #include "../../../SharedDefines.h"
 
-enum MaterialModel
-{
-	LambertianModel,
-	GlossyModel,
-	MetalModel,
-	DielectricModel,
-	DiffuseLightModel
-};
-
 enum TextureTypes
 {
 	AlbedoIdx,
@@ -29,20 +20,20 @@ struct Material
 {
 	Material();
 
-	float3		Albedo;
-	float3		Emissive;
-	float3		Specular;
-	float3		Refraction;
-	float		SpecularChance;
-	float		Roughness;
-	float		Metallic;
-	float		Fuzziness;
-	float		IndexOfRefraction;
-	int			Model;
-	bool		UseAttributes; // If this is true, then the attributes above will be used rather than actual textures
+	float3 baseColor = { 1.0f, 1.0f, 1.0f };
+	float metallic = 0.0f;
+	float subsurface = 0.0f;
+	float specular = 0.5f;
+	float roughness = 0.5f;
+	float specularTint = 0.0f;
+	float anisotropic = 0.0f;
+	float sheen = 0.0f;
+	float sheenTint = 0.5f;
+	float clearcoat = 0.0f;
+	float clearcoatGloss = 1.0f;
 
-	int			TextureIndices[NumTextureTypes];
-	int			TextureChannel[NumTextureTypes];
+	int TextureIndices[NumTextureTypes];
+	int TextureChannel[NumTextureTypes];
 
 	struct Texture
 	{

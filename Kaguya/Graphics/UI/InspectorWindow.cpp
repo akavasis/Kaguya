@@ -342,46 +342,37 @@ void InspectorWindow::RenderGui(float x, float y, float width, float height)
 
 				ImGui::Text("Attributes");
 
-				const char* MaterialModels[] = { "Lambertian", "Glossy", "Metal", "Dielectric", "Light" };
-				IsEdited |= ImGui::Combo("Model", &Material.Model, MaterialModels, ARRAYSIZE(MaterialModels), ARRAYSIZE(MaterialModels));
-				IsEdited |= ImGui::Checkbox("Use Attributes", &Material.UseAttributes);
-
-				switch (Material.Model)
-				{
-				case LambertianModel:
-					IsEdited |= ImGui::ColorEdit3("Albedo", &Material.Albedo.x);
-					break;
-				case GlossyModel:
-					IsEdited |= ImGui::ColorEdit3("Albedo", &Material.Albedo.x);
-					IsEdited |= ImGui::SliderFloat("Specular Chance", &Material.SpecularChance, 0, 1);
-					IsEdited |= ImGui::SliderFloat("Roughness", &Material.Roughness, 0, 1);
-					IsEdited |= ImGui::ColorEdit3("Specular", &Material.Specular.x);
-					break;
-				case MetalModel:
-					IsEdited |= ImGui::ColorEdit3("Albedo", &Material.Albedo.x);
-					IsEdited |= ImGui::SliderFloat("Fuzziness", &Material.Fuzziness, 0, 1);
-					break;
-				case DielectricModel:
-					IsEdited |= ImGui::SliderFloat("Index Of Refraction", &Material.IndexOfRefraction, 1, 3);
-					IsEdited |= ImGui::ColorEdit3("Specular", &Material.Specular.x);
-					IsEdited |= ImGui::ColorEdit3("Refraction", &Material.Refraction.x);
-					break;
-				case DiffuseLightModel:
-					IsEdited |= ImGui::DragFloat3("Emissive", &Material.Emissive.x, 0.25f, 0, 10000);
-					break;
-				default:
-					break;
-				}
-
-				ImGui::Text("");
-				ImGui::Text("Albedo Map: %s", Material.Textures[AlbedoIdx].Path.empty() ? "[NULL]" : Material.Textures[AlbedoIdx].Path.data());
-				ImGui::Text("Normal Map: %s", Material.Textures[NormalIdx].Path.empty() ? "[NULL]" : Material.Textures[NormalIdx].Path.data());
-				ImGui::Text("Roughness Map: %s", Material.Textures[RoughnessIdx].Path.empty() ? "[NULL]" : Material.Textures[RoughnessIdx].Path.data());
-				ImGui::Text("Metallic Map: %s", Material.Textures[MetallicIdx].Path.empty() ? "[NULL]" : Material.Textures[MetallicIdx].Path.data());
-				ImGui::Text("Emissive Map: %s", Material.Textures[EmissiveIdx].Path.empty() ? "[NULL]" : Material.Textures[EmissiveIdx].Path.data());
+				IsEdited |= ImGui::ColorEdit3("Base Color", &Material.baseColor.x);
+				IsEdited |= ImGui::SliderFloat("Metallic", &Material.metallic, 0, 1);
+				IsEdited |= ImGui::SliderFloat("Subsurface", &Material.subsurface, 0, 1);
+				IsEdited |= ImGui::SliderFloat("Specular", &Material.specular, 0, 1);
+				IsEdited |= ImGui::SliderFloat("Roughness", &Material.roughness, 0, 1);
+				IsEdited |= ImGui::SliderFloat("SpecularTint", &Material.specularTint, 0, 1);
+				IsEdited |= ImGui::SliderFloat("Anisotropic", &Material.anisotropic, 0, 1);
+				IsEdited |= ImGui::SliderFloat("Sheen", &Material.sheen, 0, 1);
+				IsEdited |= ImGui::SliderFloat("SheenTint", &Material.sheenTint, 0, 1);
+				IsEdited |= ImGui::SliderFloat("Clearcoat", &Material.clearcoat, 0, 1);
+				IsEdited |= ImGui::SliderFloat("ClearcoatGloss", &Material.clearcoatGloss, 0, 1);
 
 				ImGui::TreePop();
 			}
+
+			return IsEdited;
+		},
+			nullptr);
+
+		RenderComponent<Light, false>("Light", SelectedEntity,
+			[](Light& Component)
+		{
+			bool IsEdited = false;
+
+			int* pType = (int*)&Component.Type;
+
+			const char* LightTypes[] = { "Point", "Quad" };
+			IsEdited |= ImGui::Combo("Type", pType, LightTypes, ARRAYSIZE(LightTypes), ARRAYSIZE(LightTypes));
+			IsEdited |= ImGui::ColorEdit3("I", &Component.I.x);
+			IsEdited |= ImGui::SliderFloat("Width", &Component.Width, 1, 50);
+			IsEdited |= ImGui::SliderFloat("Height", &Component.Height, 1, 50);
 
 			return IsEdited;
 		},
@@ -396,6 +387,7 @@ void InspectorWindow::RenderGui(float x, float y, float width, float height)
 		{
 			AddNewComponent<MeshFilter>("Mesh Filter", SelectedEntity);
 			AddNewComponent<MeshRenderer>("Mesh Renderer", SelectedEntity);
+			AddNewComponent<Light>("Light", SelectedEntity);
 
 			ImGui::EndPopup();
 		}

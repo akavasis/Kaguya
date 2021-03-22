@@ -5,20 +5,32 @@ namespace HLSL
 {
 	struct Material
 	{
-		float3	Albedo;
-		float3	Emissive;
-		float3	Specular;
-		float3	Refraction;
-		float	SpecularChance;
-		float	Roughness;
-		float	Metallic;
-		float	Fuzziness;
-		float	IndexOfRefraction;
-		uint	Model;
-		uint	UseAttributeAsValues; // If this is true, then the attributes above will be used rather than actual textures
+		float3 baseColor;
+		float metallic;
+		float subsurface;
+		float specular;
+		float roughness;
+		float specularTint;
+		float anisotropic;
+		float sheen;
+		float sheenTint;
+		float clearcoat;
+		float clearcoatGloss;
 
 		int		TextureIndices[NumTextureTypes];
 		int		TextureChannel[NumTextureTypes];
+	};
+
+	struct Light
+	{
+		uint Type;
+		float3 Position;
+		float4	Orientation;
+		float	Width;
+		float	Height;
+		float3	Points[4]; // World-space points that are pre-computed on the Cpu so we don't have to compute them in shader for every ray
+
+		float3 I;
 	};
 
 	struct Mesh

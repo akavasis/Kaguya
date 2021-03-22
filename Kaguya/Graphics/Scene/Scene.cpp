@@ -71,6 +71,20 @@ void Scene::Update()
 		}
 	}
 
+	// Update all lights
+	{
+		auto view = Registry.view<Light>();
+		for (auto [handle, light] : view.each())
+		{
+			if (light.IsEdited)
+			{
+				light.IsEdited = false;
+
+				SceneState = SCENE_STATE_UPDATED;
+			}
+		}
+	}
+
 	if (PreviousCamera != Camera)
 	{
 		SceneState = SCENE_STATE_UPDATED;
@@ -137,4 +151,10 @@ void Scene::OnComponentAdded<MeshRenderer>(Entity Entity, MeshRenderer& Componen
 
 		Component.IsEdited = true;
 	}
+}
+
+template<>
+void Scene::OnComponentAdded<Light>(Entity Entity, Light& Component)
+{
+
 }

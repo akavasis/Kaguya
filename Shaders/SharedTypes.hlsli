@@ -2,15 +2,6 @@
 #define SHARED_TYPES_HLSLI
 
 // ==================== Material ====================
-enum MaterialModel
-{
-	LambertianModel,
-	GlossyModel,
-	MetalModel,
-	DielectricModel,
-	DiffuseLightModel
-};
-
 enum TextureTypes
 {
 	AlbedoIdx,
@@ -28,20 +19,137 @@ enum TextureTypes
 
 struct Material
 {
-	float3	Albedo;
-	float3	Emissive;
-	float3	Specular;
-	float3	Refraction;
-	float	SpecularChance;
-	float	Roughness;
-	float	Metallic;
-	float	Fuzziness;
-	float	IndexOfRefraction;
-	uint	Model;
-	uint	UseAttributeAsValues; // If this is true, then the attributes above will be used rather than actual textures
+	float3 baseColor;
+	float metallic;
+	float subsurface;
+	float specular;
+	float roughness;
+	float specularTint;
+	float anisotropic;
+	float sheen;
+	float sheenTint;
+	float clearcoat;
+	float clearcoatGloss;
 
-	int		TextureIndices[NumTextureTypes];
-	int		TextureChannel[NumTextureTypes];
+	int TextureIndices[NumTextureTypes];
+	int TextureChannel[NumTextureTypes];
+};
+
+// ==================== Light ====================
+struct SphericalRectangle
+{
+	float3 o, x, y, z;
+	float z0, z0sq;
+	float x0, y0, y0sq;
+	float x1, y1, y1sq;
+	float b0, b1, b0sq, k;
+	float SolidAngle;
+};
+
+SphericalRectangle SphericalRectangleInit(float3 s, float3 ex, float3 ey, float3 o)
+{
+	SphericalRectangle squad;
+
+	squad.o = o;
+	float exl = length(ex);
+	float eyl = length(ey);
+
+    // compute local reference system 'R'
+	squad.x = ex / exl;
+	squad.y = ey / eyl;
+	squad.z = cross(squad.x, squad.y);
+
+    // compute rectangle coords in local reference system
+	float3 d = s - o;
+	squad.z0 = dot(d, squad.z);
+
+    // flip 'z' to make it point against 'Q'
+	if (squad.z0 > 0.0f)
+	{
+		squad.z = -squad.z;
+		squad.z0 = -squad.z0;
+	}
+
+	squad.z0sq = squad.z0 * squad.z0;
+	squad.x0 = dot(d, squad.x);
+	squad.y0 = dot(d, squad.y);
+	squad.x1 = squad.x0 + exl;
+	squad.y1 = squad.y0 + eyl;
+	squad.y0sq = squad.y0 * squad.y0;
+	squad.y1sq = squad.y1 * squad.y1;
+
+    // create vectors to four vertices
+	float3 v00 = float3(squad.x0, squad.y0, squad.z0);
+	float3 v01 = float3(squad.x0, squad.y1, squad.z0);
+	float3 v10 = float3(squad.x1, squad.y0, squad.z0);
+	float3 v11 = float3(squad.x1, squad.y1, squad.z0);
+
+    // compute normals to edges
+	float3 n0 = normalize(cross(v00, v10));
+	float3 n1 = normalize(cross(v10, v11));
+	float3 n2 = normalize(cross(v11, v01));
+	float3 n3 = normalize(cross(v01, v00));
+
+    // compute internal angles (gamma_i)
+	float g0 = acos(-dot(n0, n1));
+	float g1 = acos(-dot(n1, n2));
+	float g2 = acos(-dot(n2, n3));
+	float g3 = acos(-dot(n3, n0));
+
+    // compute predefined constants
+	squad.b0 = n0.z;
+	squad.b1 = n2.z;
+	squad.b0sq = squad.b0 * squad.b0;
+	squad.k = 2.0f * g_PI - g2 - g3;
+
+    // compute solid angle from internal angles
+	squad.SolidAngle = g0 + g1 - squad.k;
+
+	return squad;
+}
+
+float3 SphericalRectangleSample(SphericalRectangle squad, float u, float v)
+{
+    // 1. compute 'cu'
+	float au = u * squad.SolidAngle + squad.k;
+	float fu = (cos(au) * squad.b0 - squad.b1) / sin(au);
+	float cu = 1.0f / sqrt(fu * fu + squad.b0sq) * (fu > 0.0f ? 1.0f : -1.0f);
+	cu = clamp(cu, -1.0f, 1.0f); // avoid NaNs
+
+    // 2. compute 'xu'
+	float xu = -(cu * squad.z0) / sqrt(1.0f - cu * cu);
+	xu = clamp(xu, squad.x0, squad.x1); // avoid Infs
+
+    // 3. compute 'yv'
+	float d = sqrt(xu * xu + squad.z0sq);
+	float h0 = squad.y0 / sqrt(d * d + squad.y0sq);
+	float h1 = squad.y1 / sqrt(d * d + squad.y1sq);
+	float hv = h0 + v * (h1 - h0), hv2 = hv * hv;
+	float yv = (hv2 < 1.0f - 1e-6f) ? (hv * d) / sqrt(1.0f - hv2) : squad.y1;
+
+    // 4. transform (xu, yv, z0) to world coords
+	return squad.o + xu * squad.x + yv * squad.y + squad.z0 * squad.z;
+}
+
+float3 SphericalRectangleSampleSurfaceToLightVector(SphericalRectangle squad, float u, float v)
+{
+	float3 pointOnLight = SphericalRectangleSample(squad, u, v);
+	return normalize(pointOnLight - squad.o);
+}
+
+#define LightType_Point (0)
+#define LightType_Quad (1)
+
+struct Light
+{
+	uint Type;
+	float3 Position;
+	float4 Orientation;
+	float Width;
+	float Height;
+	float3 Points[4]; // World-space points that are pre-computed on the Cpu so we don't have to compute them in shader for every ray
+
+	float3 I;
 };
 
 // ==================== Mesh ====================
@@ -92,7 +200,7 @@ struct Camera
 		float3 focalPoint = Position.xyz + FocalLength * direction; // Select point on ray a distance FocalLength along the w-axis
 
 		// Get random numbers (in polar coordinates), convert to random cartesian uv on the lens
-		float2 rnd = float2(s_2PI * RandomFloat01(seed), RelativeAperture * RandomFloat01(seed));
+		float2 rnd = float2(g_2PI * RandomFloat01(seed), RelativeAperture * RandomFloat01(seed));
 		float2 uv = float2(cos(rnd.x) * rnd.y, sin(rnd.x) * rnd.y);
 
 		// Use uv coordinate to compute a random origin on the camera lens
@@ -103,60 +211,5 @@ struct Camera
 		return ray;
 	}
 };
-
-// Physically-based camera from Moving Frostbite to PBR
-// https://seblagarde.files.wordpress.com/2015/07/course_notes_moving_frostbite_to_pbr_v32.pdf
-
-float ComputeEV100(float aperture, float shutterTime, float ISO)
-{
-    // EV number is defined as:
-    // 2^ EV_s = N^2 / t and EV_s = EV_100 + log2 (S /100)
-    // This gives
-    // EV_s = log2 (N^2 / t)
-    // EV_100 + log2 (S /100) = log2 (N^2 / t)
-    // EV_100 = log2 (N^2 / t) - log2 (S /100)
-    // EV_100 = log2 (N^2 / t . 100 / S)
-	return log2((aperture * aperture) / shutterTime * 100 / ISO);
-}
-
-float ComputeEV100FromAvgLuminance(float avgLuminance)
-{
-    // We later use the middle gray at 12.7% in order to have
-    // a middle gray at 18% with a sqrt (2) room for specular highlights
-    // But here we deal with the spot meter measuring the middle gray
-    // which is fixed at 12.5 for matching standard camera
-    // constructor settings (i.e. calibration constant K = 12.5)
-    // Reference: http://en.wikipedia.org/wiki/Film_speed
-	return log2(avgLuminance * 100.0f / 12.5f);
-}
-
-float ComputeLuminousExposure(float aperture, float shutterTime)
-{
-	const float q = 0.65;
-	float H = q * shutterTime / aperture * aperture;
-	return H;
-}
-
-float ConvertEV100ToMaxHsbsLuminance(float EV100)
-{
-    // Compute the maximum luminance possible with H_sbs sensitivity.
-    // Saturation Based Sensitivity: defined as the maximum possible exposure that does
-    // not lead to a clipped or bloomed camera output
-
-    // maxLum = 78 / ( S * q ) * N^2 / t
-    // = 78 / ( S * q ) * 2^ EV_100
-    // = 78 / (100 * 0.65) * 2^ EV_100
-    // = 1.2 * 2^ EV
-    // Reference: http://en.wikipedia.org/wiki/Film_speed
-	float maxLuminance = 1.2f * pow(2.0f, EV100);
-
-	return maxLuminance;
-}
-
-float3 ExposeLuminance(float3 luminance, Camera camera)
-{
-	float maxLuminance = ConvertEV100ToMaxHsbsLuminance(camera.ExposureValue100);
-	return luminance / maxLuminance;
-}
 
 #endif // SHARED_TYPES_HLSLI

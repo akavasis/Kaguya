@@ -1,61 +1,57 @@
 #ifndef MATH_HLSLI
 #define MATH_HLSLI
 
-static const float s_PI = 3.141592654f;
-static const float s_2PI = 6.283185307f;
-static const float s_1DIVPI = 0.318309886f;
-static const float s_1DIV2PI = 0.159154943f;
-static const float s_1DIV4PI = 0.079577471f;
-static const float s_PIDIV2 = 1.570796327f;
-static const float s_PIDIV4 = 0.785398163f;
+static const float g_EPSILON = 1e-4f;
+
+static const float g_PI = 3.141592654f;
+static const float g_2PI = 6.283185307f;
+static const float g_1DIVPI = 0.318309886f;
+static const float g_1DIV2PI = 0.159154943f;
+static const float g_1DIV4PI = 0.079577471f;
+static const float g_PIDIV2 = 1.570796327f;
+static const float g_PIDIV4 = 0.785398163f;
 
 static const float FLT_MAX = asfloat(0x7F7FFFFF);
 
-struct Ray
+void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
 {
-	float3	Origin;
-	float	TMin;
-	float3	Direction;
-	float	TMax;
+	if (abs(v1.x) > abs(v1.y))
+	{
+		v2 = float3(-v1.z, 0.0f, v1.x) / sqrt(v1.x * v1.x + v1.z * v1.z);
+	}
+	else
+	{
+		v2 = float3(0.0f, v1.z, -v1.y) / sqrt(v1.y * v1.y + v1.z * v1.z);
+	}
+	v3 = cross(v1, v2);
+}
+
+struct Frame
+{
+	float3 ToWorld(float3 v)
+	{
+		return s * v.x + t * v.y + n * v.z;
+	}
+
+	float3 ToLocal(float3 v)
+	{
+		return float3(dot(v, s), dot(v, t), dot(v, n));
+	}
+	
+	// tangent, bitangent, normal
+	float3 s;
+	float3 t;
+	float3 n;
 };
 
-Ray InitRay(float3 origin, float tMin, float3 direction, float tMax)
+Frame InitFrame(float3 n)
 {
-	Ray ray;
-	ray.Origin = origin;
-	ray.TMin = tMin;
-	ray.Direction = direction;
-	ray.TMax = tMax;
-	return ray;
-}
-
-Ray InitRay(float3 origin, float3 direction)
-{
-	return InitRay(origin, 0.0f, direction, FLT_MAX);
-}
-
-struct Plane
-{
-	float3	Normal;
-	float3	PointOnPlane;
-};
-
-Plane InitPlane(float3 normal, float3 pointOnPlane)
-{
-	Plane plane;
-	plane.Normal = normal;
-	plane.PointOnPlane = pointOnPlane;
-	return plane;
-}
-
-bool RayPlaneIntersection(Ray ray, Plane plane, out float3 intersectionPoint)
-{
-    // Assuming float3s are all normalized
-	float denom = dot(plane.Normal, ray.Direction) + 1e-06;
-	float3 p0l0 = plane.PointOnPlane - ray.Origin;
-	float t = dot(p0l0, plane.Normal) / denom;
-	intersectionPoint = ray.Origin + ray.Direction * t;
-	return t >= 0;
+	Frame frame;
+	frame.n = n;
+	
+	CoordinateSystem(frame.n, frame.s, frame.t);
+	
+	return frame;
 }
 
 #endif // MATH_HLSLI

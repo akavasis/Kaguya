@@ -38,4 +38,6 @@ private:
 
 	std::shared_ptr<Resource> Materials;
 	HLSL::Material* pMaterials = nullptr;
+	std::shared_ptr<Resource> Lights;
+	HLSL::Light* pLights = nullptr;
 };

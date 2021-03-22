@@ -43,6 +43,7 @@ public:
 	void Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 		const RaytracingAccelerationStructure& RaytracingAccelerationStructure,
 		D3D12_GPU_VIRTUAL_ADDRESS Materials,
+		D3D12_GPU_VIRTUAL_ADDRESS Lights,
 		CommandList& CommandList);
 
 	auto GetSRV() const

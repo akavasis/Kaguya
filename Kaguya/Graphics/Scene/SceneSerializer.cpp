@@ -94,18 +94,32 @@ YAML::Emitter& operator<<(YAML::Emitter& Emitter, const MeshRenderer& MeshRender
 		Emitter << YAML::Key << "Material";
 		Emitter << YAML::BeginMap;
 		{
-			Emitter << YAML::Key << "Albedo" << Material.Albedo;
-			Emitter << YAML::Key << "Emissive" << Material.Emissive;
-			Emitter << YAML::Key << "Specular" << Material.Specular;
-			Emitter << YAML::Key << "Refraction" << Material.Refraction;
-			Emitter << YAML::Key << "Specular Chance" << Material.SpecularChance;
-			Emitter << YAML::Key << "Roughness" << Material.Roughness;
-			Emitter << YAML::Key << "Metallic" << Material.Metallic;
-			Emitter << YAML::Key << "Fuzziness" << Material.Fuzziness;
-			Emitter << YAML::Key << "Index Of Refraction" << Material.IndexOfRefraction;
-			Emitter << YAML::Key << "Model" << Material.Model;
+			Emitter << YAML::Key << "baseColor" << Material.baseColor;
+			Emitter << YAML::Key << "metallic" << Material.metallic;
+			Emitter << YAML::Key << "subsurface" << Material.subsurface;
+			Emitter << YAML::Key << "specular" << Material.specular;
+			Emitter << YAML::Key << "roughness" << Material.roughness;
+			Emitter << YAML::Key << "specularTint" << Material.specularTint;
+			Emitter << YAML::Key << "anisotropic" << Material.anisotropic;
+			Emitter << YAML::Key << "sheen" << Material.sheen;
+			Emitter << YAML::Key << "sheenTint" << Material.sheenTint;
+			Emitter << YAML::Key << "clearcoat" << Material.clearcoat;
+			Emitter << YAML::Key << "clearcoatGloss" << Material.clearcoatGloss;
 		}
 		Emitter << YAML::EndMap;
+	}
+	Emitter << YAML::EndMap;
+	return Emitter;
+}
+
+
+template<>
+YAML::Emitter& operator<<(YAML::Emitter& Emitter, const Light& Light)
+{
+	Emitter << YAML::Key << "Light";
+	Emitter << YAML::BeginMap;
+	{
+		Emitter << YAML::Key << "I" << Light.I;
 	}
 	Emitter << YAML::EndMap;
 	return Emitter;
@@ -234,6 +248,7 @@ static void SerializeEntity(YAML::Emitter& Emitter, Entity Entity)
 		SerializeComponent<Transform>(Emitter, Entity);
 		SerializeComponent<MeshFilter>(Emitter, Entity);
 		SerializeComponent<MeshRenderer>(Emitter, Entity);
+		SerializeComponent<Light>(Emitter, Entity);
 	}
 	Emitter << YAML::EndMap;
 }
@@ -331,16 +346,22 @@ static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, std::unorde
 	DeserializeComponent<MeshRenderer>(Node["Mesh Renderer"], &Entity, [](auto& Node, auto& MeshRenderer)
 	{
 		auto& Material = Node["Material"];
-		MeshRenderer.Material.Albedo = Material["Albedo"].as<DirectX::XMFLOAT3>();
-		MeshRenderer.Material.Emissive = Material["Emissive"].as<DirectX::XMFLOAT3>();
-		MeshRenderer.Material.Specular = Material["Specular"].as<DirectX::XMFLOAT3>();
-		MeshRenderer.Material.Refraction = Material["Refraction"].as<DirectX::XMFLOAT3>();
-		MeshRenderer.Material.SpecularChance = Material["Specular Chance"].as<float>();
-		MeshRenderer.Material.Roughness = Material["Roughness"].as<float>();
-		MeshRenderer.Material.Metallic = Material["Metallic"].as<float>();
-		MeshRenderer.Material.Fuzziness = Material["Fuzziness"].as<float>();
-		MeshRenderer.Material.IndexOfRefraction = Material["Index Of Refraction"].as<float>();
-		MeshRenderer.Material.Model = Material["Model"].as<int>();
+		MeshRenderer.Material = {};
+		MeshRenderer.Material.baseColor = Material["baseColor"].as<DirectX::XMFLOAT3>();
+		//MeshRenderer.Material.Emissive = Material["Emissive"].as<DirectX::XMFLOAT3>();
+		//MeshRenderer.Material.Specular = Material["Specular"].as<DirectX::XMFLOAT3>();
+		//MeshRenderer.Material.Refraction = Material["Refraction"].as<DirectX::XMFLOAT3>();
+		//MeshRenderer.Material.SpecularChance = Material["Specular Chance"].as<float>();
+		//MeshRenderer.Material.Roughness = Material["Roughness"].as<float>();
+		//MeshRenderer.Material.Metallic = Material["Metallic"].as<float>();
+		//MeshRenderer.Material.Fuzziness = Material["Fuzziness"].as<float>();
+		//MeshRenderer.Material.IndexOfRefraction = Material["Index Of Refraction"].as<float>();
+		//MeshRenderer.Material.Model = Material["Model"].as<int>();
+	});
+
+	DeserializeComponent<Light>(Node["Light"], &Entity, [](auto& Node, auto& Light)
+	{
+		Light.I = Node["I"].as<DirectX::XMFLOAT3>();
 	});
 }
 
