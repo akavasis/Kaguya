@@ -5,6 +5,7 @@ namespace HLSL
 {
 	struct Material
 	{
+		int BSDFType;
 		float3 baseColor;
 		float metallic;
 		float subsurface;
@@ -17,8 +18,12 @@ namespace HLSL
 		float clearcoat;
 		float clearcoatGloss;
 
-		int		TextureIndices[NumTextureTypes];
-		int		TextureChannel[NumTextureTypes];
+		// Used by Glass BxDF
+		float3 T;
+		float etaA, etaB;
+
+		int TextureIndices[NumTextureTypes];
+		int TextureChannel[NumTextureTypes];
 	};
 
 	struct Light

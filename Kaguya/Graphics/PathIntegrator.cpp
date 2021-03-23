@@ -177,7 +177,7 @@ void PathIntegrator::SetResolution(UINT Width, UINT Height)
 {
 	auto& RenderDevice = RenderDevice::Instance();
 
-	if (this->Width == Width && this->Height == Height)
+	if ((this->Width == Width && this->Height == Height))
 	{
 		return;
 	}
@@ -276,7 +276,7 @@ void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 	CommandList->SetComputeRootShaderResourceView(3, Materials);
 	CommandList->SetComputeRootShaderResourceView(4, Lights);
 
-	RenderDevice.BindDescriptorTable(PipelineState::Type::Compute, GlobalRS, CommandList);
+	RenderDevice.BindDescriptorTable<PipelineState::Type::Compute>(GlobalRS, CommandList);
 
 	D3D12_DISPATCH_RAYS_DESC Desc =
 	{

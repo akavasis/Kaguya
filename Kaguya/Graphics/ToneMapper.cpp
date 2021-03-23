@@ -69,7 +69,7 @@ void ToneMapper::Apply(Descriptor ShaderResourceView, CommandList& CommandList)
 	CommandList->SetPipelineState(PSO);
 	CommandList->SetGraphicsRootSignature(RS);
 
-	RenderDevice.BindDescriptorTable(PipelineState::Type::Graphics, RS, CommandList);
+	RenderDevice.BindDescriptorTable<PipelineState::Type::Graphics>(RS, CommandList);
 
 	auto Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, Width, Height);
 	auto ScissorRect = CD3DX12_RECT(0, 0, Width, Height);

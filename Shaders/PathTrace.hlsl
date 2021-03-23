@@ -43,24 +43,7 @@ SurfaceInteraction GetSurfaceInteraction(in BuiltInTriangleIntersectionAttribute
 	si.ShadingFrame = InitFrame(normalize(vertex.Normal));
 	
 	// Update BSDF's internal data
-	si.BSDF.Ng = si.GeometryFrame.n;
-	si.BSDF.ShadingFrame = si.ShadingFrame;
-	
-	Material material = g_Materials[MaterialIndex];
-	si.BSDF.BxDF.baseColor = material.baseColor;
-	si.BSDF.BxDF.metallic = material.metallic;
-	si.BSDF.BxDF.subsurface = material.subsurface;
-	si.BSDF.BxDF.specular = material.specular;
-	si.BSDF.BxDF.roughness = material.roughness;
-	si.BSDF.BxDF.specularTint = material.specularTint;
-	si.BSDF.BxDF.anisotropic = material.anisotropic;
-	si.BSDF.BxDF.sheen = material.sheen;
-	si.BSDF.BxDF.sheenTint = material.sheenTint;
-	si.BSDF.BxDF.clearcoat = material.clearcoat;
-	si.BSDF.BxDF.clearcoatGloss = material.clearcoatGloss;
-	
-	
-	si.Material = material;
+	si.BSDF = InitBSDF(si.GeometryFrame.n, si.ShadingFrame, g_Materials[MaterialIndex]);
 	
 	return si;
 }
@@ -130,9 +113,19 @@ float3 EstimateDirect(SurfaceInteraction si, Light light, float2 XiLight)
 		float visibility = TraceShadowRay(visibilityTester.I0.SpawnRayTo(visibilityTester.I1));
 		
 		// Add light's contribution to reflected radiance
-		// Only handling point light for now
-		Ld += f * Li * visibility / lightPdf;
+		if (light.Type == LightType_Point)
+		{
+			Ld += f * Li * visibility / lightPdf;
+		}
+	
+		if (light.Type == LightType_Quad)
+		{
+			float weight = PowerHeuristic(1, lightPdf, 1, scatteringPdf);
+			Ld += f * Li * weight * visibility / lightPdf;
+		}
 	}
+	
+	// No BSDF MIS yet
 
 	return Ld;
 }
@@ -151,9 +144,9 @@ float3 UniformSampleOneLight(SurfaceInteraction si, inout uint seed)
 
 	Light light = g_Lights[lightIndex];
 
-	float2 Xi = float2(RandomFloat01(seed), RandomFloat01(seed));
+	float2 XiLight = float2(RandomFloat01(seed), RandomFloat01(seed));
 
-	return EstimateDirect(si, light, Xi) / lightPdf;
+	return EstimateDirect(si, light, XiLight) / lightPdf;
 }
 
 void TerminateRay(inout RayPayload rayPayload)
@@ -161,9 +154,9 @@ void TerminateRay(inout RayPayload rayPayload)
 	rayPayload.Depth = g_RenderPassData.MaxDepth;
 }
 
-float3 PathTrace(RayDesc Ray, inout uint Seed)
+float3 Li(RayDesc DXRRay, inout uint Seed)
 {
-	RayPayload RayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, 0.0f), Seed, 0 };
+	RayPayload RayPayload = { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f), DXRRay.Origin, DXRRay.Direction, Seed, 0 };
 	
 	while (RayPayload.Depth < g_RenderPassData.MaxDepth)
 	{
@@ -172,20 +165,20 @@ float3 PathTrace(RayDesc Ray, inout uint Seed)
 		const uint InstanceInclusionMask = 0xffffffff;
 		const uint RayContributionToHitGroupIndex = RayTypePrimary;
 		const uint MultiplierForGeometryContributionToHitGroupIndex = NumRayTypes;
-		const uint MissShaderIndex = RayTypePrimary;
+		const uint MissShaderIndex = 0;
 		TraceRay(g_Scene,
-			RayFlags,
-			InstanceInclusionMask, 
-			RayContributionToHitGroupIndex, 
-			MultiplierForGeometryContributionToHitGroupIndex, 
-			MissShaderIndex, 
-			Ray, 
-			RayPayload);
-		
-		Ray.Origin = RayPayload.Position;
-		Ray.TMin = 0.0001f; // Avoid self intersection
-		Ray.Direction = RayPayload.Direction;
-		
+		RayFlags,
+		InstanceInclusionMask,
+		RayContributionToHitGroupIndex,
+		MultiplierForGeometryContributionToHitGroupIndex,
+		MissShaderIndex,
+		DXRRay,
+		RayPayload);
+	
+		DXRRay.Origin = RayPayload.Position;
+		DXRRay.TMin = 0.0001f; // Avoid self intersection
+		DXRRay.Direction = RayPayload.Direction;
+	
 		RayPayload.Depth++;
 	}
 
@@ -199,7 +192,7 @@ void RayGeneration()
 	const uint2 launchDimensions = DispatchRaysDimensions().xy;
 	uint seed = uint(launchIndex.x * uint(1973) + launchIndex.y * uint(9277) + uint(g_SystemConstants.TotalFrameCount) * uint(26699)) | uint(1);
 	
-	float3 color = float3(0.0f, 0.0f, 0.0f);
+	float3 L = float3(0.0f, 0.0f, 0.0f);
 	for (int sample = 0; sample < g_RenderPassData.NumSamplesPerPixel; ++sample)
 	{
 		// Calculate subpixel camera jitter for anti aliasing
@@ -211,29 +204,25 @@ void RayGeneration()
 		// Initialize ray
 		RayDesc ray = g_SystemConstants.Camera.GenerateCameraRay(ndc, seed);
 	
-		color += PathTrace(ray, seed);
+		L += Li(ray, seed);
 	}
-	color *= 1.0f / float(g_RenderPassData.NumSamplesPerPixel);
+	L /= float(g_RenderPassData.NumSamplesPerPixel);
 
 	RWTexture2D<float4> RenderTarget = g_RWTexture2DTable[g_RenderPassData.RenderTarget];
 	
-	float3 finalColor;
 	if (g_RenderPassData.NumAccumulatedSamples > 0)
 	{
-		float3 prev = RenderTarget[launchIndex].rgb;
-		finalColor = lerp(prev, color, 1.0f / float(g_RenderPassData.NumAccumulatedSamples)); // accumulate
-	}
-	else
-	{
-		finalColor = color;
+		L = lerp(RenderTarget[launchIndex].rgb, L, 1.0f / float(g_RenderPassData.NumAccumulatedSamples));
 	}
 	
-	RenderTarget[launchIndex] = float4(finalColor, 1);
+	RenderTarget[launchIndex] = float4(L, 1);
 }
 
 [shader("miss")]
 void Miss(inout RayPayload rayPayload : SV_RayPayload)
 {
+	//float t = 0.5f * (WorldRayDirection().y + 1.0f);
+	//rayPayload.L += rayPayload.beta * lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
 	TerminateRay(rayPayload);
 }
 
@@ -245,27 +234,34 @@ void ShadowMiss(inout ShadowRayPayload rayPayload : SV_RayPayload)
 }
 
 [shader("closesthit")]
-void ClosestHit(inout RayPayload rayPayload, in BuiltInTriangleIntersectionAttributes attrib)
+void ClosestHit(inout RayPayload rayPayload : SV_RayPayload, in BuiltInTriangleIntersectionAttributes attrib)
 {
 	SurfaceInteraction si = GetSurfaceInteraction(attrib);
 	
-	rayPayload.L += rayPayload.beta * UniformSampleOneLight(si, rayPayload.Seed);
+	// Sample illumination from lights to find path contribution.
+	// (But skip this for perfectly specular BSDFs.)
+	if (si.BSDF.IsNonSpecular())
+	{
+		rayPayload.L += rayPayload.beta * UniformSampleOneLight(si, rayPayload.Seed);
+	}
 	
 	// Sample BSDF to get new path direction
 	float3 wo = -rayPayload.Direction;
-	BSDFSample bsdfSample = (BSDFSample)0;
+	BSDFSample bsdfSample = (BSDFSample) 0;
 	bool success = si.BSDF.Samplef(wo, float2(RandomFloat01(rayPayload.Seed), RandomFloat01(rayPayload.Seed)), bsdfSample);
 	if (!success)
 	{
+		// Used to debug
+		//rayPayload.L = bsdfSample.f;
 		TerminateRay(rayPayload);
 		return;
 	}
 	
-	rayPayload.beta *= bsdfSample.f * dot(bsdfSample.wi, si.ShadingFrame.n) / bsdfSample.pdf;
+	rayPayload.beta *= bsdfSample.f * abs(dot(bsdfSample.wi, si.ShadingFrame.n)) / bsdfSample.pdf;
 	
 	// Spawn new ray
-	rayPayload.Position = WorldRayOrigin();
-	rayPayload.Direction = normalize(bsdfSample.wi);
+	rayPayload.Position = si.p;
+	rayPayload.Direction = bsdfSample.wi;
 	
 	const float rrThreshold = 1.0f;
 	float3 rr = rayPayload.beta;

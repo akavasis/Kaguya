@@ -342,17 +342,39 @@ void InspectorWindow::RenderGui(float x, float y, float width, float height)
 
 				ImGui::Text("Attributes");
 
-				IsEdited |= ImGui::ColorEdit3("Base Color", &Material.baseColor.x);
-				IsEdited |= ImGui::SliderFloat("Metallic", &Material.metallic, 0, 1);
-				IsEdited |= ImGui::SliderFloat("Subsurface", &Material.subsurface, 0, 1);
-				IsEdited |= ImGui::SliderFloat("Specular", &Material.specular, 0, 1);
-				IsEdited |= ImGui::SliderFloat("Roughness", &Material.roughness, 0, 1);
-				IsEdited |= ImGui::SliderFloat("SpecularTint", &Material.specularTint, 0, 1);
-				IsEdited |= ImGui::SliderFloat("Anisotropic", &Material.anisotropic, 0, 1);
-				IsEdited |= ImGui::SliderFloat("Sheen", &Material.sheen, 0, 1);
-				IsEdited |= ImGui::SliderFloat("SheenTint", &Material.sheenTint, 0, 1);
-				IsEdited |= ImGui::SliderFloat("Clearcoat", &Material.clearcoat, 0, 1);
-				IsEdited |= ImGui::SliderFloat("ClearcoatGloss", &Material.clearcoatGloss, 0, 1);
+				const char* BSDFTypes[BSDFType::NumBSDFTypes] = { "Lambertian", "Mirror", "Glass", "Disney" };
+				IsEdited |= ImGui::Combo("Type", &Material.BSDFType, BSDFTypes, ARRAYSIZE(BSDFTypes), ARRAYSIZE(BSDFTypes));
+
+				switch (Material.BSDFType)
+				{
+				case BSDFType::Lambertian:
+					IsEdited |= ImGui::ColorEdit3("R", &Material.baseColor.x);
+					break;
+				case BSDFType::Mirror:
+					IsEdited |= ImGui::ColorEdit3("R", &Material.baseColor.x);
+					break;
+				case BSDFType::Glass:
+					IsEdited |= ImGui::ColorEdit3("R", &Material.baseColor.x);
+					IsEdited |= ImGui::ColorEdit3("T", &Material.T.x);
+					IsEdited |= ImGui::SliderFloat("etaA", &Material.etaA, 1, 3);
+					IsEdited |= ImGui::SliderFloat("etaB", &Material.etaB, 1, 3);
+					break;
+				case BSDFType::Disney:
+					IsEdited |= ImGui::ColorEdit3("Base Color", &Material.baseColor.x);
+					IsEdited |= ImGui::SliderFloat("Metallic", &Material.metallic, 0, 1);
+					IsEdited |= ImGui::SliderFloat("Subsurface", &Material.subsurface, 0, 1);
+					IsEdited |= ImGui::SliderFloat("Specular", &Material.specular, 0, 1);
+					IsEdited |= ImGui::SliderFloat("Roughness", &Material.roughness, 0, 1);
+					IsEdited |= ImGui::SliderFloat("SpecularTint", &Material.specularTint, 0, 1);
+					IsEdited |= ImGui::SliderFloat("Anisotropic", &Material.anisotropic, 0, 1);
+					IsEdited |= ImGui::SliderFloat("Sheen", &Material.sheen, 0, 1);
+					IsEdited |= ImGui::SliderFloat("SheenTint", &Material.sheenTint, 0, 1);
+					IsEdited |= ImGui::SliderFloat("Clearcoat", &Material.clearcoat, 0, 1);
+					IsEdited |= ImGui::SliderFloat("ClearcoatGloss", &Material.clearcoatGloss, 0, 1);
+					break;
+				default:
+					break;
+				}
 
 				ImGui::TreePop();
 			}
@@ -366,11 +388,11 @@ void InspectorWindow::RenderGui(float x, float y, float width, float height)
 		{
 			bool IsEdited = false;
 
-			int* pType = (int*)&Component.Type;
+			auto pType = (int*)&Component.Type;
 
 			const char* LightTypes[] = { "Point", "Quad" };
 			IsEdited |= ImGui::Combo("Type", pType, LightTypes, ARRAYSIZE(LightTypes), ARRAYSIZE(LightTypes));
-			IsEdited |= ImGui::ColorEdit3("I", &Component.I.x);
+			IsEdited |= RenderFloat3Control("I", &Component.I.x);
 			IsEdited |= ImGui::SliderFloat("Width", &Component.Width, 1, 50);
 			IsEdited |= ImGui::SliderFloat("Height", &Component.Height, 1, 50);
 

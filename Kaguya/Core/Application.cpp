@@ -106,7 +106,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 	while (!ExitRenderThread)
 	{
 		// Process window messages
-		Window::Message messsage;
+		Window::Message messsage = {};
 		Window::Message resizeMessage(Window::Message::EType::None, {});
 		while (Window.MessageQueue.Dequeue(messsage, 0))
 		{

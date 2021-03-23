@@ -5,6 +5,11 @@
 #include <Disney.hlsli>
 #include <SharedTypes.hlsli>
 
+#define BSDFType_Lambertian (0)
+#define BSDFType_Mirror (1)
+#define BSDFType_Glass (2)
+#define BSDFType_Disney (3)
+
 struct BSDF
 {
 	float3 WorldToLocal(float3 v)
@@ -17,6 +22,31 @@ struct BSDF
 		return ShadingFrame.ToWorld(v);
 	}
 	
+	bool IsNonSpecular()
+	{
+		return (Flags & (BxDFFlags::Diffuse | BxDFFlags::Glossy));
+	}
+	bool IsDiffuse()
+	{
+		return (Flags & BxDFFlags::Diffuse);
+	}
+	bool IsGlossy()
+	{
+		return (Flags & BxDFFlags::Glossy);
+	}
+	bool IsSpecular()
+	{
+		return (Flags & BxDFFlags::Specular);
+	}
+	bool HasReflection()
+	{
+		return (Flags & BxDFFlags::Reflection);
+	}
+	bool HasTransmission()
+	{
+		return (Flags & BxDFFlags::Transmission);
+	}
+
 	// Evaluate the BSDF for a pair of directions
 	float3 f(float3 woW, float3 wiW)
 	{
@@ -26,7 +56,55 @@ struct BSDF
 			return float3(0.0f, 0.0f, 0.0f);
 		}
 		
-		return BxDF.f(wo, wi);
+		if (Material.BSDFType == BSDFType_Lambertian)
+		{
+			LambertianReflection BxDF;
+			BxDF.R = Material.baseColor;
+			
+			return BxDF.f(wo, wi);
+		}
+
+		/*
+		* The commented checks are perfectly specular BxDFs, they return 0 for their evaluation
+		*/
+		//if (Material.BSDFType == BSDFType_Mirror)
+		//{
+		//	Mirror BxDF;
+		//	BxDF.R = Material.baseColor;
+			
+		//	return BxDF.f(wo, wi);
+		//}
+	
+		//if (Material.BSDFType == BSDFType_Glass)
+		//{
+		//	Glass BxDF;
+		//	BxDF.R = Material.baseColor;
+		//	BxDF.T = Material.T;
+		//	BxDF.etaA = Material.etaA;
+		//	BxDF.etaB = Material.etaB;
+			
+		//	return BxDF.f(wo, wi);
+		//}
+	
+		if (Material.BSDFType == BSDFType_Disney)
+		{
+			Disney BxDF;
+			BxDF.baseColor = Material.baseColor;
+			BxDF.metallic = Material.metallic;
+			BxDF.subsurface = Material.subsurface;
+			BxDF.specular = Material.specular;
+			BxDF.roughness = Material.roughness;
+			BxDF.specularTint = Material.specularTint;
+			BxDF.anisotropic = Material.anisotropic;
+			BxDF.sheen = Material.sheen;
+			BxDF.sheenTint = Material.sheenTint;
+			BxDF.clearcoat = Material.clearcoat;
+			BxDF.clearcoatGloss = Material.clearcoatGloss;
+			
+			return BxDF.f(wo, wi);
+		}
+		
+		return float3(0.0f, 0.0f, 0.0f);
 	}
 
 	// Compute the pdf of sampling
@@ -38,11 +116,59 @@ struct BSDF
 			return 0.0f;
 		}
 		
-		return BxDF.Pdf(wo, wi);
+		if (Material.BSDFType == BSDFType_Lambertian)
+		{
+			LambertianReflection BxDF;
+			BxDF.R = Material.baseColor;
+			
+			return BxDF.Pdf(wo, wi);
+		}
+
+		/*
+		* The commented checks are perfectly specular BxDFs, they return 0 for their evaluation
+		*/
+		//if (Material.BSDFType == BSDFType_Mirror)
+		//{
+		//	Mirror BxDF;
+		//	BxDF.R = Material.baseColor;
+			
+		//	return BxDF.Pdf(wo, wi);
+		//}
+	
+		//if (Material.BSDFType == BSDFType_Glass)
+		//{
+		//	Glass BxDF;
+		//	BxDF.R = Material.baseColor;
+		//	BxDF.T = Material.T;
+		//	BxDF.etaA = Material.etaA;
+		//	BxDF.etaB = Material.etaB;
+			
+		//	return BxDF.Pdf(wo, wi);
+		//}
+	
+		if (Material.BSDFType == BSDFType_Disney)
+		{
+			Disney BxDF;
+			BxDF.baseColor = Material.baseColor;
+			BxDF.metallic = Material.metallic;
+			BxDF.subsurface = Material.subsurface;
+			BxDF.specular = Material.specular;
+			BxDF.roughness = Material.roughness;
+			BxDF.specularTint = Material.specularTint;
+			BxDF.anisotropic = Material.anisotropic;
+			BxDF.sheen = Material.sheen;
+			BxDF.sheenTint = Material.sheenTint;
+			BxDF.clearcoat = Material.clearcoat;
+			BxDF.clearcoatGloss = Material.clearcoatGloss;
+			
+			return BxDF.Pdf(wo, wi);
+		}
+		
+		return 0.0f;
 	}
 
 	// Samples the BSDF
-	bool Samplef(float3 woW, float2 Xi, out BSDFSample bsdfSample)
+	bool Samplef(float3 woW, float2 Xi, inout BSDFSample bsdfSample)
 	{
 		float3 wo = WorldToLocal(woW);
 		if (wo.z == 0.0f)
@@ -50,7 +176,52 @@ struct BSDF
 			return false;
 		}
 		
-		bool success = BxDF.Samplef(woW, Xi, bsdfSample);
+		bool success = false;
+		if (Material.BSDFType == BSDFType_Lambertian)
+		{
+			LambertianReflection BxDF;
+			BxDF.R = Material.baseColor;
+			
+			success = BxDF.Samplef(wo, Xi, bsdfSample);
+		}
+
+		if (Material.BSDFType == BSDFType_Mirror)
+		{
+			Mirror BxDF;
+			BxDF.R = Material.baseColor;
+			
+			success = BxDF.Samplef(wo, Xi, bsdfSample);
+		}
+	
+		if (Material.BSDFType == BSDFType_Glass)
+		{
+			Glass BxDF;
+			BxDF.R = Material.baseColor;
+			BxDF.T = Material.T;
+			BxDF.etaA = Material.etaA;
+			BxDF.etaB = Material.etaB;
+			
+			success = BxDF.Samplef(wo, Xi, bsdfSample);
+		}
+	
+		if (Material.BSDFType == BSDFType_Disney)
+		{			
+			Disney BxDF;
+			BxDF.baseColor = Material.baseColor;
+			BxDF.metallic = Material.metallic;
+			BxDF.subsurface = Material.subsurface;
+			BxDF.specular = Material.specular;
+			BxDF.roughness = Material.roughness;
+			BxDF.specularTint = Material.specularTint;
+			BxDF.anisotropic = Material.anisotropic;
+			BxDF.sheen = Material.sheen;
+			BxDF.sheenTint = Material.sheenTint;
+			BxDF.clearcoat = Material.clearcoat;
+			BxDF.clearcoatGloss = Material.clearcoatGloss;
+			
+			success = BxDF.Samplef(wo, Xi, bsdfSample);
+		}
+		
 		if (!success || !any(bsdfSample.f) || bsdfSample.pdf == 0.0f || bsdfSample.wi.z == 0.0f)
 		{
 			return false;
@@ -63,8 +234,42 @@ struct BSDF
 	float3 Ng;
 	Frame ShadingFrame;
 	
-	Disney BxDF;
+	Material Material;
+	BxDFFlags Flags;
 };
+
+BSDF InitBSDF(float3 Ng, Frame ShadingFrame, Material Material)
+{
+	BSDF bsdf;
+	bsdf.Ng = Ng;
+	bsdf.ShadingFrame = ShadingFrame;
+	bsdf.Material = Material;
+	if (Material.BSDFType == BSDFType_Lambertian)
+	{
+		LambertianReflection BxDF;
+		bsdf.Flags = BxDF.Flags();
+	}
+
+	if (Material.BSDFType == BSDFType_Mirror)
+	{
+		Mirror BxDF;
+		bsdf.Flags = BxDF.Flags();
+	}
+	
+	if (Material.BSDFType == BSDFType_Glass)
+	{
+		Glass BxDF;
+		bsdf.Flags = BxDF.Flags();
+	}
+	
+	if (Material.BSDFType == BSDFType_Disney)
+	{
+		Disney BxDF;
+		bsdf.Flags = BxDF.Flags();
+	}
+	
+	return bsdf;
+}
 
 struct Interaction
 {
@@ -94,7 +299,6 @@ struct SurfaceInteraction
 	Frame GeometryFrame;
 	Frame ShadingFrame;
 	BSDF BSDF;
-	Material Material;
 };
 
 struct VisibilityTester

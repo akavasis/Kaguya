@@ -47,6 +47,7 @@ inline HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 {
 	return
 	{
+		.BSDFType = Material.BSDFType,
 		.baseColor = Material.baseColor,
 		.metallic = Material.metallic,
 		.subsurface = Material.subsurface,
@@ -58,6 +59,11 @@ inline HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 		.sheenTint = Material.sheenTint,
 		.clearcoat = Material.clearcoat,
 		.clearcoatGloss = Material.clearcoatGloss,
+
+		.T = Material.T,
+		.etaA = Material.etaA,
+		.etaB = Material.etaB,
+
 		.TextureIndices =
 		{
 			Material.TextureIndices[0],
@@ -84,7 +90,6 @@ inline HLSL::Light GetHLSLLightDesc(const Transform& Transform, const Light& Lig
 	XMMATRIX M = Transform.Matrix();
 
 	float4 Orientation; XMStoreFloat4(&Orientation, DirectX::XMVector3Normalize(Transform.Forward()));
-	float3 Points[4] = {};
 	float halfWidth = Light.Width * 0.5f;
 	float halfHeight = Light.Height * 0.5f;
 	// Get billboard points at the origin
@@ -95,7 +100,7 @@ inline HLSL::Light GetHLSLLightDesc(const Transform& Transform, const Light& Lig
 
 	// Precompute the light points here so ray generation shader doesnt have to do it for every ray
 	// Move points to light's location
-	float3 points[4];
+	float3 points[4] = {};
 	XMStoreFloat3(&points[0], XMVector3TransformCoord(p0, M));
 	XMStoreFloat3(&points[1], XMVector3TransformCoord(p1, M));
 	XMStoreFloat3(&points[2], XMVector3TransformCoord(p2, M));

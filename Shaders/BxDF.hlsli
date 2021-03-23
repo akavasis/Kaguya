@@ -4,6 +4,43 @@
 #include <Math.hlsli>
 #include <Sampling.hlsli>
 
+void swap(inout float a, inout float b)
+{
+	float tmp = a;
+	a = b;
+	b = tmp;
+}
+
+float FrDielectric(float cosThetaI, float etaI, float etaT)
+{
+	cosThetaI = clamp(cosThetaI, -1.0f, 1.0f);
+
+	// Potentially swap indices of refraction
+	bool entering = cosThetaI > 0.0f;
+	if (!entering)
+	{
+		float tmp = etaI;
+		swap(etaI, etaT);
+		cosThetaI = abs(cosThetaI);
+	}
+
+	// Compute cosThetaT using Snell's law
+	float sinThetaI = sqrt(max(0.0f, 1.0f - cosThetaI * cosThetaI));
+	float sinThetaT = etaI / etaT * sinThetaI;
+
+	// Handle total internal reflection
+	if (sinThetaT >= 1.0f)
+	{
+		return 1.0f;
+	}
+
+	float cosThetaT = sqrt(max(0.0f, 1.0f - sinThetaT * sinThetaT));
+
+	float Rparl = ((etaT * cosThetaI) - (etaI * cosThetaT)) / ((etaT * cosThetaI) + (etaI * cosThetaT));
+	float Rperp = ((etaI * cosThetaI) - (etaT * cosThetaT)) / ((etaI * cosThetaI) + (etaT * cosThetaT));
+	return (Rparl * Rparl + Rperp * Rperp) / 2.0f;
+}
+
 inline float CosTheta(float3 w)
 {
 	return w.z;
@@ -101,28 +138,6 @@ enum BxDFFlags
 	All = Diffuse | Glossy | Specular | Reflection | Transmission
 };
 
-// BxDFFlags Inline Functions
-inline bool IsReflective(BxDFFlags f)
-{
-	return f & BxDFFlags::Reflection;
-}
-inline bool IsTransmissive(BxDFFlags f)
-{
-	return f & BxDFFlags::Transmission;
-}
-inline bool IsDiffuse(BxDFFlags f)
-{
-	return f & BxDFFlags::Diffuse;
-}
-inline bool IsGlossy(BxDFFlags f)
-{
-	return f & BxDFFlags::Glossy;
-}
-inline bool IsSpecular(BxDFFlags f)
-{
-	return f & BxDFFlags::Specular;
-}
-
 struct BSDFSample
 {
 	float3 f;
@@ -164,7 +179,7 @@ struct LambertianReflection
 		return CosineHemispherePdf(AbsCosTheta(wi));
 	}
 	
-	bool Samplef(float3 wo, float2 Xi, out BSDFSample bsdfSample)
+	bool Samplef(float3 wo, float2 Xi, inout BSDFSample bsdfSample)
 	{
 		float3 wi = SampleCosineHemisphere(Xi);
 		if (wo.z < 0.0f)
@@ -172,7 +187,9 @@ struct LambertianReflection
 			wi.z *= -1.0f;
 		}
 		
-		bsdfSample = InitBSDFSample(f(wo, wi), wi, Pdf(wo, wi), Flags());
+		float pdf = CosineHemispherePdf(AbsCosTheta(wi));
+		
+		bsdfSample = InitBSDFSample(R * g_1DIVPI, wi, pdf, Flags());
 		
 		return true;
 	}
@@ -183,6 +200,97 @@ struct LambertianReflection
 	}
 	
 	float3 R;
+};
+
+struct Mirror
+{
+	float3 f(float3 wo, float3 wi)
+	{
+		return float3(0.0f, 0.0f, 0.0f);
+	}
+	
+	float Pdf(float3 wo, float3 wi)
+	{
+		return 0.0f;
+	}
+	
+	bool Samplef(float3 wo, float2 Xi, inout BSDFSample bsdfSample)
+	{
+		float3 wi = float3(-wo.x, -wo.y, wo.z);
+		
+		bsdfSample = InitBSDFSample(R / AbsCosTheta(wi), wi, 1.0f, Flags());
+		
+		return true;
+	}
+	
+	BxDFFlags Flags()
+	{
+		return BxDFFlags::SpecularReflection;
+	}
+	
+	float3 R;
+};
+
+struct Glass
+{
+	float3 f(float3 wo, float3 wi)
+	{
+		return float3(0.0f, 0.0f, 0.0f);
+	}
+	
+	float Pdf(float3 wo, float3 wi)
+	{
+		return 0.0f;
+	}
+	
+	bool Samplef(float3 wo, float2 Xi, inout BSDFSample bsdfSample)
+	{
+		float3 f = float3(0, 0, 0);
+		float3 wi = 0;
+		float pdf = 0;
+		
+		float F = FrDielectric(CosTheta(wo), etaA, etaB);
+		if (Xi[0] < F)
+		{
+			// Compute specular reflection
+			// Compute perfect specular reflection direction
+			wi = float3(-wo.x, -wo.y, wo.z);
+			pdf = F;
+			f = F * R / AbsCosTheta(wi);
+		}
+		else
+		{
+			// Compute specular transmission
+			// Figure out which $\eta$ is incident and which is transmitted
+			bool entering = CosTheta(wo) > 0;
+			float etaI = entering ? etaA : etaB;
+			float etaT = entering ? etaB : etaA;
+
+			// Compute ray direction for specular transmission
+			if (Refract(wo, Faceforward(float3(0, 0, 1), wo), etaI / etaT, wi))
+			{
+				float3 ft = T * (1.0f - F);
+
+				// Account for non-symmetry with transmission to different medium
+				ft *= (etaI * etaI) / (etaT * etaT);
+				pdf = 1 - F;
+				
+				f = ft / AbsCosTheta(wi);
+			}
+		}
+		
+		bsdfSample = InitBSDFSample(f, wi, pdf, Flags());
+		return true;
+	}
+	
+	BxDFFlags Flags()
+	{
+		return BxDFFlags::Reflection | BxDFFlags::Transmission | BxDFFlags::Specular;
+	}
+	
+	float3 R;
+	float3 T;
+	float etaA, etaB;
 };
 
 #endif // BXDF_HLSLI
