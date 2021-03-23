@@ -1,14 +1,15 @@
 # Kaguya
 
-This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR). This project is a path tracer, more features have yet to be implemented.
+This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR). This project is inspired by Peter Shirley and his ray tracing book series: [In One Weekend, The Next Week, The Rest of Your Life](https://github.com/RayTracing/raytracing.github.io), Alan Wolfe's blog post series on [causual shadertoy path tracing](https://blog.demofox.org/2020/05/25/casual-shadertoy-path-tracing-1-basic-camera-diffuse-emissive/) and lastly [Physically Based Rendering: From Theory to Implementation](http://www.pbr-book.org/) by Matt Pharr, Wenzel Jakob, and Greg Humphreys
 
 # Features
 
-- Path tracing
+- Stochastic path tracing
 - Bindless resource
 - Multi-threaded rendering
 - Utilization of multiple queues on the GPU
 - Lambertian, Mirror, Glass, and Disney BSDFs
+- Point and quad lights
 - ECS scene system (Unity-like interface)
 - Scene serialization and deserialization using yaml allows quick experimental scene
 - Asynchronous resource loading
@@ -17,10 +18,11 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 # Goals
 
 - Implement spectral path tracing
-- Implement multiple anti-aliasing techniques
+- Implement anti-aliasing techniques
 - Implement more materials
 - Implement denoising
 - Implement compaction to acceleration structures
+- Upgrade from DXR 1.0 to DXR 1.1 (inline raytracing)
 
 # Build
 

@@ -335,6 +335,7 @@ static void DeserializeEntity(const YAML::Node& Node, Scene* pScene, std::unorde
 	// Create entity after getting our tag component
 	Entity Entity = pScene->CreateEntity(Name);
 
+	// TODO: Come up with some template meta programming for serialize/deserialize
 	DeserializeComponent<Transform>(Node["Transform"], &Entity, [](auto& Node, auto& Transform)
 	{
 		Transform.Position = Node["Position"].as<DirectX::XMFLOAT3>();

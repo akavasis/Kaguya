@@ -13,7 +13,7 @@ Scene::Scene()
 
 void Scene::Clear()
 {
-	SceneState = SCENE_STATE_RENDER;
+	SceneState = SCENE_STATE_UPDATED;
 	Registry.clear();
 	Camera.Transform.Position = { 0.0f, 2.0f, -10.0f };
 	PreviousCamera = Camera;
