@@ -4,27 +4,28 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 
 # Features
 
-- **Path tracing**
-- **Bindless resource**
-- **Multi-threaded rendering**
-- **Utilization of multiple queues on the GPU**
-- **Lambertian, Glossy, Metal, Dielectric material models**
-- **ECS scene system (Unity-like interface)**
-- **Scene serialization and deserialization using yaml allows quick experimental scene**
-- **Asynchronous resource loading**
+- Path tracing
+- Bindless resource
+- Multi-threaded rendering
+- Utilization of multiple queues on the GPU
+- Lambertian, Mirror, Glass, and Disney BSDFs
+- ECS scene system (Unity-like interface)
+- Scene serialization and deserialization using yaml allows quick experimental scene
+- Asynchronous resource loading
+- Importance sampling of BSDFs and multiple importance sampling of lights
 
 # Goals
 
-- Implement Spectral path tracing
+- Implement spectral path tracing
 - Implement multiple anti-aliasing techniques
-- Implement complex BRDFs
-- Implement importance sampling and multiple importance sampling
+- Implement more materials
 - Implement denoising
 - Implement compaction to acceleration structures
 
 # Build
 
 - Visual Studio 2019
+- GPU that supports DXR
 - Windows SDK Version 10.0.19041.0
 - Windows 10 Version: 20H2
 - CMake Version 3.15
@@ -33,7 +34,8 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 Make sure CMake is in your environmental variable path, if not using the CMake Gui should also work. Once you have cloned the repo, be sure
 to initialize the submodules.
 
-When the project is build, all the assets and required dlls will be copied to the directory of the executable, there is a Hyperion.yaml in the project folder, if you want to load that in make sure all the file paths for the mesh resource is correct.
+When the project is build, all the assets and required dlls will be copied to the directory of the executable, there's a couple files with the .yaml extension, those can be loaded in when right clicking on hierarchy
+and cicking on deserialize.
 
 # Bibliography
 
@@ -48,35 +50,19 @@ When the project is build, all the assets and required dlls will be copied to th
 
 # Acknowledgements
 
-- [D3D12MemoryAllocator][1]
-- [EnTT][2]
-- [imgui][3]
-- [ImGuizmo][4]
-- [spdlog][5]
-- [wil][6]
-- [yaml-cpp][7]
-- [assimp][8]
-- [DirectXMesh][9]
-- [DirectXTex][10]
-- [DirectXTK12][11]
-- [dxc][12]
-- [nativefiledialog][13]
-- [WinPixEventRuntime][14]
-
-[1]: https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator "D3D12MemoryAllocator"
-[2]: https://github.com/skypjack/entt "EnTT"
-[3]: https://github.com/ocornut/imgui "imgui"
-[4]: https://github.com/CedricGuillemet/ImGuizmo "ImGuizmo"
-[5]: https://github.com/gabime/spdlog "spdlog"
-[6]: https://github.com/microsoft/wil "wil"
-[7]: https://github.com/jbeder/yaml-cpp "yaml-cpp"
-[8]: https://github.com/assimp/assimp "assimp"
-[9]: https://github.com/microsoft/DirectXMesh "DirectXMesh"
-[10]: https://github.com/microsoft/DirectXTex "DirectXTex"
-[11]: https://github.com/microsoft/DirectXTK12 "DirectXTK12"
-[12]: https://github.com/microsoft/DirectXShaderCompiler "dxc"
-[13]: https://github.com/mlabbe/nativefiledialog "nativefiledialog"
-[14]: https://devblogs.microsoft.com/pix/winpixeventruntime/ "WinPixEventRuntime"
+- [D3D12MemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
+- [EnTT](https://github.com/skypjack/entt)
+- [imgui](https://github.com/ocornut/imgui)
+- [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)
+- [spdlog](https://github.com/gabime/spdlog)
+- [wil](https://github.com/microsoft/wil)
+- [yaml-cpp](https://github.com/jbeder/yaml-cpp)
+- [assimp](https://github.com/assimp/assimp)
+- [DirectXTex](https://github.com/microsoft/DirectXTex)
+- [DirectXTK12](https://github.com/microsoft/DirectXTK12)
+- [dxc](https://github.com/microsoft/DirectXShaderCompiler)
+- [nativefiledialog](https://github.com/mlabbe/nativefiledialog)
+- [WinPixEventRuntime](https://devblogs.microsoft.com/pix/winpixeventruntime)
 
 # Showcase
 
@@ -84,3 +70,5 @@ When the project is build, all the assets and required dlls will be copied to th
 ![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
 ![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")
 ![4](/Gallery/Hyperion.png?raw=true "Hyperion")
+![5](/Gallery/hyperion_swapchain.png?raw=true "hyperion_swapchain")
+![6](/Gallery/hyperion_viewport.png?raw=true "hyperion_viewport")
