@@ -1,15 +1,6 @@
 #pragma once
 #include "../../../SharedDefines.h"
 
-enum MaterialModel
-{
-	LambertianModel,
-	GlossyModel,
-	MetalModel,
-	DielectricModel,
-	DiffuseLightModel
-};
-
 enum TextureTypes
 {
 	AlbedoIdx,
@@ -25,24 +16,38 @@ enum TextureTypes
 #define TEXTURE_CHANNEL_BLUE	2
 #define TEXTURE_CHANNEL_ALPHA	3
 
+enum BSDFType
+{
+	Lambertian,
+	Mirror,
+	Glass,
+	Disney,
+	NumBSDFTypes
+};
+
 struct Material
 {
 	Material();
 
-	float3		Albedo;
-	float3		Emissive;
-	float3		Specular;
-	float3		Refraction;
-	float		SpecularChance;
-	float		Roughness;
-	float		Metallic;
-	float		Fuzziness;
-	float		IndexOfRefraction;
-	int			Model;
-	bool		UseAttributes; // If this is true, then the attributes above will be used rather than actual textures
+	int BSDFType = BSDFType::Disney;
+	float3 baseColor = { 1, 1, 1 };
+	float metallic = 0.0f;
+	float subsurface = 0.0f;
+	float specular = 0.5f;
+	float roughness = 0.5f;
+	float specularTint = 0.0f;
+	float anisotropic = 0.0f;
+	float sheen = 0.0f;
+	float sheenTint = 0.5f;
+	float clearcoat = 0.0f;
+	float clearcoatGloss = 1.0f;
 
-	int			TextureIndices[NumTextureTypes];
-	int			TextureChannel[NumTextureTypes];
+	// Used by Glass BxDF
+	float3 T = { 1, 1, 1 };
+	float etaA = 1.0f, etaB = 1.5f;
+
+	int TextureIndices[NumTextureTypes];
+	int TextureChannel[NumTextureTypes];
 
 	struct Texture
 	{

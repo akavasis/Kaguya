@@ -12,12 +12,12 @@ void Shaders::Register(const ShaderCompiler& ShaderCompiler)
 
 	// Load VS
 	{
-		VS::FullScreenTriangle			= ShaderCompiler.CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/FullScreenTriangle.hlsl", VSEntryPoint, {});
+		VS::FullScreenTriangle = ShaderCompiler.CompileShader(Shader::Type::Vertex, ExecutableFolderPath / L"Shaders/FullScreenTriangle.hlsl", VSEntryPoint, {});
 	}
 
 	// Load PS
 	{
-		PS::ToneMap						= ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/ToneMap.hlsl",	PSEntryPoint, {});
+		PS::ToneMap = ShaderCompiler.CompileShader(Shader::Type::Pixel, ExecutableFolderPath / L"Shaders/PostProcess/ToneMap.hlsl", PSEntryPoint, {});
 	}
 
 	// Load CS
@@ -36,6 +36,6 @@ void Libraries::Register(const ShaderCompiler& ShaderCompiler)
 {
 	const auto& ExecutableFolderPath = Application::ExecutableFolderPath;
 
-	PathTrace = ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/PathTrace.hlsl");
-	Picking = ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Raytracing/Picking.hlsl");
+	PathTrace = ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/PathTrace.hlsl");
+	Picking = ShaderCompiler.CompileLibrary(ExecutableFolderPath / L"Shaders/Picking.hlsl");
 }

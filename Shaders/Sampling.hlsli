@@ -3,108 +3,76 @@
 
 #include <Math.hlsli>
 
-// Section 13.6.1
-float3 UniformSampleHemisphere(in float2 u)
+float2 SampleUniformDisk(float2 Xi)
 {
-	float z = u[0];
-    float r = sqrt(max(0.0f, 1.0f - z * z));
-    float phi = 2.0f * s_PI * u[1];
-    return float3(r * cos(phi), r * sin(phi), z);
+	float radius = sqrt(Xi[0]);
+	float theta = g_2PI * Xi[1];
+    
+	return float2(radius * cos(theta), radius * sin(theta));
+}
+
+float2 SampleConcentricDisk(float2 Xi)
+{
+    // Map Xi to $[-1,1]^2$
+	float2 XiOffset = 2.0f * Xi - 1.0f;
+
+	// Handle degeneracy at the origin
+	if (XiOffset.x == 0.0f && XiOffset.y == 0.0f)
+	{
+		return float2(0.0f, 0.0f);
+	}
+
+	// Apply concentric mapping to point
+	float radius, theta;
+	if (abs(XiOffset.x) > abs(XiOffset.y))
+	{
+		radius = XiOffset.x;
+		theta = g_PIDIV4 * (XiOffset.y / XiOffset.x);
+	}
+	else
+	{
+		radius = XiOffset.y;
+		theta = g_PIDIV2 - g_PIDIV4 * (XiOffset.x / XiOffset.y);
+	}
+
+	return float2(radius * cos(theta), radius * sin(theta));
+}
+
+float3 SampleUniformHemisphere(float2 Xi)
+{
+	float z = Xi[0];
+	float r = sqrt(max(0.0f, 1.0f - z * z));
+	float phi = 2.0f * g_PI * Xi[1];
+	return float3(r * cos(phi), r * sin(phi), z);
 }
 
 float UniformHemispherePdf()
 {
-    return s_1DIV2PI;
+	return g_1DIV2PI;
 }
 
-float3 UniformSampleSphere(in float2 u)
+float3 SampleCosineHemisphere(float2 Xi)
 {
-    float z = 1.0f - 2.0f * u[0];
-    float r = sqrt(max(0.0f, 1.0f - z * z));
-    float phi = 2.0f * s_PI * u[1];
-    return float3(r * cos(phi), r * sin(phi), z);
-}
+	float2 p = SampleConcentricDisk(Xi);
+	float z = sqrt(max(0.0f, 1.0f - p.x * p.x - p.y * p.y));
 
-float UniformSpherePdf()
-{
-    return s_1DIV4PI;
-}
-
-// Section 13.6.2
-float2 UniformSampleDisk(in float2 u)
-{
-    float r = sqrt(u[0]);
-    float theta = 2.0f * s_PI * u[1];
-    return float2(r * cos(theta), r * sin(theta));
-}
-
-float2 ConcentricSampleDisk(in float2 u)
-{
-    float2 uOffset = 2.0f * u - float2(1, 1);
-    if (uOffset.x == 0.0f && uOffset.y == 0.0f)
-        return float2(0, 0);
-    float theta, r;
-    if (abs(uOffset.x) > abs(uOffset.y))
-    {
-        r = uOffset.x;
-        theta = s_PIDIV4 * (uOffset.y / uOffset.x);
-    }
-    else
-    {
-        r = uOffset.y;
-        theta = s_PIDIV2 - s_PIDIV4 * (uOffset.x / uOffset.y);
-    }
-
-    return r * float2(cos(theta), sin(theta));
-}
-
-// Section 13.6.3
-float3 CosineSampleHemisphere(in float2 u)
-{
-    float2 d = ConcentricSampleDisk(u);
-    float z = sqrt(max(0.0f, 1.0f - d.x * d.x - d.y * d.y));
-    return float3(d.x, d.y, z);
+	return float3(p.x, p.y, z);
 }
 
 float CosineHemispherePdf(float cosTheta)
 {
-    return cosTheta * s_1DIVPI;
+	return cosTheta * g_1DIVPI;
 }
 
-// ONB: Orthonormal basis
-struct ONB
+float BalanceHeuristic(int nf, float fPdf, int ng, float gPdf)
 {
-    float3 tangent;
-    float3 bitangent;
-    float3 normal;
+	return (nf * fPdf) / (nf * fPdf + ng * gPdf);
+}
 
-    float3 InverseTransform(in float3 p)
-    {
-        return p.x * tangent + p.y * bitangent + p.z * normal;
-    }
-};
-
-ONB InitONB(in float3 normal)
+float PowerHeuristic(int nf, float fPdf, int ng, float gPdf)
 {
-    ONB onb;
-    onb.normal = normalize(normal);
-    if (abs(onb.normal.x) > abs(onb.normal.z))
-    {
-        onb.bitangent.x = -onb.normal.y;
-        onb.bitangent.y = onb.normal.x;
-        onb.bitangent.z = 0.0f;
-    }
-    else
-    {
-        onb.bitangent.x = 0.0f;
-        onb.bitangent.y = -onb.normal.z;
-        onb.bitangent.z = onb.normal.y;
-    }
-
-    onb.bitangent = normalize(onb.bitangent);
-    onb.tangent = cross(onb.bitangent, onb.normal);
-
-    return onb;
+	float f = nf * fPdf, g = ng * gPdf;
+	return (f * f) / (f * f + g * g);
 }
 
 #endif // SAMPLING_HLSLI

@@ -5,6 +5,7 @@
 #include "Components/Transform.h"
 #include "Components/MeshFilter.h"
 #include "Components/MeshRenderer.h"
+#include "Components/Light.h"
 
 #include "Camera.h"
 
@@ -21,6 +22,7 @@ struct Scene
 	};
 
 	static constexpr UINT64 MAX_MATERIAL_SUPPORTED = 1000;
+	static constexpr UINT64 MAX_LIGHT_SUPPORTED = 100;
 	static constexpr UINT64 MAX_INSTANCE_SUPPORTED = 1000;
 
 	Scene();
@@ -45,17 +47,23 @@ inline HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 {
 	return
 	{
-		.Albedo = Material.Albedo,
-		.Emissive = Material.Emissive,
-		.Specular = Material.Specular,
-		.Refraction = Material.Refraction,
-		.SpecularChance = Material.SpecularChance,
-		.Roughness = Material.Roughness,
-		.Metallic = Material.Metallic,
-		.Fuzziness = Material.Fuzziness,
-		.IndexOfRefraction = Material.IndexOfRefraction,
-		.Model = (uint)Material.Model,
-		.UseAttributeAsValues = (uint)Material.UseAttributes, // If this is true, then the attributes above will be used rather than actual textures
+		.BSDFType = Material.BSDFType,
+		.baseColor = Material.baseColor,
+		.metallic = Material.metallic,
+		.subsurface = Material.subsurface,
+		.specular = Material.specular,
+		.roughness = Material.roughness,
+		.specularTint = Material.specularTint,
+		.anisotropic = Material.anisotropic,
+		.sheen = Material.sheen,
+		.sheenTint = Material.sheenTint,
+		.clearcoat = Material.clearcoat,
+		.clearcoatGloss = Material.clearcoatGloss,
+
+		.T = Material.T,
+		.etaA = Material.etaA,
+		.etaB = Material.etaB,
+
 		.TextureIndices =
 		{
 			Material.TextureIndices[0],
@@ -75,11 +83,55 @@ inline HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 	};
 }
 
+inline HLSL::Light GetHLSLLightDesc(const Transform& Transform, const Light& Light)
+{
+	using namespace DirectX;
+
+	XMMATRIX M = Transform.Matrix();
+
+	float4 Orientation; XMStoreFloat4(&Orientation, DirectX::XMVector3Normalize(Transform.Forward()));
+	float halfWidth = Light.Width * 0.5f;
+	float halfHeight = Light.Height * 0.5f;
+	// Get billboard points at the origin
+	XMVECTOR p0 = XMVectorSet(+halfWidth, -halfHeight, 0, 1);
+	XMVECTOR p1 = XMVectorSet(+halfWidth, +halfHeight, 0, 1);
+	XMVECTOR p2 = XMVectorSet(-halfWidth, +halfHeight, 0, 1);
+	XMVECTOR p3 = XMVectorSet(-halfWidth, -halfHeight, 0, 1);
+
+	// Precompute the light points here so ray generation shader doesnt have to do it for every ray
+	// Move points to light's location
+	float3 points[4] = {};
+	XMStoreFloat3(&points[0], XMVector3TransformCoord(p0, M));
+	XMStoreFloat3(&points[1], XMVector3TransformCoord(p1, M));
+	XMStoreFloat3(&points[2], XMVector3TransformCoord(p2, M));
+	XMStoreFloat3(&points[3], XMVector3TransformCoord(p3, M));
+
+	return
+	{
+		.Type = (uint)Light.Type,
+		.Position = Transform.Position,
+		.Orientation = Orientation,
+		.Width = Light.Width,
+		.Height = Light.Height,
+		.Points =
+		{
+			points[0],
+			points[1],
+			points[2],
+			points[3],
+		},
+
+		.I = Light.I
+	};
+}
+
 inline HLSL::Camera GetHLSLCameraDesc(const Camera& Camera)
 {
-	DirectX::XMFLOAT4 Position = { Camera.Transform.Position.x, Camera.Transform.Position.y, Camera.Transform.Position.z, 1.0f };
-	DirectX::XMFLOAT4 U, V, W;
-	DirectX::XMFLOAT4X4 View, Projection, ViewProjection, InvView, InvProjection, InvViewProjection;
+	using namespace DirectX;
+
+	XMFLOAT4 Position = { Camera.Transform.Position.x, Camera.Transform.Position.y, Camera.Transform.Position.z, 1.0f };
+	XMFLOAT4 U, V, W;
+	XMFLOAT4X4 View, Projection, ViewProjection, InvView, InvProjection, InvViewProjection;
 
 	XMStoreFloat4(&U, Camera.GetUVector());
 	XMStoreFloat4(&V, Camera.GetVVector());

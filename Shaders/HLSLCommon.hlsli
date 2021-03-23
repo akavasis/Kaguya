@@ -5,7 +5,7 @@
 #include <Math.hlsli>
 #include <Sampling.hlsli>
 #include <Random.hlsli>
-#include <BxDF.hlsli>
+#include <BSDF.hlsli>
 #include <SharedTypes.hlsli>
 
 float3 CartesianToSpherical(float x, float y, float z)
@@ -22,22 +22,6 @@ float3 SphericalToCartesian(float Radius, float Theta, float Phi)
 	float y = Radius * sin(Theta) * sin(Phi);
 	float z = Radius * cos(Theta);
 	return float3(x, y, z);
-}
-
-void CoordinateSystem(float3 V1, out float3 V2, out float3 V3)
-{
-	if (abs(V1.x) > abs(V1.y))
-		V2 = float3(-V1.z, 0, V1.x) / sqrt(V1.x * V1.x + V1.z * V1.z);
-	else
-		V2 = float3(0, V1.z, -V1.y) / sqrt(V1.y * V1.y + V1.z * V1.z);
-	V3 = cross(V1, V2);
-}
-
-float3x3 GetTBNMatrix(float3 Normal)
-{
-	float3 Tangent, Bitangent;
-	CoordinateSystem(Normal, Tangent, Bitangent);
-	return float3x3(Tangent, Bitangent, Normal);
 }
 
 // Returns a relative luminance of an input linear RGB color in the Rec. 709 color space
@@ -79,16 +63,6 @@ float3 NDCDepthToWorldPosition(float NDCDepth, float2 ScreenSpaceUV, Camera Came
 float3 GenerateWorldCameraRayDirection(float2 ScreenSpaceUV, Camera Camera)
 {
 	return normalize(NDCDepthToWorldPosition(1.0f, ScreenSpaceUV, Camera) - Camera.Position.xyz);
-}
-
-float3 EncodeNormal(float3 n)
-{
-	return n * 0.5f + 0.5f;
-}
-
-float3 DecodeNormal(float3 n)
-{
-	return n * 2.0f - 1.0f;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -166,49 +140,6 @@ float HaltonSample(uint Dimension, uint SampleIndex)
 float HaltonNext(inout HaltonState HaltonState)
 {
 	return HaltonSample(HaltonState.Dimension++, HaltonState.SequenceIndex);
-}
-
-//
-struct Triangle
-{
-    Vertex v0;
-    Vertex v1;
-    Vertex v2;
-};
-
-float BarycentricInterpolation(in float v0, in float v1, in float v2, in float3 barycentric)
-{
-    return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;
-}
-
-float2 BarycentricInterpolation(in float2 v0, in float2 v1, in float2 v2, in float3 barycentric)
-{
-    return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;
-}
-
-float3 BarycentricInterpolation(in float3 v0, in float3 v1, in float3 v2, in float3 barycentric)
-{
-    return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;
-}
-
-float4 BarycentricInterpolation(in float4 v0, in float4 v1, in float4 v2, in float3 barycentric)
-{
-    return v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z;
-}
-
-Vertex BarycentricInterpolation(in Vertex v0, in Vertex v1, in Vertex v2, in float3 barycentric)
-{
-    Vertex vertex;
-    vertex.Position     = BarycentricInterpolation(v0.Position, v1.Position, v2.Position, barycentric);
-    vertex.Texture      = BarycentricInterpolation(v0.Texture, v1.Texture, v2.Texture, barycentric);
-    vertex.Normal       = BarycentricInterpolation(v0.Normal, v1.Normal, v2.Normal, barycentric);
-
-    return vertex;
-}
-
-Vertex BarycentricInterpolation(in Triangle t, in float3 barycentric)
-{
-	return BarycentricInterpolation(t.v0, t.v1, t.v2, barycentric);
 }
 
 #endif // HLSL_COMMON_HLSLI

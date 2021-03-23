@@ -1,10 +1,10 @@
 Version: 1.0.0
-Scene: Test.yaml
+Scene: Hyperion.yaml
 Camera:
   Transform:
-    Position: [-10.582139, 8.99060059, -6.44570208]
+    Position: [-15.8332806, 10.6435328, -14.528039]
     Scale: [1, 1, 1]
-    Orientation: [0.2513403, 0.514404416, -0.160831451, 0.803893387]
+    Orientation: [0.152915373, 0.419257551, -0.0718486086, 0.892427504]
   Field of View: 0.785398185
   Clipping Planes: [0.100000001, 500]
   Focal Length: 10
@@ -23,16 +23,21 @@ Entities:
       Name: Assets\Models\Sphere.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.0980392173, 0.0980392173, 0.980392158]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 0
+        BSDFType: 3
+        baseColor: [0.0980392173, 0.0980392173, 0.980392158]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Green sphere
@@ -44,16 +49,21 @@ Entities:
       Name: Assets\Models\Sphere.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.0980392173, 0.980392158, 0.0980392173]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 0
+        BSDFType: 3
+        baseColor: [0.0980392173, 0.980392158, 0.0980392173]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Red sphere
@@ -65,16 +75,21 @@ Entities:
       Name: Assets\Models\Sphere.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.980392158, 0.0980392173, 0.0980392173]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 0
+        BSDFType: 3
+        baseColor: [0.980392158, 0.0980392173, 0.0980392173]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Glass sphere
@@ -86,37 +101,21 @@ Entities:
       Name: Assets\Models\Sphere.obj
     Mesh Renderer:
       Material:
-        Albedo: [0, 0, 0]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1.51699996
-        Model: 3
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Light
-    Transform:
-      Position: [-20, 20, 0]
-      Scale: [2, 2, 2]
-      Orientation: [-0, 0, -0, 1]
-    Mesh Filter:
-      Name: Assets\Models\Sphere.obj
-    Mesh Renderer:
-      Material:
-        Albedo: [0, 0, 0]
-        Emissive: [200, 200, 200]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 4
+        BSDFType: 3
+        baseColor: [0, 0, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Table
@@ -125,19 +124,24 @@ Entities:
       Scale: [15, 0.5, 15]
       Orientation: [-0, 0, -0, 1]
     Mesh Filter:
-      Name: Assets\Models\cube\cube.obj
+      Name: Assets\Models\cube.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.870588243, 0.78039217, 0.678431392]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 0
+        BSDFType: 3
+        baseColor: [1, 0.99999547, 0.999989986]
+        metallic: 0.537999988
+        subsurface: 0
+        specular: 0
+        roughness: 0
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0
+        clearcoat: 0
+        clearcoatGloss: 0
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Floor
@@ -146,19 +150,24 @@ Entities:
       Scale: [40, 1, 40]
       Orientation: [-0, 0, -0, 1]
     Mesh Filter:
-      Name: Assets\Models\cube\cube.obj
+      Name: Assets\Models\cube.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.749019623, 0.65882355, 0.556862772]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 0
+        BSDFType: 3
+        baseColor: [0.749019623, 0.65882355, 0.556862772]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Metal sphere
@@ -170,16 +179,21 @@ Entities:
       Name: Assets\Models\Sphere.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.301960796, 0.301960796, 0.301960796]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0.0529999994
-        Index Of Refraction: 1
-        Model: 2
+        BSDFType: 1
+        baseColor: [1, 0.999989986, 0.999989986]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Ring 0
@@ -191,16 +205,21 @@ Entities:
       Name: Assets\Models\Ring.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.949019611, 0.929411769, 0.87843138]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 2
+        BSDFType: 3
+        baseColor: [0.949019611, 0.929411769, 0.87843138]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Ring 1
@@ -212,16 +231,21 @@ Entities:
       Name: Assets\Models\Ring.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.949019611, 0.929411769, 0.87843138]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 2
+        BSDFType: 3
+        baseColor: [0.949019611, 0.929411769, 0.87843138]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Ring 2
@@ -233,16 +257,21 @@ Entities:
       Name: Assets\Models\Ring.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.949019611, 0.929411769, 0.87843138]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 2
+        BSDFType: 3
+        baseColor: [0.949019611, 0.929411769, 0.87843138]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Burr puzzle
@@ -254,16 +283,21 @@ Entities:
       Name: Assets\Models\BurrPuzzle.obj
     Mesh Renderer:
       Material:
-        Albedo: [0.400000006, 0.219607845, 0.109803922]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1
-        Model: 0
+        BSDFType: 3
+        baseColor: [0.400000006, 0.219607845, 0.109803922]
+        metallic: 0
+        subsurface: 1
+        specular: 0
+        roughness: 1
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0
+        clearcoat: 0
+        clearcoatGloss: 0
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
       Name: Egg
@@ -275,13 +309,30 @@ Entities:
       Name: Assets\Models\Egg.obj
     Mesh Renderer:
       Material:
-        Albedo: [0, 0, 0]
-        Emissive: [0, 0, 0]
-        Specular: [0, 0, 0]
-        Refraction: [0, 0, 0]
-        Specular Chance: 0
-        Roughness: 1
-        Metallic: 0
-        Fuzziness: 0
-        Index Of Refraction: 1.80400002
-        Model: 3
+        BSDFType: 2
+        baseColor: [1, 0.999989986, 0.999989986]
+        metallic: 1
+        subsurface: 1
+        specular: 1
+        roughness: 0
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 0
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Light0
+    Transform:
+      Position: [0, 10, 0]
+      Scale: [0.999994636, 0.999993563, 0.999993563]
+      Orientation: [0.707105637, 0, -0, 0.707107961]
+    Light:
+      Type: 1
+      I: [10, 10, 10]
+      Width: 7.19099998
+      Height: 6.83799982

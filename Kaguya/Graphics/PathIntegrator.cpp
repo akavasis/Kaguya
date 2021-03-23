@@ -12,6 +12,7 @@ namespace
 	// Symbols
 	constexpr LPCWSTR RayGeneration = L"RayGeneration";
 	constexpr LPCWSTR Miss = L"Miss";
+	constexpr LPCWSTR ShadowMiss = L"ShadowMiss";
 	constexpr LPCWSTR ClosestHit = L"ClosestHit";
 
 	// HitGroup Exports
@@ -19,6 +20,7 @@ namespace
 
 	ShaderIdentifier RayGenerationSID;
 	ShaderIdentifier MissSID;
+	ShaderIdentifier ShadowMissSID;
 	ShaderIdentifier DefaultSID;
 }
 
@@ -65,6 +67,7 @@ void PathIntegrator::Create()
 
 		Builder.AddRootSRVParameter(RootSRV(0, 0));	// Scene					t0 | space0
 		Builder.AddRootSRVParameter(RootSRV(1, 0));	// Materials				t1 | space0
+		Builder.AddRootSRVParameter(RootSRV(2, 0));	// Lights					t2 | space0
 
 		Builder.AddStaticSampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 16);	// SamplerLinearWrap	s0 | space0;
 		Builder.AddStaticSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 16);	// SamplerLinearClamp	s1 | space0;
@@ -88,6 +91,7 @@ void PathIntegrator::Create()
 			{
 				RayGeneration,
 				Miss,
+				ShadowMiss,
 				ClosestHit
 			});
 
@@ -101,11 +105,14 @@ void PathIntegrator::Create()
 		Builder.SetGlobalRootSignature(&GlobalRS);
 
 		Builder.SetRaytracingShaderConfig(12 * sizeof(float) + 2 * sizeof(unsigned int), SizeOfBuiltInTriangleIntersectionAttributes);
-		Builder.SetRaytracingPipelineConfig(1);
+
+		// +1 for Primary, +1 for Shadow
+		Builder.SetRaytracingPipelineConfig(2);
 	});
 
 	RayGenerationSID = RTPSO.GetShaderIdentifier(L"RayGeneration");
 	MissSID = RTPSO.GetShaderIdentifier(L"Miss");
+	ShadowMissSID = RTPSO.GetShaderIdentifier(L"ShadowMiss");
 	DefaultSID = RTPSO.GetShaderIdentifier(L"Default");
 
 	ResourceUploadBatch Uploader(RenderDevice.Device);
@@ -136,10 +143,15 @@ void PathIntegrator::Create()
 
 	// Miss Shader Table
 	{
-		ShaderTable<void>::Record Record = {};
-		Record.ShaderIdentifier = MissSID;
+		ShaderTable<void>::Record Record0 = {};
+		Record0.ShaderIdentifier = MissSID;
 
-		MissShaderTable.AddShaderRecord(Record);
+		MissShaderTable.AddShaderRecord(Record0);
+
+		ShaderTable<void>::Record Record1 = {};
+		Record1.ShaderIdentifier = ShadowMissSID;
+
+		MissShaderTable.AddShaderRecord(Record1);
 
 		UINT64 shaderTableSizeInBytes = MissShaderTable.GetSizeInBytes();
 
@@ -165,7 +177,7 @@ void PathIntegrator::SetResolution(UINT Width, UINT Height)
 {
 	auto& RenderDevice = RenderDevice::Instance();
 
-	if (this->Width == Width && this->Height == Height)
+	if ((this->Width == Width && this->Height == Height))
 	{
 		return;
 	}
@@ -234,6 +246,7 @@ void PathIntegrator::UpdateShaderTable(const RaytracingAccelerationStructure& Ra
 void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 	const RaytracingAccelerationStructure& RaytracingAccelerationStructure,
 	D3D12_GPU_VIRTUAL_ADDRESS Materials,
+	D3D12_GPU_VIRTUAL_ADDRESS Lights,
 	CommandList& CommandList)
 {
 	auto& RenderDevice = RenderDevice::Instance();
@@ -261,8 +274,9 @@ void PathIntegrator::Render(D3D12_GPU_VIRTUAL_ADDRESS SystemConstants,
 	CommandList->SetComputeRootConstantBufferView(1, ConstantBuffer.GpuAddress());
 	CommandList->SetComputeRootShaderResourceView(2, RaytracingAccelerationStructure);
 	CommandList->SetComputeRootShaderResourceView(3, Materials);
+	CommandList->SetComputeRootShaderResourceView(4, Lights);
 
-	RenderDevice.BindDescriptorTable(PipelineState::Type::Compute, GlobalRS, CommandList);
+	RenderDevice.BindDescriptorTable<PipelineState::Type::Compute>(GlobalRS, CommandList);
 
 	D3D12_DISPATCH_RAYS_DESC Desc =
 	{

@@ -93,7 +93,31 @@ public:
 	CommandList& GetDefaultCopyContext() { return GetCopyContext(0); }
 
 	void BindGlobalDescriptorHeap(CommandList& CommandList);
-	void BindDescriptorTable(PipelineState::Type Type, const RootSignature& RootSignature, CommandList& CommandList);
+
+	template<PipelineState::Type Type>
+	void BindDescriptorTable(const RootSignature& RootSignature, CommandList& CommandList)
+	{
+		const auto RootParameterOffset = RootSignature.NumParameters - RootParameters::DescriptorTable::NumRootParameters;
+		auto GlobalSRDescriptorFromStart = m_GlobalOnlineDescriptorHeap.GetDescriptorAt(1, 0);
+		auto GlobalUADescriptorFromStart = m_GlobalOnlineDescriptorHeap.GetDescriptorAt(2, 0);
+		auto GlobalSamplerDescriptorFromStart = m_GlobalOnlineSamplerDescriptorHeap.GetDescriptorFromStart();
+
+		auto Bind = [&](ID3D12GraphicsCommandList* pCommandList, void(ID3D12GraphicsCommandList::* pFunction)(UINT, D3D12_GPU_DESCRIPTOR_HANDLE))
+		{
+			(pCommandList->*pFunction)(RootParameters::DescriptorTable::ShaderResourceDescriptorTable + RootParameterOffset, GlobalSRDescriptorFromStart.GpuHandle);
+			(pCommandList->*pFunction)(RootParameters::DescriptorTable::UnorderedAccessDescriptorTable + RootParameterOffset, GlobalUADescriptorFromStart.GpuHandle);
+			(pCommandList->*pFunction)(RootParameters::DescriptorTable::SamplerDescriptorTable + RootParameterOffset, GlobalSamplerDescriptorFromStart.GpuHandle);
+		};
+
+		if constexpr (Type == PipelineState::Type::Graphics)
+		{
+			Bind(CommandList.pCommandList.Get(), &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
+		}
+		else if constexpr (Type == PipelineState::Type::Compute)
+		{
+			Bind(CommandList.pCommandList.Get(), &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
+		}
+	}
 
 	void ExecuteGraphicsContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_DIRECT, NumCommandLists, ppCommandLists); }
 	void ExecuteAsyncComputeContexts(UINT NumCommandLists, CommandList* ppCommandLists[]) { ExecuteCommandListsInternal(D3D12_COMMAND_LIST_TYPE_COMPUTE, NumCommandLists, ppCommandLists); }

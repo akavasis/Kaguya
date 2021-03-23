@@ -25,6 +25,7 @@ struct SystemConstants
 	float2 MousePosition;
 
 	uint TotalFrameCount;
+	uint NumLights;
 };
 
 Renderer::Renderer()
@@ -83,23 +84,37 @@ void Renderer::Initialize()
 
 	D3D12MA::ALLOCATION_DESC Desc = {};
 	Desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
 	Materials = RenderDevice.CreateBuffer(&Desc, sizeof(HLSL::Material) * Scene::MAX_MATERIAL_SUPPORTED, D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_GENERIC_READ);
 	ThrowIfFailed(Materials->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pMaterials)));
+
+	Lights = RenderDevice.CreateBuffer(&Desc, sizeof(HLSL::Light) * Scene::MAX_LIGHT_SUPPORTED, D3D12_RESOURCE_FLAG_NONE, 0, D3D12_RESOURCE_STATE_GENERIC_READ);
+	ThrowIfFailed(Lights->pResource->Map(0, nullptr, reinterpret_cast<void**>(&pLights)));
 }
 
 void Renderer::Render(const Time& Time, Scene& Scene)
 {
 	auto& RenderDevice = RenderDevice::Instance();
 
-	UINT materialIndex = 0;
-	RaytracingAccelerationStructure.Clear();
-	auto view = Scene.Registry.view<MeshFilter, MeshRenderer>();
-	for (auto [handle, meshFilter, meshRenderer] : view.each())
+	UINT numMaterials = 0, numLights = 0;
+
 	{
-		if (meshFilter.Mesh)
+		RaytracingAccelerationStructure.Clear();
+		auto view = Scene.Registry.view<MeshFilter, MeshRenderer>();
+		for (auto [handle, meshFilter, meshRenderer] : view.each())
 		{
-			RaytracingAccelerationStructure.AddInstance(&meshRenderer);
-			pMaterials[materialIndex++] = GetHLSLMaterialDesc(meshRenderer.Material);
+			if (meshFilter.Mesh)
+			{
+				RaytracingAccelerationStructure.AddInstance(&meshRenderer);
+				pMaterials[numMaterials++] = GetHLSLMaterialDesc(meshRenderer.Material);
+			}
+		}
+	}
+	{
+		auto view = Scene.Registry.view<Transform, Light>();
+		for (auto [handle, transform, light] : view.each())
+		{
+			pLights[numLights++] = GetHLSLLightDesc(transform, light);
 		}
 	}
 
@@ -134,6 +149,7 @@ void Renderer::Render(const Time& Time, Scene& Scene)
 	g_SystemConstants.Resolution = { float(ViewportWidth), float(ViewportHeight), 1.0f / float(ViewportWidth), 1.0f / float(ViewportHeight) };
 	g_SystemConstants.MousePosition = { ViewportMouseX, ViewportMouseY };
 	g_SystemConstants.TotalFrameCount = static_cast<unsigned int>(Statistics::TotalFrameCount);
+	g_SystemConstants.NumLights = numLights;
 
 	GraphicsResource SceneConstants = RenderDevice::Instance().Device.GraphicsMemory()->AllocateConstant(g_SystemConstants);
 
@@ -141,8 +157,15 @@ void Renderer::Render(const Time& Time, Scene& Scene)
 
 	if (!RaytracingAccelerationStructure.Empty())
 	{
+		// Update shader table
 		PathIntegrator.UpdateShaderTable(RaytracingAccelerationStructure, GraphicsContext);
-		PathIntegrator.Render(SceneConstants.GpuAddress(), RaytracingAccelerationStructure, Materials->pResource->GetGPUVirtualAddress(), GraphicsContext);
+
+		// Enqueue ray tracing commands
+		PathIntegrator.Render(SceneConstants.GpuAddress(),
+			RaytracingAccelerationStructure,
+			Materials->pResource->GetGPUVirtualAddress(),
+			Lights->pResource->GetGPUVirtualAddress(),
+			GraphicsContext);
 
 		Picking.UpdateShaderTable(RaytracingAccelerationStructure, GraphicsContext);
 		Picking.ShootPickingRay(SceneConstants.GpuAddress(), RaytracingAccelerationStructure, GraphicsContext);
@@ -188,8 +211,6 @@ void Renderer::Resize(uint32_t Width, uint32_t Height)
 	RenderDevice::Instance().Resize(Width, Height);
 	PathIntegrator.SetResolution(Width, Height);
 	ToneMapper.SetResolution(Width, Height);
-
-	RenderDevice::Instance().FlushGraphicsQueue();
 }
 
 void Renderer::Destroy()
@@ -199,13 +220,25 @@ void Renderer::Destroy()
 
 void Renderer::RequestCapture()
 {
-	auto pTexture = ToneMapper.GetRenderTarget();
-
-	auto FileName = Application::ExecutableFolderPath / L"Capture.png";
-	if (FAILED(DirectX::SaveWICTextureToFile(RenderDevice::Instance().GraphicsQueue, pTexture,
-		GUID_ContainerFormatPng, FileName.c_str(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_RENDER_TARGET, nullptr, nullptr, true)))
+	auto SaveD3D12ResourceToDisk = [&](const std::filesystem::path& Path, ID3D12Resource* pResource, D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After)
 	{
-		LOG_WARN("Failed to capture");
-	}
+		if (FAILED(DirectX::SaveWICTextureToFile(RenderDevice::Instance().GraphicsQueue, pResource,
+			GUID_ContainerFormatPng, Path.c_str(),
+			Before, After, nullptr, nullptr, true)))
+		{
+			LOG_WARN("Failed to capture");
+		}
+	};
+
+	auto pTexture = ToneMapper.GetRenderTarget();
+	SaveD3D12ResourceToDisk(Application::ExecutableFolderPath / L"Viewport.png",
+		pTexture,
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	auto pBackBuffer = RenderDevice::Instance().GetCurrentBackBuffer();
+	SaveD3D12ResourceToDisk(Application::ExecutableFolderPath / L"SwapChain.png",
+		pBackBuffer,
+		D3D12_RESOURCE_STATE_PRESENT,
+		D3D12_RESOURCE_STATE_PRESENT);
 }
