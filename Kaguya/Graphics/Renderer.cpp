@@ -220,13 +220,25 @@ void Renderer::Destroy()
 
 void Renderer::RequestCapture()
 {
-	auto pTexture = ToneMapper.GetRenderTarget();
-
-	auto FileName = Application::ExecutableFolderPath / L"Capture.png";
-	if (FAILED(DirectX::SaveWICTextureToFile(RenderDevice::Instance().GraphicsQueue, pTexture,
-		GUID_ContainerFormatPng, FileName.c_str(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_RENDER_TARGET, nullptr, nullptr, true)))
+	auto SaveD3D12ResourceToDisk = [&](const std::filesystem::path& Path, ID3D12Resource* pResource, D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After)
 	{
-		LOG_WARN("Failed to capture");
-	}
+		if (FAILED(DirectX::SaveWICTextureToFile(RenderDevice::Instance().GraphicsQueue, pResource,
+			GUID_ContainerFormatPng, Path.c_str(),
+			Before, After, nullptr, nullptr, true)))
+		{
+			LOG_WARN("Failed to capture");
+		}
+	};
+
+	auto pTexture = ToneMapper.GetRenderTarget();
+	SaveD3D12ResourceToDisk(Application::ExecutableFolderPath / L"Viewport.png",
+		pTexture,
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	auto pBackBuffer = RenderDevice::Instance().GetCurrentBackBuffer();
+	SaveD3D12ResourceToDisk(Application::ExecutableFolderPath / L"SwapChain.png",
+		pBackBuffer,
+		D3D12_RESOURCE_STATE_PRESENT,
+		D3D12_RESOURCE_STATE_PRESENT);
 }

@@ -207,6 +207,20 @@ void RayGeneration()
 		L += Li(ray, seed);
 	}
 	L /= float(g_RenderPassData.NumSamplesPerPixel);
+	
+	// Replace NaN components with zero. See explanation in Ray Tracing: The Rest of Your Life.
+	if (L.r != L.r)
+	{
+		L.r = 0.0;
+	}
+	if (L.g != L.g)
+	{
+		L.g = 0.0;
+	}
+	if (L.b != L.b)
+	{
+		L.b = 0.0;
+	}
 
 	RWTexture2D<float4> RenderTarget = g_RWTexture2DTable[g_RenderPassData.RenderTarget];
 	

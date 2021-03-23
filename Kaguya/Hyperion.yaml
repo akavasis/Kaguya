@@ -4,7 +4,7 @@ Camera:
   Transform:
     Position: [-15.8332806, 10.6435328, -14.528039]
     Scale: [1, 1, 1]
-    Orientation: [0.175814107, 0.410017163, -0.0808488578, 0.891732693]
+    Orientation: [0.152915373, 0.419257551, -0.0718486086, 0.892427504]
   Field of View: 0.785398185
   Clipping Planes: [0.100000001, 500]
   Focal Length: 10
@@ -14,59 +14,125 @@ Camera:
 Entities:
   - Entity: 17373804103804353619
     Tag:
-      Name: Light0
+      Name: Blue sphere
     Transform:
-      Position: [0, 10, 0]
-      Scale: [0.999994636, 0.999993563, 0.999993563]
-      Orientation: [0.707105637, 0, -0, 0.707107961]
-    Light:
-      Type: 1
-      I: [10, 10, 10]
-      Width: 7.19099998
-      Height: 6.83799982
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Egg
-    Transform:
-      Position: [3.5, 1.5, -5]
+      Position: [5, 2.5, 2.5]
       Scale: [1, 1, 1]
       Orientation: [-0, 0, -0, 1]
     Mesh Filter:
-      Name: Assets\Models\Egg.obj
+      Name: Assets\Models\Sphere.obj
     Mesh Renderer:
       Material:
-        BSDFType: 2
-        baseColor: [1, 0.999989986, 0.999989986]
-        metallic: 1
-        subsurface: 1
-        specular: 1
-        roughness: 0
+        BSDFType: 3
+        baseColor: [0.0980392173, 0.0980392173, 0.980392158]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
         specularTint: 0
         anisotropic: 0
         sheen: 0
         sheenTint: 0.5
         clearcoat: 0
-        clearcoatGloss: 0
+        clearcoatGloss: 1
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
-      Name: Burr puzzle
+      Name: Green sphere
     Transform:
-      Position: [0, 2.5, -5]
-      Scale: [20.0000114, 20.0000114, 20.0000019]
-      Orientation: [-0, 0.382683426, -0, 0.923879504]
+      Position: [0, 2.5, 2.5]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
     Mesh Filter:
-      Name: Assets\Models\BurrPuzzle.obj
+      Name: Assets\Models\Sphere.obj
     Mesh Renderer:
       Material:
         BSDFType: 3
-        baseColor: [0.400000006, 0.219607845, 0.109803922]
+        baseColor: [0.0980392173, 0.980392158, 0.0980392173]
         metallic: 0
-        subsurface: 1
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Red sphere
+    Transform:
+      Position: [-5, 2.5, 2.5]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.980392158, 0.0980392173, 0.0980392173]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Glass sphere
+    Transform:
+      Position: [3.5, 2, 0]
+      Scale: [0.5, 0.5, 0.5]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0, 0, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Table
+    Transform:
+      Position: [0, 1, 0]
+      Scale: [15, 0.5, 15]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\cube.obj
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 0.99999547, 0.999989986]
+        metallic: 0.537999988
+        subsurface: 0
         specular: 0
-        roughness: 1
+        roughness: 0
         specularTint: 0
         anisotropic: 0
         sheen: 0
@@ -78,9 +144,61 @@ Entities:
         etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
-      Name: Ring 2
+      Name: Floor
     Transform:
-      Position: [0, 1.25, -1.5]
+      Position: [0, 0, 5.96046448e-08]
+      Scale: [40, 1, 40]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\cube.obj
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.749019623, 0.65882355, 0.556862772]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Metal sphere
+    Transform:
+      Position: [-3.5, 2, 0]
+      Scale: [0.600000024, 0.600000024, 0.600000024]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\Sphere.obj
+    Mesh Renderer:
+      Material:
+        BSDFType: 1
+        baseColor: [1, 0.999989986, 0.999989986]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1
+        etaB: 1.5
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Ring 0
+    Transform:
+      Position: [0, 1.25, 0]
       Scale: [0.00499999989, 0.00499999989, 0.00499999989]
       Orientation: [-0, 0, -0, 1]
     Mesh Filter:
@@ -130,9 +248,9 @@ Entities:
         etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
-      Name: Ring 0
+      Name: Ring 2
     Transform:
-      Position: [0, 1.25, 0]
+      Position: [0, 1.25, -1.5]
       Scale: [0.00499999989, 0.00499999989, 0.00499999989]
       Orientation: [-0, 0, -0, 1]
     Mesh Filter:
@@ -156,73 +274,21 @@ Entities:
         etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
-      Name: Metal sphere
+      Name: Burr puzzle
     Transform:
-      Position: [-3.5, 2, 0]
-      Scale: [0.600000024, 0.600000024, 0.600000024]
-      Orientation: [-0, 0, -0, 1]
+      Position: [0, 2.5, -5]
+      Scale: [20.0000114, 20.0000114, 20.0000019]
+      Orientation: [-0, 0.382683426, -0, 0.923879504]
     Mesh Filter:
-      Name: Assets\Models\Sphere.obj
-    Mesh Renderer:
-      Material:
-        BSDFType: 1
-        baseColor: [1, 0.999989986, 0.999989986]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1
-        etaB: 1.5
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Floor
-    Transform:
-      Position: [0, 0, 5.96046448e-08]
-      Scale: [40, 1, 40]
-      Orientation: [-0, 0, -0, 1]
-    Mesh Filter:
-      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\cube.obj
+      Name: Assets\Models\BurrPuzzle.obj
     Mesh Renderer:
       Material:
         BSDFType: 3
-        baseColor: [0.749019623, 0.65882355, 0.556862772]
+        baseColor: [0.400000006, 0.219607845, 0.109803922]
         metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1
-        etaB: 1.5
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Table
-    Transform:
-      Position: [0, 1, 0]
-      Scale: [15, 0.5, 15]
-      Orientation: [-0, 0, -0, 1]
-    Mesh Filter:
-      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\cube.obj
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 0.99999547, 0.999989986]
-        metallic: 0.537999988
-        subsurface: 0
+        subsurface: 1
         specular: 0
-        roughness: 0
+        roughness: 1
         specularTint: 0
         anisotropic: 0
         sheen: 0
@@ -234,105 +300,39 @@ Entities:
         etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
-      Name: Glass sphere
+      Name: Egg
     Transform:
-      Position: [3.5, 2, 0]
-      Scale: [0.5, 0.5, 0.5]
+      Position: [3.5, 1.5, -5]
+      Scale: [1, 1, 1]
       Orientation: [-0, 0, -0, 1]
     Mesh Filter:
-      Name: Assets\Models\Sphere.obj
+      Name: Assets\Models\Egg.obj
     Mesh Renderer:
       Material:
-        BSDFType: 3
-        baseColor: [0, 0, 0]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
+        BSDFType: 2
+        baseColor: [1, 0.999989986, 0.999989986]
+        metallic: 1
+        subsurface: 1
+        specular: 1
+        roughness: 0
         specularTint: 0
         anisotropic: 0
         sheen: 0
         sheenTint: 0.5
         clearcoat: 0
-        clearcoatGloss: 1
+        clearcoatGloss: 0
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
   - Entity: 17373804103804353619
     Tag:
-      Name: Red sphere
+      Name: Light0
     Transform:
-      Position: [-5, 2.5, 2.5]
-      Scale: [1, 1, 1]
-      Orientation: [-0, 0, -0, 1]
-    Mesh Filter:
-      Name: Assets\Models\Sphere.obj
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [0.980392158, 0.0980392173, 0.0980392173]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1
-        etaB: 1.5
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Green sphere
-    Transform:
-      Position: [0, 2.5, 2.5]
-      Scale: [1, 1, 1]
-      Orientation: [-0, 0, -0, 1]
-    Mesh Filter:
-      Name: Assets\Models\Sphere.obj
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [0.0980392173, 0.980392158, 0.0980392173]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1
-        etaB: 1.5
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Blue sphere
-    Transform:
-      Position: [5, 2.5, 2.5]
-      Scale: [1, 1, 1]
-      Orientation: [-0, 0, -0, 1]
-    Mesh Filter:
-      Name: Assets\Models\Sphere.obj
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [0.0980392173, 0.0980392173, 0.980392158]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1
-        etaB: 1.5
+      Position: [0, 10, 0]
+      Scale: [0.999994636, 0.999993563, 0.999993563]
+      Orientation: [0.707105637, 0, -0, 0.707107961]
+    Light:
+      Type: 1
+      I: [10, 10, 10]
+      Width: 7.19099998
+      Height: 6.83799982
