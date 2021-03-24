@@ -1,6 +1,9 @@
 #pragma once
 #include "UIWindow.h"
 
+#include "../Scene/Scene.h"
+#include "../Scene/Entity.h"
+
 class AssetWindow : public UIWindow
 {
 public:
@@ -11,4 +14,6 @@ public:
 	}
 
 	void RenderGui();
+
+	Scene* pScene = nullptr;;
 };

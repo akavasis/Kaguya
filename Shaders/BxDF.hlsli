@@ -13,13 +13,17 @@ void swap(inout float a, inout float b)
 
 float FrDielectric(float cosThetaI, float etaI, float etaT)
 {
+	if (etaI == etaT)
+	{
+		return 0.0f;
+	}
+	
 	cosThetaI = clamp(cosThetaI, -1.0f, 1.0f);
 
 	// Potentially swap indices of refraction
 	bool entering = cosThetaI > 0.0f;
 	if (!entering)
 	{
-		float tmp = etaI;
 		swap(etaI, etaT);
 		cosThetaI = abs(cosThetaI);
 	}
@@ -38,7 +42,7 @@ float FrDielectric(float cosThetaI, float etaI, float etaT)
 
 	float Rparl = ((etaT * cosThetaI) - (etaI * cosThetaT)) / ((etaT * cosThetaI) + (etaI * cosThetaT));
 	float Rperp = ((etaI * cosThetaI) - (etaT * cosThetaT)) / ((etaI * cosThetaI) + (etaT * cosThetaT));
-	return (Rparl * Rparl + Rperp * Rperp) / 2.0f;
+	return (Rparl * Rparl + Rperp * Rperp) * 0.5f;
 }
 
 inline float CosTheta(float3 w)
@@ -246,8 +250,9 @@ struct Glass
 	bool Samplef(float3 wo, float2 Xi, inout BSDFSample bsdfSample)
 	{
 		float3 f = float3(0, 0, 0);
-		float3 wi = 0;
+		float3 wi = float3(0, 0, 0);
 		float pdf = 0;
+		BxDFFlags flags;
 		
 		float F = FrDielectric(CosTheta(wo), etaA, etaB);
 		if (Xi[0] < F)
@@ -257,29 +262,36 @@ struct Glass
 			wi = float3(-wo.x, -wo.y, wo.z);
 			pdf = F;
 			f = F * R / AbsCosTheta(wi);
+			flags = BxDFFlags::SpecularReflection;
 		}
 		else
 		{
 			// Compute specular transmission
 			// Figure out which $\eta$ is incident and which is transmitted
 			bool entering = CosTheta(wo) > 0;
-			float etaI = entering ? etaA : etaB;
-			float etaT = entering ? etaB : etaA;
-
-			// Compute ray direction for specular transmission
-			if (Refract(wo, Faceforward(float3(0, 0, 1), wo), etaI / etaT, wi))
+			float etaI = etaA, etaT = etaB;
+			if (!entering)
 			{
-				float3 ft = T * (1.0f - F);
-
-				// Account for non-symmetry with transmission to different medium
-				ft *= (etaI * etaI) / (etaT * etaT);
-				pdf = 1 - F;
-				
-				f = ft / AbsCosTheta(wi);
+				swap(etaI, etaT);
 			}
+			
+			// Compute ray direction for specular transmission
+			if (!Refract(wo, Faceforward(float3(0, 0, 1), wo), etaI / etaT, wi))
+			{
+				return false;
+			}
+			
+			float3 ft = T * (1.0f - F);
+
+			// Account for non-symmetry with transmission to different medium
+			ft *= (etaI * etaI) / (etaT * etaT);
+			pdf = 1 - F;
+				
+			f = ft / AbsCosTheta(wi);
+			flags = BxDFFlags::SpecularTransmission;
 		}
 		
-		bsdfSample = InitBSDFSample(f, wi, pdf, Flags());
+		bsdfSample = InitBSDFSample(f, wi, pdf, flags);
 		return true;
 	}
 	

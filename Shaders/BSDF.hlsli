@@ -205,7 +205,7 @@ struct BSDF
 		}
 	
 		if (Material.BSDFType == BSDFType_Disney)
-		{			
+		{
 			Disney BxDF;
 			BxDF.baseColor = Material.baseColor;
 			BxDF.metallic = Material.metallic;

@@ -28,9 +28,11 @@ SurfaceInteraction GetSurfaceInteraction(in BuiltInTriangleIntersectionAttribute
 	float3 e0 = p1 - p0;
 	float3 e1 = p2 - p0;
 	float3 n = normalize(cross(e0, e1));
+	n = normalize(mul(n, transpose((float3x3) ObjectToWorld3x4())));
 	
 	float3 barycentrics = float3(1.f - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
 	Vertex vertex = BarycentricInterpolation(vtx0, vtx1, vtx2, barycentrics);
+	vertex.Normal = normalize(mul(vertex.Normal, transpose((float3x3) ObjectToWorld3x4())));
 	
 	SurfaceInteraction si;
 	si.p = WorldRayOrigin() + (WorldRayDirection() * RayTCurrent());
@@ -235,8 +237,8 @@ void RayGeneration()
 [shader("miss")]
 void Miss(inout RayPayload rayPayload : SV_RayPayload)
 {
-	//float t = 0.5f * (WorldRayDirection().y + 1.0f);
-	//rayPayload.L += rayPayload.beta * lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
+	float t = 0.5f * (WorldRayDirection().y + 1.0f);
+	rayPayload.L += rayPayload.beta * lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
 	TerminateRay(rayPayload);
 }
 
@@ -260,7 +262,7 @@ void ClosestHit(inout RayPayload rayPayload : SV_RayPayload, in BuiltInTriangleI
 	}
 	
 	// Sample BSDF to get new path direction
-	float3 wo = -rayPayload.Direction;
+	float3 wo = -WorldRayDirection();
 	BSDFSample bsdfSample = (BSDFSample) 0;
 	bool success = si.BSDF.Samplef(wo, float2(RandomFloat01(rayPayload.Seed), RandomFloat01(rayPayload.Seed)), bsdfSample);
 	if (!success)
@@ -280,9 +282,9 @@ void ClosestHit(inout RayPayload rayPayload : SV_RayPayload, in BuiltInTriangleI
 	const float rrThreshold = 1.0f;
 	float3 rr = rayPayload.beta;
 	float rrMaxComponentValue = max(rr.x, max(rr.y, rr.z));
-	if (rrMaxComponentValue < rrThreshold && rayPayload.Depth > 3)
+	if (rrMaxComponentValue < rrThreshold && rayPayload.Depth > 1)
 	{
-		float q = max(0.05f, 1.0f - rrMaxComponentValue);
+		float q = max(0.0f, 1.0f - rrMaxComponentValue);
 		if (RandomFloat01(rayPayload.Seed) < q)
 		{
 			TerminateRay(rayPayload);

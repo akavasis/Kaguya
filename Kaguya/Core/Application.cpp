@@ -103,8 +103,13 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 
 	ThrowIfFailed(CoInitializeEx(nullptr, tagCOINIT::COINIT_APARTMENTTHREADED));
 
-	while (!ExitRenderThread)
+	while (true)
 	{
+		if (ExitRenderThread)
+		{
+			break;
+		}
+
 		// Process window messages
 		Window::Message messsage = {};
 		Window::Message resizeMessage(Window::Message::EType::None, {});

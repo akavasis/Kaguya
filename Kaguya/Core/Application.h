@@ -70,6 +70,32 @@ inline void OpenDialog(std::string_view FilterList, std::string_view DefaultPath
 	}
 }
 
+// Function is called for each path
+template<IsDialogFunction DialogFunction>
+inline void OpenDialogMultiple(std::string_view FilterList, std::string_view DefaultPath, DialogFunction Function)
+{
+	nfdpathset_t pathSet;
+	nfdresult_t result = NFD_OpenDialogMultiple(FilterList.data(), DefaultPath.empty() ? DefaultPath.data() : nullptr, &pathSet);
+	if (result == NFD_OKAY)
+	{
+		size_t i;
+		for (i = 0; i < NFD_PathSet_GetCount(&pathSet); ++i)
+		{
+			nfdchar_t* path = NFD_PathSet_GetPath(&pathSet, i);
+			Function(std::filesystem::path(path));
+		}
+		NFD_PathSet_Free(&pathSet);
+	}
+	else if (result == NFD_CANCEL)
+	{
+		UNREFERENCED_PARAMETER(result);
+	}
+	else
+	{
+		printf("Error: %s\n", NFD_GetError());
+	}
+}
+
 template<IsDialogFunction DialogFunction>
 inline void SaveDialog(std::string_view FilterList, std::string_view DefaultPath, DialogFunction Function)
 {

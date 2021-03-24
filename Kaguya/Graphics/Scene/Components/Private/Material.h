@@ -44,7 +44,8 @@ struct Material
 
 	// Used by Glass BxDF
 	float3 T = { 1, 1, 1 };
-	float etaA = 1.0f, etaB = 1.5f;
+	float etaA = 1.000277f; // air
+	float etaB = 1.5046f; // glass
 
 	int TextureIndices[NumTextureTypes];
 	int TextureChannel[NumTextureTypes];

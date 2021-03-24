@@ -14,6 +14,7 @@ void AssetWindow::RenderGui()
 
 	UIWindow::Update();
 
+	bool AddAllToHierarchy = false;
 	if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight))
 	{
 		if (ImGui::MenuItem("Import Texture"))
@@ -26,10 +27,15 @@ void AssetWindow::RenderGui()
 
 		if (ImGui::MenuItem("Import Mesh"))
 		{
-			OpenDialog("obj,stl,", "", [&](auto Path)
+			OpenDialogMultiple("obj,stl,ply", "", [&](auto Path)
 			{
 				AssetManager::Instance().AsyncLoadMesh(Path, true);
 			});
+		}
+
+		if (ImGui::MenuItem("Add all to hierarchy"))
+		{
+			AddAllToHierarchy = true;
 		}
 
 		ImGui::EndPopup();
@@ -37,6 +43,19 @@ void AssetWindow::RenderGui()
 
 	auto& MeshCache = AssetManager::Instance().MeshCache;
 	ScopedWriteLock SWL(MeshCache.RWLock);
+
+	if (AddAllToHierarchy)
+	{
+		MeshCache.Each([&](UINT64 Key, AssetHandle<Asset::Mesh> Resource)
+		{
+			auto entity = pScene->CreateEntity(Resource->Name);
+			MeshFilter& meshFilter = entity.AddComponent<MeshFilter>();
+			meshFilter.MeshID = Key;
+
+			MeshRenderer& meshRenderer = entity.AddComponent<MeshRenderer>();
+		});
+	}
+
 	MeshCache.Each([&](UINT64 Key, AssetHandle<Asset::Mesh> Resource)
 	{
 		ImGui::Button(Resource->Name.data());

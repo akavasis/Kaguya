@@ -37,6 +37,8 @@ public:
 
 		RenderSystemWindow.SetContext(&Renderer);
 
+		AssetWindow.pScene = &Scene;
+
 		Renderer.OnInitialize();
 	}
 

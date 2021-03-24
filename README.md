@@ -1,6 +1,6 @@
 # Kaguya
 
-This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR). This project is inspired by Peter Shirley and his ray tracing book series: [In One Weekend, The Next Week, The Rest of Your Life](https://github.com/RayTracing/raytracing.github.io), Alan Wolfe's blog post series on [causual shadertoy path tracing](https://blog.demofox.org/2020/05/25/casual-shadertoy-path-tracing-1-basic-camera-diffuse-emissive/) and lastly [Physically Based Rendering: From Theory to Implementation](http://www.pbr-book.org/) by Matt Pharr, Wenzel Jakob, and Greg Humphreys
+This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR). This project is inspired by Peter Shirley and his ray tracing book series: [In One Weekend, The Next Week, The Rest of Your Life](https://github.com/RayTracing/raytracing.github.io), Alan Wolfe's blog post series on [causual shadertoy path tracing](https://blog.demofox.org/2020/05/25/casual-shadertoy-path-tracing-1-basic-camera-diffuse-emissive/) and lastly [Physically Based Rendering: From Theory to Implementation](http://www.pbr-book.org/) by Matt Pharr, Wenzel Jakob, and Greg Humphreys.
 
 # Features
 
@@ -42,13 +42,12 @@ and cicking on deserialize.
 # Bibliography
 
 - 3D Game Programming with DirectX 12 Book by Frank D Luna
-- Direct3D 12 programming guide from MSDN [https://docs.microsoft.com/en-us/windows/win32/direct3d12/directx-12-programming-guide]
-- Learning DirectX 12 Tutorial by Jeremiah from [https://www.3dgep.com/learning-directx-12-1/]
-- Physically Based Rendering: From Theory to Implementation by Matt Pharr, Wenzel Jakob, and Greg Humphreys
-- Ray Tracing Gems: High-Quality and Real-Time Rendering with DXR and Other APIs
-- Ray Tracing book series (In One Weekend, The Next Week, The Rest of Your Life) by Peter Shirley
+- [Direct3D 12 programming guide from MSDN](https://docs.microsoft.com/en-us/windows/win32/direct3d12/directx-12-programming-guide)
+- [Physically Based Rendering: From Theory to Implementation](http://www.pbr-book.org/) by Matt Pharr, Wenzel Jakob, and Greg Humphreys.
+- [Ray Tracing Gems: High-Quality and Real-Time Rendering with DXR and Other APIs](http://www.realtimerendering.com/raytracinggems/)
+- [Ray Tracing book series (In One Weekend, The Next Week, The Rest of Your Life)](https://github.com/RayTracing/raytracing.github.io) by Peter Shirley
 - Real-Time Rendering, Fourth Edition by Eric Haines, Naty Hoffman, and Tomas Möller
-- Casual Shadertoy Path Tracing series by Alan Wolfe [https://blog.demofox.org/]
+- [Casual Shadertoy Path Tracing series](https://blog.demofox.org/) by Alan Wolfe
 
 # Acknowledgements
 
