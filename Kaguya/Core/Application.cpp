@@ -105,7 +105,7 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 
 	while (true)
 	{
-		if (ExitRenderThread)
+		if (ExitRenderThread || QuitApplication)
 		{
 			break;
 		}
@@ -138,8 +138,6 @@ DWORD WINAPI Application::RenderThreadProc(_In_ PVOID pParameter)
 	}
 
 	CoUninitialize();
-
-	Application::Quit();
 
 	return EXIT_SUCCESS;
 }

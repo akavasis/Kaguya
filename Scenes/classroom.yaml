@@ -1,0 +1,2632 @@
+Version: 1.0.0
+Scene: classroom.yaml
+Camera:
+  Transform:
+    Position: [-1.44342804, 1.47403431, -5.31234646]
+    Scale: [1, 1, 1]
+    Orientation: [-0.028130563, -0.0713778585, 0.00201361068, -0.99726063]
+  Field of View: 0.785398185
+  Clipping Planes: [0.100000001, 500]
+  Focal Length: 10
+  Relative Aperture: 0
+  Shutter Time: 0.00800000038
+  Sensor Sensitivity: 200
+Images:
+  - Image: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\classroom\textures\wood2.tga
+    Metadata:
+      sRGB: true
+  - Image: Assets\Models\classroom\textures\blackboard.tga
+    Metadata:
+      sRGB: true
+  - Image: Assets\Models\classroom\textures\wood1.tga
+    Metadata:
+      sRGB: true
+Meshes:
+  - Mesh: Assets\Models\classroom\models\Mesh000.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh001.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh002.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh003.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh004.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh005.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh006.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh007.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh008.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh009.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh010.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh011.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh012.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh013.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh014.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh015.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh016.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh017.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh018.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh019.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh020.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh021.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh022.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh023.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh024.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh025.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh026.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh027.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh028.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh029.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh030.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh031.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh032.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh033.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh034.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh035.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh036.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh037.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh038.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh039.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh040.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh041.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh042.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh043.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh044.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh045.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh046.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh047.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh048.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh049.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh050.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh051.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh052.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh053.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh054.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh055.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh056.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh057.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh058.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh059.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh060.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh061.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh062.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh063.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh064.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh065.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh066.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh067.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh068.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh069.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh070.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh071.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh072.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh073.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh074.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh075.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh076.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh077.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\classroom\models\Mesh078.ply
+    Metadata:
+      KeepGeometryInRAM: true
+WorldBegin:
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh078.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh078.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.145676002, 0.639999986, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh077.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh077.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh076.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh076.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh075.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh075.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.612065971, 0.612065971, 0.612065971]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh074.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh074.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.626650989, 0, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh073.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh073.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.0500000007
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\classroom\textures\wood2.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh072.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh072.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.793110013, 0.793110013, 0.793110013]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh071.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh071.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.612065971, 0.612065971, 0.612065971]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh070.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh070.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0, 0.0307640005, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh069.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh069.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.0500000007
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\classroom\textures\wood2.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh068.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh068.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 1
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh067.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh067.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.0500000007
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\classroom\textures\wood2.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh066.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh066.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\classroom\textures\wood1.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh065.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh065.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.491301, 0.305177003, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh064.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh064.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0.600000024
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh063.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh063.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0.600000024
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh058.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh058.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.800000012, 0.644900978, 0.412119001]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh057.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh057.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh055.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh055.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.779661, 0.653162003, 0.349188]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh054.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh054.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh053.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh053.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.684615016, 0.684615016, 0.684615016]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh051.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh051.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh049.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh049.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.639999986, 0.472187996, 0.319233]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh048.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh048.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.400000006
+        roughness: 0.00100000005
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh043.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh043.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\classroom\textures\blackboard.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh041.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh041.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.0500000007
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\classroom\textures\wood2.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh056.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh056.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\classroom\textures\wood1.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh038.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh038.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.400000006
+        roughness: 0.00100000005
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh036.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh036.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.654070973, 0.674080014, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh044.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh044.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.612065971, 0.612065971, 0.612065971]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh035.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh035.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.659223974, 0.592437983, 0.51740098]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh025.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh025.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\classroom\textures\blackboard.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh024.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh024.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.0500000007
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\classroom\textures\wood2.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh023.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh023.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.654070973, 0.674080014, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh020.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh020.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.400000006
+        roughness: 0.00100000005
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh018.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh018.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.0561730005, 0.0561730005, 0.0561730005]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh017.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh017.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\classroom\textures\wood1.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh016.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh016.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\classroom\textures\wood1.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh052.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh052.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0.0399999991
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh062.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh062.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.647813976, 0.647813976, 0.647813976]
+        metallic: 0.5
+        subsurface: 0.100000001
+        specular: 0.5
+        roughness: 0
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh015.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh015.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\classroom\textures\wood1.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh029.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh029.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh030.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh030.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh059.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh059.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.626650989, 0, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh014.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh014.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.784313977, 0.784313977, 0.784313977]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh042.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh042.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.654070973, 0.674080014, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh013.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh013.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.800000012, 0.00821399968, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh026.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh026.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.687030971, 0.715465009, 0.560499012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh040.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh040.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.654070973, 0.674080014, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh047.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh047.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.800000012, 0.717508972, 0.190456003]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh032.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh032.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.612065971, 0.612065971, 0.612065971]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh060.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh060.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.0500000007
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\classroom\textures\wood2.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh012.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh012.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0, 0.0307640005, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh061.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh061.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh019.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh019.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.450836986, 0.453662992, 0.499605]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh028.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh028.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh031.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh031.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh037.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh037.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.0500000007
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\classroom\textures\wood2.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh021.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh021.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.400000006
+        roughness: 0.0500000007
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh039.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh039.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.612065971, 0.612065971, 0.612065971]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh011.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh011.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.145676002, 0.639999986, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh010.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh010.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.145676002, 0.639999986, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh009.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh009.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.145676002, 0.639999986, 0]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh033.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh033.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh027.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh027.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.654070973, 0.674080014, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh008.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh008.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0, 0.0307640005, 0.800000012]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh007.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh007.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.612065971, 0.612065971, 0.612065971]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh050.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh050.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.0289910007, 0.0289910007, 0.0289910007]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh004.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh004.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.639999986, 0.472187996, 0.319233]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh003.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh003.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.0359800011, 0.0359800011, 0.0359800011]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh034.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh034.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.800000012, 0.79164201, 0.388399005]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh046.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh046.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.793110013, 0.793110013, 0.793110013]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh002.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh002.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.647813976, 0.647813976, 0.647813976]
+        metallic: 0.5
+        subsurface: 0.100000001
+        specular: 0.5
+        roughness: 0
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh001.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh001.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.327125013, 0.578595996, 0.280561]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh006.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh006.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.612065971, 0.612065971, 0.612065971]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh045.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh045.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.612065971, 0.612065971, 0.612065971]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh000.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh000.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.639999986, 0.472187996, 0.319233]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh022.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh022.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.00631000008, 0.00631000008, 0.00631000008]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh005.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\classroom\models\Mesh005.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"

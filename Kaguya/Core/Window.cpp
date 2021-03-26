@@ -184,6 +184,7 @@ LRESULT Window::DispatchEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_DESTROY:
 	{
+		Application::Quit();
 		::PostQuitMessage(0);
 	}
 	break;
