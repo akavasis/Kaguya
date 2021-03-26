@@ -13,10 +13,9 @@ StructuredBuffer<uint> IndexBuffer : register(t1, space1);
 SurfaceInteraction GetSurfaceInteraction(in BuiltInTriangleIntersectionAttributes attrib)
 {
 	// Fetch indices
-	unsigned int primIndex = PrimitiveIndex();
-	unsigned int idx0 = IndexBuffer[primIndex * 3 + 0];
-	unsigned int idx1 = IndexBuffer[primIndex * 3 + 1];
-	unsigned int idx2 = IndexBuffer[primIndex * 3 + 2];
+	unsigned int idx0 = IndexBuffer[PrimitiveIndex() * 3 + 0];
+	unsigned int idx1 = IndexBuffer[PrimitiveIndex() * 3 + 1];
+	unsigned int idx2 = IndexBuffer[PrimitiveIndex() * 3 + 2];
 	
 	// Fetch vertices
 	Vertex vtx0 = VertexBuffer[idx0];
@@ -45,7 +44,15 @@ SurfaceInteraction GetSurfaceInteraction(in BuiltInTriangleIntersectionAttribute
 	si.ShadingFrame = InitFrame(normalize(vertex.Normal));
 	
 	// Update BSDF's internal data
-	si.BSDF = InitBSDF(si.GeometryFrame.n, si.ShadingFrame, g_Materials[MaterialIndex]);
+	Material material = g_Materials[MaterialIndex];
+	
+	int AlbedoTexture = material.TextureIndices[AlbedoIdx];
+	if (AlbedoTexture != -1)
+	{
+		material.baseColor = g_Texture2DTable[AlbedoTexture].SampleLevel(g_SamplerAnisotropicWrap, si.uv, 0.0f).rgb;
+	}
+	
+	si.BSDF = InitBSDF(si.GeometryFrame.n, si.ShadingFrame, material);
 	
 	return si;
 }
@@ -71,7 +78,7 @@ enum RayType
     NumRayTypes
 };
 
-float TraceShadowRay(RayDesc Ray)
+float TraceShadowRay(RayDesc DXRRay)
 {
 	ShadowRayPayload RayPayload = { 0.0f };
 	
@@ -89,7 +96,7 @@ float TraceShadowRay(RayDesc Ray)
 			RayContributionToHitGroupIndex,
 			MultiplierForGeometryContributionToHitGroupIndex,
 			MissShaderIndex,
-			Ray,
+			DXRRay,
 			RayPayload);
 
 	return RayPayload.Visibility;

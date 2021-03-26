@@ -8,7 +8,6 @@ enum TextureTypes
 	NormalIdx,
 	RoughnessIdx,
 	MetallicIdx,
-	EmissiveIdx,
 	NumTextureTypes
 };
 

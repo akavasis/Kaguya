@@ -19,7 +19,6 @@ namespace Asset
 
 		std::string Name;
 		DirectX::ScratchImage Image;
-		bool sRGB = false;
 
 		std::shared_ptr<Resource> Resource;
 		Descriptor SRV;

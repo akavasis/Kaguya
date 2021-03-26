@@ -305,4 +305,33 @@ struct Glass
 	float etaA, etaB;
 };
 
+struct Metal
+{
+	float3 f(float3 wo, float3 wi)
+	{
+		return float3(0.0f, 0.0f, 0.0f);
+	}
+	
+	float Pdf(float3 wo, float3 wi)
+	{
+		return 0.0f;
+	}
+	
+	bool Samplef(float3 wo, float2 Xi, inout BSDFSample bsdfSample)
+	{
+		float3 wi = float3(-wo.x, -wo.y, wo.z) + fuzziness * SampleUniformHemisphere(Xi);
+		
+		bsdfSample = InitBSDFSample(R / AbsCosTheta(wi), wi, 1.0f, Flags());
+		return true;
+	}
+	
+	BxDFFlags Flags()
+	{
+		return BxDFFlags::Reflection | BxDFFlags::Specular;
+	}
+	
+	float3 R;
+	float fuzziness;
+};
+
 #endif // BXDF_HLSLI

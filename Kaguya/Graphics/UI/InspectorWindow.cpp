@@ -301,7 +301,7 @@ void InspectorWindow::RenderGui(float x, float y, float width, float height)
 		{
 			bool IsEdited = false;
 
-			auto Handle = AssetManager::Instance().GetMeshCache().Load(Component.MeshID);
+			auto Handle = AssetManager::Instance().GetMeshCache().Load(Component.Key);
 
 			ImGui::Text("Mesh: ");
 			ImGui::SameLine();
@@ -320,7 +320,7 @@ void InspectorWindow::RenderGui(float x, float y, float width, float height)
 					payload)
 				{
 					IM_ASSERT(payload->DataSize == sizeof(UINT64));
-					Component.MeshID = (*(UINT64*)payload->Data);
+					Component.Key = (*(UINT64*)payload->Data);
 
 					IsEdited = true;
 				}
@@ -342,25 +342,25 @@ void InspectorWindow::RenderGui(float x, float y, float width, float height)
 
 				ImGui::Text("Attributes");
 
-				const char* BSDFTypes[BSDFType::NumBSDFTypes] = { "Lambertian", "Mirror", "Glass", "Disney" };
+				const char* BSDFTypes[BSDFTypes::NumBSDFTypes] = { "Lambertian", "Mirror", "Glass", "Disney" };
 				IsEdited |= ImGui::Combo("Type", &Material.BSDFType, BSDFTypes, ARRAYSIZE(BSDFTypes), ARRAYSIZE(BSDFTypes));
 
 				switch (Material.BSDFType)
 				{
-				case BSDFType::Lambertian:
-					IsEdited |= ImGui::ColorEdit3("R", &Material.baseColor.x);
+				case BSDFTypes::Lambertian:
+					IsEdited |= RenderFloat3Control("R", &Material.baseColor.x);
 					break;
-				case BSDFType::Mirror:
-					IsEdited |= ImGui::ColorEdit3("R", &Material.baseColor.x);
+				case BSDFTypes::Mirror:
+					IsEdited |= RenderFloat3Control("R", &Material.baseColor.x);
 					break;
-				case BSDFType::Glass:
-					IsEdited |= ImGui::ColorEdit3("R", &Material.baseColor.x);
-					IsEdited |= ImGui::ColorEdit3("T", &Material.T.x);
+				case BSDFTypes::Glass:
+					IsEdited |= RenderFloat3Control("R", &Material.baseColor.x);
+					IsEdited |= RenderFloat3Control("T", &Material.T.x);
 					IsEdited |= ImGui::SliderFloat("etaA", &Material.etaA, 1, 3);
 					IsEdited |= ImGui::SliderFloat("etaB", &Material.etaB, 1, 3);
 					break;
-				case BSDFType::Disney:
-					IsEdited |= ImGui::ColorEdit3("Base Color", &Material.baseColor.x);
+				case BSDFTypes::Disney:
+					IsEdited |= RenderFloat3Control("Base Color", &Material.baseColor.x);
 					IsEdited |= ImGui::SliderFloat("Metallic", &Material.metallic, 0, 1);
 					IsEdited |= ImGui::SliderFloat("Subsurface", &Material.subsurface, 0, 1);
 					IsEdited |= ImGui::SliderFloat("Specular", &Material.specular, 0, 1);
@@ -375,6 +375,39 @@ void InspectorWindow::RenderGui(float x, float y, float width, float height)
 				default:
 					break;
 				}
+
+				auto ImageBox = [&](TextureTypes TextureType, UINT64& Key, std::string_view Name)
+				{
+					auto Handle = AssetManager::Instance().GetImageCache().Load(Key);
+
+					ImGui::Text(Name.data());
+					ImGui::SameLine();
+					if (Handle)
+					{
+						ImGui::Button(Handle->Name.data());
+						Material.TextureIndices[TextureType] = Handle->SRV.Index;
+					}
+					else
+					{
+						ImGui::Button("NULL");
+						Material.TextureIndices[TextureType] = -1;
+					}
+
+					if (ImGui::BeginDragDropTarget())
+					{
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_IMAGE");
+							payload)
+						{
+							IM_ASSERT(payload->DataSize == sizeof(UINT64));
+							Key = (*(UINT64*)payload->Data);
+
+							IsEdited = true;
+						}
+						ImGui::EndDragDropTarget();
+					}
+				};
+
+				ImageBox(TextureTypes::AlbedoIdx, Material.TextureKeys[0], "Albedo: ");
 
 				ImGui::TreePop();
 			}

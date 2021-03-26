@@ -49,7 +49,7 @@ void Scene::Update()
 				SceneState = SCENE_STATE_UPDATED;
 			}
 
-			meshFilter.Mesh = AssetManager::Instance().GetMeshCache().Load(meshFilter.MeshID);
+			meshFilter.Mesh = AssetManager::Instance().GetMeshCache().Load(meshFilter.Key);
 		}
 	}
 
@@ -67,6 +67,17 @@ void Scene::Update()
 				meshRenderer.IsEdited = false;
 
 				SceneState = SCENE_STATE_UPDATED;
+			}
+
+			for (int i = 0; i < TextureTypes::NumTextureTypes; ++i)
+			{
+				auto Texture = AssetManager::Instance().GetImageCache().Load(meshRenderer.Material.TextureKeys[i]);
+
+				if (Texture)
+				{
+					meshRenderer.Material.Textures[i] = Texture;
+					meshRenderer.Material.TextureIndices[i] = Texture->SRV.Index;
+				}
 			}
 		}
 	}
@@ -93,13 +104,13 @@ void Scene::Update()
 
 Entity Scene::CreateEntity(const std::string& Name)
 {
-	Entity NewEntity = { Registry.create(), this };
-	auto& TagComponent = NewEntity.AddComponent<Tag>();
-	TagComponent.Name = Name;
+	Entity entity = { Registry.create(), this };
+	auto& tagComponent = entity.AddComponent<Tag>();
+	tagComponent.Name = Name;
 
-	NewEntity.AddComponent<Transform>();
+	entity.AddComponent<Transform>();
 
-	return NewEntity;
+	return entity;
 }
 
 void Scene::DestroyEntity(Entity Entity)
@@ -132,10 +143,10 @@ void Scene::OnComponentAdded<MeshFilter>(Entity Entity, MeshFilter& Component)
 	// and connect them
 	if (Entity.HasComponent<MeshRenderer>())
 	{
-		auto& MeshRendererComponent = Entity.GetComponent<MeshRenderer>();
-		MeshRendererComponent.pMeshFilter = &Component;
+		auto& meshRendererComponent = Entity.GetComponent<MeshRenderer>();
+		meshRendererComponent.pMeshFilter = &Component;
 
-		MeshRendererComponent.IsEdited = true;
+		meshRendererComponent.IsEdited = true;
 	}
 }
 
@@ -146,8 +157,8 @@ void Scene::OnComponentAdded<MeshRenderer>(Entity Entity, MeshRenderer& Componen
 	// and connect them
 	if (Entity.HasComponent<MeshFilter>())
 	{
-		auto& MeshFilterComponent = Entity.GetComponent<MeshFilter>();
-		Component.pMeshFilter = &MeshFilterComponent;
+		auto& meshFilterComponent = Entity.GetComponent<MeshFilter>();
+		Component.pMeshFilter = &meshFilterComponent;
 
 		Component.IsEdited = true;
 	}

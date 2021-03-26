@@ -14,80 +14,171 @@ void AssetWindow::RenderGui()
 
 	UIWindow::Update();
 
-	bool AddAllToHierarchy = false;
+	bool addAllToHierarchy = false;
 	if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight))
 	{
-		if (ImGui::MenuItem("Import Texture"))
+		// TODO: Write a function for this
 		{
-			OpenDialog("dds,tga,hdr", "", [&](auto Path)
+			if (ImGui::Button("Import Texture"))
 			{
-				AssetManager::Instance().AsyncLoadImage(Path, false);
-			});
+				ImGui::OpenPopup("Texture Options");
+			}
+
+			// Always center this window when appearing
+			const ImVec2 center(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f);
+			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+			if (ImGui::BeginPopupModal("Texture Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				static bool sRGB = true;
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+				ImGui::Checkbox("sRGB", &sRGB);
+				ImGui::PopStyleVar();
+
+				if (ImGui::Button("Browse", ImVec2(120, 0)))
+				{
+					OpenDialog("dds,tga,hdr", "", [&](auto Path)
+					{
+						AssetManager::Instance().AsyncLoadImage(Path, sRGB);
+					});
+
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SetItemDefaultFocus();
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+				ImGui::EndPopup();
+			}
 		}
 
-		if (ImGui::MenuItem("Import Mesh"))
 		{
-			OpenDialogMultiple("obj,stl,ply", "", [&](auto Path)
+			if (ImGui::Button("Import Mesh"))
 			{
-				AssetManager::Instance().AsyncLoadMesh(Path, true);
-			});
+				ImGui::OpenPopup("Mesh Options");
+			}
+
+			// Always center this window when appearing
+			const ImVec2 center(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f);
+			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+			if (ImGui::BeginPopupModal("Mesh Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				static bool KeepGeometryInRAM = true;
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+				ImGui::Checkbox("Keep Geometry In RAM", &KeepGeometryInRAM);
+				ImGui::PopStyleVar();
+
+				if (ImGui::Button("Browse", ImVec2(120, 0)))
+				{
+					OpenDialogMultiple("obj,stl,ply", "", [&](auto Path)
+					{
+						AssetManager::Instance().AsyncLoadMesh(Path, KeepGeometryInRAM);
+					});
+
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SetItemDefaultFocus();
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+				ImGui::EndPopup();
+			}
 		}
 
-		if (ImGui::MenuItem("Add all to hierarchy"))
+		if (ImGui::Button("Add all to hierarchy"))
 		{
-			AddAllToHierarchy = true;
+			addAllToHierarchy = true;
 		}
 
 		ImGui::EndPopup();
 	}
 
-	auto& MeshCache = AssetManager::Instance().MeshCache;
-	ScopedWriteLock SWL(MeshCache.RWLock);
-
-	if (AddAllToHierarchy)
 	{
-		MeshCache.Each([&](UINT64 Key, AssetHandle<Asset::Mesh> Resource)
-		{
-			auto entity = pScene->CreateEntity(Resource->Name);
-			MeshFilter& meshFilter = entity.AddComponent<MeshFilter>();
-			meshFilter.MeshID = Key;
+		auto& ImageCache = AssetManager::Instance().ImageCache;
+		ScopedWriteLock SWL(ImageCache.RWLock);
 
-			MeshRenderer& meshRenderer = entity.AddComponent<MeshRenderer>();
+		ImageCache.Each([&](UINT64 Key, AssetHandle<Asset::Image> Resource)
+		{
+			ImGui::Button(Resource->Name.data());
+
+			// Our buttons are both drag sources and drag targets here!
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+			{
+				// Set payload to carry the index of our item (could be anything)
+				ImGui::SetDragDropPayload("ASSET_IMAGE", &Key, sizeof(UINT64));
+
+				ImGui::EndDragDropSource();
+			}
+
+			bool Delete = false;
+			if (ImGui::BeginPopupContextItem())
+			{
+				if (ImGui::MenuItem("Delete"))
+				{
+					Delete = true;
+				}
+
+				ImGui::EndPopup();
+			}
+
+			if (Delete)
+			{
+				if (auto it = ImageCache.Cache.find(Key);
+					it != ImageCache.Cache.end())
+				{
+					ImageCache.Cache.erase(it);
+				}
+			}
 		});
 	}
 
-	MeshCache.Each([&](UINT64 Key, AssetHandle<Asset::Mesh> Resource)
 	{
-		ImGui::Button(Resource->Name.data());
+		auto& MeshCache = AssetManager::Instance().MeshCache;
+		ScopedWriteLock SWL(MeshCache.RWLock);
 
-		// Our buttons are both drag sources and drag targets here!
-		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+		if (addAllToHierarchy)
 		{
-			// Set payload to carry the index of our item (could be anything)
-			ImGui::SetDragDropPayload("ASSET_MESH", &Key, sizeof(UINT64));
+			MeshCache.Each([&](UINT64 Key, AssetHandle<Asset::Mesh> Resource)
+			{
+				auto entity = pScene->CreateEntity(Resource->Name);
+				MeshFilter& meshFilter = entity.AddComponent<MeshFilter>();
+				meshFilter.Key = Key;
 
-			ImGui::EndDragDropSource();
+				MeshRenderer& meshRenderer = entity.AddComponent<MeshRenderer>();
+			});
 		}
 
-		bool Delete = false;
-		if (ImGui::BeginPopupContextItem())
+		MeshCache.Each([&](UINT64 Key, AssetHandle<Asset::Mesh> Resource)
 		{
-			if (ImGui::MenuItem("Delete"))
+			ImGui::Button(Resource->Name.data());
+
+			// Our buttons are both drag sources and drag targets here!
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
 			{
-				Delete = true;
+				// Set payload to carry the index of our item (could be anything)
+				ImGui::SetDragDropPayload("ASSET_MESH", &Key, sizeof(UINT64));
+
+				ImGui::EndDragDropSource();
 			}
 
-			ImGui::EndPopup();
-		}
-
-		if (Delete)
-		{
-			if (auto it = MeshCache.Cache.find(Key);
-				it != MeshCache.Cache.end())
+			bool Delete = false;
+			if (ImGui::BeginPopupContextItem())
 			{
-				MeshCache.Cache.erase(it);
+				if (ImGui::MenuItem("Delete"))
+				{
+					Delete = true;
+				}
+
+				ImGui::EndPopup();
 			}
-		}
-	});
+
+			if (Delete)
+			{
+				if (auto it = MeshCache.Cache.find(Key);
+					it != MeshCache.Cache.end())
+				{
+					MeshCache.Cache.erase(it);
+				}
+			}
+		});
+	}
+
 	ImGui::EndChild();
 }

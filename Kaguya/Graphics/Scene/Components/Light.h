@@ -13,7 +13,7 @@ struct Light : Component
 	Light()
 	{
 		Type = PointLight;
-		I = { 50.0f, 50.0f, 50.0f };
+		I = { 1.0f, 1.0f, 1.0f };
 		Width = Height = 1.0f;
 	}
 

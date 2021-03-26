@@ -30,7 +30,7 @@
 class Editor
 {
 public:
-	void Initialize()
+	Editor()
 	{
 		HierarchyWindow.SetContext(&Scene);
 		InspectorWindow.SetContext(&Scene, {});
@@ -42,17 +42,17 @@ public:
 		Renderer.OnInitialize();
 	}
 
-	void Shutdown()
+	~Editor()
 	{
 		Renderer.OnDestroy();
 	}
 
 	void Render()
 	{
-		const Time& Time = Application::Time;
-		Mouse& Mouse = Application::InputHandler.Mouse;
-		Keyboard& Keyboard = Application::InputHandler.Keyboard;
-		float DeltaTime = Time.DeltaTime();
+		const Time& time = Application::Time;
+		Mouse& mouse = Application::InputHandler.Mouse;
+		Keyboard& keyboard = Application::InputHandler.Keyboard;
+		float dt = time.DeltaTime();
 
 		ImGuiIO& IO = ImGui::GetIO();
 
@@ -103,7 +103,7 @@ public:
 		ImGui::End();
 		ImGui::PopStyleVar();
 
-		auto [mX, mY] = ViewportWindow.GetMousePosition();
+		auto [vpX, vpY] = ViewportWindow.GetMousePosition();
 		uint32_t viewportWidth = ViewportWindow.Resolution.x, viewportHeight = ViewportWindow.Resolution.y;
 
 		// Uncomment this and comment the viewport above for 1920x1080 captures
@@ -117,39 +117,39 @@ public:
 		// Update selected entity
 		// If LMB is pressed and we are not handling raw input and if we are not hovering over any imgui stuff then we update the
 		// instance id for editor
-		if (Mouse.IsLMBPressed() && !Mouse.UseRawInput && ViewportWindow.IsHovered && !ImGuizmo::IsUsing())
+		if (mouse.IsLMBPressed() && !mouse.UseRawInput && ViewportWindow.IsHovered && !ImGuizmo::IsUsing())
 		{
 			HierarchyWindow.SetSelectedEntity(Renderer.GetSelectedEntity());
 		}
 
-		if (Mouse.UseRawInput)
+		if (mouse.UseRawInput)
 		{
-			if (Keyboard.IsKeyPressed('W'))
-				Scene.Camera.Translate(0.0f, 0.0f, DeltaTime);
-			if (Keyboard.IsKeyPressed('A'))
-				Scene.Camera.Translate(-DeltaTime, 0.0f, 0.0f);
-			if (Keyboard.IsKeyPressed('S'))
-				Scene.Camera.Translate(0.0f, 0.0f, -DeltaTime);
-			if (Keyboard.IsKeyPressed('D'))
-				Scene.Camera.Translate(DeltaTime, 0.0f, 0.0f);
-			if (Keyboard.IsKeyPressed('E'))
-				Scene.Camera.Translate(0.0f, DeltaTime, 0.0f);
-			if (Keyboard.IsKeyPressed('Q'))
-				Scene.Camera.Translate(0.0f, -DeltaTime, 0.0f);
+			if (keyboard.IsKeyPressed('W'))
+				Scene.Camera.Translate(0.0f, 0.0f, dt);
+			if (keyboard.IsKeyPressed('A'))
+				Scene.Camera.Translate(-dt, 0.0f, 0.0f);
+			if (keyboard.IsKeyPressed('S'))
+				Scene.Camera.Translate(0.0f, 0.0f, -dt);
+			if (keyboard.IsKeyPressed('D'))
+				Scene.Camera.Translate(dt, 0.0f, 0.0f);
+			if (keyboard.IsKeyPressed('E'))
+				Scene.Camera.Translate(0.0f, dt, 0.0f);
+			if (keyboard.IsKeyPressed('Q'))
+				Scene.Camera.Translate(0.0f, -dt, 0.0f);
 
-			while (const auto RawInput = Mouse.ReadRawInput())
+			while (const auto rawInput = mouse.ReadRawInput())
 			{
-				Scene.Camera.Rotate(RawInput->Y * DeltaTime, RawInput->X * DeltaTime);
+				Scene.Camera.Rotate(rawInput->Y * dt, rawInput->X * dt);
 			}
 		}
 
 		Scene.Update();
 
 		// Render
-		Renderer.SetViewportMousePosition(mX, mY);
+		Renderer.SetViewportMousePosition(vpX, vpY);
 		Renderer.SetViewportResolution(viewportWidth, viewportHeight);
 
-		Renderer.OnRender(Time, Scene);
+		Renderer.OnRender(time, Scene);
 	}
 
 	void Resize(uint32_t Width, uint32_t Height)
@@ -157,14 +157,14 @@ public:
 		Renderer.OnResize(Width, Height);
 	}
 private:
+	Scene				Scene;
+	Renderer			Renderer;
+
 	HierarchyWindow		HierarchyWindow;
 	ViewportWindow		ViewportWindow;
 	InspectorWindow		InspectorWindow;
 	RenderSystemWindow	RenderSystemWindow;
 	AssetWindow			AssetWindow;
-
-	Scene				Scene;
-	Renderer			Renderer;
 };
 
 int main(int argc, char* argv[])
@@ -174,7 +174,7 @@ int main(int argc, char* argv[])
 	SET_LEAK_BREAKPOINT(-1);
 #endif
 
-	Application::Config Config =
+	Application::Config config =
 	{
 		.Title = L"Kaguya",
 		.Width = 1280,
@@ -182,31 +182,29 @@ int main(int argc, char* argv[])
 		.Maximize = true
 	};
 
-	Application::Initialize(Config);
+	Application::Initialize(config);
 	RenderDevice::Initialize();
 	AssetManager::Initialize();
 
 	RenderDevice::Instance().ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
 
-	auto pEditor = std::make_unique<Editor>();
-	pEditor->Initialize();
+	auto editor = std::make_unique<Editor>();
 
 	Application::Window.SetRenderFunc([&]()
 	{
 		Application::Time.Signal();
-		pEditor->Render();
+		editor->Render();
 	});
 
 	Application::Window.SetResizeFunc([&](UINT Width, UINT Height)
 	{
-		pEditor->Resize(Width, Height);
+		editor->Resize(Width, Height);
 	});
 
 	Application::Time.Restart();
 	return Application::Run([&]()
 	{
-		pEditor->Shutdown();
-		pEditor.reset();
+		editor.reset();
 
 		AssetManager::Shutdown();
 		RenderDevice::Shutdown();

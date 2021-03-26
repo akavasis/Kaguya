@@ -2,16 +2,25 @@ Version: 1.0.0
 Scene: cornell-box.yaml
 Camera:
   Transform:
-    Position: [-0.468170404, 1.40006173, -3.75140095]
+    Position: [0.0551855378, 1.44401741, -3.55598402]
     Scale: [1, 1, 1]
-    Orientation: [0.0627612248, 0.0230269451, -0.00144719367, 0.997964203]
+    Orientation: [0.077442877, -0.00932192244, 0.000724921876, 0.997162282]
   Field of View: 0.785398185
   Clipping Planes: [0.100000001, 500]
   Focal Length: 10
   Relative Aperture: 0
   Shutter Time: 0.00800000038
   Sensor Sensitivity: 200
-Entities:
+Images:
+  []
+Meshes:
+  - Mesh: Assets\Models\cube.obj
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\plane.obj
+    Metadata:
+      KeepGeometryInRAM: true
+WorldBegin:
   - Entity: 17373804103804353619
     Tag:
       Name: short box
@@ -38,6 +47,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.48399997
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: tall box
@@ -64,6 +77,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: light
@@ -102,6 +119,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: green wall
@@ -128,6 +149,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: red wall
@@ -154,6 +179,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: ceiling
@@ -180,6 +209,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: floor
@@ -206,3 +239,7 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"

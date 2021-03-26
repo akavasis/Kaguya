@@ -149,9 +149,36 @@ public:
 			}
 		}
 	}
+
+	// Acquires RWLock
+	template<typename Functor>
+	void Each_ThreadSafe(Functor F) const
+	{
+		ScopedWriteLock SWL(RWLock);
+		auto begin = Cache.begin();
+		auto end = Cache.end();
+		while (begin != end)
+		{
+			auto current = begin++;
+
+			if constexpr (std::is_invocable_v<Functor, UINT64>)
+			{
+				F(current->first);
+			}
+			else if constexpr (std::is_invocable_v<Functor, Handle>)
+			{
+				F(Handle(current->second));
+			}
+			else
+			{
+				F(current->first, Handle(current->second));
+			}
+		}
+	}
 private:
 	mutable RWLock RWLock;
 	std::unordered_map<UINT64, std::shared_ptr<T>> Cache;
 
 	friend class AssetWindow;
+	friend class SceneParser;
 };

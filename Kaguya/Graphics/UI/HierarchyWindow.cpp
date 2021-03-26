@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "HierarchyWindow.h"
 
-#include <Graphics/Scene/SceneSerializer.h>
+#include <Graphics/Scene/SceneParser.h>
 
 void HierarchyWindow::RenderGui()
 {
@@ -62,7 +62,12 @@ void HierarchyWindow::RenderGui()
 			pScene->CreateEntity("GameObject");
 		}
 
-		if (ImGui::MenuItem("Serialize"))
+		if (ImGui::MenuItem("Clear"))
+		{
+			pScene->Clear();
+		}
+
+		if (ImGui::MenuItem("Save"))
 		{
 			SaveDialog("yaml", "", [&](auto Path)
 			{
@@ -71,15 +76,15 @@ void HierarchyWindow::RenderGui()
 					Path += ".yaml";
 				}
 
-				SceneSerializer::Serialize(Path, pScene);
+				SceneParser::Save(Path, pScene);
 			});
 		}
 
-		if (ImGui::MenuItem("Deserialize"))
+		if (ImGui::MenuItem("Load"))
 		{
 			OpenDialog("yaml", "", [&](auto Path)
 			{
-				SceneSerializer::Deserialize(Path, pScene);
+				SceneParser::Load(Path, pScene);
 			});
 		}
 

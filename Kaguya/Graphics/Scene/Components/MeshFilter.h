@@ -5,6 +5,7 @@
 
 struct MeshFilter : Component
 {
-	UINT64 MeshID = 0;
+	// Key into the MeshCache
+	UINT64 Key = 0;
 	AssetHandle<Asset::Mesh> Mesh = {};
 };

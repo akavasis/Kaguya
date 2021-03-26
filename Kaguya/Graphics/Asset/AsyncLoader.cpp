@@ -25,52 +25,54 @@ aiProcess_ValidateDataStructure;
 
 AsyncImageLoader::TResourcePtr AsyncImageLoader::AsyncLoad(const TMetadata& Metadata)
 {
-	const auto& Path = Metadata.Path;
-	const auto Extension = Path.extension().string();
+	const auto start = std::chrono::high_resolution_clock::now();
 
-	ScratchImage Image;
-	if (Extension == ".dds")
+	const auto& path = Metadata.Path;
+	const auto extension = path.extension().string();
+
+	ScratchImage image;
+	if (extension == ".dds")
 	{
-		ThrowIfFailed(LoadFromDDSFile(Path.c_str(), DDS_FLAGS::DDS_FLAGS_FORCE_RGB, nullptr, Image));
+		ThrowIfFailed(LoadFromDDSFile(path.c_str(), DDS_FLAGS::DDS_FLAGS_FORCE_RGB, nullptr, image));
 	}
-	else if (Extension == ".tga")
+	else if (extension == ".tga")
 	{
-		ScratchImage BaseImage;
-		ThrowIfFailed(LoadFromTGAFile(Path.c_str(), nullptr, BaseImage));
-		ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
+		ScratchImage baseImage;
+		ThrowIfFailed(LoadFromTGAFile(path.c_str(), nullptr, baseImage));
+		ThrowIfFailed(GenerateMipMaps(*baseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, image, false));
 	}
-	else if (Extension == ".hdr")
+	else if (extension == ".hdr")
 	{
-		ScratchImage BaseImage;
-		ThrowIfFailed(LoadFromHDRFile(Path.c_str(), nullptr, BaseImage));
-		ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
+		ScratchImage baseImage;
+		ThrowIfFailed(LoadFromHDRFile(path.c_str(), nullptr, baseImage));
+		ThrowIfFailed(GenerateMipMaps(*baseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, image, false));
 	}
 	else
 	{
-		ScratchImage BaseImage;
-		ThrowIfFailed(LoadFromWICFile(Path.c_str(), WIC_FLAGS::WIC_FLAGS_FORCE_RGB, nullptr, BaseImage));
-		ThrowIfFailed(GenerateMipMaps(*BaseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, Image, false));
+		ScratchImage baseImage;
+		ThrowIfFailed(LoadFromWICFile(path.c_str(), WIC_FLAGS::WIC_FLAGS_FORCE_RGB, nullptr, baseImage));
+		ThrowIfFailed(GenerateMipMaps(*baseImage.GetImage(0, 0, 0), TEX_FILTER_DEFAULT, 0, image, false));
 	}
 
-	auto pImage = std::make_shared<Asset::Image>();
-	pImage->Metadata = Metadata;
+	auto assetImage = std::make_shared<Asset::Image>();
+	assetImage->Metadata = Metadata;
+	assetImage->Name = path.filename().string();
+	assetImage->Image = std::move(image);
 
-	pImage->Name = Path.filename().string();
-	pImage->Image = std::move(Image);
-	pImage->sRGB = Metadata.sRGB;
+	const auto stop = std::chrono::high_resolution_clock::now();
+	const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+	LOG_INFO("{} loaded in {}(ms)", path.string(), duration.count());
 
-	LOG_INFO("{} Loaded", Path.string());
-
-	return pImage;
+	return assetImage;
 }
 
 AsyncMeshLoader::TResourcePtr AsyncMeshLoader::AsyncLoad(const TMetadata& Metadata)
 {
 	const auto start = std::chrono::high_resolution_clock::now();
 
-	const auto Path = Metadata.Path.string();
+	const auto path = Metadata.Path.string();
 
-	const aiScene* paiScene = s_Importer.ReadFile(Path.data(), s_ImporterFlags);
+	const aiScene* paiScene = s_Importer.ReadFile(path.data(), s_ImporterFlags);
 
 	if (!paiScene || !paiScene->HasMeshes())
 	{
@@ -78,12 +80,10 @@ AsyncMeshLoader::TResourcePtr AsyncMeshLoader::AsyncLoad(const TMetadata& Metada
 		return {};
 	}
 
-	auto pMesh = std::make_shared<Asset::Mesh>();
-	pMesh->Metadata = Metadata;
-
-	pMesh->Name = Metadata.Path.filename().string();
-
-	pMesh->Submeshes.reserve(paiScene->mNumMeshes);
+	auto assetMesh = std::make_shared<Asset::Mesh>();
+	assetMesh->Metadata = Metadata;
+	assetMesh->Name = Metadata.Path.filename().string();
+	assetMesh->Submeshes.reserve(paiScene->mNumMeshes);
 
 	uint32_t numVertices = 0;
 	uint32_t numIndices = 0;
@@ -128,14 +128,14 @@ AsyncMeshLoader::TResourcePtr AsyncMeshLoader::AsyncLoad(const TMetadata& Metada
 		}
 
 		// Parse submesh indices
-		Asset::Submesh& Submesh = pMesh->Submeshes.emplace_back();
-		Submesh.IndexCount = indices.size();
-		Submesh.StartIndexLocation = numIndices;
-		Submesh.VertexCount = vertices.size();
-		Submesh.BaseVertexLocation = numVertices;
+		Asset::Submesh& assetSubmesh = assetMesh->Submeshes.emplace_back();
+		assetSubmesh.IndexCount = indices.size();
+		assetSubmesh.StartIndexLocation = numIndices;
+		assetSubmesh.VertexCount = vertices.size();
+		assetSubmesh.BaseVertexLocation = numVertices;
 
-		pMesh->Vertices.insert(pMesh->Vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
-		pMesh->Indices.insert(pMesh->Indices.end(), std::make_move_iterator(indices.begin()), std::make_move_iterator(indices.end()));
+		assetMesh->Vertices.insert(assetMesh->Vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
+		assetMesh->Indices.insert(assetMesh->Indices.end(), std::make_move_iterator(indices.begin()), std::make_move_iterator(indices.end()));
 
 		numIndices += indices.size();
 		numVertices += vertices.size();
@@ -145,5 +145,5 @@ AsyncMeshLoader::TResourcePtr AsyncMeshLoader::AsyncLoad(const TMetadata& Metada
 	const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	LOG_INFO("{} loaded in {}(ms)", Metadata.Path.string(), duration.count());
 
-	return pMesh;
+	return assetMesh;
 }

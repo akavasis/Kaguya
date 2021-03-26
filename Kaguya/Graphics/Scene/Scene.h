@@ -69,16 +69,14 @@ inline HLSL::Material GetHLSLMaterialDesc(const Material& Material)
 			Material.TextureIndices[0],
 			Material.TextureIndices[1],
 			Material.TextureIndices[2],
-			Material.TextureIndices[3],
-			Material.TextureIndices[4]
+			Material.TextureIndices[3]
 		},
 		.TextureChannel =
 		{
 			Material.TextureChannel[0],
 			Material.TextureChannel[1],
 			Material.TextureChannel[2],
-			Material.TextureChannel[3],
-			Material.TextureChannel[4],
+			Material.TextureChannel[3]
 		}
 	};
 }

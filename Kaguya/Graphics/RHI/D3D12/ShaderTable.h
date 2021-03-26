@@ -5,32 +5,47 @@
 
 /*
 *	========== Miss shader table indexing ==========
-	Simple pointer arithmetic
-	MissShaderRecordAddress = D3D12_DISPATCH_RAYS_DESC.MissShaderTable.StartAddress + D3D12_DISPATCH_RAYS_DESC.MissShaderTable.StrideInBytes * MissShaderIndex
+*	Simple pointer arithmetic
+*	MissShaderRecordAddress = D3D12_DISPATCH_RAYS_DESC.MissShaderTable.StartAddress + D3D12_DISPATCH_RAYS_DESC.MissShaderTable.StrideInBytes * MissShaderIndex
 */
 
 /*
 *	========== Hit group table indexing ==========
-	HitGroupRecordAddress = D3D12_DISPATCH_RAYS_DESC.HitGroupTable.StartAddress + D3D12_DISPATCH_RAYS_DESC.HitGroupTable.StrideInBytes * HitGroupEntryIndex
-
-	where HitGroupEntryIndex =
-	(RayContributionToHitGroupIndex + (MultiplierForGeometryContributionToHitGroupIndex * GeometryContributionToHitGroupIndex) + D3D12_RAYTRACING_INSTANCE_DESC.InstanceContributionToHitGroupIndex)
-
-	GeometryContributionToHitGroupIndex is a system generated index of geometry in bottom-level acceleration structure (0,1,2,3..)
+*	HitGroupRecordAddress = D3D12_DISPATCH_RAYS_DESC.HitGroupTable.StartAddress + D3D12_DISPATCH_RAYS_DESC.HitGroupTable.StrideInBytes * HitGroupEntryIndex
+*
+*	where HitGroupEntryIndex =
+*	(RayContributionToHitGroupIndex + (MultiplierForGeometryContributionToHitGroupIndex * GeometryContributionToHitGroupIndex) + D3D12_RAYTRACING_INSTANCE_DESC.InstanceContributionToHitGroupIndex)
+*
+*	GeometryContributionToHitGroupIndex is a system generated index of geometry in bottom-level acceleration structure (0,1,2,3..)
 */
 
 // ShaderRecord = {{Shader Identifier}, {RootArguments}}
 template<typename T>
 struct ShaderRecord
 {
-	ShaderIdentifier	ShaderIdentifier;
-	T					RootArguments;
+	ShaderRecord() = default;
+	ShaderRecord(ShaderIdentifier ShaderIdentifier, T RootArguments)
+		: ShaderIdentifier(ShaderIdentifier)
+		, RootArguments(RootArguments)
+	{
+
+	}
+
+	ShaderIdentifier ShaderIdentifier;
+	T RootArguments;
 };
 
 template<>
 struct ShaderRecord<void>
 {
-	ShaderIdentifier	ShaderIdentifier;
+	ShaderRecord() = default;
+	ShaderRecord(ShaderIdentifier ShaderIdentifier)
+		: ShaderIdentifier(ShaderIdentifier)
+	{
+
+	}
+
+	ShaderIdentifier ShaderIdentifier;
 };
 
 template<typename T>

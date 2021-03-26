@@ -1,5 +1,4 @@
 #pragma once
-
 #include <winnt.h>
 #include <exception>
 #include <string>

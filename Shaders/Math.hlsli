@@ -15,15 +15,11 @@ static const float FLT_MAX = asfloat(0x7F7FFFFF);
 
 void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
 {
-	if (abs(v1.x) > abs(v1.y))
-	{
-		v2 = float3(-v1.z, 0.0f, v1.x) / sqrt(v1.x * v1.x + v1.z * v1.z);
-	}
-	else
-	{
-		v2 = float3(0.0f, v1.z, -v1.y) / sqrt(v1.y * v1.y + v1.z * v1.z);
-	}
-	v3 = cross(v1, v2);
+	float sign = (v1.z >= 0.0) * 2.0 - 1.0; //copysign(1.0f, n.z); // No HLSL support yet
+	float a = -1.0f / (sign + v1.z);
+	float b = v1.x * v1.y * a;
+	v2 = float3(1.0f + sign * v1.x * v1.x * a, sign * b, -sign * v1.x);
+	v3 = float3(b, sign + v1.y * v1.y * a, -v1.y);
 }
 
 float3 Faceforward(float3 n, float3 v)
@@ -57,52 +53,6 @@ Frame InitFrame(float3 n)
 	CoordinateSystem(frame.n, frame.s, frame.t);
 	
 	return frame;
-}
-
-struct Ray
-{
-	float3 Origin;
-	float TMin;
-	float3 Direction;
-	float TMax;
-};
-
-Ray InitRay(float3 origin, float tMin, float3 direction, float tMax)
-{
-	Ray ray;
-	ray.Origin = origin;
-	ray.TMin = tMin;
-	ray.Direction = direction;
-	ray.TMax = tMax;
-	return ray;
-}
-
-Ray InitRay(float3 origin, float3 direction)
-{
-	return InitRay(origin, 0.0f, direction, FLT_MAX);
-}
-
-struct Plane
-{
-	float3 Normal;
-	float3 PointOnPlane;
-};
-
-Plane InitPlane(float3 normal, float3 pointOnPlane)
-{
-	Plane plane;
-	plane.Normal = normal;
-	plane.PointOnPlane = pointOnPlane;
-	return plane;
-}
-
-bool RayPlaneIntersection(Ray ray, Plane plane, out float t)
-{
-    // Assuming float3s are all normalized
-	float denom = dot(plane.Normal, ray.Direction) + 1e-06;
-	float3 p0l0 = plane.PointOnPlane - ray.Origin;
-	t = dot(p0l0, plane.Normal) / denom;
-	return t > 0.0f;
 }
 
 // Sampling the Solid Angle of Area Light Sources
@@ -203,12 +153,6 @@ float3 SphericalRectangleSample(SphericalRectangle squad, float u, float v)
 
     // 4. transform (xu, yv, z0) to world coords
 	return squad.o + xu * squad.x + yv * squad.y + squad.z0 * squad.z;
-}
-
-float3 SphericalRectangleSampleSurfaceToLightVector(SphericalRectangle squad, float u, float v)
-{
-	float3 pointOnLight = SphericalRectangleSample(squad, u, v);
-	return normalize(pointOnLight - squad.o);
 }
 
 #endif // MATH_HLSLI

@@ -11,7 +11,25 @@ Camera:
   Relative Aperture: 0
   Shutter Time: 0.00800000038
   Sensor Sensitivity: 200
-Entities:
+Images:
+  []
+Meshes:
+  - Mesh: Assets\Models\BurrPuzzle.obj
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\Egg.obj
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\Ring.obj
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\Sphere.obj
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\cube.obj
+    Metadata:
+      KeepGeometryInRAM: true
+WorldBegin:
   - Entity: 17373804103804353619
     Tag:
       Name: Blue sphere
@@ -38,6 +56,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Green sphere
@@ -64,6 +86,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Red sphere
@@ -90,6 +116,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Glass sphere
@@ -116,6 +146,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Table
@@ -142,6 +176,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Floor
@@ -168,6 +206,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Metal sphere
@@ -194,6 +236,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Ring 0
@@ -220,6 +266,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Ring 1
@@ -246,6 +296,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Ring 2
@@ -272,6 +326,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Burr puzzle
@@ -298,6 +356,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Egg
@@ -324,6 +386,10 @@ Entities:
         T: [1, 1, 1]
         etaA: 1
         etaB: 1.5
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
       Name: Light0

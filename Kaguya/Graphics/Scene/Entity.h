@@ -10,12 +10,12 @@ struct Entity
 	template<typename T, typename... Args>
 	T& AddComponent(Args&&... args)
 	{
-		T& Component = pScene->Registry.emplace<T>(Handle, std::forward<Args>(args)...);
-		Component.Handle = Handle;
-		Component.pScene = pScene;
-		Component.IsEdited = true;
-		pScene->OnComponentAdded<T>(*this, Component);
-		return Component;
+		T& component = pScene->Registry.emplace<T>(Handle, std::forward<Args>(args)...);
+		component.Handle = Handle;
+		component.pScene = pScene;
+		component.IsEdited = true;
+		pScene->OnComponentAdded<T>(*this, component);
+		return component;
 	}
 
 	template<typename T>

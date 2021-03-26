@@ -2,222 +2,223 @@ Version: 1.0.0
 Scene: bedroom.yaml
 Camera:
   Transform:
-    Position: [2.76169324, 1.68582094, -3.26170206]
+    Position: [2.33704686, 1.64295959, -3.17061663]
     Scale: [1, 1, 1]
-    Orientation: [0.0694903731, -0.429098159, 0.0331321582, 0.89997232]
+    Orientation: [0.0736436173, -0.360959888, 0.0286065694, 0.929238498]
   Field of View: 0.785398185
   Clipping Planes: [0.100000001, 500]
   Focal Length: 10
   Relative Aperture: 0
   Shutter Time: 0.00800000038
   Sensor Sensitivity: 200
-Images: []
+Images:
+  []
 Meshes:
-  - Mesh: Assets\Models\bedroom\models\Mesh000.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh000.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh001.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh001.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh002.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh002.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh003.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh003.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh004.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh004.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh005.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh005.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh006.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh006.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh007.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh007.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh008.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh008.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh009.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh009.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh010.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh010.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh011.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh011.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh012.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh012.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh013.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh013.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh014.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh014.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh015.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh015.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh016.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh016.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh017.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh017.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh018.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh018.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh019.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh019.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh020.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh020.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh021.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh021.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh022.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh022.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh023.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh023.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh024.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh024.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh025.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh025.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh026.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh026.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh027.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh027.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh028.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh028.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh029.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh029.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh030.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh030.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh031.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh031.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh032.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh032.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh033.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh033.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh034.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh034.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh035.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh035.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh036.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh036.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh037.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh037.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh038.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh038.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh039.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh039.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh040.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh040.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh041.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh041.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh042.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh042.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh043.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh043.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh044.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh044.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh045.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh045.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh046.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh046.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh047.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh047.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh048.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh048.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh049.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh049.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh050.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh050.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh051.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh051.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh052.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh052.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh053.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh053.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh054.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh054.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh055.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh055.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh056.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh056.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh057.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh057.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh058.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh058.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh059.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh059.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh060.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh060.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh061.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh061.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh062.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh062.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh063.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh063.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh064.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh064.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh065.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh065.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh066.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh066.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh067.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh067.ply
     Metadata:
       KeepGeometryInRAM: true
-  - Mesh: Assets\Models\bedroom\models\Mesh068.ply
+  - Mesh: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh068.ply
     Metadata:
       KeepGeometryInRAM: true
 WorldBegin:
@@ -229,7 +230,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh068.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh068.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -259,7 +260,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh067.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh067.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -289,7 +290,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh066.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh066.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -319,7 +320,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh065.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh065.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -349,37 +350,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh064.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh062.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh062.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh064.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -409,7 +380,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh061.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh061.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -439,397 +410,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh060.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh058.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh058.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh056.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh056.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh053.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh053.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh050.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh050.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh049.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh049.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh054.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh054.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh045.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh045.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh044.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh044.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh042.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh042.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh041.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh041.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh038.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh038.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh037.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh037.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh036.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh036.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh060.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -859,37 +440,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh059.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh035.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh035.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh059.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -919,7 +470,7 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh057.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh057.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -943,1273 +494,13 @@ WorldBegin:
         Metallic: "NULL"
   - Entity: 17373804103804353619
     Tag:
-      Name: Mesh051.ply
+      Name: Mesh062.ply
     Transform:
       Position: [0, 0, 0]
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh051.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh032.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh032.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh031.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh031.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh030.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh030.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh040.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh040.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh029.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh029.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh027.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh027.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh063.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh063.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh024.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh024.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh025.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh025.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh023.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh023.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh034.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh034.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh021.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh021.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh022.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh022.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh020.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh020.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh028.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh028.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh039.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh039.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh019.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh019.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh052.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh052.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh043.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh043.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh048.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh048.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh018.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh018.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh017.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh017.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh016.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh016.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh015.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh015.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh014.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh014.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh013.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh013.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh012.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh012.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh011.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh011.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh010.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh010.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh009.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh009.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh008.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh008.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh007.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh007.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh006.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh006.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh033.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh033.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh026.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh026.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh005.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh005.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh047.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh047.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh004.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh004.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh003.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh003.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh001.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh001.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [1, 1, 1]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh002.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh002.ply
-    Mesh Renderer:
-      Material:
-        BSDFType: 3
-        baseColor: [0.483044, 0.384664, 0.301561]
-        metallic: 0
-        subsurface: 0
-        specular: 0.5
-        roughness: 0.5
-        specularTint: 0
-        anisotropic: 0
-        sheen: 0
-        sheenTint: 0.5
-        clearcoat: 0
-        clearcoatGloss: 1
-        T: [1, 1, 1]
-        etaA: 1.00027704
-        etaB: 1.50460005
-        Albedo: "NULL"
-        Normal: "NULL"
-        Roughness: "NULL"
-        Metallic: "NULL"
-  - Entity: 17373804103804353619
-    Tag:
-      Name: Mesh046.ply
-    Transform:
-      Position: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Orientation: [0, 0, 0, 1]
-    Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh046.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh062.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -2239,7 +530,1597 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh055.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh055.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh053.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh053.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh048.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh048.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh047.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh047.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh046.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh046.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh044.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh044.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh043.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh043.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh054.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh054.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh042.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh042.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh052.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh052.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh039.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh039.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh037.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh037.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh045.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh045.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh034.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh034.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh033.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh033.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh031.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh031.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh030.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh030.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh029.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh029.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh051.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh051.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh028.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh028.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh026.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh026.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh025.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh025.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh032.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh032.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh036.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh036.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh024.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh024.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh023.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh023.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh021.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh021.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh027.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh027.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh058.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh058.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh020.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh020.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh050.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh050.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh018.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh018.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh017.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh017.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh015.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh015.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh035.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh035.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh014.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh014.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh056.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh056.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh013.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh013.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh011.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh011.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh040.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh040.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh010.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh010.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh008.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh008.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh022.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh022.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh004.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh004.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh041.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh041.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh006.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh006.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh019.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh019.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh049.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh049.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh007.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh007.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh003.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh003.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh012.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh012.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh005.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh005.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh038.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh038.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh002.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh002.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
@@ -2269,7 +2150,127 @@ WorldBegin:
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0, 1]
     Mesh Filter:
-      Name: Assets\Models\bedroom\models\Mesh000.ply
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh000.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh063.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh063.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh001.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh001.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh009.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh009.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh016.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: ..\..\..\..\OneDrive\Personal Projects\Kaguya\Assets\Models\bedroom\models\Mesh016.ply
     Mesh Renderer:
       Material:
         BSDFType: 3
