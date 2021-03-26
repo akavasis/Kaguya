@@ -1,8 +1,10 @@
-# Kaguya
+Kaguya
+==========
 
 This is a hobby project using DirectX 12 and utilizing its latest features such as DirectX RayTracing (DXR). This project is inspired by Peter Shirley and his ray tracing book series: [In One Weekend, The Next Week, The Rest of Your Life](https://github.com/RayTracing/raytracing.github.io), Alan Wolfe's blog post series on [causual shadertoy path tracing](https://blog.demofox.org/2020/05/25/casual-shadertoy-path-tracing-1-basic-camera-diffuse-emissive/) and lastly [Physically Based Rendering: From Theory to Implementation](http://www.pbr-book.org/) by Matt Pharr, Wenzel Jakob, and Greg Humphreys.
 
-# Features
+Features
+--------
 
 - Stochastic path tracing
 - Bindless resource
@@ -15,7 +17,8 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - Asynchronous resource loading
 - Importance sampling of BSDFs and multiple importance sampling of lights
 
-# Goals
+Goals
+--------
 
 - Implement spectral path tracing
 - Implement anti-aliasing techniques
@@ -24,7 +27,8 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 - Implement compaction to acceleration structures
 - Upgrade from DXR 1.0 to DXR 1.1 (inline raytracing)
 
-# Build
+Build
+--------
 
 - Visual Studio 2019
 - GPU that supports DXR
@@ -38,7 +42,8 @@ to initialize the submodules.
 
 When the project is build, all the assets and required dlls will be copied to the directory of the executable. Theres a scene folder containing all the scenes for the showcase, those can be loaded in when right clicking on hierarchy and cicking on deserialize.
 
-# Bibliography
+Bibliography
+--------
 
 - 3D Game Programming with DirectX 12 Book by Frank D Luna
 - [Direct3D 12 programming guide from MSDN](https://docs.microsoft.com/en-us/windows/win32/direct3d12/directx-12-programming-guide)
@@ -48,7 +53,8 @@ When the project is build, all the assets and required dlls will be copied to th
 - Real-Time Rendering, Fourth Edition by Eric Haines, Naty Hoffman, and Tomas Möller
 - [Casual Shadertoy Path Tracing series](https://blog.demofox.org/) by Alan Wolfe
 
-# Acknowledgements
+Acknowledgements
+--------
 
 - [D3D12MemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
 - [EnTT](https://github.com/skypjack/entt)
@@ -66,7 +72,8 @@ When the project is build, all the assets and required dlls will be copied to th
 
 Thanks to Benedikt Bitterli's for [rendering resources](https://benedikt-bitterli.me/resources/)!
 
-# Showcase
+Showcase
+--------
 
 ![0](/Gallery/hyperion_swapchain.png?raw=true "hyperion_swapchain")
 ![1](/Gallery/hyperion_viewport.png?raw=true "hyperion_viewport")
