@@ -36,8 +36,7 @@ This is a hobby project using DirectX 12 and utilizing its latest features such 
 Make sure CMake is in your environmental variable path, if not using the CMake Gui should also work. Once you have cloned the repo, be sure
 to initialize the submodules.
 
-When the project is build, all the assets and required dlls will be copied to the directory of the executable, there's a couple files with the .yaml extension, those can be loaded in when right clicking on hierarchy
-and cicking on deserialize.
+When the project is build, all the assets and required dlls will be copied to the directory of the executable. Theres a scene folder containing all the scenes for the showcase, those can be loaded in when right clicking on hierarchy and cicking on deserialize.
 
 # Bibliography
 
@@ -65,17 +64,15 @@ and cicking on deserialize.
 - [nativefiledialog](https://github.com/mlabbe/nativefiledialog)
 - [WinPixEventRuntime](https://devblogs.microsoft.com/pix/winpixeventruntime)
 
+Thanks to Benedikt Bitterli's for [rendering resources](https://benedikt-bitterli.me/resources/)!
+
 # Showcase
 
-![1](/Gallery/LambertianSpheresInCornellBox.png?raw=true "LambertianSpheresInCornellBox")
-![2](/Gallery/GlossySpheresInCornellBox.png?raw=true "GlossySpheresInCornellBox")
-![3](/Gallery/TransparentSpheresOfIncreasingIoR.png?raw=true "TransparentSpheresOfIncreasingIoR")
-![4](/Gallery/Hyperion.png?raw=true "Hyperion")
-![5](/Gallery/hyperion_swapchain.png?raw=true "hyperion_swapchain")
-![6](/Gallery/hyperion_viewport.png?raw=true "hyperion_viewport")
-![7](/Gallery/bedroom_swapchain.png?raw=true "bedroom_swapchain")
-![8](/Gallery/bedroom_viewport.png?raw=true "bedroom_viewport")
-![9](/Gallery/classroom_swapchain.png?raw=true "classroom_swapchain")
-![10](/Gallery/classroom_viewport.png?raw=true "classroom_viewport")
-![11](/Gallery/livingroom_swapchain.png?raw=true "livingroom_swapchain")
-![12](/Gallery/livingroom_viewport.png?raw=true "livingroom_viewport")
+![0](/Gallery/hyperion_swapchain.png?raw=true "hyperion_swapchain")
+![1](/Gallery/hyperion_viewport.png?raw=true "hyperion_viewport")
+![2](/Gallery/bedroom_swapchain.png?raw=true "bedroom_swapchain")
+![3](/Gallery/bedroom_viewport.png?raw=true "bedroom_viewport")
+![4](/Gallery/classroom_swapchain.png?raw=true "classroom_swapchain")
+![5](/Gallery/classroom_viewport.png?raw=true "classroom_viewport")
+![6](/Gallery/livingroom_swapchain.png?raw=true "livingroom_swapchain")
+![7](/Gallery/livingroom_viewport.png?raw=true "livingroom_viewport")
