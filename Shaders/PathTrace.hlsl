@@ -245,7 +245,7 @@ void RayGeneration()
 void Miss(inout RayPayload rayPayload : SV_RayPayload)
 {
 	float t = 0.5f * (WorldRayDirection().y + 1.0f);
-	rayPayload.L += rayPayload.beta * lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
+	rayPayload.L += rayPayload.beta * lerp(float3(10, 10, 10), float3(5, 7, 10), t);
 	TerminateRay(rayPayload);
 }
 

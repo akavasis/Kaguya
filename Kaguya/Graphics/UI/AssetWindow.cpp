@@ -14,7 +14,8 @@ void AssetWindow::RenderGui()
 
 	UIWindow::Update();
 
-	bool addAllToHierarchy = false;
+	bool addAllMeshToHierarchy = false;
+
 	if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight))
 	{
 		// TODO: Write a function for this
@@ -82,9 +83,9 @@ void AssetWindow::RenderGui()
 			}
 		}
 
-		if (ImGui::Button("Add all to hierarchy"))
+		if (ImGui::Button("Add all mesh to hierarchy"))
 		{
-			addAllToHierarchy = true;
+			addAllMeshToHierarchy = true;
 		}
 
 		ImGui::EndPopup();
@@ -133,7 +134,7 @@ void AssetWindow::RenderGui()
 		auto& MeshCache = AssetManager::Instance().MeshCache;
 		ScopedWriteLock SWL(MeshCache.RWLock);
 
-		if (addAllToHierarchy)
+		if (addAllMeshToHierarchy)
 		{
 			MeshCache.Each([&](UINT64 Key, AssetHandle<Asset::Mesh> Resource)
 			{

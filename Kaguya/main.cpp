@@ -157,14 +157,14 @@ public:
 		Renderer.OnResize(Width, Height);
 	}
 private:
-	Scene				Scene;
-	Renderer			Renderer;
-
 	HierarchyWindow		HierarchyWindow;
 	ViewportWindow		ViewportWindow;
 	InspectorWindow		InspectorWindow;
 	RenderSystemWindow	RenderSystemWindow;
 	AssetWindow			AssetWindow;
+
+	Scene				Scene;
+	Renderer			Renderer;
 };
 
 int main(int argc, char* argv[])
@@ -188,23 +188,23 @@ int main(int argc, char* argv[])
 
 	RenderDevice::Instance().ShaderCompiler.SetIncludeDirectory(Application::ExecutableFolderPath / L"Shaders");
 
-	auto editor = std::make_unique<Editor>();
+	auto* editor = new Editor();
 
-	Application::Window.SetRenderFunc([&]()
+	Application::Window.SetRenderFunc([=]()
 	{
 		Application::Time.Signal();
 		editor->Render();
 	});
 
-	Application::Window.SetResizeFunc([&](UINT Width, UINT Height)
+	Application::Window.SetResizeFunc([=](UINT Width, UINT Height)
 	{
 		editor->Resize(Width, Height);
 	});
 
 	Application::Time.Restart();
-	return Application::Run([&]()
+	return Application::Run([=]()
 	{
-		editor.reset();
+		delete editor;
 
 		AssetManager::Shutdown();
 		RenderDevice::Shutdown();
