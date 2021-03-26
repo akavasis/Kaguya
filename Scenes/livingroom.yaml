@@ -1,0 +1,1192 @@
+Version: 1.0.0
+Scene: livingroom.yaml
+Camera:
+  Transform:
+    Position: [0.0249055773, 1.15596449, 4.26031733]
+    Scale: [1, 1, 1]
+    Orientation: [0.00504625356, -0.972108483, 0.0209845491, 0.233758658]
+  Field of View: 0.785398185
+  Clipping Planes: [0.100000001, 500]
+  Focal Length: 10
+  Relative Aperture: 0
+  Shutter Time: 0.00800000038
+  Sensor Sensitivity: 200
+Images:
+  - Image: Assets\Models\living-room-3\textures\Abstract.tga
+    Metadata:
+      sRGB: true
+  - Image: Assets\Models\living-room-3\textures\Fabric.tga
+    Metadata:
+      sRGB: true
+  - Image: Assets\Models\living-room-3\textures\WoodFloor.tga
+    Metadata:
+      sRGB: true
+Meshes:
+  - Mesh: Assets\Models\living-room-3\models\Mesh001.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh002.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh003.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh004.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh005.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh006.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh007.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh008.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh009.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh010.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh011.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh012.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh013.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh014.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh015.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh016.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh017.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh018.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh019.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh020.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh021.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh022.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh023.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh024.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh025.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh026.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh027.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh028.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh029.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh030.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh031.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh032.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh033.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh034.ply
+    Metadata:
+      KeepGeometryInRAM: true
+  - Mesh: Assets\Models\living-room-3\models\Mesh035.ply
+    Metadata:
+      KeepGeometryInRAM: true
+WorldBegin:
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh035.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh035.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh033.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh033.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh032.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh032.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\living-room-3\textures\Abstract.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh030.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh030.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.25
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh029.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh029.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.486896992, 0.00679899985, 0.0107559999]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh027.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh027.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh026.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh026.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.100000001, 0.100000001, 0.100000001]
+        metallic: 0
+        subsurface: 0
+        specular: 0.400000006
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh034.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh034.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.152325004, 0.0324890018, 0.0193409994]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh025.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh025.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh022.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh022.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh021.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh021.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh020.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh020.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.100000001, 0.100000001, 0.100000001]
+        metallic: 0
+        subsurface: 0
+        specular: 0.400000006
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh019.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh019.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh018.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh018.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh017.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh017.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh015.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh015.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh014.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh014.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh023.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh023.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh013.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh013.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 2
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [0.75, 0.25, 0.25]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh016.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh016.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.100000001, 0.100000001, 0.100000001]
+        metallic: 0
+        subsurface: 0
+        specular: 0.400000006
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh012.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh012.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh011.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh011.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh010.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh010.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh009.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh009.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\living-room-3\textures\Fabric.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh006.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh006.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.25
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh008.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh008.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0123460004
+        roughness: 0.25
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\living-room-3\textures\WoodFloor.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh028.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh028.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.25
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh005.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh005.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0, 0, 0]
+        metallic: 1
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.300000012
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh003.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh003.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.481952012, 0.00658500008, 0.0103979995]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh002.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh002.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0, 0, 0]
+        metallic: 1
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.300000012
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh024.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh024.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [0.100000001, 0.100000001, 0.100000001]
+        metallic: 0
+        subsurface: 0
+        specular: 0.400000006
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh004.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh004.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\living-room-3\textures\Fabric.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh031.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh031.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh001.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh001.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.0399999991
+        roughness: 0.100000001
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: "NULL"
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Mesh007.ply
+    Transform:
+      Position: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0, 1]
+    Mesh Filter:
+      Name: Assets\Models\living-room-3\models\Mesh007.ply
+    Mesh Renderer:
+      Material:
+        BSDFType: 3
+        baseColor: [1, 1, 1]
+        metallic: 0
+        subsurface: 0
+        specular: 0.5
+        roughness: 0.5
+        specularTint: 0
+        anisotropic: 0
+        sheen: 0
+        sheenTint: 0.5
+        clearcoat: 0
+        clearcoatGloss: 1
+        T: [1, 1, 1]
+        etaA: 1.00027704
+        etaB: 1.50460005
+        Albedo: Assets\Models\living-room-3\textures\Fabric.tga
+        Normal: "NULL"
+        Roughness: "NULL"
+        Metallic: "NULL"
+  - Entity: 17373804103804353619
+    Tag:
+      Name: Light
+    Transform:
+      Position: [-3.48755312, 1.12973797, 3.03019309]
+      Scale: [1, 1, 1]
+      Orientation: [-0, 0, -0, 1]
+    Light:
+      Type: 1
+      I: [2.5, 2.5, 4]
+      Width: 2.9460001
+      Height: 10.9060001
